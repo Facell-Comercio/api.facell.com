@@ -1,6 +1,6 @@
 const router = require('express').Router()
-const { getTitulos } = require('../../controller/financeiro/contas-a-pagar/titulos');
-const authMiddleware = require('../../middleware/authenticationMiddleware');
+const { getTitulos } = require('../../controllers/financeiro/contas-a-pagar/titulos');
+const authMiddleware = require('../../middlewares/authenticationMiddleware');
 
 router.get('/contas-a-pagar/lancar', authMiddleware, (req, res)=>{
     res.status(200).json([
