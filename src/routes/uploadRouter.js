@@ -24,8 +24,8 @@ router.post("/", upload.single("file"), (req, res) => {
   if (!req.file.filename) {
     res.status(500).json({ msg: "Houve algum problema ao tentar salvar o arquivo." });
   }
-  const fileUrl = process.env.BASE_URL + "/" + req.file.filename;
-  res.status(200).json({ fileUrl: fileUrl });
+  const fileName = req.file.filename;
+  res.status(200).json({ fileName: fileName });
 });
 
 router.put("/", upload.single("file"), async (req, res) => {
