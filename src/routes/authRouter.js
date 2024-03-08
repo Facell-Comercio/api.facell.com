@@ -1,0 +1,34 @@
+const router = require('express').Router()
+const {register, login, importa} = require('../controllers/authController');
+
+router.post('/register', async (req, res)=>{
+    try {
+        await register(req)
+        res.status(200).json({message: 'Sucesso!'})
+    } catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+router.post('/login', async (req, res)=>{
+    try {
+        const data = await login(req)
+        res.status(200).json(data)
+
+    } catch (error) {
+        res.status(400).json({message: error.message})
+        
+    }
+})
+
+router.post('/importa', async (req, res)=>{
+    try {
+        const data = await importa(req)
+        res.status(200).json(data)
+    } catch (error) {
+        res.status(400).json({message: error.message})
+        
+    }
+})
+
+module.exports = router;
