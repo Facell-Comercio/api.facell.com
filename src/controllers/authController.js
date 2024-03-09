@@ -46,7 +46,7 @@ async function login(req){
                 throw new Error('Preencha a senha!')
             }
 
-            const [rowUser] = await db.execute('SELECT * FROM users WHERE email = ?', [email])
+            const [rowUser] = await db.execute('SELECT u.*, p.perfil FROM users u LEFT JOIN users_perfis p ON p.id = u.id_perfil WHERE email = ?', [email])
             const user = rowUser && rowUser[0]
             
             const matchPass = await bcrypt.compare(senha, user.senha)
