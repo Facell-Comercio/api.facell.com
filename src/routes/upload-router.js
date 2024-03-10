@@ -3,7 +3,7 @@ const path = require("path");
 const multer = require("multer");
 
 const { createId: cuid } = require("@paralleldrive/cuid2");
-const { deleteFile } = require("../controllers/filesController");
+const { deleteFile } = require("../controllers/files-controller");
 require("dotenv").config();
 
 const storage = multer.diskStorage({

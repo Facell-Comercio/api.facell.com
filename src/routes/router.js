@@ -1,9 +1,9 @@
 const router = require('express').Router()
 
-const authRouter = require('./authRouter')
-const uploadRouter = require('./uploadRouter')
-const financeiroRouter = require('./financeiro/financeiroRouter')
-const grupoEconomico = require('./grupoEconomico')
+const authRouter = require('./auth-router')
+const uploadRouter = require('./upload-router')
+const financeiroRouter = require('./financeiro/financeiro-router')
+const grupoEconomico = require('./grupo-economico-router')
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')

@@ -13,7 +13,7 @@ function getTitulos(req){
         // console.log(pageIndex, pageSize, offset)
 
         // Filtros
-        var where = ` WHERE 1 `
+        var where = ` WHERE 1=1 `
         // Somente o Financeiro/Master podem ver todos
         if(user.perfil !== 'Financeiro' && user.perfil !== 'Master'){
             where = ` AND t.id_emissor = '${user.id}' `
@@ -84,6 +84,23 @@ function getTitulos(req){
     })
 }
 
+function getTitulo(req){
+    return new Promise(async(resolve, reject)=>{
+        const {id} = req.params
+        console.log(req.params, req.query)
+        try {
+            const [rowTitulo] = await db.execute(`SELECT * FROM fin_cp_titulos WHERE id = ?`, [id])
+            const titulo = rowTitulo && rowTitulo[0]
+            resolve(titulo)
+            return
+        } catch (error) {
+            reject(error)
+            return
+        }
+    })
+}
+
 module.exports = {
     getTitulos,
+    getTitulo,
 }
