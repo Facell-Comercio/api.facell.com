@@ -16,7 +16,7 @@ function getTitulos(req){
         var where = ` WHERE 1=1 `
         // Somente o Financeiro/Master podem ver todos
         if(user.perfil !== 'Financeiro' && user.perfil !== 'Master'){
-            where = ` AND t.id_emissor = '${user.id}' `
+            where = ` AND t.id_solicitante = '${user.id}' `
         }
         // console.log(filters)
         const {id, id_grupo_economico, id_status, tipo_data, range_data, descricao, nome_fornecedor, nome_user} = filters || {}
@@ -64,7 +64,7 @@ function getTitulos(req){
             LEFT JOIN 
                 fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN 
-                users u ON u.id = t.id_emissor
+                users u ON u.id = t.id_solicitante
 
             ${where}
 
@@ -76,7 +76,7 @@ function getTitulos(req){
             const [titulos] = await db.execute(query, [pageSize, offset])
             const objResponse = {rows: titulos, pageCount: Math.ceil(totalTitulos / pageSize), rowCount: totalTitulos}
             // console.log('Fetched Titulos', titulos.length)
-            // console.log(objResponse)
+            console.log(objResponse)
             resolve(objResponse)
         } catch (error) {
             reject(error)
@@ -87,10 +87,19 @@ function getTitulos(req){
 function getTitulo(req){
     return new Promise(async(resolve, reject)=>{
         const {id} = req.params
-        console.log(req.params, req.query)
+        console.log(req.params)
         try {
-            const [rowTitulo] = await db.execute(`SELECT * FROM fin_cp_titulos WHERE id = ?`, [id])
+            const [rowTitulo] = await db.execute(`
+            SELECT t.*, 
+                fo.nome as nome_fornecedor, 
+                fo.cpf_cnpj as cnpj_fornecedor
+
+            FROM fin_cp_titulos t 
+            LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
+            WHERE t.id = ?
+            `, [id])
             const titulo = rowTitulo && rowTitulo[0]
+            console.log(titulo)
             resolve(titulo)
             return
         } catch (error) {
