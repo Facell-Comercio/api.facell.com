@@ -17,7 +17,7 @@ function getAll(req){
         var where = ` WHERE 1=1 `
         // Somente o Financeiro/Master podem ver todos
         if(user.perfil !== 'Financeiro' && user.perfil !== 'Master'){
-            where = ` AND t.id_solicitante = '${user.id}' `
+            where += ` AND t.id_solicitante = '${user.id}' `
         }
         // console.log(filters)
         const {id, id_grupo_economico, id_status, tipo_data, range_data, descricao, nome_fornecedor, nome_user} = filters || {}
