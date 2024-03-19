@@ -8,8 +8,9 @@ function getAll(req){
             reject('Usuário não autenticado!')
             return false
         }
-        const {pagination: {pageIndex, pageSize}, filters} = req.query;
-        console.log(req.query, req.params)
+        const {pagination, filters} = req.query || {};
+        const {pageIndex, pageSize} = pagination || {pageIndex: 1, pageSize: 15};
+
         const offset = pageIndex > 0 ? pageSize * (pageIndex) : 0;
         // console.log(pageIndex, pageSize, offset)
 
