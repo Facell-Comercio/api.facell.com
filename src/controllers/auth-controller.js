@@ -37,6 +37,7 @@ async function register(req){
 async function login(req){
     return new Promise(async (resolve, reject)=>{
         try {
+            console.log(req.body)
             const {email, senha } = req.body;
             if(!email){
                 throw new Error('Preencha o email!')
@@ -46,38 +47,27 @@ async function login(req){
                 throw new Error('Preencha a senha!')
             }
 
-            const [rowUser] = await db.execute('SELECT u.*, p.perfil FROM users u LEFT JOIN users_perfis p ON p.id = u.id_perfil WHERE email = ?', [email])
+            const [rowUser] = await db.execute(`SELECT u.*, p.perfil FROM users u LEFT JOIN users_perfis p ON p.id = u.id_perfil WHERE email = ?`, [email])
             const user = rowUser && rowUser[0]
-            
+
+            if(!user){
+                throw new Error('Usuário ou senha inválidos!')
+            }
+           
             const matchPass = await bcrypt.compare(senha, user.senha)
             if(!matchPass){
                 throw new Error('Usuário ou senha inválidos!')
             }
-            user.senha = undefined;
-            const token = jwt.sign({user:user}, process.env.SECRET)
-
+            user.senha = '';
+            const token = jwt.sign({
+                user:user
+            }, process.env.SECRET)
+            
+            console.log(token, user)
             resolve({token, user})
         } catch (error) {
+            console.log(error)
             reject(error)
-        }
-    })
-}
-
-async function importa(req){
-    return true;
-    return new Promise(async (resolve, reject)=>{
-        const conn = await db.getConnection()
-        try {
-            await conn.beginTransaction()
-            await conn.execute(``)
-
-            await conn.commit()
-            resolve({message: 'Sucesso'})
-        } catch (error) {
-            await conn.rollback()
-            reject(error)
-        }finally{
-            await conn.release()
         }
     })
 }
@@ -85,5 +75,4 @@ async function importa(req){
 module.exports = {
     register,
     login,
-    importa,
 }

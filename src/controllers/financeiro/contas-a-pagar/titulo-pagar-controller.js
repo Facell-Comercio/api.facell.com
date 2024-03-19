@@ -1,6 +1,6 @@
 const {db} = require('../../../../mysql');
 
-function getTitulos(req){
+function getAll(req){
     return new Promise(async(resolve, reject)=>{
         const {user} = req
         // user.perfil = 'Financeiro'
@@ -8,7 +8,8 @@ function getTitulos(req){
             reject('Usuário não autenticado!')
             return false
         }
-        const {pageIndex, pageSize, filters} = req.query;
+        const {pagination: {pageIndex, pageSize}, filters} = req.query;
+        console.log(req.query, req.params)
         const offset = pageIndex > 0 ? pageSize * (pageIndex) : 0;
         // console.log(pageIndex, pageSize, offset)
 
@@ -72,11 +73,13 @@ function getTitulos(req){
                 t.created_at DESC 
             LIMIT ? OFFSET ?`;
             // console.log(query)
+            const params = [pageSize, offset]
+            // console.log(params)
+            const [titulos] = await db.execute(query, params)
 
-            const [titulos] = await db.execute(query, [pageSize, offset])
             const objResponse = {rows: titulos, pageCount: Math.ceil(totalTitulos / pageSize), rowCount: totalTitulos}
             // console.log('Fetched Titulos', titulos.length)
-            console.log(objResponse)
+            // console.log(objResponse)
             resolve(objResponse)
         } catch (error) {
             reject(error)
@@ -84,22 +87,22 @@ function getTitulos(req){
     })
 }
 
-function getTitulo(req){
+function getOne(req){
     return new Promise(async(resolve, reject)=>{
         const {id} = req.params
-        console.log(req.params)
+        // console.log(req.params)
         try {
             const [rowTitulo] = await db.execute(`
             SELECT t.*, 
                 fo.nome as nome_fornecedor, 
-                fo.cpf_cnpj as cnpj_fornecedor
+                fo.cnpj as cnpj_fornecedor
 
             FROM fin_cp_titulos t 
             LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
             WHERE t.id = ?
             `, [id])
             const titulo = rowTitulo && rowTitulo[0]
-            console.log(titulo)
+            // console.log(titulo)
             resolve(titulo)
             return
         } catch (error) {
@@ -110,6 +113,6 @@ function getTitulo(req){
 }
 
 module.exports = {
-    getTitulos,
-    getTitulo,
+    getAll,
+    getOne,
 }

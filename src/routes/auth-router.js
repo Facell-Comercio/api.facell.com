@@ -21,14 +21,4 @@ router.post('/login', async (req, res)=>{
     }
 })
 
-router.post('/importa', async (req, res)=>{
-    try {
-        const data = await importa(req)
-        res.status(200).json(data)
-    } catch (error) {
-        res.status(400).json({message: error.message})
-        
-    }
-})
-
 module.exports = router;

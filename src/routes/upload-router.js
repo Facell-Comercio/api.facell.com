@@ -19,10 +19,10 @@ const upload = multer({ storage });
 
 router.post("/", upload.single("file"), (req, res) => {
   if (!req.file) {
-    res.status(400).json({ msg: "Nenhum arquivo recebido." });
+    res.status(400).json({ message: "Nenhum arquivo recebido." });
   }
   if (!req.file.filename) {
-    res.status(500).json({ msg: "Houve algum problema ao tentar salvar o arquivo." });
+    res.status(500).json({ message: "Houve algum problema ao tentar salvar o arquivo." });
   }
   const fileName = req.file.filename;
   res.status(200).json({ fileName: fileName });
@@ -30,7 +30,7 @@ router.post("/", upload.single("file"), (req, res) => {
 
 router.put("/", upload.single("file"), async (req, res) => {
   if (!req.file) {
-    res.status(400).json({ msg: "Nenhum arquivo recebido." });
+    res.status(400).json({ message: "Nenhum arquivo recebido." });
     return;
   }
 
@@ -38,12 +38,12 @@ router.put("/", upload.single("file"), async (req, res) => {
   const oldFileName = req?.body?.oldFileName;
 
   if (!fileName) {
-    res.status(500).json({ msg: "Houve algum problema ao tentar salvar o arquivo." });
+    res.status(500).json({ message: "Houve algum problema ao tentar salvar o arquivo." });
     return;
   }
   if (!oldFileName) {
     res.status(400).json({
-      msg: "Você precisa enviar o nome do arquivo a ser substituído.",
+      message: "Você precisa enviar o nome do arquivo a ser substituído.",
     });
     return;
   }
@@ -56,20 +56,21 @@ router.put("/", upload.single("file"), async (req, res) => {
 
   try {
     await deleteFile(oldFilePath);
-    res.status(200).json({ msg: "Sucesso!", fileName: fileName });
+    res.status(200).json({ message: "Sucesso!", fileName: fileName });
   } catch (error) {
     res.status(200).json({
       erro: true,
       fileName: fileName,
-      msg: "Houve um erro ao tentar excluir o arquivo anterior no servidor, mas tudo bem. O arquivo pode já ter sido excluído.",
+      message: "Houve um erro ao tentar excluir o arquivo anterior no servidor, mas tudo bem. O arquivo pode já ter sido excluído.",
     });
   }
 });
 
 router.delete("/", async (req, res) => {
   const fileName = req?.body?.fileName;
+
   if (!fileName || fileName == "/") {
-    res.status(400).json({ msg: "Nome do arquivo não recebido" });
+    res.status(400).json({ message: "Nome do arquivo não recebido" });
     return;
   }
   //   const fileUrl = req.body?.fileUrl;
@@ -79,10 +80,10 @@ router.delete("/", async (req, res) => {
 
   try {
     await deleteFile(filePath);
-    res.status(200).json({ msg: "Sucesso!" });
+    res.status(200).json({ message: "Sucesso!" });
   } catch (error) {
     res.status(500).json({
-      msg: "Houve um erro ao tentar o arquivo no servidor, mas tudo bem. O arquivo pode já ter sido excluído.",
+      message: "Houve um erro ao tentar o arquivo no servidor, mas tudo bem. O arquivo pode já ter sido excluído.",
     });
   }
 });

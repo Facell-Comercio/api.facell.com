@@ -3,11 +3,9 @@ const { db } = require('../../mysql');
 
 router.get('/', async (req, res)=>{
     try {
-        const [grupos] = await db.execute('SELECT * FROM grupos_economicos')
-        console.log(grupos)
-        res.status(200).json(grupos)
+        const [filiais] = await db.execute('SELECT * FROM filiais')
+        res.status(200).json(filiais)
     } catch (error) {
-        console.log(error)
         res.status(400).json({message: error.message})
     }
 })
