@@ -36,7 +36,7 @@ function getAll(req){
                 ff.nome LIKE CONCAT('%', ?, '%')  OR
                 ff.razao LIKE CONCAT('%', ?, '%')  OR
                 ff.cnpj LIKE CONCAT('%', ?, '%')
-            `)
+            `, [termo, termo, termo])
             const qtdeTotal = rowTotal && rowTotal[0] && rowTotal[0]['qtde'] || 0
 
             var query = `
