@@ -31,6 +31,14 @@ function getAll(req){
         params.push(pageLength)
         params.push(offset)
         try {
+            const [rowTotal] = await db.execute(`SELECT count(id) as qtde FROM fin_fornecedores 
+            WHERE 
+                ff.nome LIKE CONCAT('%', ?, '%')  OR
+                ff.razao LIKE CONCAT('%', ?, '%')  OR
+                ff.cnpj LIKE CONCAT('%', ?, '%')
+            `)
+            const qtdeTotal = rowTotal && rowTotal[0] && rowTotal[0]['qtde'] || 0
+
             var query = `
             SELECT ff.* FROM fin_fornecedores ff
             ${where}
@@ -44,7 +52,7 @@ function getAll(req){
 
             // console.log('Fetched Titulos', titulos.length)
             // console.log(objResponse)
-            resolve(rows)
+            resolve({rows, qtdeTotal})
         } catch (error) {
             reject(error)
         }
