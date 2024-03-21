@@ -9,34 +9,38 @@ function getAll(req){
             return false
         }
         // Filtros
-        const { filters } = req.query
+        const { filters, pagination } = req.query
         const {termo} = filters || {}
-        var params = undefined
+        const {pageIndex, pageLength} = pagination || {pageIndex: 1, pageLength: 15}
+        const params = []
 
         var where = ` WHERE 1=1 `
         if(termo){
-            params = []
             params.push(termo)
             params.push(termo)
             params.push(termo)
 
             where += ` AND (
-                ff.nome LIKE CONCAT(%, ?, %)  OR
-                ff.razao LIKE CONCAT(%, ?, %)  OR
-                ff.cnpj LIKE CONCAT(%, ?, %)
+                ff.nome LIKE CONCAT('%', ?, '%')  OR
+                ff.razao LIKE CONCAT('%', ?, '%')  OR
+                ff.cnpj LIKE CONCAT('%', ?, '%')
             )`
         }
 
+        const offset = (pageIndex - 1) * pageLength
+        params.push(pageLength)
+        params.push(offset)
         try {
             var query = `
             SELECT ff.* FROM fin_fornecedores ff
             ${where}
             
+            LIMIT ? OFFSET ?
             `;
             // console.log(query)
             
             // console.log(params)
-            const [rows] = await db.execute(query)
+            const [rows] = await db.execute(query, params)
 
             // console.log('Fetched Titulos', titulos.length)
             // console.log(objResponse)
