@@ -55,7 +55,8 @@ function getAll(req){
 
             var query = `
             SELECT 
-                t.id, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor, 
+                t.id, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
+                f.nome as filial,
                 forn.nome as fornecedor, u.nome as solicitante
             FROM 
                 fin_cp_titulos t 
@@ -96,15 +97,19 @@ function getOne(req){
             const [rowTitulo] = await db.execute(`
             SELECT t.*, 
                 fo.nome as nome_fornecedor, 
-                fo.cnpj as cnpj_fornecedor
-
+                fo.cnpj as cnpj_fornecedor,
+                CONCAT(pc.codigo, ' - ', pc.descricao) as plano_contas
             FROM fin_cp_titulos t 
-            LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
+            LEFT JOIN 
+                fin_fornecedores fo ON fo.id = t.id_fornecedor
+            LEFT JOIN
+                fin_plano_contas pc ON pc.id = t.id_plano_contas
             WHERE t.id = ?
             `, [id])
+            const [itens_rateio] = await db.execute(`SELECT * FROM fin_cp_titulos_rateio WHERE id_titulo = ?`, [id])
             const titulo = rowTitulo && rowTitulo[0]
             // console.log(titulo)
-            resolve(titulo)
+            resolve({titulo, itens_rateio})
             return
         } catch (error) {
             reject(error)
