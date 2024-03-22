@@ -27,7 +27,7 @@ function getAll(req) {
             )`
         }
 
-        const offset = (pageIndex - 1) * pageSize
+        const offset = pageIndex * pageSize
         params.push(pageSize)
         params.push(offset)
         try {
