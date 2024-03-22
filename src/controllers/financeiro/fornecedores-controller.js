@@ -27,7 +27,7 @@ function getAll(req) {
             )`
         }
 
-        const offset = (pageIndex - 1) * pageSize
+        const offset = pageIndex * pageSize
         params.push(pageSize)
         params.push(offset)
         try {
@@ -45,14 +45,11 @@ function getAll(req) {
             
             LIMIT ? OFFSET ?
             `;
-            console.log(query)
 
-            console.log(params)
             const [rows] = await db.execute(query, params)
 
             // console.log('Fetched Titulos', titulos.length)
             const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
-            console.log(objResponse)
 
             resolve(objResponse)
         } catch (error) {
