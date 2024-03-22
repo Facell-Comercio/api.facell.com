@@ -27,9 +27,10 @@ function getAll(req) {
             )`
         }
 
-        const offset = (pageIndex - 1) * pageSize
+        const offset = pageIndex * pageSize
         params.push(pageSize)
         params.push(offset)
+        console.log(pageSize, offset)
         try {
             const [rowTotal] = await db.execute(`SELECT count(ff.id) as qtde FROM fin_fornecedores ff
             WHERE 
