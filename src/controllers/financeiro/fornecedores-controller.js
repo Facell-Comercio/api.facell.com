@@ -11,7 +11,7 @@ function getAll(req) {
         // Filtros
         const { filters, pagination } = req.query
         const { termo } = filters || {}
-        const { pageIndex, pageLength } = pagination || { pageIndex: 1, pageLength: 15 }
+        const { pageIndex, pageSize } = pagination || { pageIndex: 1, pageSize: 15 }
         const params = []
 
         var where = ` WHERE 1=1 `
@@ -27,8 +27,8 @@ function getAll(req) {
             )`
         }
 
-        const offset = (pageIndex - 1) * pageLength
-        params.push(pageLength)
+        const offset = (pageIndex - 1) * pageSize
+        params.push(pageSize)
         params.push(offset)
         try {
             const [rowTotal] = await db.execute(`SELECT count(ff.id) as qtde FROM fin_fornecedores ff
@@ -40,20 +40,23 @@ function getAll(req) {
             const qtdeTotal = rowTotal && rowTotal[0] && rowTotal[0]['qtde'] || 0
 
             var query = `
-            SELECT ff.* FROM fin_fornecedores ff
+            SELECT ff.id, ff.nome, ff.cnpj, ff.razao FROM fin_fornecedores ff
             ${where}
             
             LIMIT ? OFFSET ?
             `;
-            // console.log(query)
+            console.log(query)
 
-            // console.log(params)
+            console.log(params)
             const [rows] = await db.execute(query, params)
 
             // console.log('Fetched Titulos', titulos.length)
-            // console.log(objResponse)
-            resolve({ rows, qtdeTotal })
+            const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
+            console.log(objResponse)
+
+            resolve(objResponse)
         } catch (error) {
+            console.log(error);
             reject(error)
         }
     })
