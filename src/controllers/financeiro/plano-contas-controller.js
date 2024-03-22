@@ -11,20 +11,18 @@ function getAll(req) {
         // Filtros
         const { filters, pagination } = req.query
         const { pageIndex, pageLength } = pagination || { pageIndex: 1, pageLength: 15 }
-        const { id_filial, termo } = filters || {}
+        const { id_filial, termo } = filters || {id_filial: 1, termo: null}
 
         var where = ` WHERE 1=1 `
         const params = []
 
         if (id_filial) {
-            where += ` AND f.id = ?`
+            where += ` AND f.id = ? `
             params.push(id_filial)
         }
+
         if (termo) {
-            where += ` AND (
-                p.codigo LIKE CONCAT('%', ?, '%')
-                OR p.descricao LIKE CONCAT('%', ?, '%')
-            )`
+            where += ` AND (p.codigo LIKE CONCAT('%', ?, '%') OR p.descricao LIKE CONCAT('%', ?, '%') )`
             params.push(termo)
             params.push(termo)
         }
@@ -32,14 +30,18 @@ function getAll(req) {
         const offset = (pageIndex - 1) * pageLength
 
         try {
-            const [rowQtdeTotal] = await db.execute(`SELECT COUNT(id) as qtde FROM fin_plano_contas ${where} `, params)
+            const [rowQtdeTotal] = await db.execute(`SELECT 
+            COUNT(p.id) as qtde 
+            FROM fin_plano_contas p
+            INNER JOIN filiais f ON f.id_grupo_economico = p.id_grupo_economico
+             ${where} `, params)
             const qtdeTotal = rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]['qtde'] || 0;
             
             params.push(pageLength)
             params.push(offset)
             var query = `
             SELECT p.* FROM fin_plano_contas p
-            JOIN filiais f ON f.id_grupo_economico = p.id_grupo_economico
+            INNER JOIN filiais f ON f.id_grupo_economico = p.id_grupo_economico
             ${where}
             
             LIMIT ? OFFSET ?
@@ -52,6 +54,7 @@ function getAll(req) {
             // console.log('Fetched Titulos', titulos.length)
             // console.log(objResponse)
             resolve({rows, qtdeTotal})
+            console.log(rows)
         } catch (error) {
             reject(error)
         }
