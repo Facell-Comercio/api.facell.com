@@ -74,8 +74,8 @@ function getAll(req){
             ORDER BY 
                 t.created_at DESC 
             LIMIT ? OFFSET ?`;
-            // console.log(query)
             const params = [pageSize, offset]
+            // console.log(query)
             // console.log(params)
             const [titulos] = await db.execute(query, params)
 

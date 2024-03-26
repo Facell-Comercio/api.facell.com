@@ -45,14 +45,13 @@ function getAll(req) {
             
             LIMIT ? OFFSET ?
             `;
-            console.log(query)
-
-            console.log(params)
+            // console.log(query)
+            // console.log(params)
             const [rows] = await db.execute(query, params)
 
             // console.log('Fetched Titulos', titulos.length)
             const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
-            console.log(objResponse)
+            // console.log(objResponse)
 
             resolve(objResponse)
         } catch (error) {
