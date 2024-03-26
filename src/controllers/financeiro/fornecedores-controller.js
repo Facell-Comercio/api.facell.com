@@ -26,8 +26,7 @@ function getAll(req) {
                 ff.cnpj LIKE CONCAT('%', ?, '%')
             )`
         }
-
-        const offset = pageIndex * pageSize
+        
         const offset = pageIndex * pageSize
         params.push(pageSize)
         params.push(offset)
