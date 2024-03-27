@@ -11,23 +11,38 @@ function getAll(req) {
         // Filtros
         const { filters, pagination } = req.query
         const { pageIndex, pageSize } = pagination || { pageIndex: 0, pageSize: 15 }
-        const { id_filial, termo } = filters || {id_filial: 1, termo: null}
+        const { codigo, nivel, descricao, tipo, id_grupo_economico, descricao_pai, ativo} = filters || {}
+        // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
 
         var where = ` WHERE 1=1 `
         const params = []
 
-        if (id_filial) {
-            where += ` AND f.id = ? `
-            params.push(id_filial)
+        if(codigo){
+            where += ` AND p.codigo LIKE CONCAT('?','%') `
+            params.push(codigo)
+        }
+        if(descricao){
+            where += ` AND p.descricao LIKE CONCAT('?','%') `
+            params.push(descricao)
+        }
+        if(tipo){
+            where += ` AND p.tipo = ? `
+            params.push(tipo)
+        }
+        if(id_grupo_economico){
+            where += ` AND p.id_grupo_economico = ? `
+            params.push(id_grupo_economico)
+        }
+        if(descricao_pai){
+            where += ` AND p.descricao_pai LIKE CONCAT('?','%') `
+            params.push(descricao_pai)
+        }
+        if(ativo){
+            where += ` AND p.ativo = ? `
+            params.push(ativo)
         }
 
-        if (termo) {
-            where += ` AND (p.codigo LIKE CONCAT('%', ?, '%') OR p.descricao LIKE CONCAT('%', ?, '%') )`
-            params.push(termo)
-            params.push(termo)
-        }
-
-        const offset = pageIndex * pageSize
+        const offset = (pageIndex) * pageSize
 
         try {
             const [rowQtdeTotal] = await db.execute(`SELECT 
@@ -40,15 +55,17 @@ function getAll(req) {
             params.push(pageSize)
             params.push(offset)
             var query = `
-            SELECT p.* FROM fin_plano_contas p
+            SELECT p.*, gp.nome as grupo_economico FROM fin_plano_contas p
             INNER JOIN filiais f ON f.id_grupo_economico = p.id_grupo_economico
+            LEFT JOIN 
+            grupos_economicos gp ON gp.id = p.id_grupo_economico 
             ${where}
             
             LIMIT ? OFFSET ?
             `;
             // console.log(query)
 
-            // console.log(params)
+            console.log(params)
             const [rows] = await db.execute(query, params)
 
             // console.log('Fetched Titulos', titulos.size)
@@ -56,6 +73,7 @@ function getAll(req) {
             resolve({rows, qtdeTotal})
             console.log(rows)
         } catch (error) {
+            console.log(error);
             reject(error)
         }
     })
@@ -66,9 +84,11 @@ function getOne(req) {
         const { id } = req.params
         try {
             const [rowPlanoContas] = await db.execute(`
-            SELECT *
-            FROM fin_plano_contas
-            WHERE id = ?
+            SELECT p.*, gp.nome as grupo_economico FROM fin_plano_contas p
+            INNER JOIN filiais f ON f.id_grupo_economico = p.id_grupo_economico
+            LEFT JOIN 
+            grupos_economicos gp ON gp.id = p.id_grupo_economico 
+            WHERE p.id = ?
             `, [id])
             const planoContas = rowPlanoContas && rowPlanoContas[0]
             resolve(planoContas)
