@@ -88,7 +88,7 @@ async function login(req){
                 user:user
             }, process.env.SECRET)
             
-            console.log(token, user)
+            // console.log(token, user)
             resolve({token, user})
         } catch (error) {
             console.log(error)

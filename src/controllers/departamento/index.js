@@ -45,7 +45,7 @@ function getAll(req) {
 
             // console.log('Fetched departamentos', departamentos.length)
             const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
-            console.log(objResponse)
+            // console.log(objResponse)
             resolve(objResponse)
         } catch (error) {
             reject(error)

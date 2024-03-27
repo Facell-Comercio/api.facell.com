@@ -7,12 +7,16 @@ const grupoEconomico = require('./grupo-economico-router')
 const filial = require('./filial-router')
 const user = require('./user-router')
 const departamento = require('./departamento-router')
-const authMiddleware = require('../middlewares/authentication-middleware')
+const authMiddleware = require('../middlewares/auth-middleware')
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')
 // const esteiraRouter = require('./esteira/esteiraRouter')
 // const facellRouter = require('./facell/facellRouter')
+
+app.get('/', (req, res)=>{
+    res.status(200).json({msg: 'Sucesso!'})
+})
 
 app.use('/auth', authRouter)
 
@@ -30,9 +34,5 @@ app.use('/departamento', departamento)
 // app.use('/tim', timRouter)
 // app.use('/esteira', esteiraRouter)
 // app.use('/facell', facellRouter)
-
-app.get('/', (req, res)=>{
-    res.status(200).json({msg: 'Sucesso!'})
-})
 
 module.exports = router

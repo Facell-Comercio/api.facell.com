@@ -3,12 +3,6 @@ const { db } = require('../../../mysql');
 
 function getAll(req) {
     return new Promise(async (resolve, reject) => {
-        const { user } = req
-        // user.perfil = 'Financeiro'
-        if (!user) {
-            reject('Usuário não autenticado!')
-            return false
-        }
         // Filtros
         const { filters, pagination } = req.query
         const { pageIndex, pageSize } = pagination || { pageIndex: 0, pageSize: 15 }
@@ -16,6 +10,7 @@ function getAll(req) {
 
         var where = ` WHERE 1=1 `
         const params = []
+        const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
 
         if (termo) {
             where += ` AND f.termo = ?`
@@ -31,14 +26,16 @@ function getAll(req) {
              ${where} `, params)
             const qtdeTotal = rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]['qtde'] || 0;
             
-            params.push(pageSize)
-            params.push(offset)
+            if(limit){
+                params.push(pageSize)
+                params.push(offset)
+            }
             var query = `
             SELECT f.*, g.nome as grupo_economico FROM filiais f
             JOIN grupos_economicos g ON g.id = f.id_grupo_economico
             ${where}
             
-            LIMIT ? OFFSET ?
+            ${limit}
             `;
             // console.log(query)
             // console.log(params)
@@ -46,7 +43,7 @@ function getAll(req) {
 
             // console.log('Fetched users', users.length)
             const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
-            // console.log(objResponse)
+            console.log(objResponse)
             resolve(objResponse)
         } catch (error) {
             reject(error)

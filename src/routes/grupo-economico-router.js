@@ -3,7 +3,7 @@ const { getAll } = require('../controllers/grupo-economico')
 
 router.get('/', async (req, res)=>{
     try {
-        const result = await getAll()
+        const result = await getAll(req)
         res.status(200).json(result)
     } catch (error) {
         console.log(error)
