@@ -9,7 +9,7 @@ function getAll(req){
             return false
         }
         const {pagination, filters} = req.query || {};
-        const {pageIndex, pageSize} = pagination || {pageIndex: 1, pageSize: 15};
+        const {pageIndex, pageSize} = pagination || {pageIndex: 0, pageSize: 15};
 
         const offset = pageIndex > 0 ? pageSize * (pageIndex) : 0;
         // console.log(pageIndex, pageSize, offset)

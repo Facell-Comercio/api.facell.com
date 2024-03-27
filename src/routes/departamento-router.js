@@ -1,11 +1,11 @@
-const { getAll, getOne } = require('../controllers/users')
+const { getAll, getOne } = require('../controllers/departamento')
 
 const router = require('express').Router()
 
 router.get('/', async (req, res)=>{
     try {
-        const users = await getAll(req)
-        res.status(200).json(users)
+        const result = await getAll(req)
+        res.status(200).json(result)
     } catch (error) {
         res.status(400).json({message: error.message})
     }
@@ -13,8 +13,8 @@ router.get('/', async (req, res)=>{
 
 router.get('/:id', async (req, res)=>{
     try {
-        const user = await getOne(req)
-        res.status(200).json(user)
+        const result = await getOne(req)
+        res.status(200).json(result)
     } catch (error) {
         res.status(400).json({message: error.message})
     }

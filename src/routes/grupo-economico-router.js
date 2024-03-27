@@ -1,11 +1,10 @@
 const router = require('express').Router()
-const { db } = require('../../mysql');
+const { getAll } = require('../controllers/grupo-economico')
 
 router.get('/', async (req, res)=>{
     try {
-        const [grupos] = await db.execute('SELECT * FROM grupos_economicos')
-        console.log(grupos)
-        res.status(200).json(grupos)
+        const result = await getAll()
+        res.status(200).json(result)
     } catch (error) {
         console.log(error)
         res.status(400).json({message: error.message})

@@ -11,7 +11,7 @@ function getAll(req) {
         // Filtros
         const { filters, pagination } = req.query
         const { termo } = filters || {}
-        const { pageIndex, pageSize } = pagination || { pageIndex: 1, pageSize: 15 }
+        const { pageIndex, pageSize } = pagination || { pageIndex: 0, pageSize: 15 }
         const params = []
 
         var where = ` WHERE 1=1 `
