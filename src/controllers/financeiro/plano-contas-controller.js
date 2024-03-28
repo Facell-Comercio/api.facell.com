@@ -60,7 +60,7 @@ function getAll(req) {
             LEFT JOIN 
             grupos_economicos gp ON gp.id = p.id_grupo_economico 
             ${where}
-            
+            ORDER BY p.id DESC
             LIMIT ? OFFSET ?
             `;
             // console.log(query)
@@ -70,7 +70,8 @@ function getAll(req) {
 
             // console.log('Fetched Titulos', titulos.size)
             // console.log(objResponse)
-            resolve({rows, qtdeTotal})
+            const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
+            resolve(objResponse)
             console.log(rows)
         } catch (error) {
             console.log(error);
@@ -100,7 +101,79 @@ function getOne(req) {
     })
 }
 
+function insertOne(req){
+    return new Promise(async(resolve, reject)=>{
+        const {id, ...rest} = req.body
+        try {
+            if(id){
+                throw new Error('Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!')
+            }
+            let campos = ''
+            let values = ''
+            let params = []
+
+            Object.keys(rest).forEach((key, index) => {
+                if (index > 0) {
+                    campos += ', ' // Adicionar vírgula entre os campos
+                    values += ', ' // Adicionar vírgula entre os values
+                }
+                campos += `${key}`
+                //? No fornecedor-controller estava campos += "?" e não values += "?"
+                values += `?`
+                params.push(typeof rest[key] == "string" ?  (rest[key].trim()||null) : (rest[key]??null)) // Adicionar valor do campo ao array de parâmetros
+            })
+
+            const query = `INSERT INTO fin_plano_contas (${campos}) VALUES (${values});`;
+
+            await db.execute(query, params)
+            resolve({message: 'Sucesso'})
+        } catch (error) {
+            console.log(error);
+            reject(error)
+            
+        }
+    })
+}
+
+function update(req) {
+    return new Promise(async (resolve, reject) => {
+        const { id, ...rest } = req.body
+        try {
+            if (!id) {
+                throw new Error('ID não informado!')
+            }
+            const params = []
+            let updateQuery = 'UPDATE fin_plano_contas SET '
+
+            // Construir a parte da query para atualização dinâmica
+            Object.keys(rest).forEach((key, index) => {
+                if (index > 0) {
+                    updateQuery += ', ' // Adicionar vírgula entre os campos
+                }
+                updateQuery += `${key} = ? `
+                params.push(typeof rest[key] == "string" ?  (rest[key].trim()||null) : (rest[key]??null)) // Adicionar valor do campo ao array de parâmetros
+            })
+
+            params.push(id)
+
+            await db.execute(
+                updateQuery +
+                ' WHERE id = ?',
+                params
+            )
+
+            resolve({ message: 'Sucesso!' })
+        } catch (error) {
+            console.log(error);
+            reject(error)
+        }
+    })
+}
+
+
 module.exports = {
     getAll,
     getOne,
+    insertOne,
+    update
 }

@@ -41,7 +41,7 @@ function getAll(req) {
             const qtdeTotal = rowTotal && rowTotal[0] && rowTotal[0]['qtde'] || 0
 
             var query = `
-            SELECT ff.id, ff.nome, ff.cnpj, ff.razao FROM fin_fornecedores ff
+            SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.ativo FROM fin_fornecedores ff
             ${where}
             
             LIMIT ? OFFSET ?
@@ -150,6 +150,19 @@ function update(req) {
     })
 }
 
+function consultaCnpj(req){
+    return new Promise(async (resolve, reject) => {
+        const { cnpj } = req.params
+        console.log(cnpj);
+
+        fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`)
+            .then((res)=>res.json())
+            .then((data)=>{
+                 resolve(data)
+             }).catch(error => reject(error))
+    })
+}
+
 function toggleActive(req){
     return new Promise(async (resolve, reject)=>{
         const {id} = req.query
@@ -170,5 +183,6 @@ module.exports = {
     getOne,
     insertOne,
     update,
+    consultaCnpj,
     toggleActive,
 }
