@@ -1,6 +1,6 @@
 const router = require('express').Router()
 
-const { getAll, getOne, toggleActive, update, insertOne } = require('../../../controllers/financeiro/fornecedores-controller');
+const { getAll, getOne, toggleActive, update, insertOne, getFornecedorData, consultaCnpj } = require('../../../controllers/financeiro/fornecedores-controller');
 
 router.get('/', async (req, res) => {
     try {
@@ -33,6 +33,16 @@ router.post('/', async (req, res) => {
 router.put('/', async (req, res) => {
     try {
         const result = await update(req)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+    }
+})
+
+
+router.get('/consulta-cnpj/:cnpj', async (req, res)=>{
+    try {
+        const result = await consultaCnpj(req)
         res.status(200).json(result)
     } catch (error) {
         res.status(500).json({ message: error.message })
