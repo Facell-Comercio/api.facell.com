@@ -1,13 +1,11 @@
 const {db} = require('../../../../mysql');
+const { checkUserDepartment } = require('../../../helpers/checkUserDepartment');
+const { checkUserPermission } = require('../../../helpers/checkUserPermission');
 
 function getAll(req){
     return new Promise(async(resolve, reject)=>{
         const {user} = req
-        // user.perfil = 'Financeiro'
-        if(!user){
-            reject('Usuário não autenticado!')
-            return false
-        }
+
         const {pagination, filters} = req.query || {};
         const {pageIndex, pageSize} = pagination || {pageIndex: 0, pageSize: 15};
 
@@ -17,7 +15,7 @@ function getAll(req){
         // Filtros
         var where = ` WHERE 1=1 `
         // Somente o Financeiro/Master podem ver todos
-        if(user.perfil !== 'Financeiro' && user.perfil !== 'Master'){
+        if(!checkUserDepartment(req, 'FINANCEIRO') && !checkUserPermission(req, 'MASTER')){
             where += ` AND t.id_solicitante = '${user.id}' `
         }
         // console.log(filters)
