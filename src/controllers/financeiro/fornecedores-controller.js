@@ -153,13 +153,15 @@ function update(req) {
 function consultaCnpj(req){
     return new Promise(async (resolve, reject) => {
         const { cnpj } = req.params
-        console.log(cnpj);
 
         fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`)
             .then((res)=>res.json())
             .then((data)=>{
                  resolve(data)
-             }).catch(error => reject(error))
+             }).catch(error => {
+                 reject(error)
+                 console.log(error);
+             })
     })
 }
 
