@@ -41,7 +41,7 @@ function getAll(req) {
             const qtdeTotal = rowTotal && rowTotal[0] && rowTotal[0]['qtde'] || 0
 
             var query = `
-            SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.ativo FROM fin_fornecedores ff
+            SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.active FROM fin_fornecedores ff
             ${where}
             
             LIMIT ? OFFSET ?
@@ -52,7 +52,7 @@ function getAll(req) {
 
             // console.log('Fetched Titulos', titulos.length)
             const objResponse = {rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal}
-            // console.log(objResponse)
+            console.log(objResponse)
 
             resolve(objResponse)
         } catch (error) {

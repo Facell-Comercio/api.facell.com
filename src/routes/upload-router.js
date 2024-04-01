@@ -15,17 +15,43 @@ const storage = multer.diskStorage({
   },
 });
 
+const tempStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "public/temp/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${file.originalname.split(".")[0].substring(0, 30)}_${cuid()}${path.extname(file.originalname)}`);
+  },
+});
+
 const upload = multer({ storage });
+const preUpload = multer({ storage: tempStorage });
 
 router.post("/", upload.single("file"), (req, res) => {
-  if (!req.file) {
-    res.status(400).json({ message: "Nenhum arquivo recebido." });
+  try {
+    const filename = req?.file?.filename;
+    if(!filename){
+      throw new Error('Houve um problema com o upload, tente novamente.')
+    }
+    const fileUrl = process.env.BASE_URL + '/uploads/' + filename;
+    res.status(200).json({ fileUrl: fileUrl });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-  if (!req.file.filename) {
-    res.status(500).json({ message: "Houve algum problema ao tentar salvar o arquivo." });
+});
+
+router.post("/pre-upload", preUpload.single("file"), (req, res) => {
+  try {
+    const filename = req?.file?.filename;
+    if(!filename){
+      throw new Error('Houve um problema com o upload, tente novamente.')
+    }
+    const fileUrl = process.env.BASE_URL + '/temp/' + filename;
+    res.status(200).json({ fileUrl: fileUrl });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: error.message });
   }
-  const fileName = req.file.filename;
-  res.status(200).json({ fileName: fileName });
 });
 
 router.put("/", upload.single("file"), async (req, res) => {
@@ -67,16 +93,19 @@ router.put("/", upload.single("file"), async (req, res) => {
 });
 
 router.delete("/", async (req, res) => {
-  const fileName = req?.body?.fileName;
+  const originalName = req?.body?.fileName;
+  if(!originalName){
+    res.status(400).json({ message: "Nome do arquivo não recebido" });
+    return
+  }
+  const fileNameParts = originalName.split('/')
 
-  if (!fileName || fileName == "/") {
+  if (!fileNameParts || fileNameParts?.length === 0) {
     res.status(400).json({ message: "Nome do arquivo não recebido" });
     return;
   }
-  //   const fileUrl = req.body?.fileUrl;
-  //   const fileNameParts = fileUrl.split("/");
-  //   const fileName = fileNameParts[fileNameParts.length - 1];
-  const filePath = "./public/uploads/" + fileName;
+  const fileName = fileNameParts[fileNameParts.length -1]
+  const filePath = originalName.includes('temp/') ? "./public/temp/" + fileName : "./public/uploads/" + fileName;
 
   try {
     await deleteFile(filePath);

@@ -23,7 +23,7 @@ function getAll(req){
         if(id){
             where += ` AND t.id LIKE '${id}%' `
         }
-        if(id_status){
+        if(id_status && id_status !== 'all'){
             where += ` AND t.id_status LIKE '${id_status}%' `
         }
         if(descricao){
@@ -42,7 +42,7 @@ function getAll(req){
                 }
             }
         }
-        if(id_grupo_economico){
+        if(id_grupo_economico && id_grupo_economico !== 'all'){
             where += ` AND f.id_grupo_economico = '${id_grupo_economico}' `
         }
         // console.log(where)
@@ -93,11 +93,12 @@ function getOne(req){
         // console.log(req.params)
         try {
             const [rowTitulo] = await db.execute(`
-            SELECT t.*, 
+            SELECT t.*, st.status,
                 fo.nome as nome_fornecedor, 
                 fo.cnpj as cnpj_fornecedor,
                 CONCAT(pc.codigo, ' - ', pc.descricao) as plano_contas
             FROM fin_cp_titulos t 
+            INNER JOIN fin_cp_status st ON st.id = t.id_status
             LEFT JOIN 
                 fin_fornecedores fo ON fo.id = t.id_fornecedor
             LEFT JOIN
@@ -115,6 +116,7 @@ function getOne(req){
         }
     })
 }
+
 
 module.exports = {
     getAll,

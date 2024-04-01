@@ -10,7 +10,7 @@ require('./mysql')
 require('dotenv').config()
 
 // Inicia os cronjobs
-// require('./src/jobs/index')
+require('./src/jobs/index')
 
 app = express()
 app.use(express.json())
@@ -19,10 +19,10 @@ app.use(cors({
     origin: ["http://localhost:5173","http://localhost", "https://app.facell.com"],
         methods: ["GET","POST","PUT","DELETE"],
 }))
-
-app.use(express.static(path.join(__dirname, "public/")));
-app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 // const configureSocketModule = require('./src/socket/socket')
+app.use('/', express.static(path.join(__dirname, 'public'))); 
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'))); 
+app.use('/temp', express.static(path.join(__dirname, 'public', 'temp'))); 
 
 const router = require('./src/routes/router')
 app.use(router)

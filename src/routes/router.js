@@ -1,3 +1,5 @@
+const express = require('express')
+const path = require('path')
 const router = require('express').Router()
 
 const authRouter = require('./auth-router')
@@ -14,20 +16,19 @@ const authMiddleware = require('../middlewares/auth-middleware')
 // const esteiraRouter = require('./esteira/esteiraRouter')
 // const facellRouter = require('./facell/facellRouter')
 
-app.get('/', (req, res)=>{
+router.get('/', (req, res)=>{
     res.status(200).json({msg: 'Sucesso!'})
 })
+router.use('/auth', authRouter)
 
-app.use('/auth', authRouter)
+router.use('/',authMiddleware)
 
-app.use(authMiddleware)
-
-app.use('/upload', uploadRouter)
-app.use('/financeiro', financeiroRouter)
-app.use('/grupo-economico', grupoEconomico)
-app.use('/filial', filial)
-app.use('/user', user)
-app.use('/departamento', departamento)
+router.use('/upload', uploadRouter)
+router.use('/financeiro', financeiroRouter)
+router.use('/grupo-economico', grupoEconomico)
+router.use('/filial', filial)
+router.use('/user', user)
+router.use('/departamento', departamento)
 
 // app.use('/datasys', datasysRouter)
 // app.use('/comissao-tim', timRouter)
