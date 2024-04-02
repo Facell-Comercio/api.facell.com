@@ -18,11 +18,10 @@ function getAll(req) {
     const {
       id_filial,
       id_tipo_conta,
-      id_banco,
-      agencia,
-      conta,
+      banco,
+      id_grupo_economico,
       descricao,
-      ativo,
+      active,
     } = filters || {};
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
     console.log(filters);
@@ -33,13 +32,26 @@ function getAll(req) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
     }
+    if (id_tipo_conta) {
+      where += ` AND cb.id_tipo_conta = ? `;
+      params.push(id_tipo_conta);
+    }
+    if (banco) {
+      if (+banco) where += ` AND fb.codigo_banco = ? `;
+      else where += ` AND fb.nome_banco LIKE CONCAT('%',?,'%') `;
+      params.push(banco);
+    }
+    if (id_grupo_economico) {
+      where += ` AND ge.id = ? `;
+      params.push(id_grupo_economico);
+    }
     if (descricao) {
-      where += ` AND cb.descricao LIKE CONCAT(?,'%') `;
+      where += ` AND cb.descricao LIKE CONCAT('%',?,'%') `;
       params.push(descricao);
     }
-    if (ativo) {
+    if (active) {
       where += ` AND cb.active = ? `;
-      params.push(ativo);
+      params.push(active);
     }
 
     const offset = pageIndex * pageSize;
@@ -49,9 +61,10 @@ function getAll(req) {
         `SELECT 
             COUNT(cb.id) as qtde 
             FROM fin_contas_bancarias cb
-            LEFT JOIN filiais ff ON ff.id = cb.id_filial
+            LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
             LEFT JOIN fin_tipos_contas ftc ON ftc.id = cb.id_tipo_conta
+            LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
              ${where} `,
         params
       );
@@ -61,10 +74,12 @@ function getAll(req) {
       params.push(pageSize);
       params.push(offset);
       var query = `
-            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.conta, cb.descricao, ff.nome as filial, fb.nome_banco as banco, ftc.tipo as tipo, cb.active FROM fin_contas_bancarias cb
-            LEFT JOIN filiais ff ON ff.id = cb.id_filial
+            SELECT cb.id, cb.descricao, f.nome as filial, ge.nome, fb.nome_banco as banco, ge.nome as grupo_economico, ftc.tipo as tipo_conta, cb.active 
+            FROM fin_contas_bancarias cb
+            LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
             LEFT JOIN fin_tipos_contas ftc ON ftc.id = cb.id_tipo_conta
+            LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
             ${where}
             ORDER BY cb.id DESC
             LIMIT ? OFFSET ?
@@ -72,6 +87,7 @@ function getAll(req) {
 
       // console.log(query)
       // console.log(params)
+      console.log("TESTE");
       const [rows] = await db.execute(query, params);
 
       // console.log('Fetched Titulos', titulos.size)
@@ -96,10 +112,12 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await db.execute(
         `
-            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.conta, cb.descricao, ff.nome as filial, fb.nome_banco as banco, ftc.tipo as tipo, cb.active FROM fin_contas_bancarias cb
-            LEFT JOIN filiais ff ON ff.id = cb.id_filial
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, ge.nome as grupo_economico, fb.nome_banco as banco, ftc.tipo as tipo_conta, cb.active 
+            FROM fin_contas_bancarias cb
+            LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
             LEFT JOIN fin_tipos_contas ftc ON ftc.id = cb.id_tipo_conta 
+            LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
             WHERE cb.id = ?
             `,
         [id]
