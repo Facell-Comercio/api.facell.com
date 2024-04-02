@@ -5,8 +5,9 @@ const {
   getOne,
   insertOne,
   update,
-} = require("../../../controllers/financeiro/centro-custos-controller");
+} = require("../../../controllers/financeiro/contas-bancarias-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
+const checkUserDepartment = require("../../../middlewares/derpartment-middleware");
 
 router.get("/", async (req, res) => {
   try {

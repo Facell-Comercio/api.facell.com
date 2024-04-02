@@ -16,53 +16,30 @@ function getAll(req) {
       pageSize: 15,
     };
     const {
-      codigo,
-      nivel,
-      descricao,
-      tipo,
-      id_grupo_economico,
-      descricao_pai,
-      active,
-      termo,
       id_filial,
+      id_tipo_conta,
+      id_banco,
+      agencia,
+      conta,
+      descricao,
+      ativo,
     } = filters || {};
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
     console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
-    if (termo) {
-      where += ` AND (pc.codigo LIKE CONCAT(?,'%') OR pc.descricao LIKE CONCAT('%',?,'%')) `;
-      params.push(termo);
-      params.push(termo);
-    }
     if (id_filial) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
     }
-    if (codigo) {
-      where += ` AND pc.codigo LIKE CONCAT(?,'%') `;
-      params.push(codigo);
-    }
     if (descricao) {
-      where += ` AND pc.descricao LIKE CONCAT(?,'%') `;
+      where += ` AND cb.descricao LIKE CONCAT(?,'%') `;
       params.push(descricao);
     }
-    if (tipo) {
-      where += ` AND pc.tipo = ? `;
-      params.push(tipo);
-    }
-    if (id_grupo_economico) {
-      where += ` AND pc.id_grupo_economico = ? `;
-      params.push(id_grupo_economico);
-    }
-    if (descricao_pai) {
-      where += ` AND pc.descricao_pai LIKE CONCAT(?,'%') `;
-      params.push(descricao_pai);
-    }
-    if (active) {
-      where += ` AND pc.active = ? `;
-      params.push(active);
+    if (ativo) {
+      where += ` AND cb.active = ? `;
+      params.push(ativo);
     }
 
     const offset = pageIndex * pageSize;
@@ -70,9 +47,11 @@ function getAll(req) {
     try {
       const [rowQtdeTotal] = await db.execute(
         `SELECT 
-            COUNT(pc.id) as qtde 
-            FROM fin_plano_contas pc
-            INNER JOIN filiais f ON f.id_grupo_economico = pc.id_grupo_economico
+            COUNT(cb.id) as qtde 
+            FROM fin_contas_bancarias cb
+            LEFT JOIN filiais ff ON ff.id = cb.id_filial
+            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+            LEFT JOIN fin_tipos_contas ftc ON ftc.id = cb.id_tipo_conta
              ${where} `,
         params
       );
@@ -82,12 +61,12 @@ function getAll(req) {
       params.push(pageSize);
       params.push(offset);
       var query = `
-            SELECT pc.*, gp.nome as grupo_economico FROM fin_plano_contas pc
-            LEFT JOIN filiais f ON pc.id_grupo_economico = f.id_grupo_economico
-            LEFT JOIN 
-            grupos_economicos gp ON f.id_grupo_economico = gp.id
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.conta, cb.descricao, ff.nome as filial, fb.nome_banco as banco, ftc.tipo as tipo, cb.active FROM fin_contas_bancarias cb
+            LEFT JOIN filiais ff ON ff.id = cb.id_filial
+            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+            LEFT JOIN fin_tipos_contas ftc ON ftc.id = cb.id_tipo_conta
             ${where}
-            ORDER BY pc.id DESC
+            ORDER BY cb.id DESC
             LIMIT ? OFFSET ?
             `;
 
@@ -117,11 +96,11 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await db.execute(
         `
-            SELECT pc.*, gp.nome as grupo_economico FROM fin_plano_contas pc
-            INNER JOIN filiais f ON f.id_grupo_economico = pc.id_grupo_economico
-            LEFT JOIN 
-            grupos_economicos gp ON gp.id = pc.id_grupo_economico 
-            WHERE pc.id = ?
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.conta, cb.descricao, ff.nome as filial, fb.nome_banco as banco, ftc.tipo as tipo, cb.active FROM fin_contas_bancarias cb
+            LEFT JOIN filiais ff ON ff.id = cb.id_filial
+            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+            LEFT JOIN fin_tipos_contas ftc ON ftc.id = cb.id_tipo_conta 
+            WHERE cb.id = ?
             `,
         [id]
       );
@@ -154,7 +133,6 @@ function insertOne(req) {
           values += ", "; // Adicionar vírgula entre os values
         }
         campos += `${key}`;
-        //? No fornecedor-controller estava campos += "?" e não values += "?"
         values += `?`;
         params.push(
           typeof rest[key] == "string"
@@ -163,7 +141,7 @@ function insertOne(req) {
         ); // Adicionar valor do campo ao array de parâmetros
       });
 
-      const query = `INSERT INTO fin_plano_contas (${campos}) VALUES (${values});`;
+      const query = `INSERT INTO fin_contas_bancarias (${campos}) VALUES (${values});`;
 
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
@@ -182,7 +160,7 @@ function update(req) {
         throw new Error("ID não informado!");
       }
       const params = [];
-      let updateQuery = "UPDATE fin_plano_contas SET ";
+      let updateQuery = "UPDATE fin_contas_bancarias SET ";
 
       // Construir a parte da query para atualização dinâmica
       Object.keys(rest).forEach((key, index) => {

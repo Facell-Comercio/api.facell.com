@@ -3,9 +3,9 @@ const router = require("express").Router();
 const {
   getAll,
   getOne,
-  insertOne,
   update,
-} = require("../../../controllers/financeiro/centro-custos-controller");
+  insertOne,
+} = require("../../../controllers/financeiro/bancos-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
 router.get("/", async (req, res) => {
@@ -13,6 +13,7 @@ router.get("/", async (req, res) => {
     const result = await getAll(req);
     res.status(200).json(result);
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -25,6 +26,7 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 router.post(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -38,6 +40,7 @@ router.post(
     }
   }
 );
+
 router.put(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -46,7 +49,6 @@ router.put(
       const result = await update(req);
       res.status(200).json(result);
     } catch (error) {
-      console.log(error);
       res.status(500).json({ message: error.message });
     }
   }
