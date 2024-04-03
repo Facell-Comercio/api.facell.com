@@ -37,8 +37,8 @@ function getAll(req) {
       params.push(id_tipo_conta);
     }
     if (banco) {
-      if (+banco) where += ` AND fb.codigo_banco = ? `;
-      else where += ` AND fb.nome_banco LIKE CONCAT('%',?,'%') `;
+      if (+banco) where += ` AND fb.codigo = ? `;
+      else where += ` AND fb.nome LIKE CONCAT('%',?,'%') `;
       params.push(banco);
     }
     if (id_grupo_economico) {
@@ -74,7 +74,7 @@ function getAll(req) {
       params.push(pageSize);
       params.push(offset);
       var query = `
-            SELECT cb.id, cb.descricao, f.nome as filial, ge.nome, fb.nome_banco as banco, ge.nome as grupo_economico, ftc.tipo as tipo_conta, cb.active 
+            SELECT cb.id, cb.descricao, f.nome as filial, ge.nome, fb.nome as banco, ge.nome as grupo_economico, ftc.tipo as tipo_conta, cb.active 
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -112,7 +112,7 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await db.execute(
         `
-            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, ge.nome as grupo_economico, fb.nome_banco as banco, ftc.tipo as tipo_conta, cb.active 
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco

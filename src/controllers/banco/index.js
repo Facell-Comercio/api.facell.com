@@ -12,6 +12,7 @@ function getAll(req) {
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
+      //   Coloquei esse pageSize pq queria usar no SelectBanco
       pageSize: 200,
     };
     const { termo } = filters || { termo: null };

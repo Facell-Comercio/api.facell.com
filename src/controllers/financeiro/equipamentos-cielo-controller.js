@@ -1,4 +1,5 @@
 const { db } = require("../../../mysql");
+const { param } = require("../../routes/financeiro/centro-custos");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -10,46 +11,63 @@ function getAll(req) {
     }
     // Filtros
     const { filters, pagination } = req.query;
-    const { termo } = filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
     };
+    const { estabelecimento, num_maquina, id_filial, active } = filters || {};
+
+    console.log(filters);
     const params = [];
+    var where = ` WHERE 1=1 `;
 
-    let where = ` WHERE 1=1 `;
-    if (termo) {
-      params.push(termo);
-      params.push(termo);
+    if (id_filial) {
+      where += ` AND fe.id_filial = ? `;
+      params.push(id_filial);
+    }
 
-      where += ` AND (
-                fb.nome LIKE CONCAT('%', ?, '%')  OR
-                fb.codigo LIKE CONCAT('%', ?, '%')
-            )`;
+    if (estabelecimento) {
+      where += ` AND fe.estabelecimento LIKE CONCAT(?,'%') `;
+      params.push(estabelecimento);
+    }
+
+    if (num_maquina) {
+      where += ` AND fe.num_maquina LIKE CONCAT(?,'%') `;
+      params.push(num_maquina);
+    }
+
+    if (active) {
+      where += ` AND fe.active = ? `;
+      params.push(active);
     }
 
     const offset = pageIndex * pageSize;
-    params.push(pageSize);
-    params.push(offset);
+
     // console.log(pageSize, offset);
+    // console.log(params);
     try {
       const [rowTotal] = await db.execute(
-        `SELECT count(fb.id) as qtde FROM fin_bancos fb
-            WHERE 
-              fb.nome LIKE CONCAT('%', ?, '%')  OR
-              fb.codigo LIKE CONCAT('%', ?, '%')
+        `SELECT 
+          COUNT(fe.id) as qtde 
+          FROM fin_equipamentos_cielo as fe
+          LEFT JOIN filiais as f ON fe.id_filial = f.id
+          ${where}
             `,
-        [termo, termo]
+        params
       );
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
 
-      let query = `
-            SELECT * FROM fin_bancos fb
+      params.push(pageSize);
+      params.push(offset);
+
+      var query = `
+            SELECT fe.*, f.apelido as filial FROM fin_equipamentos_cielo fe
+            LEFT JOIN filiais f ON fe.id_filial = f.id
             ${where}
             
             LIMIT ? OFFSET ?
             `;
-      // console.log(query);
+      // console.log(query)
       // console.log(params);
       const [rows] = await db.execute(query, params);
 
@@ -76,7 +94,7 @@ function getOne(req) {
       const [rowFornecedor] = await db.execute(
         `
             SELECT *
-            FROM fin_bancos
+            FROM fin_equipamentos_cielo fe
             WHERE id = ?
             `,
         [id]
@@ -115,7 +133,8 @@ function insertOne(req) {
         params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
       });
 
-      const query = `INSERT INTO fin_bancos (${campos}) VALUES (${values});`;
+      const query = `INSERT INTO fin_equipamentos_cielo (${campos}) VALUES (${values});`;
+      console.log(query);
 
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
@@ -133,14 +152,14 @@ function update(req) {
         throw new Error("ID não informado!");
       }
       const params = [];
-      let updateQuery = "UPDATE fin_bancos SET ";
+      let updateQuery = "UPDATE fin_equipamentos_cielo SET ";
 
       // Construir a parte da query para atualização dinâmica
       Object.keys(rest).forEach((key, index) => {
         if (index > 0) {
           updateQuery += ", "; // Adicionar vírgula entre os campos
         }
-        updateQuery += `${key} = ? `;
+        updateQuery += `${key} = ?`;
         params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
       });
 
@@ -148,8 +167,8 @@ function update(req) {
 
       await db.execute(
         updateQuery +
-          `WHERE id = ?
-            `,
+          ` WHERE id = ?
+        `,
         params
       );
 
@@ -162,9 +181,45 @@ function update(req) {
   });
 }
 
+function consultaCnpj(req) {
+  return new Promise(async (resolve, reject) => {
+    const { cnpj } = req.params;
+
+    fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`)
+      .then((res) => res.json())
+      .then((data) => {
+        resolve(data);
+      })
+      .catch((error) => {
+        reject(error);
+        console.log(error);
+      });
+  });
+}
+
+function toggleActive(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.query;
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+      await db.execute(
+        `UPDATE fin_equipamentos_cielo SET active = NOT active WHERE id = ?`,
+        [id]
+      );
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
   insertOne,
   update,
+  consultaCnpj,
+  toggleActive,
 };
