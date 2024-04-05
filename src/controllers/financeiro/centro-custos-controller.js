@@ -55,6 +55,7 @@ function getAll(req) {
             LEFT JOIN 
             grupos_economicos gp ON gp.id = cc.id_grupo_economico 
             ${where}
+            ORDER BY cc.id DESC
             LIMIT ? OFFSET ?
             `;
 

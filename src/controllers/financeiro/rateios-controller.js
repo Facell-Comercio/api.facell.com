@@ -58,6 +58,7 @@ function getAll(req) {
             SELECT fr.id, fr.id_grupo_economico, fr.nome, fr.codigo, fr.active, ge.label as grupo_economico FROM fin_rateio fr
             LEFT JOIN grupos_economicos ge ON fr.id_grupo_economico = ge.id
             ${where}
+            ORDER BY fr.id DESC
             LIMIT ? OFFSET ?
             `;
 

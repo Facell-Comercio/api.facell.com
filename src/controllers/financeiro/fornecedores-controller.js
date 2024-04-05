@@ -49,7 +49,7 @@ function getAll(req) {
       var query = `
             SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.active FROM fin_fornecedores ff
             ${where}
-            
+            ORDER BY ff.id DESC
             LIMIT ? OFFSET ?
             `;
       // console.log(query)

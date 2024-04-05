@@ -63,7 +63,7 @@ function getAll(req) {
             SELECT fe.*, f.apelido as filial FROM fin_equipamentos_cielo fe
             LEFT JOIN filiais f ON fe.id_filial = f.id
             ${where}
-            
+            ORDER BY fe.id DESC
             LIMIT ? OFFSET ?
             `;
       // console.log(query)

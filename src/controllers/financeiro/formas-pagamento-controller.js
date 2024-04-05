@@ -10,7 +10,7 @@ function getAll(req) {
         }
 
         try {
-            var query = `SELECT ffp.id, ffp.forma_pagamento FROM fin_formas_pagamento ffp`;
+            var query = `SELECT ffp.id, ffp.forma_pagamento FROM fin_formas_pagamento ffp ORDER BY ffp.id DESC`;
             // console.log(query)
             // console.log(params)
             const [rows] = await db.execute(query)
