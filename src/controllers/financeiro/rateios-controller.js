@@ -1,5 +1,4 @@
 const { db } = require("../../../mysql");
-const { param } = require("../../routes/financeiro/plano-contas");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
