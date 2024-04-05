@@ -124,36 +124,51 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { active, id_grupo_economico, nome, codigo, manual, itens } =
+      req.body;
+    console.log(req.body);
+    const conn = await db.getConnection();
     try {
-      if (id) {
-        throw new Error(
-          "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
-        );
+      if (!id_grupo_economico) {
+        throw new Error("ID_GRUPO_ECONOMICO não informado!");
       }
-      let campos = "";
-      let values = "";
-      let params = [];
+      if (!nome) {
+        throw new Error("NOME não informado!");
+      }
+      if (!codigo) {
+        throw new Error("CODIGO não informado!");
+      }
+      if (!manual && !itens?.length) {
+        throw new Error("ITENS não informados!");
+      }
+      if (manual === undefined) {
+        throw new Error("MANUAL não informado!");
+      }
+      await conn.beginTransaction();
 
-      Object.keys(rest).forEach((key, index) => {
-        if (index > 0) {
-          campos += ", "; // Adicionar vírgula entre os campos
-          values += ", "; // Adicionar vírgula entre os values
-        }
-        campos += `${key}`;
-        //? No fornecedor-controller estava campos += "?" e não values += "?"
-        values += `?`;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
-      });
+      // TODO Update do rateio
+      const [result] = await conn.execute(
+        `INSERT INTO fin_rateio (id_grupo_economico, nome, codigo, manual, active) VALUES (?,?,?,?,?)`,
+        [id_grupo_economico, nome, codigo, manual, active]
+      );
 
-      const query = `INSERT INTO fin_rateio (${campos}) VALUES (${values});`;
+      const newId = result.insertId;
+      if (!newId) {
+        throw new Error("Falha ao inserir o rateio!");
+      }
 
-      await db.execute(query, params);
-      resolve({ message: "Sucesso" });
+      // TODO Inserir os itens
+      if (!manual) {
+        itens.forEach(async ({ id_filial, percentual }) => {
+          await conn.execute(
+            `INSERT INTO fin_rateio_itens (id_rateio, id_filial, percentual) VALUES(?,?,?)`,
+            [newId, id_filial, percentual]
+          );
+        });
+      }
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log(error);
       reject(error);
@@ -165,7 +180,7 @@ function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, active, id_grupo_economico, nome, codigo, manual, itens } =
       req.body;
-    console.log(req.body);
+    console.log("REQ.BODY", req.body);
     const conn = await db.getConnection();
     try {
       if (!id) {
