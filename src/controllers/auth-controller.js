@@ -85,7 +85,8 @@ async function login(req){
             user.permissoes = permissoes
 
             const token = jwt.sign({
-                user:user
+                user:user,
+                exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) //token válido por 7 dias
             }, process.env.SECRET)
             
             // console.log(token, user)
