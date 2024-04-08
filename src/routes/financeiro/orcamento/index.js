@@ -6,22 +6,50 @@ const {
   update,
   insertOne,
   getMyBudget,
+  transfer,
+  getMyBudgets,
 } = require("../../../controllers/financeiro/orcamento-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
-router.get("/", async (req, res) => {
+router.get(
+  "/my-budget",
+  // checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getMyBudgets(req);
+      res.status(200).json(result);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.get("/my-budget/:id", async (req, res) => {
   try {
-    const result = await getAll(req);
+    const result = await getMyBudget(req);
     res.status(200).json(result);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ message: error.message });
   }
 });
 
-router.get("/my-budget", async (req, res) => {
+router.put(
+  "/my-budget",
+  // checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await transfer(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.get("/", async (req, res) => {
   try {
-    const result = await getMyBudget(req);
+    const result = await getAll(req);
     res.status(200).json(result);
   } catch (error) {
     console.log(error);

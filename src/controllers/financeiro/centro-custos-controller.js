@@ -18,7 +18,7 @@ function getAll(req) {
     console.log(filters);
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
 
-    var where = ` WHERE 1=1 `;
+    let where = ` WHERE 1=1 `;
     const params = [];
 
     if (nome) {
@@ -48,15 +48,19 @@ function getAll(req) {
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
-      params.push(pageSize);
-      params.push(offset);
+      const limit = pagination ? " LIMIT ? OFFSET ? " : "";
+      if (limit) {
+        params.push(pageSize);
+        params.push(offset);
+      }
+
       var query = `
             SELECT cc.*, gp.nome as grupo_economico FROM fin_centros_custo as cc
             LEFT JOIN 
             grupos_economicos gp ON gp.id = cc.id_grupo_economico 
             ${where}
             ORDER BY cc.id DESC
-            LIMIT ? OFFSET ?
+            ${limit}
             `;
 
       console.log(params);
