@@ -54,7 +54,7 @@ function getAll(req) {
       params.push(offset);
       // console.log(params);
       var query = `
-            SELECT fr.id, fr.id_grupo_economico, fr.nome, fr.codigo, fr.active, ge.label as grupo_economico FROM fin_rateio fr
+            SELECT fr.id, fr.id_grupo_economico, fr.nome, fr.codigo, fr.active, ge.apelido as grupo_economico FROM fin_rateio fr
             LEFT JOIN grupos_economicos ge ON fr.id_grupo_economico = ge.id
             ${where}
             ORDER BY fr.id DESC
@@ -75,7 +75,6 @@ function getAll(req) {
       resolve(objResponse);
       // console.log(objResponse)
     } catch (error) {
-      console.log(error);
       reject(error);
     }
   });
@@ -169,7 +168,7 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_RATEIO_INSERT_ONE",error);
       reject(error);
     }
   });
@@ -224,7 +223,7 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_RATEIO_UPDATE",error);
       conn.rollback();
       reject(error);
     }

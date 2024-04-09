@@ -13,7 +13,6 @@ router.get('/', async (req, res)=>{
 
 router.get('/:id', async (req, res)=>{
     try {
-        console.log('Fetch')
         const result = await getOne(req)
         res.status(200).json(result)
     } catch (error) {

@@ -23,7 +23,7 @@ function getAll(req) {
       active,
     } = filters || {};
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
-    console.log(filters);
+    // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
@@ -86,7 +86,6 @@ function getAll(req) {
 
       // console.log(query)
       // console.log(params)
-      console.log("TESTE");
       const [rows] = await db.execute(query, params);
 
       // console.log('Fetched Titulos', titulos.size)
@@ -99,7 +98,6 @@ function getAll(req) {
       resolve(objResponse);
       // console.log(objResponse)
     } catch (error) {
-      console.log(error);
       reject(error);
     }
   });
@@ -163,7 +161,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_CONTAS_BANCARIAS_INSERT",error);
       reject(error);
     }
   });
@@ -198,7 +196,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_CONTAS_BANCARIAS_UPDATE",error);
       reject(error);
     }
   });

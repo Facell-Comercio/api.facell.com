@@ -49,7 +49,6 @@ router.post("/pre-upload", preUpload.single("file"), (req, res) => {
     const fileUrl = process.env.BASE_URL + '/temp/' + filename;
     res.status(200).json({ fileUrl: fileUrl });
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: error.message });
   }
 });

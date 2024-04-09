@@ -16,7 +16,7 @@ function getAll(req) {
     };
     const { estabelecimento, num_maquina, id_filial, active } = filters || {};
 
-    console.log(filters);
+    // console.log(filters);
     const params = [];
     var where = ` WHERE 1=1 `;
 
@@ -80,7 +80,6 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.log(error);
       reject(error);
     }
   });
@@ -133,7 +132,7 @@ function insertOne(req) {
       });
 
       const query = `INSERT INTO fin_equipamentos_cielo (${campos}) VALUES (${values});`;
-      console.log(query);
+      // console.log(query);
 
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
@@ -191,7 +190,6 @@ function consultaCnpj(req) {
       })
       .catch((error) => {
         reject(error);
-        console.log(error);
       });
   });
 }

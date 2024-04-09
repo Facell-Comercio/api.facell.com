@@ -16,7 +16,7 @@ async function zipFiles({fileNames}){
     return new Promise(async()=>{
         try {
             // todo passar pelos filenames, gerando os pathnames e anexando com jsZip
-            const zip = 
+            const zip = ""
             resolve(zip)
         } catch (error) {
             rejects(error)
@@ -47,8 +47,6 @@ async function clearTempFolder(){
                     console.error('Erro ao excluir o arquivo:', err);
                     return;
                 }
-
-                console.log('Arquivo excluído:', arquivo);
             });
         });
     });

@@ -15,7 +15,7 @@ function getAll(req) {
       pageSize: 15,
     };
     const { nome, id_grupo_economico, ativo } = filters || {};
-    console.log(filters);
+    // console.log(filters);
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
 
     let where = ` WHERE 1=1 `;
@@ -63,7 +63,7 @@ function getAll(req) {
             ${limit}
             `;
 
-      console.log(params);
+      // console.log(params);
       const [rows] = await db.execute(query, params);
 
       const objResponse = {
@@ -72,9 +72,8 @@ function getAll(req) {
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      console.log(query, params);
+      // console.log(query, params);
     } catch (error) {
-      console.log(error);
       reject(error);
     }
   });
@@ -135,7 +134,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_CENTRO_CUSTO_INSERT",error);
       reject(error);
     }
   });
@@ -170,7 +169,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_CENTRO_CUSTO_UPDATE",error);
       reject(error);
     }
   });

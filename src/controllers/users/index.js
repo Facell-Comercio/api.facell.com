@@ -1,6 +1,6 @@
 
-const { x } = require('pdfkit');
 const { db } = require('../../../mysql');
+const { v4: uuidv4 } = require('uuid');
 const { urlContemTemp, moverArquivoTempParaUploads } = require('../files-controller');
 
 function getAll(req) {
@@ -41,14 +41,14 @@ function getAll(req) {
             
             LIMIT ? OFFSET ?
             `;
-            console.log(query)
-
-            console.log(params)
+            
+            // console.log(query)
+            // console.log(params)
             const [rows] = await db.execute(query, params)
 
             // console.log('Fetched users', users.length)
             const objResponse = { rows: rows, pageCount: Math.ceil(qtdeTotal / pageSize), rowCount: qtdeTotal }
-            console.log(objResponse)
+            // console.log(objResponse)
             resolve(objResponse)
         } catch (error) {
             reject(error)
@@ -103,11 +103,10 @@ function getOne(req) {
                 filiais,
                 centros_custo
             }
-            console.log(objUser)
+            // console.log(objUser)
             resolve(objUser)
             return
         } catch (error) {
-            console.log(error)
             reject(error)
             return
         }
@@ -128,7 +127,7 @@ function update(req) {
             updatePermissoes,
             
         } = req.body;
-        console.log(req.body)
+        // console.log(req.body)
 
         const conn = await db.getConnection();
         try {
@@ -148,7 +147,6 @@ function update(req) {
             
             var newImgUrl = img_url;
             if(isImgTemp){
-                console.log('Imagem era TEMP, então tentei mover...')
                 // Persistir imagem
                 const urlImgPersistida = await moverArquivoTempParaUploads(img_url)
                 newImgUrl = urlImgPersistida
@@ -192,39 +190,95 @@ function update(req) {
             resolve({message: 'Sucesso!'})
         } catch (error) {
             await conn.rollback()
-            console.log('ERRO_USERS_UPDATE', error)
+            console.log('ERRO_USER_UPDATE', error)
             reject(error)
         }
     })
 }
 
-function remove(req) {
+function insertOne(req) {
     return new Promise(async (resolve, reject) => {
+        const { 
+            id, nome, email, active, img_url,
+            filiais, 
+            updateFiliais,
+            departamentos,
+            updateDepartamentos, 
+            centros_custo ,
+            updateCentrosCusto,
+            permissoes, 
+            updatePermissoes,
+            
+        } = req.body;
+        // console.log(req.body)
 
+        const conn = await db.getConnection();
         try {
+            if (!id) {
+                throw new Error('ID do usuário não enviado!')
+            }
+            if (!nome) {
+                throw new Error('Nome não enviado!')
+            }
+            if(!email){
+                throw new Error('Email não enviado!')
+            }
+            await conn.beginTransaction();
 
+            // Verificar se a imagem é temporária
+            const isImgTemp = urlContemTemp(img_url)
+            
+            var newImgUrl = img_url;
+            if(isImgTemp){
+                // Persistir imagem
+                const urlImgPersistida = await moverArquivoTempParaUploads(img_url)
+                newImgUrl = urlImgPersistida
+            }
+
+            const newId = uuidv4();
+            // Atualização de dados do usuário
+            await conn.execute('INSERT INTO users (id, nome, email, img_url, active) VALUES = (?,?,?,?)', [newId, nome, email, newImgUrl, active])
+
+            // Atualização de arrays
+            if(updateFiliais){
+                for(const uf of filiais){
+                    await conn.execute(`INSERT INTO users_filiais (id_user, id_filial, gestor) VALUES (?,?,?)`, [newId, uf.id_filial, uf.gestor])
+                    
+                };
+            }
+            if(updateDepartamentos){
+                for(const udp of departamentos){
+                    await conn.execute(`INSERT INTO users_departamentos (id_user, id_departamento, gestor) VALUES (?,?,?)`, [newId, udp.id_departamento, udp.gestor])
+                    
+                };
+            }
+            if(updateCentrosCusto){
+                for(const ucc of centros_custo){
+                    await conn.execute(`INSERT INTO users_centros_custo (id_user, id_centro_custo, gestor) VALUES (?,?,?)`, [newId, ucc.id_centro_custo, ucc.gestor])
+                    
+                };
+            }
+            if(updatePermissoes){
+                for(const user_permissao of permissoes){
+                    await conn.execute(`INSERT INTO users_permissoes (id_user, id_permissao) VALUES (?,?)`, [newId, user_permissao.id_permissao])
+                    
+                };    
+            }
+            
+            await conn.commit()
+
+            resolve({message: 'Sucesso!'})
         } catch (error) {
-
+            await conn.rollback()
+            console.log('ERRO_USER_INSERT', error)
+            reject(error)
         }
     })
 }
-
-function add(req) {
-    return new Promise(async (resolve, reject) => {
-
-        try {
-
-        } catch (error) {
-
-        }
-    })
-}
-
 
 module.exports = {
     getAll,
     getOne,
     update,
-    remove,
-    add,
+    insertOne,
 }

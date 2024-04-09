@@ -63,7 +63,6 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.log(error);
       reject(error);
     }
   });

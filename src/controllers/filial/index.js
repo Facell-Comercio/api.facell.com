@@ -69,7 +69,6 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      console.log(objResponse);
       resolve(objResponse);
     } catch (error) {
       reject(error);
@@ -315,7 +314,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_FILIAL_INSERT",error);
       reject(error);
     }
   });

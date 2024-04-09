@@ -120,7 +120,7 @@ function insertOne(req) {
         await db.execute(query, params);
         resolve({ message: "Sucesso" });
       } catch (error) {
-        console.log(error);
+        console.log("ERRO_DEPARTAMENTO_INSERT",error);
         reject(error);
       }
     });

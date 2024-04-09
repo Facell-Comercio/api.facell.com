@@ -37,7 +37,6 @@ async function register(req){
 async function login(req){
     return new Promise(async (resolve, reject)=>{
         try {
-            console.log(req.body)
             const {email, senha } = req.body;
             if(!email){
                 throw new Error('Preencha o email!')
@@ -92,7 +91,6 @@ async function login(req){
             // console.log(token, user)
             resolve({token, user})
         } catch (error) {
-            console.log(error)
             reject(error)
         }
     })

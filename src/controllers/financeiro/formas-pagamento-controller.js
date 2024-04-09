@@ -16,7 +16,6 @@ function getAll(req) {
             const [rows] = await db.execute(query)
             resolve(rows)
         } catch (error) {
-            console.log(error);
             reject(error)
         }
     })
@@ -32,7 +31,6 @@ function getOne(req) {
             WHERE id = ?
             `, [id])
             const formaPagamento = rowFormaPagamento && rowFormaPagamento[0]
-            console.log(formaPagamento)
             resolve(formaPagamento)
             return
         } catch (error) {

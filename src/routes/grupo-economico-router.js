@@ -6,13 +6,11 @@ router.get('/', async (req, res)=>{
         const result = await getAll(req)
         res.status(200).json(result)
     } catch (error) {
-        console.log(error)
         res.status(400).json({message: error.message})
     }
 })
 router.get('/:id', async (req, res)=>{
     try {
-        console.log('Fetch')
         const result = await getOne(req)
         res.status(200).json(result)
     } catch (error) {

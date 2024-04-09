@@ -104,7 +104,6 @@ function getAll(req) {
       resolve(objResponse);
       // console.log(objResponse)
     } catch (error) {
-      console.log(error);
       reject(error);
     }
   });
@@ -167,7 +166,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_PLANO_CONTAS_INSERT",error);
       reject(error);
     }
   });
@@ -202,7 +201,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log(error);
+      console.log("ERRO_PLANO_CONTAS_UPDATE",error);
       reject(error);
     }
   });
