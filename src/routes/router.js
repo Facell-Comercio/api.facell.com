@@ -10,6 +10,7 @@ const filial = require("./filial-router");
 const banco = require("./banco-router");
 const user = require("./user-router");
 const departamento = require("./departamento-router");
+const permissao = require("./permissao-router");
 const authMiddleware = require("../middlewares/auth-middleware");
 
 // const datasysRouter = require('./datasys/datasys')
@@ -31,6 +32,7 @@ router.use("/banco", banco);
 router.use("/filial", filial);
 router.use("/user", user);
 router.use("/departamento", departamento);
+router.use("/permissao", permissao);
 
 // app.use('/datasys', datasysRouter)
 // app.use('/comissao-tim', timRouter)

@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const { getAll } = require('../controllers/grupo-economico')
+const { getAll, getOne, update, insertOne } = require('../controllers/grupo-economico')
 
 router.get('/', async (req, res)=>{
     try {
@@ -7,6 +7,33 @@ router.get('/', async (req, res)=>{
         res.status(200).json(result)
     } catch (error) {
         console.log(error)
+        res.status(400).json({message: error.message})
+    }
+})
+router.get('/:id', async (req, res)=>{
+    try {
+        console.log('Fetch')
+        const result = await getOne(req)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+router.put('/', async (req, res)=>{
+    try {
+        await update(req)
+        res.status(200).json({message: 'Sucesso!'})
+    } catch (error) {
+        res.status(400).json({message: error.message})
+    }
+})
+
+router.post('/', async (req, res)=>{
+    try {
+        await insertOne(req)
+        res.status(200).json({message: 'Sucesso!'})
+    } catch (error) {
         res.status(400).json({message: error.message})
     }
 })

@@ -77,28 +77,37 @@ function moveFile(origem, destino) {
     });
   }
 
-async function moveTempToUploads(fileName){
-    return new Promise(async (resolve, reject)=>{
-        try {  
-            const BASE_DIR = process.env.BASE_DIR;
-            if(!BASE_DIR){
-                throw new Error(`BASE_DIR Empty: ${BASE_DIR}`)
-            }
-        
-            const tempPath = path.join(BASE_DIR ,  'public', 'temp', fileName)
-            console.log(tempPath)
-            const uploadsPath = path.join(BASE_DIR ,  'public', 'uploads', fileName)
-            await moveFile(tempPath, uploadsPath)
-            resolve()
-        } catch (error) {
-            reject(error)
+function urlContemTemp(url) {
+    return url.includes("/temp/");
+}
+
+// Função para mover um arquivo da pasta temp para a pasta uploads
+function moverArquivoTempParaUploads(url) {
+    return new Promise((resolve, reject) => {
+        if (urlContemTemp(url)) {
+            const nomeArquivo = url.split('/').pop(); // Captura o nome do arquivo da URL
+            const origem = path.join(process.env.BASE_DIR, 'public', 'temp', nomeArquivo);
+            const destino = path.join(process.env.BASE_DIR, 'public', 'uploads', nomeArquivo);
+            const novaUrl = `${process.env.BASE_URL}/uploads/${nomeArquivo}`;
+
+            // Move o arquivo da pasta temp para a pasta uploads
+            fs.rename(origem, destino, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(novaUrl);
+                }
+            });
+        } else {
+            reject(new Error('A URL da imagem não contém "/temp/"'));
         }
-    })
+    });
 }
 
 module.exports = {
     deleteFile,
     clearTempFolder,
     moveFile,
-    moveTempToUploads
+    urlContemTemp,
+    moverArquivoTempParaUploads,
 }

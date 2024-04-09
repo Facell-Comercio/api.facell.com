@@ -36,7 +36,7 @@ function getAll(req) {
             var query = `
             SELECT d.* FROM departamentos d
             ${where}
-            
+            ORDER BY d.id DESC
             LIMIT ? OFFSET ?
             `;
             // console.log(query)
@@ -74,47 +74,58 @@ function getOne(req) {
 
 function update(req) {
     return new Promise(async (resolve, reject) => {
-     
+        const { 
+            id, nome, active
+        } = req.body;
+
+        const conn = await db.getConnection();
         try {
-            
+            if (!id) {
+                throw new Error('ID do usuário não enviado!')
+            }
+            if (!nome) {
+                throw new Error('Nome não enviado!')
+            }
+            await conn.beginTransaction();
+
+            // Atualização de dados do usuário
+            await conn.execute('UPDATE departamentos SET nome = ?, active = ? WHERE id = ?', [nome, active, id])
+
+            await conn.commit()
+
+            resolve({message: 'Sucesso!'})
         } catch (error) {
-           
+            await conn.rollback()
+            console.log('ERRO_DEPARTAMENTO_UPDATE', error)
+            reject(error)
         }
     })
 }
 
-function remove(req) {
+function insertOne(req) {
     return new Promise(async (resolve, reject) => {
-     
-        try {
-            
-        } catch (error) {
-           
+      const { id, nome } = req.body;
+      try {
+        if (id) {
+          throw new Error(
+            "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
+          );
         }
-    })
-}
-
-function add(req) {
-    return new Promise(async (resolve, reject) => {
-     
-        try {
-            
-        } catch (error) {
-           
-        }
-    })
-}
-
-function toggleActive(req) {
-    return new Promise(async (resolve, reject) => {
-     
-        try {
-            
-        } catch (error) {
-           
-        }
-    })
-}
+        let campos = "nome";
+        let values = "";
+        let params = [nome];
+        
+        const query = `INSERT INTO departamentos (${campos}) VALUES (?);`;
+  
+        await db.execute(query, params);
+        resolve({ message: "Sucesso" });
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+  
 
 
 
@@ -122,7 +133,5 @@ module.exports = {
     getAll,
     getOne,
     update,
-    remove,
-    add,
-    toggleActive,
+    insertOne,
 }

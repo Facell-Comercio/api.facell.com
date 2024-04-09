@@ -16,7 +16,7 @@ function getAll(req) {
     };
     const { active, id_grupo_economico, nome, codigo } = filters || {};
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
-    console.log(filters);
+    // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
@@ -39,7 +39,6 @@ function getAll(req) {
 
     const offset = pageIndex * pageSize;
 
-    console.log(params);
     try {
       const [rowQtdeTotal] = await db.execute(
         `SELECT 
@@ -53,7 +52,7 @@ function getAll(req) {
 
       params.push(pageSize);
       params.push(offset);
-      console.log(params);
+      // console.log(params);
       var query = `
             SELECT fr.id, fr.id_grupo_economico, fr.nome, fr.codigo, fr.active, ge.label as grupo_economico FROM fin_rateio fr
             LEFT JOIN grupos_economicos ge ON fr.id_grupo_economico = ge.id
@@ -126,7 +125,7 @@ function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { active, id_grupo_economico, nome, codigo, manual, itens } =
       req.body;
-    console.log(req.body);
+
     const conn = await db.getConnection();
     try {
       if (!id_grupo_economico) {
@@ -146,7 +145,7 @@ function insertOne(req) {
       }
       await conn.beginTransaction();
 
-      // TODO Update do rateio
+      // Insert do rateio
       const [result] = await conn.execute(
         `INSERT INTO fin_rateio (id_grupo_economico, nome, codigo, manual, active) VALUES (?,?,?,?,?)`,
         [id_grupo_economico, nome, codigo, manual, active]
@@ -157,7 +156,7 @@ function insertOne(req) {
         throw new Error("Falha ao inserir o rateio!");
       }
 
-      // TODO Inserir os itens
+      // Inserir os itens do rateio
       if (!manual) {
         itens.forEach(async ({ id_filial, percentual }) => {
           await conn.execute(
@@ -180,7 +179,7 @@ function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, active, id_grupo_economico, nome, codigo, manual, itens } =
       req.body;
-    console.log("REQ.BODY", req.body);
+
     const conn = await db.getConnection();
     try {
       if (!id) {
@@ -203,16 +202,16 @@ function update(req) {
       }
       await conn.beginTransaction();
 
-      // TODO Deletar os itens anteriores
+      // Deletar os itens anteriores
       await conn.execute(`DELETE FROM fin_rateio_itens WHERE id_rateio =?`, [
         id,
       ]);
-      // TODO Update do rateio
+      // Update do rateio
       await conn.execute(
         `UPDATE fin_rateio SET id_grupo_economico = ?, nome = ?, codigo = ?, manual =?, active = ? WHERE id =?`,
         [id_grupo_economico, nome, codigo, manual, active, id]
       );
-      // TODO Inserir os itens
+      // Inserir os itens do rateio
       if (!manual) {
         itens.forEach(async ({ id_filial, percentual }) => {
           await conn.execute(
@@ -221,8 +220,6 @@ function update(req) {
           );
         });
       }
-
-      console.log(itens);
 
       await conn.commit();
       resolve({ message: "Sucesso!" });

@@ -26,7 +26,7 @@ function getAll(req) {
       id_filial,
     } = filters || {};
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
-    console.log(filters);
+    // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
