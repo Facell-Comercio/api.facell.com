@@ -7,6 +7,7 @@ const centroCustos = require("./centro-custos");
 const bancos = require("./bancos");
 const equipamentosCielo = require("./equipamentos-cielo");
 const rateios = require("./rateios");
+const orcamento = require("./orcamento");
 const contasBancarias = require("./contas-bancarias");
 const formasPagamento = require("./formas-pagamento");
 
@@ -17,6 +18,7 @@ router.use("/centro-custos", centroCustos);
 router.use("/bancos", bancos);
 router.use("/equipamentos-cielo", equipamentosCielo);
 router.use("/rateios", rateios);
+router.use("/orcamento", orcamento);
 router.use("/contas-bancarias", contasBancarias);
 router.use("/formas-pagamento", formasPagamento);
 
