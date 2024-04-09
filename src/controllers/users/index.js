@@ -214,8 +214,8 @@ function insertOne(req) {
 
         const conn = await db.getConnection();
         try {
-            if (!id) {
-                throw new Error('ID do usuário não enviado!')
+            if (id) {
+                throw new Error('ID do usuário enviado, por favor, atualize ao invés de tentar inserir!')
             }
             if (!nome) {
                 throw new Error('Nome não enviado!')
@@ -225,19 +225,22 @@ function insertOne(req) {
             }
             await conn.beginTransaction();
 
+            
+
+            const newId = uuidv4();
+            // Atualização de dados do usuário
+            await conn.execute('INSERT INTO users (id, nome, email, active) VALUES (?,?,?,?)', [newId, nome, email, active])
+
+            // Já que deu certo inserir o usuário, vamos importar a imagem dele...
             // Verificar se a imagem é temporária
             const isImgTemp = urlContemTemp(img_url)
-            
             var newImgUrl = img_url;
             if(isImgTemp){
                 // Persistir imagem
                 const urlImgPersistida = await moverArquivoTempParaUploads(img_url)
                 newImgUrl = urlImgPersistida
             }
-
-            const newId = uuidv4();
-            // Atualização de dados do usuário
-            await conn.execute('INSERT INTO users (id, nome, email, img_url, active) VALUES = (?,?,?,?)', [newId, nome, email, newImgUrl, active])
+            await conn.execute('UPDATE users SET img_url = ? WHERE id = ?', [newImgUrl, newId])
 
             // Atualização de arrays
             if(updateFiliais){
