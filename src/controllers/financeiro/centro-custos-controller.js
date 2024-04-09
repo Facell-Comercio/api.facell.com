@@ -24,7 +24,7 @@ function getAll(req) {
     let where = ` WHERE 1=1 `;
     const params = [];
 
-    const isMaster = checkUserPermission(req,'MASTERx')
+    const isMaster = checkUserPermission(req,'MASTER')
     if(!isMaster){
       where += `AND cc.id IN(${centros_custo_habilitados.join(',')}) `
     }
