@@ -75,6 +75,14 @@ async function login(req){
             WHERE ud.id_user = ?`, [user.id])
             user.departamentos = departamentos
 
+            // Centros de custo de acesso
+            const [centros_custo] = await db.execute(`
+            SELECT  fcc.id, fcc.nome, ucc.gestor 
+            FROM users_centros_custo ucc
+            INNER JOIN  fin_centros_custo fcc ON fcc.id = ucc.id_centro_custo
+            WHERE ucc.id_user = ?`, [user.id])
+            user.centros_custo = centros_custo
+
             // Permissoes
             const [permissoes] = await db.execute(`
             SELECT p.id, p.nome 

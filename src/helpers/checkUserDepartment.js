@@ -1,4 +1,4 @@
-const checkUserDepartment = (req, depart)=>{
+const checkUserDepartment = (req, depart, gestor = undefined)=>{
     const user = req.user
     const tipo = typeof depart
 
@@ -8,12 +8,16 @@ const checkUserDepartment = (req, depart)=>{
         return false;
     }
     if(tipo === 'number'){
-        const index = user.departamentos.findIndex(perm=>perm.id === depart)
-        return index >= 0;
+        if(gestor !== undefined){
+            return user.departamentos.findIndex(perm=>perm.id === depart && perm.gestor === gestor) >= 0;
+        }
+        return user.departamentos.findIndex(perm=>perm.id === depart) >= 0;
     } 
     if(tipo === 'string'){
-        const index = user.departamentos.findIndex(perm=>perm.nome === depart)
-        return index >= 0;
+        if(gestor !== undefined){
+            return user.departamentos.findIndex(perm=>perm.id === depart && perm.gestor === gestor) >= 0;
+        }
+        return user.departamentos.findIndex(perm=>perm.nome === depart) >= 0;
     } 
     return true
 }
