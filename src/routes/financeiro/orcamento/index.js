@@ -8,6 +8,7 @@ const {
   getMyBudget,
   transfer,
   getMyBudgets,
+  deleteBudget,
 } = require("../../../controllers/financeiro/orcamento-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
@@ -89,5 +90,14 @@ router.put(
     }
   }
 );
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const result = await deleteBudget(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;

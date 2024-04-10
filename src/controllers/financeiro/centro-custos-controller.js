@@ -16,11 +16,15 @@ function getAll(req) {
     };
     const { nome, id_grupo_economico, ativo } = filters || {};
     // console.log(filters);
-    // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
+    const { id_filial, termo } = filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
 
+    if (id_filial) {
+      where += ` AND f.id = ? `;
+      params.push(id_filial);
+    }
     if (nome) {
       where += ` AND cc.nome LIKE CONCAT(?,'%')`;
       params.push(nome);
@@ -54,6 +58,7 @@ function getAll(req) {
         params.push(offset);
       }
 
+      // ^ Adiciona abaixo o: LEFT JOIN filiais f ON f.id_grupo_economico = cc.id_grupo_economico
       var query = `
             SELECT cc.*, gp.nome as grupo_economico FROM fin_centros_custo as cc
             LEFT JOIN 
@@ -134,7 +139,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_CENTRO_CUSTO_INSERT",error);
+      console.log("ERRO_CENTRO_CUSTO_INSERT", error);
       reject(error);
     }
   });
@@ -169,7 +174,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_CENTRO_CUSTO_UPDATE",error);
+      console.log("ERRO_CENTRO_CUSTO_UPDATE", error);
       reject(error);
     }
   });
