@@ -20,7 +20,7 @@ function getAll(req) {
 
     if (termo) {
       where += ` AND ge.nome LIKE CONCAT(?,'%')`;
-      params.push(nome);
+      params.push(termo);
     }
 
     const offset = pageIndex * pageSize;
@@ -28,8 +28,9 @@ function getAll(req) {
     try {
       const [rowQtdeTotal] = await db.execute(
         `SELECT 
-            COUNT(fr.id) as qtde  
-            FROM fin_rateio fr
+            COUNT(fo.id) as qtde  
+            FROM fin_orcamento fo
+            LEFT JOIN grupos_economicos ge ON fo.id_grupo_economico = ge.id
              ${where} `,
         params
       );
@@ -74,7 +75,7 @@ function getOne(req) {
       SELECT 
         fo.id, fo.id_grupo_economico, fo.ref, fo.active,
         ge.apelido as grupo_economico,
-        ge.id_matriz as id_filial
+        ge.id_matriz
       FROM fin_orcamento fo
       LEFT JOIN grupos_economicos ge ON ge.id = fo.id_grupo_economico
       WHERE fo.id = ?
@@ -94,6 +95,10 @@ function getOne(req) {
                     OR CONCAT(fpc.codigo," - ",fpc.descricao) LIKE CONCAT('%',?,'%') `;
         params.push(termo);
         params.push(termo);
+      }
+      if (id) {
+        where += ` AND fo.id = ? `;
+        params.push(id);
       }
 
       const [rowOrcamentoItens] = await db.execute(
@@ -127,32 +132,26 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { active, id_grupo_economico, nome, codigo, manual, itens } =
-      req.body;
+    const { active, id_grupo_economico, ref, contas } = req.body;
     // console.log(req.body);
     const conn = await db.getConnection();
     try {
       if (!id_grupo_economico) {
         throw new Error("ID_GRUPO_ECONOMICO não informado!");
       }
-      if (!nome) {
-        throw new Error("NOME não informado!");
+      if (!ref) {
+        throw new Error("REF não informado!");
       }
-      if (!codigo) {
-        throw new Error("CODIGO não informado!");
+      if (!contas?.length) {
+        throw new Error("CONTAS não informadas!");
       }
-      if (!manual && !itens?.length) {
-        throw new Error("ITENS não informados!");
-      }
-      if (manual === undefined) {
-        throw new Error("MANUAL não informado!");
-      }
+
       await conn.beginTransaction();
 
       // TODO Update do rateio
       const [result] = await conn.execute(
-        `INSERT INTO fin_rateio_ALTERAR (id_grupo_economico, nome, codigo, manual, active) VALUES (?,?,?,?,?)`,
-        [id_grupo_economico, nome, codigo, manual, active]
+        `INSERT INTO fin_orcamento (id_grupo_economico, ref, active) VALUES (?,?,?)`,
+        [id_grupo_economico, ref, active]
       );
 
       const newId = result.insertId;
@@ -160,15 +159,13 @@ function insertOne(req) {
         throw new Error("Falha ao inserir o rateio!");
       }
 
-      // TODO Inserir os itens
-      if (!manual) {
-        itens.forEach(async ({ id_filial, percentual }) => {
-          await conn.execute(
-            `INSERT INTO fin_rateio_itens_ALTERAR (id_rateio, id_filial, percentual) VALUES(?,?,?)`,
-            [newId, id_filial, percentual]
-          );
-        });
-      }
+      // TODO Inserir as contas
+      contas.forEach(async ({ id_centro_custo, id_plano_contas, valor }) => {
+        await conn.execute(
+          `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto, saldo) VALUES(?,?,?,?,?)`,
+          [newId, id_centro_custo, id_plano_contas, valor, valor]
+        );
+      });
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
@@ -181,7 +178,7 @@ function insertOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, active, id_filial, id_grupo_economico, ref, contas } = req.body;
+    const { id, active, id_grupo_economico, ref, contas } = req.body;
     // console.log("REQ.BODY", req.body);
 
     const conn = await db.getConnection();
@@ -191,9 +188,6 @@ function update(req) {
       }
       if (!id_grupo_economico) {
         throw new Error("ID_GRUPO_ECONOMICO não informado!");
-      }
-      if (!id_filial) {
-        throw new Error("ID_FILIAL não informado!");
       }
       if (!ref) {
         throw new Error("REF não informado!");
@@ -372,7 +366,7 @@ function getMyBudget(req) {
         foc.saldo as disponivel,
         foc.id_orcamento,
         foc.id_centro_custo,
-        ge.id_matriz as id_filial
+        ge.id_matriz
       FROM fin_orcamento_contas foc
       LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
       LEFT JOIN fin_orcamento fo ON fo.id = foc.id_orcamento

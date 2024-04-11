@@ -14,41 +14,46 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { nome, id_grupo_economico, ativo } = filters || {};
+    const { nome, id_grupo_economico, ativo, id_matriz, termo } = filters || {};
     // console.log(filters);
-    const { id_filial, termo } = filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
 
-    if (id_filial) {
-      where += ` AND f.id = ? `;
-      params.push(id_filial);
-    }
     if (nome) {
       where += ` AND cc.nome LIKE CONCAT(?,'%')`;
       params.push(nome);
+    }
+
+    if (ativo) {
+      where += ` AND cc.ativo = ? `;
+      params.push(ativo);
+    }
+    if (id_matriz) {
+      where += ` AND gp.id_matriz = ? `;
+      params.push(id_matriz);
     }
     if (id_grupo_economico) {
       where += ` AND cc.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
-    if (ativo) {
-      where += ` AND cc.ativo = ? `;
-      params.push(ativo);
+    if (termo) {
+      where += ` AND cc.nome LIKE CONCAT('%',?,'%')`;
+      params.push(termo);
     }
 
     const offset = pageIndex * pageSize;
 
     try {
       const [rowQtdeTotal] = await db.execute(
-        `SELECT 
-            COUNT(cc.id) as qtde 
-            FROM fin_centros_custo as cc
-            LEFT JOIN grupos_economicos gp ON gp.id = cc.id_grupo_economico
-             ${where} `,
+        `SELECT
+          COUNT(cc.id) as qtde
+          FROM fin_centros_custo as cc
+          INNER JOIN grupos_economicos gp ON gp.id = cc.id_grupo_economico
+          ${where}`,
         params
       );
+
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
@@ -58,17 +63,16 @@ function getAll(req) {
         params.push(offset);
       }
 
-      // ^ Adiciona abaixo o: LEFT JOIN filiais f ON f.id_grupo_economico = cc.id_grupo_economico
-      var query = `
-            SELECT cc.*, gp.nome as grupo_economico FROM fin_centros_custo as cc
-            LEFT JOIN 
-            grupos_economicos gp ON gp.id = cc.id_grupo_economico 
+      const query = `
+            SELECT
+             cc.*, gp.nome as grupo_economico FROM fin_centros_custo as cc
+            LEFT JOIN grupos_economicos gp ON gp.id = cc.id_grupo_economico 
             ${where}
+            GROUP BY cc.id
             ORDER BY cc.id DESC
             ${limit}
             `;
 
-      // console.log(params);
       const [rows] = await db.execute(query, params);
 
       const objResponse = {
@@ -77,7 +81,7 @@ function getAll(req) {
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(query, params);
+      // console.log(objResponse);
     } catch (error) {
       reject(error);
     }
