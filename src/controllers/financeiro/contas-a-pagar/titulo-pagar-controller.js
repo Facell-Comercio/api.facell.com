@@ -105,10 +105,13 @@ function getOne(req){
                 fin_plano_contas pc ON pc.id = t.id_plano_contas
             WHERE t.id = ?
             `, [id])
+
             const [itens_rateio] = await db.execute(`SELECT * FROM fin_cp_titulos_rateio WHERE id_titulo = ?`, [id])
+            const [historico] = await db.execute(`SELECT * FROM fin_cp_titulos_historico WHERE id_titulo = ?`, [id])
+
             const titulo = rowTitulo && rowTitulo[0]
             // console.log(titulo)
-            resolve({titulo, itens_rateio})
+            resolve({titulo, itens_rateio, historico})
             return
         } catch (error) {
             reject(error)
