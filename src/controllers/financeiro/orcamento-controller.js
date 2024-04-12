@@ -44,7 +44,7 @@ function getAll(req) {
             SELECT fo.*, ge.apelido as grupo_economico FROM fin_orcamento fo
             LEFT JOIN grupos_economicos ge ON fo.id_grupo_economico = ge.id
             ${where}
-            ORDER BY fo.id DESC
+            ORDER BY fo.ref DESC
             LIMIT ? OFFSET ?
             `;
 
@@ -274,16 +274,21 @@ function getMyBudgets(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { id_centro_custo, plano_contas, mes, ano } = filters || {
-      mes: (new Date().getMonth() + 1).toString(),
-      ano: new Date().getFullYear().toString(),
-    };
+    const { id_grupo_economico, id_centro_custo, plano_contas, mes, ano } =
+      filters || {
+        mes: (new Date().getMonth() + 1).toString(),
+        ano: new Date().getFullYear().toString(),
+      };
     var where = ` WHERE 1=1 `;
     const params = [];
 
     if (mes && ano) {
       where += ` AND fo.ref = ? `;
       params.push(`${ano}-${("0" + `${mes}`).slice(-2)}-01`);
+    }
+    if (id_grupo_economico) {
+      where += ` AND fo.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
     }
     if (id_centro_custo) {
       where += ` AND foc.id_centro_custo = ? `;
@@ -312,13 +317,16 @@ function getMyBudgets(req) {
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
-      params.push(pageSize);
-      params.push(offset);
+      const limit = pagination ? " LIMIT ? OFFSET ?" : "";
+      if (limit) {
+        params.push(pageSize);
+        params.push(offset);
+      }
       // console.log(params);
       var query = `
             SELECT 
               foc.*, 
-              ge.apelido as grupo_economico,
+              ge.id as id_grupo_economico,
               fcc.nome as centro_custos, 
               CONCAT(fpc.codigo," - ",fpc.descricao) as plano_contas, 
               ge.apelido as grupo_economico, 
@@ -330,7 +338,7 @@ function getMyBudgets(req) {
             LEFT JOIN fin_orcamento as fo ON fo.id = foc.id_orcamento
             LEFT JOIN grupos_economicos ge ON ge.id = fo.id_grupo_economico
             ${where}
-            LIMIT ? OFFSET ?
+            ${limit}
             `;
 
       // console.log(query)
@@ -349,6 +357,7 @@ function getMyBudgets(req) {
       resolve(objResponse);
       // console.log(objResponse)
     } catch (error) {
+      console.log("ERRO NO GET_MY_BUDGETS ", error);
       reject(error);
     }
   });
@@ -364,13 +373,14 @@ function getMyBudget(req) {
         foc.id as id_conta_saida,
         CONCAT(fpc.codigo," - ",fpc.descricao) as conta_saida,
         foc.saldo as disponivel,
+        fo.id_grupo_economico,
         foc.id_orcamento,
-        foc.id_centro_custo,
-        ge.id_matriz
+        fcc.nome as centro_custo_entrada,
+        foc.id_centro_custo
       FROM fin_orcamento_contas foc
       LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
       LEFT JOIN fin_orcamento fo ON fo.id = foc.id_orcamento
-      LEFT JOIN grupos_economicos ge ON ge.id = fo.id_grupo_economico
+      LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
       WHERE foc.id = ?
             `,
         [id]
@@ -380,6 +390,7 @@ function getMyBudget(req) {
       resolve(orcamento);
       return;
     } catch (error) {
+      console.log("ERRO NO GET_MY_BUDGET ", error);
       reject(error);
       return;
     }
