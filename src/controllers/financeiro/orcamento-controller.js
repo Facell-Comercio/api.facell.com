@@ -489,6 +489,49 @@ function transfer(req) {
   });
 }
 
+function faker() {
+  return new Promise(async (resolve, reject) => {
+    // console.log(req.body);
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [centrosDeCusto] = await conn.execute(
+        `SELECT id FROM fin_centros_custo WHERE id_grupo_economico = ?`,
+        [1]
+      );
+      console.log(centrosDeCusto);
+      const [planoDeContas] = await conn.execute(
+        `SELECT id FROM fin_plano_contas WHERE tipo = ? AND id_grupo_economico = ?`,
+        ["Despesa", 1]
+      );
+      console.log(planoDeContas);
+      for (const centro_custo of centrosDeCusto) {
+        for (const conta of planoDeContas) {
+          await conn.execute(
+            `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto, saldo)
+            VALUES(?,?,?,?,?)
+          `,
+            [
+              5,
+              centro_custo.id,
+              conta.id,
+              Math.random() * 1000,
+              Math.random() * 1000,
+            ]
+          );
+        }
+      }
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERRO_ORÇAMENTO_INSERT_ONE", error);
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
@@ -498,4 +541,5 @@ module.exports = {
   getMyBudgets,
   getMyBudget,
   transfer,
+  faker,
 };
