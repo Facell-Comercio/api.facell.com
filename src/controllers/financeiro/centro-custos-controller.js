@@ -1,13 +1,16 @@
 const { db } = require("../../../mysql");
+const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    // user.perfil = 'Financeiro'
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
+
+    const centros_custo_habilitados = []
+
+    user?.centros_custo?.forEach(ucc=>{
+      centros_custo_habilitados.push(ucc.id)
+    })
+
     // Filtros
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
@@ -19,6 +22,11 @@ function getAll(req) {
 
     let where = ` WHERE 1=1 `;
     const params = [];
+
+    const isMaster = checkUserPermission(req,'MASTER')
+    if(!isMaster){
+      where += `AND cc.id IN(${centros_custo_habilitados.join(',')}) `
+    }
 
     if (nome) {
       where += ` AND cc.nome LIKE CONCAT(?,'%')`;
@@ -43,6 +51,7 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
+    
 
     try {
       const [rowQtdeTotal] = await db.execute(
