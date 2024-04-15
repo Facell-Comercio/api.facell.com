@@ -489,6 +489,73 @@ function transfer(req) {
   });
 }
 
+function getIds(req) {
+  return new Promise(async (resolve, reject) => {
+    const consultedArray = Object.values(req.query);
+    if (!consultedArray[0].centro_custo) {
+      throw new Error("CENTRO_CUSTO não informado!");
+    }
+    if (!consultedArray[0].plano_contas) {
+      throw new Error("PLANO_CONTAS não informado!");
+    }
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const returnedIds = [];
+      for (const array of consultedArray) {
+        const id_centro_custo = await conn.execute(
+          "SELECT id as id_centro_custo FROM fin_centros_custo fcc WHERE fcc.nome = ?",
+          [array.centro_custo.toString().toUpperCase()]
+        );
+        // console.log("CENTRO_CUSTO", id_centro_custo[0][0].id_centro_custo);
+
+        const id_grupo_economico = await conn.execute(
+          "SELECT id as id_grupo_economico FROM grupos_economicos ge WHERE ge.nome LIKE ? OR ge.apelido LIKE ?",
+          [
+            array.grupo_economico.toString().toUpperCase(),
+            array.grupo_economico.toString().toUpperCase(),
+          ]
+        );
+        // console.log(
+        //   "GRUPO_ECONOMICO",
+        //   id_grupo_economico[0][0].id_grupo_economico,
+        //   array.grupo_economico.toString().toUpperCase()
+        // );
+
+        const id_plano_contas = await conn.execute(
+          "SELECT id as id_plano_contas FROM fin_plano_contas fpc WHERE fpc.codigo LIKE ? AND fpc.id_grupo_economico = ? AND fpc.tipo = 'Despesa'",
+          [
+            array.plano_contas.toString().toUpperCase().split(" - ")[0],
+            id_grupo_economico[0][0].id_grupo_economico,
+          ]
+        );
+        // console.log(
+        //   "PLANO_CONTAS",
+        //   id_plano_contas[0][0].id_plano_contas,
+        //   array.plano_contas.toString().toUpperCase().split(" - ")[0]
+        // );
+
+        returnedIds.push({
+          id_centro_custo: id_centro_custo[0][0].id_centro_custo,
+          // id_grupo_economico: id_grupo_economico[0][0].id_grupo_economico,
+          id_plano_contas: id_plano_contas[0][0].id_plano_contas,
+        });
+      }
+
+      // console.log(returnedIds);
+      // console.log(params)
+
+      await conn.commit();
+      resolve(returnedIds);
+      // console.log(objResponse)
+    } catch (error) {
+      console.log("ERRO_GET_IDS", error);
+      reject(error);
+    }
+  });
+}
+
 function faker() {
   return new Promise(async (resolve, reject) => {
     // console.log(req.body);
@@ -526,7 +593,7 @@ function faker() {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_INSERT_ONE", error);
+      console.log("ERRO_FAKER", error);
       reject(error);
     }
   });
@@ -541,5 +608,6 @@ module.exports = {
   getMyBudgets,
   getMyBudget,
   transfer,
+  getIds,
   faker,
 };
