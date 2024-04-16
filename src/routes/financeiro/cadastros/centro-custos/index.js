@@ -3,10 +3,10 @@ const router = require("express").Router();
 const {
   getAll,
   getOne,
-  update,
   insertOne,
-} = require("../../../controllers/financeiro/bancos-controller");
-const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
+  update,
+} = require("../../../../controllers/financeiro/cadastros/centro-custos-controller");
+const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 router.get("/", async (req, res) => {
   try {
@@ -25,7 +25,6 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 router.post(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -38,7 +37,6 @@ router.post(
     }
   }
 );
-
 router.put(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),

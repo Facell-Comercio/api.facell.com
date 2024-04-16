@@ -11,7 +11,7 @@ const {
   deleteBudget,
   faker,
   getIds,
-} = require("../../../controllers/financeiro/orcamento-controller");
+} = require("../../../controllers/financeiro/orcamento/orcamento-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
 // router.get(
@@ -27,7 +27,7 @@ const checkUserAuthorization = require("../../../middlewares/authorization-middl
 //   }
 // );
 
-router.get("/get-ids", async (req, res) => {
+router.post("/get-ids", async (req, res) => {
   try {
     const result = await getIds(req);
     res.status(200).json(result);

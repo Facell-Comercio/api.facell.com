@@ -1,4 +1,4 @@
-const { db } = require("../../../mysql");
+const { db } = require("../../../../mysql");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -491,63 +491,80 @@ function transfer(req) {
 
 function getIds(req) {
   return new Promise(async (resolve, reject) => {
-    const consultedArray = Object.values(req.query);
-    if (!consultedArray[0].centro_custo) {
+    const { data, id_grupo_economico } = req.body;
+    if (!data[0].centro_custo) {
       throw new Error("CENTRO_CUSTO não informado!");
     }
-    if (!consultedArray[0].plano_contas) {
+    if (!data[0].grupo_economico) {
+      throw new Error("GRUPO_ECONOMICO não informado!");
+    }
+    if (!data[0].plano_contas) {
       throw new Error("PLANO_CONTAS não informado!");
+    }
+    if (!id_grupo_economico) {
+      throw new Error("ID_GRUPO_ECONOMICO não informado!");
     }
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
 
       const returnedIds = [];
-      for (const array of consultedArray) {
-        const id_centro_custo = await conn.execute(
-          "SELECT id as id_centro_custo FROM fin_centros_custo fcc WHERE fcc.nome = ?",
-          [array.centro_custo.toString().toUpperCase()]
-        );
-        // console.log("CENTRO_CUSTO", id_centro_custo[0][0].id_centro_custo);
+      const erros = [];
+      for (const array of data) {
+        const erro = {
+          centro_custo: "Não encontrado",
+          plano_contas: "Não encontrado",
+        };
 
-        const id_grupo_economico = await conn.execute(
-          "SELECT id as id_grupo_economico FROM grupos_economicos ge WHERE ge.nome LIKE ? OR ge.apelido LIKE ?",
+        const [rows_grupo_economico] = await conn.execute(
+          "SELECT id FROM grupos_economicos ge WHERE ge.nome LIKE ? OR ge.apelido LIKE ?",
           [
             array.grupo_economico.toString().toUpperCase(),
             array.grupo_economico.toString().toUpperCase(),
           ]
         );
-        // console.log(
-        //   "GRUPO_ECONOMICO",
-        //   id_grupo_economico[0][0].id_grupo_economico,
-        //   array.grupo_economico.toString().toUpperCase()
-        // );
+        const grupo_economico =
+          rows_grupo_economico[0] && rows_grupo_economico[0];
 
-        const id_plano_contas = await conn.execute(
-          "SELECT id as id_plano_contas FROM fin_plano_contas fpc WHERE fpc.codigo LIKE ? AND fpc.id_grupo_economico = ? AND fpc.tipo = 'Despesa'",
-          [
-            array.plano_contas.toString().toUpperCase().split(" - ")[0],
-            id_grupo_economico[0][0].id_grupo_economico,
-          ]
-        );
-        // console.log(
-        //   "PLANO_CONTAS",
-        //   id_plano_contas[0][0].id_plano_contas,
-        //   array.plano_contas.toString().toUpperCase().split(" - ")[0]
-        // );
+        if (grupo_economico.id === +id_grupo_economico) {
+          const [rows_centro_custo] = await conn.execute(
+            "SELECT id FROM fin_centros_custo fcc WHERE fcc.nome = ? AND fcc.id_grupo_economico = ?",
+            [array.centro_custo.toString().toUpperCase(), id_grupo_economico]
+          );
+          const centro_custo = rows_centro_custo[0] && rows_centro_custo[0];
+          if (centro_custo) {
+            erro.centro_custo = "OK";
+          }
+
+          const [rows_plano_contas] = await conn.execute(
+            "SELECT id FROM fin_plano_contas fpc WHERE fpc.codigo LIKE ? AND fpc.id_grupo_economico = ? AND fpc.tipo = 'Despesa'",
+            [
+              array.plano_contas.toString().toUpperCase().split(" - ")[0],
+              id_grupo_economico,
+            ]
+          );
+          const plano_contas = rows_plano_contas[0] && rows_plano_contas[0];
+          if (plano_contas) {
+            erro.plano_contas = "OK";
+          }
+          returnedIds.push({
+            id_centro_custo: centro_custo.id || null,
+            id_plano_contas: plano_contas.id || null,
+          });
+        }
 
         returnedIds.push({
-          id_centro_custo: id_centro_custo[0][0].id_centro_custo,
-          // id_grupo_economico: id_grupo_economico[0][0].id_grupo_economico,
-          id_plano_contas: id_plano_contas[0][0].id_plano_contas,
+          id_centro_custo: null,
+          id_plano_contas: null,
         });
+
+        erros.push(erro);
       }
 
-      // console.log(returnedIds);
       // console.log(params)
 
       await conn.commit();
-      resolve(returnedIds);
+      resolve({ returnedIds, erros });
       // console.log(objResponse)
     } catch (error) {
       console.log("ERRO_GET_IDS", error);

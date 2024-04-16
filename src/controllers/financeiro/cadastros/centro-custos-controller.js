@@ -1,15 +1,15 @@
-const { db } = require("../../../mysql");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const centros_custo_habilitados = []
+    const centros_custo_habilitados = [];
 
-    user?.centros_custo?.forEach(ucc=>{
-      centros_custo_habilitados.push(ucc.id)
-    })
+    user?.centros_custo?.forEach((ucc) => {
+      centros_custo_habilitados.push(ucc.id);
+    });
 
     // Filtros
     const { filters, pagination } = req.query;
@@ -23,9 +23,9 @@ function getAll(req) {
     let where = ` WHERE 1=1 `;
     const params = [];
 
-    const isMaster = checkUserPermission(req,'MASTER')
-    if(!isMaster){
-      where += `AND cc.id IN(${centros_custo_habilitados.join(',')}) `
+    const isMaster = checkUserPermission(req, "MASTER");
+    if (!isMaster) {
+      where += `AND cc.id IN(${centros_custo_habilitados.join(",")}) `;
     }
 
     if (nome) {
@@ -51,7 +51,6 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
-    
 
     try {
       const [rowQtdeTotal] = await db.execute(
