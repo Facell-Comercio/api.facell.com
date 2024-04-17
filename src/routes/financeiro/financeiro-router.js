@@ -10,6 +10,7 @@ const rateios = require("./rateios");
 const orcamento = require("./orcamento");
 const contasBancarias = require("./contas-bancarias");
 const formasPagamento = require("./formas-pagamento");
+const ofx = require("./ofx");
 
 router.use("/contas-a-pagar", contasPagar);
 router.use("/fornecedores", fornecedores);
@@ -21,5 +22,6 @@ router.use("/rateios", rateios);
 router.use("/orcamento", orcamento);
 router.use("/contas-bancarias", contasBancarias);
 router.use("/formas-pagamento", formasPagamento);
+router.use("/ofx", ofx);
 
 module.exports = router;
