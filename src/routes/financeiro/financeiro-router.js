@@ -14,10 +14,13 @@ const rateios = require("./cadastros/rateios");
 
 const formasPagamento = require("./formas-pagamento");
 
+// Contas a pagar
 router.use("/contas-a-pagar", contasPagar);
 
+// Orçamento
 router.use("/orcamento", orcamento);
 
+// Cadastros
 router.use("/fornecedores", fornecedores);
 router.use("/plano-contas", planoContas);
 router.use("/centro-custos", centroCustos);
