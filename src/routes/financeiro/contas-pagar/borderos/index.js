@@ -5,7 +5,7 @@ const {
   getOne,
   insertOne,
   update,
-} = require("../../../../controllers/financeiro/cadastros/plano-contas-controller");
+} = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 const checkUserDepartment = require("../../../../middlewares/derpartment-middleware");
 
