@@ -5,8 +5,8 @@ const {
   getOne,
   update,
   insertOne,
-} = require("../../../controllers/financeiro/bancos-controller");
-const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
+} = require("../../../../controllers/financeiro/cadastros/bancos-controller");
+const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 router.get("/", async (req, res) => {
   try {

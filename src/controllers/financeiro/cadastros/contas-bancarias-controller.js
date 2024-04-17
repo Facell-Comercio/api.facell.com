@@ -1,4 +1,4 @@
-const { db } = require("../../../mysql");
+const { db } = require("../../../../mysql");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -161,7 +161,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_CONTAS_BANCARIAS_INSERT",error);
+      console.log("ERRO_CONTAS_BANCARIAS_INSERT", error);
       reject(error);
     }
   });
@@ -196,7 +196,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_CONTAS_BANCARIAS_UPDATE",error);
+      console.log("ERRO_CONTAS_BANCARIAS_UPDATE", error);
       reject(error);
     }
   });

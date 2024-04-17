@@ -1,4 +1,4 @@
-const { db } = require("../../../mysql");
+const { db } = require("../../../../mysql");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -168,7 +168,7 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_RATEIO_INSERT_ONE",error);
+      console.log("ERRO_RATEIO_INSERT_ONE", error);
       reject(error);
     }
   });
@@ -223,7 +223,7 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_RATEIO_UPDATE",error);
+      console.log("ERRO_RATEIO_UPDATE", error);
       conn.rollback();
       reject(error);
     }

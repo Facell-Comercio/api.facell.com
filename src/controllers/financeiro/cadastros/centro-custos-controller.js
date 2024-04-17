@@ -1,15 +1,15 @@
-const { db } = require("../../../mysql");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const centros_custo_habilitados = []
+    const centros_custo_habilitados = [];
 
-    user?.centros_custo?.forEach(ucc=>{
-      centros_custo_habilitados.push(ucc.id)
-    })
+    user?.centros_custo?.forEach((ucc) => {
+      centros_custo_habilitados.push(ucc.id);
+    });
 
     // Filtros
     const { filters, pagination } = req.query;
@@ -17,43 +17,51 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { nome, id_grupo_economico, ativo } = filters || {};
+    const { nome, id_grupo_economico, ativo, id_matriz, termo } = filters || {};
     // console.log(filters);
-    // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
 
     let where = ` WHERE 1=1 `;
     const params = [];
 
-    const isMaster = checkUserPermission(req,'MASTER')
-    if(!isMaster){
-      where += `AND cc.id IN(${centros_custo_habilitados.join(',')}) `
+    const isMaster = checkUserPermission(req, "MASTER");
+    if (!isMaster) {
+      where += `AND cc.id IN(${centros_custo_habilitados.join(",")}) `;
     }
 
     if (nome) {
       where += ` AND cc.nome LIKE CONCAT(?,'%')`;
       params.push(nome);
     }
-    if (id_grupo_economico) {
-      where += ` AND cc.id_grupo_economico = ? `;
-      params.push(id_grupo_economico);
-    }
+
     if (ativo) {
       where += ` AND cc.ativo = ? `;
       params.push(ativo);
     }
+    if (id_matriz) {
+      where += ` AND gp.id_matriz = ? `;
+      params.push(id_matriz);
+    }
+    if (id_grupo_economico) {
+      where += ` AND cc.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
+    }
+    if (termo) {
+      where += ` AND cc.nome LIKE CONCAT('%',?,'%')`;
+      params.push(termo);
+    }
 
     const offset = pageIndex * pageSize;
-    
 
     try {
       const [rowQtdeTotal] = await db.execute(
-        `SELECT 
-            COUNT(cc.id) as qtde 
-            FROM fin_centros_custo as cc
-            LEFT JOIN grupos_economicos gp ON gp.id = cc.id_grupo_economico
-             ${where} `,
+        `SELECT
+          COUNT(cc.id) as qtde
+          FROM fin_centros_custo as cc
+          INNER JOIN grupos_economicos gp ON gp.id = cc.id_grupo_economico
+          ${where}`,
         params
       );
+
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
@@ -63,16 +71,16 @@ function getAll(req) {
         params.push(offset);
       }
 
-      var query = `
-            SELECT cc.*, gp.nome as grupo_economico FROM fin_centros_custo as cc
-            LEFT JOIN 
-            grupos_economicos gp ON gp.id = cc.id_grupo_economico 
+      const query = `
+            SELECT
+             cc.*, gp.nome as grupo_economico FROM fin_centros_custo as cc
+            LEFT JOIN grupos_economicos gp ON gp.id = cc.id_grupo_economico 
             ${where}
+            GROUP BY cc.id
             ORDER BY cc.id DESC
             ${limit}
             `;
 
-      // console.log(params);
       const [rows] = await db.execute(query, params);
 
       const objResponse = {
@@ -81,7 +89,7 @@ function getAll(req) {
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(query, params);
+      // console.log(objResponse);
     } catch (error) {
       reject(error);
     }
@@ -143,7 +151,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_CENTRO_CUSTO_INSERT",error);
+      console.log("ERRO_CENTRO_CUSTO_INSERT", error);
       reject(error);
     }
   });
@@ -178,7 +186,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_CENTRO_CUSTO_UPDATE",error);
+      console.log("ERRO_CENTRO_CUSTO_UPDATE", error);
       reject(error);
     }
   });

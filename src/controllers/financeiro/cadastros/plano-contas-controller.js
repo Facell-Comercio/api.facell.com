@@ -1,4 +1,4 @@
-const { db } = require("../../../mysql");
+const { db } = require("../../../../mysql");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -23,9 +23,9 @@ function getAll(req) {
       descricao_pai,
       active,
       termo,
-      id_filial,
+      id_matriz,
     } = filters || {};
-    // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
+    // const { id_matriz, termo } = filters || {id_matriz: 1, termo: null}
     // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
@@ -35,9 +35,13 @@ function getAll(req) {
       params.push(termo);
       params.push(termo);
     }
-    if (id_filial) {
+    if (id_matriz) {
       where += ` AND f.id = ? `;
-      params.push(id_filial);
+      params.push(id_matriz);
+    }
+    if (id_grupo_economico) {
+      where += ` AND pc.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
     }
     if (codigo) {
       where += ` AND pc.codigo LIKE CONCAT(?,'%') `;
@@ -50,10 +54,6 @@ function getAll(req) {
     if (tipo) {
       where += ` AND pc.tipo = ? `;
       params.push(tipo);
-    }
-    if (id_grupo_economico) {
-      where += ` AND pc.id_grupo_economico = ? `;
-      params.push(id_grupo_economico);
     }
     if (descricao_pai) {
       where += ` AND pc.descricao_pai LIKE CONCAT(?,'%') `;
@@ -68,27 +68,44 @@ function getAll(req) {
 
     try {
       const [rowQtdeTotal] = await db.execute(
-        `SELECT 
-            COUNT(pc.id) as qtde 
+        `SELECT COUNT(*) AS qtde
+        FROM (
+            SELECT DISTINCT pc.id
             FROM fin_plano_contas pc
             INNER JOIN filiais f ON f.id_grupo_economico = pc.id_grupo_economico
-             ${where} `,
+            INNER JOIN grupos_economicos gp ON f.id_grupo_economico = gp.id
+            ${where}
+        ) AS subconsulta
+        `,
         params
       );
+
+      // ? Por algum motivo desconhecido no Cadastro plano_de_contas
+      // ? os rows ficavam corretos, mas no modal não, por isso mudei
+      // const [rowQtdeTotal] = await db.execute(
+      //   `SELECT DISTINCT
+      //       COUNT(pc.id) as qtde
+      //       FROM fin_plano_contas pc
+      //       LEFT JOIN filiais f ON f.id_grupo_economico = pc.id_grupo_economico
+      //       LEFT JOIN grupos_economicos gp ON f.id_grupo_economico = gp.id
+      //        ${where} `,
+      //   params
+      // );
+
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
-
       params.push(pageSize);
       params.push(offset);
-      var query = `
-            SELECT pc.*, gp.nome as grupo_economico FROM fin_plano_contas pc
-            LEFT JOIN filiais f ON pc.id_grupo_economico = f.id_grupo_economico
-            LEFT JOIN 
-            grupos_economicos gp ON f.id_grupo_economico = gp.id
-            ${where}
-            ORDER BY pc.id DESC
-            LIMIT ? OFFSET ?
-            `;
+
+      let query = `
+      SELECT DISTINCT
+      pc.*, gp.nome as grupo_economico FROM fin_plano_contas pc
+      LEFT JOIN filiais f ON pc.id_grupo_economico = f.id_grupo_economico
+      LEFT JOIN grupos_economicos gp ON f.id_grupo_economico = gp.id
+      ${where}
+      ORDER BY pc.id DESC
+      LIMIT ? OFFSET ?
+      `;
 
       // console.log(query)
       // console.log(params)
@@ -166,7 +183,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_PLANO_CONTAS_INSERT",error);
+      console.log("ERRO_PLANO_CONTAS_INSERT", error);
       reject(error);
     }
   });
@@ -201,7 +218,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_PLANO_CONTAS_UPDATE",error);
+      console.log("ERRO_PLANO_CONTAS_UPDATE", error);
       reject(error);
     }
   });

@@ -1,73 +1,60 @@
-const { db } = require("../../../mysql");
+const { db } = require("../../../../mysql");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     // user.perfil = 'Financeiro'
+
     if (!user) {
       reject("Usuário não autenticado!");
       return false;
     }
     // Filtros
     const { filters, pagination } = req.query;
+    const { termo } = filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { estabelecimento, num_maquina, id_filial, active } = filters || {};
-
-    // console.log(filters);
     const params = [];
+
     var where = ` WHERE 1=1 `;
+    if (termo) {
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
 
-    if (id_filial) {
-      where += ` AND fe.id_filial = ? `;
-      params.push(id_filial);
-    }
-
-    if (estabelecimento) {
-      where += ` AND fe.estabelecimento LIKE CONCAT(?,'%') `;
-      params.push(estabelecimento);
-    }
-
-    if (num_maquina) {
-      where += ` AND fe.num_maquina LIKE CONCAT(?,'%') `;
-      params.push(num_maquina);
-    }
-
-    if (active) {
-      where += ` AND fe.active = ? `;
-      params.push(active);
+      where += ` AND (
+                ff.nome LIKE CONCAT('%', ?, '%')  OR
+                ff.razao LIKE CONCAT('%', ?, '%')  OR
+                ff.cnpj LIKE CONCAT('%', ?, '%')
+            )`;
     }
 
     const offset = pageIndex * pageSize;
-
+    params.push(pageSize);
+    params.push(offset);
     // console.log(pageSize, offset);
-    // console.log(params);
     try {
       const [rowTotal] = await db.execute(
-        `SELECT 
-          COUNT(fe.id) as qtde 
-          FROM fin_equipamentos_cielo as fe
-          LEFT JOIN filiais as f ON fe.id_filial = f.id
-          ${where}
+        `SELECT count(ff.id) as qtde FROM fin_fornecedores ff
+            WHERE 
+                ff.nome LIKE CONCAT('%', ?, '%')  OR
+                ff.razao LIKE CONCAT('%', ?, '%')  OR
+                ff.cnpj LIKE CONCAT('%', ?, '%')
             `,
-        params
+        [termo, termo, termo]
       );
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
 
-      params.push(pageSize);
-      params.push(offset);
-
       var query = `
-            SELECT fe.*, f.apelido as filial FROM fin_equipamentos_cielo fe
-            LEFT JOIN filiais f ON fe.id_filial = f.id
+            SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.active FROM fin_fornecedores ff
             ${where}
-            ORDER BY fe.id DESC
+            ORDER BY ff.id DESC
             LIMIT ? OFFSET ?
             `;
       // console.log(query)
-      // console.log(params);
+      // console.log(params)
       const [rows] = await db.execute(query, params);
 
       // console.log('Fetched Titulos', titulos.length)
@@ -92,7 +79,7 @@ function getOne(req) {
       const [rowFornecedor] = await db.execute(
         `
             SELECT *
-            FROM fin_equipamentos_cielo fe
+            FROM fin_fornecedores
             WHERE id = ?
             `,
         [id]
@@ -131,8 +118,7 @@ function insertOne(req) {
         params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
       });
 
-      const query = `INSERT INTO fin_equipamentos_cielo (${campos}) VALUES (${values});`;
-      // console.log(query);
+      const query = `INSERT INTO fin_fornecedores (${campos}) VALUES (${values});`;
 
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
@@ -150,7 +136,7 @@ function update(req) {
         throw new Error("ID não informado!");
       }
       const params = [];
-      let updateQuery = "UPDATE fin_equipamentos_cielo SET ";
+      let updateQuery = "UPDATE fin_fornecedores SET ";
 
       // Construir a parte da query para atualização dinâmica
       Object.keys(rest).forEach((key, index) => {
@@ -165,8 +151,8 @@ function update(req) {
 
       await db.execute(
         updateQuery +
-          ` WHERE id = ?
-        `,
+          `WHERE id = ?
+            `,
         params
       );
 
@@ -202,7 +188,7 @@ function toggleActive(req) {
         throw new Error("ID não informado!");
       }
       await db.execute(
-        `UPDATE fin_equipamentos_cielo SET active = NOT active WHERE id = ?`,
+        `UPDATE fin_fornecedores SET active = NOT active WHERE id = ?`,
         [id]
       );
       resolve({ message: "Sucesso!" });
