@@ -21,6 +21,8 @@ function getAll(req) {
       num_doc,
       tipo_data,
       range_data,
+      id_matriz,
+      termo,
     } = filters || {};
     // const { id_matriz, termo } = filters || {id_matriz: 1, termo: null}
     // console.log(filters);
@@ -32,7 +34,7 @@ function getAll(req) {
       params.push(id_conta_bancaria);
     }
     if (fornecedor) {
-      where += ` AND f.nome LIKE CONCAT('%', ?, '%') `;
+      where += ` AND ff.nome LIKE CONCAT('%', ?, '%') `;
       params.push(fornecedor);
     }
     if (id_titulo) {
@@ -42,6 +44,21 @@ function getAll(req) {
     if (num_doc) {
       where += ` AND t.num_doc = ? `;
       params.push(num_doc);
+    }
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
+    }
+    if (termo) {
+      where += ` AND (
+                  b.id LIKE CONCAT(?,"%") OR
+                  cb.descricao LIKE CONCAT("%",?,"%") OR
+                  b.data_pagamento LIKE CONCAT("%",?,"%")
+                ) `;
+      //? Realizar a normalização de data_pagamento?
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
     }
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
@@ -66,13 +83,16 @@ function getAll(req) {
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT
-            b.id, b.data_pagamento, cb.descricao as conta_bancaria
+            b.id, b.data_pagamento, cb.descricao as conta_bancaria, t.descricao
           FROM fin_cp_bordero b
           LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
           LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-          LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
+          LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
           LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-        ${where}
+          LEFT JOIN filiais f ON f.id = t.id_filial
+          ${where}
+          GROUP BY b.id
+
         ) AS subconsulta
         `,
         params
@@ -84,14 +104,17 @@ function getAll(req) {
       params.push(offset);
 
       const query = `
-        SELECT DISTINCT
-          b.id, b.data_pagamento, cb.descricao as conta_bancaria
+        SELECT
+          b.id, b.data_pagamento, cb.descricao as conta_bancaria, t.descricao, f.id_matriz
         FROM fin_cp_bordero b
         LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
         LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-        LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
+        LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN filiais f ON f.id = t.id_filial
+
         ${where}
+        GROUP BY b.id
         ORDER BY b.id DESC
         LIMIT ? OFFSET ?
       `;
@@ -119,12 +142,15 @@ function getOne(req) {
       const [rowPlanoContas] = await db.execute(
         `
             SELECT 
-              b.id, b.data_pagamento, b.id_conta_bancaria, cb.descricao as conta_bancaria 
+              b.id, b.data_pagamento, b.id_conta_bancaria, 
+              cb.descricao as conta_bancaria, f.id_matriz, fb.nome as banco
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-            LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
+            LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+            LEFT JOIN filiais f ON f.id = t.id_filial
+            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
             WHERE b.id = ?
             `,
         [id]
@@ -134,7 +160,8 @@ function getOne(req) {
             SELECT 
               tb.id_titulo, t.data_vencimento as vencimento, f.nome as nome_fornecedor,
               b.data_pagamento, t.valor as valor_total, t.num_doc,
-              t.descricao, b.id_conta_bancaria, fi.apelido, t.data_pagamento 
+              t.descricao, b.id_conta_bancaria, fi.apelido as filial, 
+              t.data_pagamento, false AS checked 
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
@@ -149,7 +176,7 @@ function getOne(req) {
 
       const objResponse = {
         ...planoContas,
-        rowTitulos,
+        titulos: rowTitulos,
       };
       resolve(objResponse);
       return;
@@ -163,38 +190,39 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { id, id_conta_bancaria, data_pagamento, titulos } = req.body;
+
+    const conn = await db.getConnection();
     try {
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
-      let campos = "";
-      let values = "";
-      let params = [];
+      await conn.beginTransaction();
 
-      Object.keys(rest).forEach((key, index) => {
-        if (index > 0) {
-          campos += ", "; // Adicionar vírgula entre os campos
-          values += ", "; // Adicionar vírgula entre os values
-        }
-        campos += `${key}`;
-        //? No fornecedor-controller estava campos += "?" e não values += "?"
-        values += `?`;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+      const [result] = await conn.execute(
+        `INSERT INTO fin_cp_bordero (data_pagamento, id_conta_bancaria) VALUES (?, ?);`,
+        [new Date(data_pagamento), id_conta_bancaria]
+      );
+
+      const newId = result.insertId;
+      if (!newId) {
+        throw new Error("Falha ao inserir o rateio!");
+      }
+
+      // Inserir os titulos no borderô
+      titulos.forEach(async ({ id_titulo }) => {
+        await conn.execute(
+          `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
+          [id_titulo, newId]
+        );
       });
 
-      const query = `INSERT INTO fin_plano_contas (${campos}) VALUES (${values});`;
-
-      await db.execute(query, params);
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_PLANO_CONTAS_INSERT", error);
+      console.log("ERRO_BORDERO_INSERT", error);
       reject(error);
     }
   });
@@ -202,34 +230,88 @@ function insertOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { id, id_conta_bancaria, data_pagamento, titulos } = req.body;
+
+    const conn = await db.getConnection();
     try {
       if (!id) {
         throw new Error("ID não informado!");
       }
-      const params = [];
-      let updateQuery = "UPDATE fin_plano_contas SET ";
+      if (!id_conta_bancaria) {
+        throw new Error("ID_CONTA_BANCARIA não informado!");
+      }
+      if (!data_pagamento) {
+        throw new Error("DATA_PAGAMENTO não informado!");
+      }
 
-      // Construir a parte da query para atualização dinâmica
-      Object.keys(rest).forEach((key, index) => {
-        if (index > 0) {
-          updateQuery += ", "; // Adicionar vírgula entre os campos
-        }
-        updateQuery += `${key} = ? `;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+      await conn.beginTransaction();
+
+      // Update do bordero
+      await conn.execute(
+        `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
+        [data_pagamento, id_conta_bancaria, id]
+      );
+
+      // Inserir os itens do bordero
+      if (titulos.length > 0) {
+        titulos.forEach(async ({ id_titulo }) => {
+          await conn.execute(
+            `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
+            [id_titulo, id]
+          );
+        });
+      }
+
+      await conn.commit();
+      console.log("INSERIDO COM SUCESSO");
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERRO_BORDEROS_UPDATE", error);
+      reject(error);
+    }
+  });
+}
+
+function deleteBordero(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+      await db.execute(
+        `DELETE FROM fin_cp_titulos_borderos WHERE id_titulo = ? LIMIT 1`,
+        [id]
+      );
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERRO NO DELETE_BORDERO", error);
+      reject(error);
+    }
+  });
+}
+
+function transferBordero(req) {
+  return new Promise(async (resolve, reject) => {
+    const { new_id, titulos } = req.body;
+    try {
+      if (!new_id) {
+        throw new Error("ID novo não informado!");
+      }
+      if (titulos.length < 0) {
+        throw new Error("TITULOS não informado!");
+      }
+
+      titulos.forEach(async (id_titulo) => {
+        await db.execute(
+          `UPDATE fin_cp_titulos_borderos SET id_bordero = ? WHERE id_titulo = ?  LIMIT 1`,
+          [new_id, id_titulo]
+        );
       });
-
-      params.push(id);
-
-      await db.execute(updateQuery + " WHERE id = ?", params);
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_PLANO_CONTAS_UPDATE", error);
+      console.log("ERRO NO TRANSFER_BORDERO", error);
       reject(error);
     }
   });
@@ -240,4 +322,6 @@ module.exports = {
   getOne,
   insertOne,
   update,
+  deleteBordero,
+  transferBordero,
 };

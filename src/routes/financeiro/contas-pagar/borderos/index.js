@@ -5,10 +5,20 @@ const {
   getOne,
   insertOne,
   update,
+  deleteBordero,
+  transferBordero,
 } = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 const checkUserDepartment = require("../../../../middlewares/derpartment-middleware");
 
+router.put("/transfer", async (req, res) => {
+  try {
+    const result = await transferBordero(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 router.get("/", async (req, res) => {
   try {
     const result = await getAll(req);
@@ -50,5 +60,14 @@ router.put(
     }
   }
 );
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const result = await deleteBordero(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;

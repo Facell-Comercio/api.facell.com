@@ -1,6 +1,7 @@
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { param } = require("../../../routes/financeiro/contas-pagar");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -32,17 +33,27 @@ function getAll(req) {
       tipo_data,
       range_data,
       descricao,
+      id_matriz,
       nome_fornecedor,
       nome_user,
     } = filters || {};
+
+    const params = [];
     if (id) {
-      where += ` AND t.id LIKE '${id}%' `;
+      where += ` AND t.id LIKE CONCAT(?,'%') `;
+      params.push(id);
     }
     if (id_status && id_status !== "all") {
-      where += ` AND t.id_status LIKE '${id_status}%' `;
+      where += ` AND t.id_status LIKE CONCAT(?,'%') `;
+      params.push(id_status);
     }
     if (descricao) {
-      where += ` AND t.descricao LIKE '%${descricao}%' `;
+      where += ` AND t.descricao LIKE CONCAT('%',?,'%') `;
+      params.push(descricao);
+    }
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
     }
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
@@ -60,40 +71,40 @@ function getAll(req) {
       }
     }
     if (id_grupo_economico && id_grupo_economico !== "all") {
-      where += ` AND f.id_grupo_economico = '${id_grupo_economico}' `;
+      where += ` AND f.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
     }
     // console.log(where)
 
     try {
       const [rowsTitulos] = await db.execute(
-        `SELECT count(t.id) as total FROM fin_cp_titulos t LEFT JOIN filiais f ON f.id = t.id_filial ${where}`
+        `SELECT count(t.id) as total 
+        FROM fin_cp_titulos t 
+        LEFT JOIN filiais f ON f.id = t.id_filial ${where}`,
+        params
       );
       const totalTitulos = (rowsTitulos && rowsTitulos[0]["total"]) || 0;
 
       var query = `
             SELECT 
                 t.id, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
-                f.nome as filial,
+                f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor, u.nome as solicitante
-            FROM 
-                fin_cp_titulos t 
-            LEFT JOIN 
-                fin_cp_status s ON s.id = t.id_status 
-            LEFT JOIN 
-                filiais f ON f.id = t.id_filial 
-            LEFT JOIN 
-                fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN 
-                users u ON u.id = t.id_solicitante
+            FROM fin_cp_titulos t 
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
 
             ${where}
 
             ORDER BY 
                 t.created_at DESC 
             LIMIT ? OFFSET ?`;
-      const params = [pageSize, offset];
-      // console.log(query)
-      // console.log(params)
+      params.push(pageSize);
+      params.push(offset);
+      console.log(query);
+      console.log(params);
       const [titulos] = await db.execute(query, params);
 
       const objResponse = {
@@ -105,6 +116,7 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
+      console.log("ERRO TITULOS PAGAR GET_ALL", error);
       reject(error);
     }
   });
@@ -152,7 +164,160 @@ function getOne(req) {
   });
 }
 
+function getAllCpTitulosBordero(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const { pagination, filters } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
+
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+    // console.log(pageIndex, pageSize, offset)
+
+    // Filtros
+    var where = ` WHERE 1=1 `;
+    // Somente o Financeiro/Master podem ver todos
+    if (
+      !checkUserDepartment(req, "FINANCEIRO") &&
+      !checkUserPermission(req, "MASTER")
+    ) {
+      where += ` AND t.id_solicitante = '${user.id}' `;
+    }
+    // console.log(filters)
+    const {
+      id,
+      id_grupo_economico,
+      tipo_data,
+      range_data,
+      descricao,
+      id_matriz,
+      id_conta_bancaria,
+      termo,
+    } = filters || {};
+
+    console.log(filters);
+    const params = [];
+    if (termo) {
+      where += ` AND (
+        t.id LIKE CONCAT(?,'%') 
+        OR t.descricao LIKE CONCAT('%',?,'%')
+        OR forn.nome LIKE CONCAT('%',?,'%')
+        OR t.num_doc LIKE CONCAT('%',?,'%')
+        OR t.valor LIKE CONCAT('%',?,'%')
+        OR f.nome LIKE CONCAT('%',?,'%')  
+    )  `;
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+    }
+    if (id) {
+      where += ` AND t.id LIKE CONCAT(?,'%') `;
+      params.push(id);
+    }
+    if (descricao) {
+      where += ` t.descricao LIKE CONCAT('%',?,'%')  `;
+      params.push(descricao);
+    }
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
+    }
+
+    where += ` 
+    AND t.id_status = 3 
+      AND tb.id_titulo IS NULL `;
+
+    if (tipo_data && range_data) {
+      const { from: data_de, to: data_ate } = range_data;
+      if (data_de && data_ate) {
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
+      } else {
+        if (data_de) {
+          where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
+        }
+        if (data_ate) {
+          where += ` AND t.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+        }
+      }
+    }
+    if (id_grupo_economico && id_grupo_economico !== "all") {
+      where += ` AND f.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
+    }
+    // console.log(where)
+
+    try {
+      const [rowQtdeTotal] = await db.execute(
+        `SELECT COUNT(*) AS qtde
+        FROM (
+          SELECT DISTINCT 
+          t.id as id_titulo, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
+          f.nome as filial, f.id_matriz,
+          forn.nome as fornecedor, u.nome as solicitante
+          FROM fin_cp_titulos t 
+          LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+          LEFT JOIN filiais f ON f.id = t.id_filial 
+          LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+          LEFT JOIN users u ON u.id = t.id_solicitante
+          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+
+          ${where}
+        ) AS subconsulta
+        `,
+        params
+      );
+      const totalTitulos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+
+      var query = `
+            SELECT DISTINCT 
+                t.id as id_titulo, s.status, t.data_vencimento as vencimento, 
+                t.descricao, t.valor as valor_total,
+                f.nome as filial, f.id_matriz,
+                forn.nome as nome_fornecedor, t.num_doc, t.data_pagamento
+            FROM fin_cp_titulos t 
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+
+            ${where}
+
+            ORDER BY 
+                t.created_at DESC 
+            LIMIT ? OFFSET ?`;
+      params.push(pageSize);
+      params.push(offset);
+      // console.log(query);
+      // console.log(params);
+      const [titulos] = await db.execute(query, params);
+
+      const objResponse = {
+        rows: titulos,
+        pageCount: Math.ceil(totalTitulos / pageSize),
+        rowCount: totalTitulos,
+      };
+      // console.log('Fetched Titulos', titulos.length)
+      // console.log(objResponse)
+      resolve(objResponse);
+    } catch (error) {
+      console.log("ERRO TITULOS PAGAR GET_ALL_CP_TITULOS_BORDERO", error);
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
+
+  getAllCpTitulosBordero,
 };

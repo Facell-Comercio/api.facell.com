@@ -9,7 +9,7 @@ function getAll(req) {
       return false;
     }
     // Filtros
-    const { filters, pagination } = req.query;
+    const { filters, pagination } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -21,15 +21,21 @@ function getAll(req) {
       id_grupo_economico,
       descricao,
       active,
+      id_matriz,
     } = filters || {};
     // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
     // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
+    console.log("ID_MATRIZ", filters);
     if (id_filial) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
+    }
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
     }
     if (id_tipo_conta) {
       where += ` AND cb.id_tipo_conta = ? `;
@@ -73,7 +79,10 @@ function getAll(req) {
       params.push(pageSize);
       params.push(offset);
       var query = `
-            SELECT cb.id, cb.descricao, f.nome as filial, ge.nome, fb.nome as banco, ge.nome as grupo_economico, ftc.tipo as tipo_conta, cb.active 
+            SELECT 
+              f.id_matriz, cb.id, cb.descricao, f.nome as filial, ge.nome, 
+              fb.nome as banco, ge.nome as grupo_economico, 
+              ftc.tipo as tipo_conta, cb.active
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -98,6 +107,7 @@ function getAll(req) {
       resolve(objResponse);
       // console.log(objResponse)
     } catch (error) {
+      console.log("ERRO GET_ALL CONTAS BANCARIAS", error);
       reject(error);
     }
   });
@@ -109,7 +119,7 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await db.execute(
         `
-            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
