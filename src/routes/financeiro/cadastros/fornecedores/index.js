@@ -6,7 +6,6 @@ const {
   toggleActive,
   update,
   insertOne,
-  getFornecedorData,
   consultaCnpj,
 } = require("../../../../controllers/financeiro/cadastros/fornecedores-controller");
 

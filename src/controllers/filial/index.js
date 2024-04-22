@@ -79,6 +79,7 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    console.log(id)
     try {
       const [rowItem] = await db.execute(
         `

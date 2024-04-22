@@ -2,17 +2,17 @@ const { getAll, getOne, update, insertOne } = require('../controllers/filial')
 
 const router = require('express').Router()
 
-router.get('/', async (req, res)=>{
+router.get('/:id', async (req, res)=>{
     try {
-        const result = await getAll(req)
+        const result = await getOne(req)
         res.status(200).json(result)
     } catch (error) {
         res.status(400).json({message: error.message})
     }
 })
-router.get('/:id', async (req, res)=>{
+router.get('/', async (req, res)=>{
     try {
-        const result = await getOne(req)
+        const result = await getAll(req)
         res.status(200).json(result)
     } catch (error) {
         res.status(400).json({message: error.message})

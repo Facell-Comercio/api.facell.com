@@ -6,7 +6,7 @@ require('dotenv').config();
 async function lerOFX(buffer) {
     return new Promise(async (resolve, reject) => {
         try {
-            const pathOFX = path.join(process.env.BASE_DIR, "public/uploads/ofx/ITAU.ofx");
+            const pathOFX = path.join(process.env.BASE_DIR, "public/uploads/teste.ofx");
             const ofxString = await readOFX(pathOFX)
 
             if (typeof ofxString !== 'string') {
