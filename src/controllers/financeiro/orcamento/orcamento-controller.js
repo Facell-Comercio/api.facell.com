@@ -492,14 +492,8 @@ function transfer(req) {
 function getIds(req) {
   return new Promise(async (resolve, reject) => {
     const { data, id_grupo_economico } = req.body;
-    if (!data[0].centro_custo) {
-      throw new Error("CENTRO_CUSTO não informado!");
-    }
-    if (!data[0].grupo_economico) {
-      throw new Error("GRUPO_ECONOMICO não informado!");
-    }
-    if (!data[0].plano_contas) {
-      throw new Error("PLANO_CONTAS não informado!");
+    if (data?.length === 0) {
+      throw new Error("Itens não informados!");
     }
     if (!id_grupo_economico) {
       throw new Error("ID_GRUPO_ECONOMICO não informado!");
@@ -524,14 +518,14 @@ function getIds(req) {
           ]
         );
         const grupo_economico =
-          rows_grupo_economico[0] && rows_grupo_economico[0];
+          rows_grupo_economico && rows_grupo_economico[0];
 
-        if (grupo_economico.id === +id_grupo_economico) {
+        if (grupo_economico.id == id_grupo_economico) {
           const [rows_centro_custo] = await conn.execute(
             "SELECT id FROM fin_centros_custo fcc WHERE fcc.nome = ? AND fcc.id_grupo_economico = ?",
             [array.centro_custo.toString().toUpperCase(), id_grupo_economico]
           );
-          const centro_custo = rows_centro_custo[0] && rows_centro_custo[0];
+          const centro_custo = rows_centro_custo && rows_centro_custo[0];
           if (centro_custo) {
             erro.centro_custo = "OK";
           }
@@ -543,7 +537,7 @@ function getIds(req) {
               id_grupo_economico,
             ]
           );
-          const plano_contas = rows_plano_contas[0] && rows_plano_contas[0];
+          const plano_contas = rows_plano_contas && rows_plano_contas[0];
           if (plano_contas) {
             erro.plano_contas = "OK";
           }

@@ -1,5 +1,6 @@
 const router = require('express').Router()
 const {register, login } = require('../controllers/auth-controller');
+const authMiddleware = require('../middlewares/auth-middleware');
 
 router.post('/register', async (req, res)=>{
     try {
@@ -16,6 +17,14 @@ router.post('/login', async (req, res)=>{
         res.status(200).json(data)
     } catch (error) {
         res.status(400).json({message: error.message})
+    }
+})
+
+router.get('/validar-token', authMiddleware, async (req, res)=>{
+    try {
+        res.status(200).json({message: 'Sucesso!'})
+    } catch (error) {
+        res.status(400).json({message: 'Ocorreu um erro ao tentar validar a sua autenticação!'})
     }
 })
 
