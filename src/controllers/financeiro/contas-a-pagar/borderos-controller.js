@@ -16,6 +16,7 @@ function getAll(req) {
     };
     const {
       id_conta_bancaria,
+      banco,
       fornecedor,
       id_titulo,
       num_doc,
@@ -32,6 +33,10 @@ function getAll(req) {
     if (id_conta_bancaria) {
       where += ` AND b.id_conta_bancaria = ? `;
       params.push(id_conta_bancaria);
+    }
+    if (banco) {
+      where += ` AND fb.nome LIKE CONCAT('%', ?, '%')`;
+      params.push(banco);
     }
     if (fornecedor) {
       where += ` AND ff.nome LIKE CONCAT('%', ?, '%') `;
@@ -83,12 +88,13 @@ function getAll(req) {
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT
-            b.id, b.data_pagamento, cb.descricao as conta_bancaria, t.descricao
+            b.id
           FROM fin_cp_bordero b
           LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
           LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
           LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
           LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+          LEFT JOIN fin_bancos fb ON b.id = cb.id_banco
           LEFT JOIN filiais f ON f.id = t.id_filial
           ${where}
           GROUP BY b.id
@@ -111,6 +117,7 @@ function getAll(req) {
         LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
         LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
         LEFT JOIN filiais f ON f.id = t.id_filial
 
         ${where}
@@ -126,7 +133,7 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      console.log(objResponse);
+      console.log(params);
       resolve(objResponse);
     } catch (error) {
       console.log("ERRO GET_ALL BORDERO", error);
