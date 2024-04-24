@@ -11,6 +11,8 @@ const {
   deleteBudget,
   faker,
   getIds,
+  getLogs,
+  deleteItemBudget,
 } = require("../../../controllers/financeiro/orcamento/orcamento-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
@@ -30,6 +32,15 @@ const checkUserAuthorization = require("../../../middlewares/authorization-middl
 router.post("/get-ids", async (req, res) => {
   try {
     const result = await getIds(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/logs/:id", async (req, res) => {
+  try {
+    const result = await getLogs(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -117,7 +128,7 @@ router.put(
 
 router.delete("/:id", async (req, res) => {
   try {
-    const result = await deleteBudget(req);
+    const result = await deleteItemBudget(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });

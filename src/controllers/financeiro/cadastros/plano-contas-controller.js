@@ -25,8 +25,6 @@ function getAll(req) {
       termo,
       id_matriz,
     } = filters || {};
-    // const { id_matriz, termo } = filters || {id_matriz: 1, termo: null}
-    // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
@@ -107,19 +105,14 @@ function getAll(req) {
       LIMIT ? OFFSET ?
       `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.size)
-      // console.log(objResponse)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
       reject(error);
     }

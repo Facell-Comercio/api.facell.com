@@ -16,7 +16,6 @@ function getAll(req) {
     };
     const { estabelecimento, num_maquina, id_filial, active } = filters || {};
 
-    // console.log(filters);
     const params = [];
     var where = ` WHERE 1=1 `;
 
@@ -42,8 +41,6 @@ function getAll(req) {
 
     const offset = pageIndex * pageSize;
 
-    // console.log(pageSize, offset);
-    // console.log(params);
     try {
       const [rowTotal] = await db.execute(
         `SELECT 
@@ -66,17 +63,13 @@ function getAll(req) {
             ORDER BY fe.id DESC
             LIMIT ? OFFSET ?
             `;
-      // console.log(query)
-      // console.log(params);
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.length)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      // console.log(objResponse)
 
       resolve(objResponse);
     } catch (error) {
@@ -98,7 +91,6 @@ function getOne(req) {
         [id]
       );
       const fornecedor = rowFornecedor && rowFornecedor[0];
-      // console.log(fornecedor);
       resolve(fornecedor);
       return;
     } catch (error) {
@@ -123,20 +115,20 @@ function insertOne(req) {
 
       Object.keys(rest).forEach((key, index) => {
         if (index > 0) {
-          campos += ", "; // Adicionar vírgula entre os campos
-          values += ", "; // Adicionar vírgula entre os values
+          campos += ", ";
+          values += ", ";
         }
         campos += `${key}`;
         values += `?`;
-        params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
+        params.push(rest[key]);
       });
 
       const query = `INSERT INTO fin_equipamentos_cielo (${campos}) VALUES (${values});`;
-      // console.log(query);
 
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
+      console.log("ERRO_RATEIOS_INSERT", error);
       reject(error);
     }
   });
@@ -171,42 +163,8 @@ function update(req) {
       );
 
       resolve({ message: "Sucesso!" });
-      return;
     } catch (error) {
-      reject(error);
-      return;
-    }
-  });
-}
-
-function consultaCnpj(req) {
-  return new Promise(async (resolve, reject) => {
-    const { cnpj } = req.params;
-
-    fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`)
-      .then((res) => res.json())
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((error) => {
-        reject(error);
-      });
-  });
-}
-
-function toggleActive(req) {
-  return new Promise(async (resolve, reject) => {
-    const { id } = req.query;
-    try {
-      if (!id) {
-        throw new Error("ID não informado!");
-      }
-      await db.execute(
-        `UPDATE fin_equipamentos_cielo SET active = NOT active WHERE id = ?`,
-        [id]
-      );
-      resolve({ message: "Sucesso!" });
-    } catch (error) {
+      console.log("ERRO_RATEIOS_UPDATE", error);
       reject(error);
     }
   });

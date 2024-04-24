@@ -247,9 +247,11 @@ function getAllCpTitulosBordero(req) {
       id,
       id_grupo_economico,
       tipo_data,
+      fornecedor,
       range_data,
       descricao,
       id_matriz,
+      id_filial,
       id_conta_bancaria,
       termo,
     } = filters || {};
@@ -283,6 +285,14 @@ function getAllCpTitulosBordero(req) {
     if (id_matriz) {
       where += ` AND f.id_matriz = ? `;
       params.push(id_matriz);
+    }
+    if (id_filial) {
+      where += ` AND f.id = ? `;
+      params.push(id_filial);
+    }
+    if (fornecedor) {
+      where += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
+      params.push(fornecedor);
     }
 
     where += ` 
@@ -334,7 +344,7 @@ function getAllCpTitulosBordero(req) {
 
       var query = `
             SELECT DISTINCT 
-                t.id as id_titulo, s.status, t.data_vencimento as vencimento, 
+                t.id as id_titulo, s.status, t.data_prevista as previsao, 
                 t.descricao, t.valor as valor_total,
                 f.nome as filial, f.id_matriz,
                 forn.nome as nome_fornecedor, t.num_doc, t.data_pagamento

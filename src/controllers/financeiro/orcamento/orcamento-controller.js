@@ -1,4 +1,5 @@
 const { db } = require("../../../../mysql");
+const { normalizeCurrency } = require("../../../helpers/mask");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -39,7 +40,6 @@ function getAll(req) {
 
       params.push(pageSize);
       params.push(offset);
-      // console.log(params);
       var query = `
             SELECT fo.*, ge.apelido as grupo_economico FROM fin_orcamento fo
             LEFT JOIN grupos_economicos ge ON fo.id_grupo_economico = ge.id
@@ -48,8 +48,6 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await db.execute(query, params);
 
       const objResponse = {
@@ -58,9 +56,7 @@ function getAll(req) {
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_GET_ALL", error);
       reject(error);
     }
   });
@@ -109,7 +105,8 @@ function getOne(req) {
           fcc.nome as centro_custo, 
           CONCAT(fpc.codigo," - ",fpc.descricao) as plano_contas, 
           foc.valor_previsto as valor,
-          foc.valor_previsto as valor_inicial
+          foc.valor_previsto as valor_inicial,
+          foc.saldo 
         FROM fin_orcamento_contas foc
         LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
         LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
@@ -123,7 +120,6 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
-      console.log("ERRO GET_ONE ORCAMENTO", error);
       reject(error);
       return;
     }
@@ -133,7 +129,6 @@ function getOne(req) {
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { active, id_grupo_economico, ref, contas } = req.body;
-    // console.log(req.body);
     const conn = await db.getConnection();
     try {
       if (!id_grupo_economico) {
@@ -170,7 +165,8 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_INSERT_ONE", error);
+      console.log("ERRO_ORCAMENTO_INSERT", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -179,7 +175,6 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, active, id_grupo_economico, ref, contas } = req.body;
-    // console.log("REQ.BODY", req.body);
 
     const conn = await db.getConnection();
     try {
@@ -195,72 +190,141 @@ function update(req) {
       await conn.beginTransaction();
 
       // todo: Update do active
-      await db.execute(`UPDATE fin_orcamento SET active = ? WHERE id = ?`, [
+      await conn.execute(`UPDATE fin_orcamento SET active = ? WHERE id = ?`, [
         active,
         id,
       ]);
 
       if (contas?.length) {
         // todo: Insert das contas
-        contas.forEach(
-          async ({
+        for (const conta of contas) {
+          const {
             id_conta,
             id_centro_custo,
             id_plano_contas,
             valor,
             valor_inicial,
-          }) => {
-            if (id_conta) {
-              const valorAtualizado = valor - valor_inicial;
-              await db.execute(
-                `UPDATE fin_orcamento_contas SET 
-                  id_centro_custo = ?, 
-                  id_plano_contas = ?, 
-                  valor_previsto = valor_previsto + (?), 
-                  saldo = saldo + (?) 
-                WHERE id = ?`,
-                [
-                  id_centro_custo,
-                  id_plano_contas,
-                  valorAtualizado,
-                  valorAtualizado,
-                  id_conta,
-                ]
-              );
-            } else {
-              await conn.execute(
-                `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto, saldo) VALUES(?,?,?,?,?)`,
-                [id, id_centro_custo, id_plano_contas, valor, valor]
-              );
-            }
+          } = conta;
+
+          if (id_conta) {
+            const valorAtualizado = valor - valor_inicial;
+
+            const [oldRow] = await conn.execute(
+              `
+                    SELECT 
+                      fcc.nome as centro_custo, 
+                      CONCAT(fpc.codigo, " - ", fpc.descricao) as plano_contas 
+                    FROM fin_orcamento_contas foc
+                    LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
+                    LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
+                    WHERE foc.id = ? `,
+              [id_conta]
+            );
+
+            await conn.execute(
+              `UPDATE fin_orcamento_contas SET 
+                      id_centro_custo = ?, 
+                      id_plano_contas = ?, 
+                      valor_previsto = valor_previsto + ?, 
+                      saldo = saldo + ? 
+                    WHERE id = ?`,
+              [
+                id_centro_custo,
+                id_plano_contas,
+                valorAtualizado,
+                valorAtualizado,
+                id_conta,
+              ]
+            );
+
+            const { centro_custo, plano_contas } = oldRow && oldRow[0];
+            const descricao = `ATUALIZAÇÃO -> ${centro_custo} - ${plano_contas} | ANTES: ${normalizeCurrency(
+              valor_inicial
+            )} | DEPOIS: ${normalizeCurrency(
+              valor
+            )} | DIF.: ${normalizeCurrency(valorAtualizado)}`;
+            await conn.execute(
+              `
+                    INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
+                    `,
+              [id, req.user.id, descricao]
+            );
+          } else {
+            await conn.execute(
+              `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto, saldo) VALUES(?, ?, ?, ?, ?)`,
+              [id, id_centro_custo, id_plano_contas, valor, valor]
+            );
           }
-        );
+        }
       }
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_UPDATE", error);
-      conn.rollback();
+      console.log("ERRO_ORCAMENTO_UPDATE", error);
+      await conn.rollback();
       reject(error);
     }
   });
 }
 
-function deleteBudget(req) {
+function deleteItemBudget(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
+
     try {
       if (!id) {
         throw new Error("ID não informado!");
       }
-      await db.execute(
+      await conn.beginTransaction();
+
+      const [rowsConsumo] = await conn.execute(
+        `
+        SELECT id FROM fin_orcamento_consumo WHERE id_orcamento_conta = ?
+      `,
+        [id]
+      );
+      if (rowsConsumo.length > 0) {
+        throw new Error(
+          "Não é possível excluir um item de orçamento com consumo!"
+        );
+      }
+
+      const [oldRow] = await conn.execute(
+        `
+        SELECT 
+          fcc.nome as centro_custo, 
+          CONCAT(fpc.codigo, " - ", fpc.descricao) as plano_contas, 
+          foc.valor_previsto as valor,
+          fo.id as id_orcamento
+        FROM fin_orcamento_contas foc
+        LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
+        LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
+        LEFT JOIN fin_orcamento as fo ON fo.id = foc.id_orcamento
+        WHERE foc.id = ? `,
+        [id]
+      );
+      await conn.execute(
         `DELETE FROM fin_orcamento_contas WHERE id = ? LIMIT 1`,
         [id]
       );
+      const { id_orcamento, centro_custo, plano_contas, valor } =
+        oldRow && oldRow[0];
+      const descricao = `EXCLUSÃO -> ${centro_custo} - ${plano_contas} - ${normalizeCurrency(
+        valor
+      )}`;
+      await conn.execute(
+        `
+        INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
+        `,
+        [id_orcamento, req.user.id, descricao]
+      );
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO NO DELETE_BUDGET", error);
+      console.log("ERRO_DELETE_ITEM_BUDGET", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -301,7 +365,6 @@ function getMyBudgets(req) {
 
     const offset = pageIndex * pageSize;
 
-    // console.log(params);
     try {
       const [rowQtdeTotal] = await db.execute(
         `SELECT 
@@ -322,7 +385,6 @@ function getMyBudgets(req) {
         params.push(pageSize);
         params.push(offset);
       }
-      // console.log(params);
       var query = `
             SELECT 
               foc.*, 
@@ -341,12 +403,8 @@ function getMyBudgets(req) {
             ${limit}
             `;
 
-      // console.log(query)
-      // console.log(params);
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.size)
-      // console.log(objResponse)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
@@ -355,9 +413,7 @@ function getMyBudgets(req) {
         ano,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO NO GET_MY_BUDGETS ", error);
       reject(error);
     }
   });
@@ -388,11 +444,8 @@ function getMyBudget(req) {
 
       const orcamento = rowOrcamento && rowOrcamento[0];
       resolve(orcamento);
-      return;
     } catch (error) {
-      console.log("ERRO NO GET_MY_BUDGET ", error);
       reject(error);
-      return;
     }
   });
 }
@@ -407,7 +460,6 @@ function transfer(req) {
       id_centro_custo_saida,
       id_centro_custo_entrada,
     } = req.body;
-    // console.log("REQ.BODY", req.body);
 
     const conn = await db.getConnection();
     try {
@@ -430,7 +482,13 @@ function transfer(req) {
       await conn.beginTransaction();
 
       const [rowOrcamentoContaSaida] = await conn.execute(
-        `SELECT * FROM fin_orcamento_contas WHERE id = ?`,
+        `SELECT 
+          foc.*, 
+          fcc.nome as centro_custo, 
+          CONCAT(fpc.codigo, " - ", fpc.descricao) as plano_contas
+        FROM fin_orcamento_contas foc
+        LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
+        LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas WHERE foc.id = ?`,
         [id_conta_saida]
       );
 
@@ -448,11 +506,16 @@ function transfer(req) {
       );
 
       const [rowOrcamentoContaEntrada] = await conn.execute(
-        `SELECT * 
-          FROM fin_orcamento_contas 
-          WHERE id_orcamento = ? 
-          AND id_centro_custo = ? 
-          AND id_plano_contas = ? 
+        `SELECT 
+          foc.*, 
+          fcc.nome as centro_custo, 
+          CONCAT(fpc.codigo, " - ", fpc.descricao) as plano_contas
+        FROM fin_orcamento_contas foc
+        LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
+        LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
+        WHERE foc.id_orcamento = ? 
+        AND id_centro_custo = ? 
+        AND id_plano_contas = ? 
       `,
         [id_orcamento, id_centro_custo_entrada, id_conta_entrada]
       );
@@ -472,10 +535,46 @@ function transfer(req) {
             valor_transferido,
           ]
         );
+
+        const [newCentroCusto] = await conn.execute(
+          `
+          SELECT nome FROM fin_centros_custo WHERE id = ?
+        `,
+          [id_centro_custo_entrada]
+        );
+        const [newPlanoContas] = await conn.execute(
+          `
+          SELECT CONCAT(fpc.codigo, " - ", fpc.descricao) as nome FROM fin_plano_contas fpc WHERE fpc.id = ?
+        `,
+          [id_conta_entrada]
+        );
+
+        const descricao = `TRANSFERÊNCIA -> DE: ${contaSaida.centro_custo} - ${
+          contaSaida.plano_contas
+        } | PARA: ${newCentroCusto[0].nome} - ${
+          newPlanoContas[0].nome
+        } | VALOR: ${normalizeCurrency(valor_transferido)}`;
+        await conn.execute(
+          `
+          INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
+          `,
+          [contaSaida.id_orcamento, req.user.id, descricao]
+        );
       } else {
         await conn.execute(
           `UPDATE fin_orcamento_contas SET valor_previsto = valor_previsto + ?, saldo = saldo + ? WHERE id = ?`,
           [valor_transferido, valor_transferido, contaEntrada.id]
+        );
+        const descricao = `TRANSFERÊNCIA -> VALOR: ${normalizeCurrency(
+          valor_transferido
+        )} | DE: ${contaSaida.centro_custo} - ${
+          contaSaida.plano_contas
+        } | PARA: ${contaEntrada.centro_custo} - ${contaEntrada.plano_contas}`;
+        await conn.execute(
+          `
+          INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
+          `,
+          [contaSaida.id_orcamento, req.user.id, descricao]
         );
       }
       await conn.commit();
@@ -483,7 +582,7 @@ function transfer(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_TRANSFER_BUDGET", error);
-      conn.rollback();
+      await conn.rollback();
       reject(error);
     }
   });
@@ -517,8 +616,7 @@ function getIds(req) {
             array.grupo_economico.toString().toUpperCase(),
           ]
         );
-        const grupo_economico =
-          rows_grupo_economico && rows_grupo_economico[0];
+        const grupo_economico = rows_grupo_economico && rows_grupo_economico[0];
 
         if (grupo_economico.id == id_grupo_economico) {
           const [rows_centro_custo] = await conn.execute(
@@ -541,27 +639,51 @@ function getIds(req) {
           if (plano_contas) {
             erro.plano_contas = "OK";
           }
+
           returnedIds.push({
             id_centro_custo: centro_custo.id || null,
             id_plano_contas: plano_contas.id || null,
           });
+        } else {
+          returnedIds.push({
+            id_centro_custo: null,
+            id_plano_contas: null,
+          });
         }
-
-        returnedIds.push({
-          id_centro_custo: null,
-          id_plano_contas: null,
-        });
 
         erros.push(erro);
       }
-
-      // console.log(params)
-
       await conn.commit();
       resolve({ returnedIds, erros });
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO_GET_IDS", error);
+      await conn.rollback();
+      reject(error);
+    }
+  });
+}
+
+function getLogs(req) {
+  return new Promise(async (resolve, reject) => {
+    // Filtros
+    const { id } = req.params;
+    try {
+      const [rows] = await db.execute(
+        `
+            SELECT 
+              u.nome,
+              foh.descricao,
+              foh.created_at
+            FROM fin_orcamento_historico foh
+            LEFT JOIN users u ON u.id = foh.id_user
+            WHERE foh.id_orcamento = ?`,
+        [id]
+      );
+
+      const objResponse = {
+        rows,
+      };
+      resolve(objResponse);
+    } catch (error) {
       reject(error);
     }
   });
@@ -569,7 +691,6 @@ function getIds(req) {
 
 function faker() {
   return new Promise(async (resolve, reject) => {
-    // console.log(req.body);
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
@@ -578,12 +699,10 @@ function faker() {
         `SELECT id FROM fin_centros_custo WHERE id_grupo_economico = ?`,
         [1]
       );
-      console.log(centrosDeCusto);
       const [planoDeContas] = await conn.execute(
         `SELECT id FROM fin_plano_contas WHERE tipo = ? AND id_grupo_economico = ?`,
         ["Despesa", 1]
       );
-      console.log(planoDeContas);
       for (const centro_custo of centrosDeCusto) {
         for (const conta of planoDeContas) {
           await conn.execute(
@@ -604,7 +723,7 @@ function faker() {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_FAKER", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -615,10 +734,11 @@ module.exports = {
   getOne,
   insertOne,
   update,
-  deleteBudget,
+  deleteItemBudget,
   getMyBudgets,
   getMyBudget,
   transfer,
   getIds,
+  getLogs,
   faker,
 };
