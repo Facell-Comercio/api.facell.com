@@ -23,12 +23,9 @@ function getAll(req) {
       active,
       id_matriz,
     } = filters || {};
-    // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
-    // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
-    console.log("ID_MATRIZ", filters);
     if (id_filial) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
@@ -93,21 +90,15 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.size)
-      // console.log(objResponse)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO GET_ALL CONTAS BANCARIAS", error);
       reject(error);
     }
   });

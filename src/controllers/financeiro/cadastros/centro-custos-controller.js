@@ -18,7 +18,6 @@ function getAll(req) {
       pageSize: 15,
     };
     const { nome, id_grupo_economico, ativo, id_matriz, termo } = filters || {};
-    // console.log(filters);
 
     let where = ` WHERE 1=1 `;
     const params = [];
@@ -89,7 +88,6 @@ function getAll(req) {
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(objResponse);
     } catch (error) {
       reject(error);
     }

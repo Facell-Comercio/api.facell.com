@@ -40,7 +40,6 @@ function getAll(req) {
 
       params.push(pageSize);
       params.push(offset);
-      // console.log(params);
       var query = `
             SELECT fo.*, ge.apelido as grupo_economico FROM fin_orcamento fo
             LEFT JOIN grupos_economicos ge ON fo.id_grupo_economico = ge.id
@@ -49,8 +48,6 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await db.execute(query, params);
 
       const objResponse = {
@@ -59,9 +56,7 @@ function getAll(req) {
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_GET_ALL", error);
       reject(error);
     }
   });
@@ -125,7 +120,6 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
-      console.log("ERRO GET_ONE ORCAMENTO", error);
       reject(error);
       return;
     }
@@ -135,7 +129,6 @@ function getOne(req) {
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { active, id_grupo_economico, ref, contas } = req.body;
-    // console.log(req.body);
     const conn = await db.getConnection();
     try {
       if (!id_grupo_economico) {
@@ -172,7 +165,8 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_INSERT_ONE", error);
+      console.log("ERRO_ORCAMENTO_INSERT", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -181,7 +175,6 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, active, id_grupo_economico, ref, contas } = req.body;
-    // console.log("REQ.BODY", req.body);
 
     const conn = await db.getConnection();
     try {
@@ -268,8 +261,8 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORÇAMENTO_UPDATE", error);
-      conn.rollback();
+      console.log("ERRO_ORCAMENTO_UPDATE", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -292,7 +285,6 @@ function deleteItemBudget(req) {
       `,
         [id]
       );
-      console.log(rowsConsumo);
       if (rowsConsumo.length > 0) {
         throw new Error(
           "Não é possível excluir um item de orçamento com consumo!"
@@ -331,7 +323,8 @@ function deleteItemBudget(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO NO DELETE_BUDGET", error);
+      console.log("ERRO_DELETE_ITEM_BUDGET", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -372,7 +365,6 @@ function getMyBudgets(req) {
 
     const offset = pageIndex * pageSize;
 
-    // console.log(params);
     try {
       const [rowQtdeTotal] = await db.execute(
         `SELECT 
@@ -393,7 +385,6 @@ function getMyBudgets(req) {
         params.push(pageSize);
         params.push(offset);
       }
-      // console.log(params);
       var query = `
             SELECT 
               foc.*, 
@@ -412,12 +403,8 @@ function getMyBudgets(req) {
             ${limit}
             `;
 
-      // console.log(query)
-      // console.log(params);
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.size)
-      // console.log(objResponse)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
@@ -426,9 +413,7 @@ function getMyBudgets(req) {
         ano,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO NO GET_MY_BUDGETS ", error);
       reject(error);
     }
   });
@@ -459,11 +444,8 @@ function getMyBudget(req) {
 
       const orcamento = rowOrcamento && rowOrcamento[0];
       resolve(orcamento);
-      return;
     } catch (error) {
-      console.log("ERRO NO GET_MY_BUDGET ", error);
       reject(error);
-      return;
     }
   });
 }
@@ -478,7 +460,6 @@ function transfer(req) {
       id_centro_custo_saida,
       id_centro_custo_entrada,
     } = req.body;
-    // console.log("REQ.BODY", req.body);
 
     const conn = await db.getConnection();
     try {
@@ -601,7 +582,7 @@ function transfer(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_TRANSFER_BUDGET", error);
-      conn.rollback();
+      await conn.rollback();
       reject(error);
     }
   });
@@ -623,7 +604,6 @@ function getIds(req) {
       const returnedIds = [];
       const erros = [];
       for (const array of data) {
-        console.log(array);
         const erro = {
           centro_custo: "Não encontrado",
           plano_contas: "Não encontrado",
@@ -673,15 +653,10 @@ function getIds(req) {
 
         erros.push(erro);
       }
-
-      // console.log(params)
-
-      console.log(returnedIds);
       await conn.commit();
       resolve({ returnedIds, erros });
-      // console.log(objResponse)
     } catch (error) {
-      console.log("ERRO_GET_IDS", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -709,7 +684,6 @@ function getLogs(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log("ERRO NO GET_LOGS ", error);
       reject(error);
     }
   });
@@ -717,7 +691,6 @@ function getLogs(req) {
 
 function faker() {
   return new Promise(async (resolve, reject) => {
-    // console.log(req.body);
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
@@ -726,12 +699,10 @@ function faker() {
         `SELECT id FROM fin_centros_custo WHERE id_grupo_economico = ?`,
         [1]
       );
-      console.log(centrosDeCusto);
       const [planoDeContas] = await conn.execute(
         `SELECT id FROM fin_plano_contas WHERE tipo = ? AND id_grupo_economico = ?`,
         ["Despesa", 1]
       );
-      console.log(planoDeContas);
       for (const centro_custo of centrosDeCusto) {
         for (const conta of planoDeContas) {
           await conn.execute(
@@ -752,7 +723,7 @@ function faker() {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_FAKER", error);
+      await conn.rollback();
       reject(error);
     }
   });

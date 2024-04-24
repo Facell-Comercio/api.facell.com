@@ -26,7 +26,6 @@ function getAll(req) {
       termo,
     } = filters || {};
     // const { id_matriz, termo } = filters || {id_matriz: 1, termo: null}
-    // console.log(filters);
     let where = ` WHERE 1=1 `;
     const params = [];
 
@@ -68,15 +67,15 @@ function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+        where += ` AND b.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
           data_ate.split("T")[0]
         }'  `;
       } else {
         if (data_de) {
-          where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND b.${tipo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND t.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND b.${tipo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
@@ -133,10 +132,8 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      console.log(params);
       resolve(objResponse);
     } catch (error) {
-      console.log("ERRO GET_ALL BORDERO", error);
       reject(error);
     }
   });
@@ -190,7 +187,6 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.log("ERRO GET_ONE BORDERO", error);
       reject(error);
       return;
     }
@@ -232,6 +228,7 @@ function insertOne(req) {
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_BORDERO_INSERT", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -272,10 +269,10 @@ function update(req) {
       }
 
       await conn.commit();
-      console.log("INSERIDO COM SUCESSO");
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_BORDEROS_UPDATE", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -284,7 +281,6 @@ function update(req) {
 function deleteTitulo(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    console.log(req.params);
 
     const conn = await db.getConnection();
     try {
@@ -312,7 +308,8 @@ function deleteTitulo(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO NO DELETE_BORDERO", error);
+      console.log("ERRO_DELETE_TITULO_BORDERO", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -322,8 +319,6 @@ function deleteBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
     const titulos = req.body;
-
-    console.log(id);
 
     const conn = await db.getConnection();
     try {
@@ -345,12 +340,11 @@ function deleteBordero(req) {
         id,
       ]);
 
-      console.log("Pode excluir");
-
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO NO DELETE_BORDERO", error);
+      console.log("ERRO_DELETE_BORDERO", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -377,7 +371,7 @@ function transferBordero(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO NO TRANSFER_BORDERO", error);
+      console.log("ERRO_TRANSFER_BORDERO", error);
       reject(error);
     }
   });
@@ -410,7 +404,7 @@ async function exportBorderos(req) {
             "CONTA BANCÁRIA": response.conta_bancaria,
             "DATA PAGAMENTO": normalizeDate(response.data_pagamento),
             "ID TÍTULO": titulo.id_titulo,
-            VENCIMENTO: normalizeDate(titulo.vencimento),
+            PREVISAO: normalizeDate(titulo.previsao),
             VALOR: parseFloat(titulo.valor_total.toString()),
             DOC: titulo.num_doc || "",
             FORNECEDOR: titulo.nome_fornecedor,
@@ -422,7 +416,7 @@ async function exportBorderos(req) {
 
       resolve(titulosBordero);
     } catch (error) {
-      console.log("ERRO NO TRANSFER_BORDERO", error);
+      console.log("ERRO_TRANSFER_BORDERO", error);
       reject(error);
     }
   });

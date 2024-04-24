@@ -31,7 +31,6 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
     params.push(pageSize);
     params.push(offset);
-    // console.log(pageSize, offset);
     try {
       const [rowTotal] = await db.execute(
         `SELECT count(fb.id) as qtde FROM fin_bancos fb
@@ -49,17 +48,13 @@ function getAll(req) {
             
             LIMIT ? OFFSET ?
             `;
-      // console.log(query);
-      // console.log(params);
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.length)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      // console.log(objResponse)
 
       resolve(objResponse);
     } catch (error) {
@@ -81,7 +76,6 @@ function getOne(req) {
         [id]
       );
       const fornecedor = rowFornecedor && rowFornecedor[0];
-      // console.log(fornecedor);
       resolve(fornecedor);
       return;
     } catch (error) {
@@ -119,6 +113,7 @@ function insertOne(req) {
       await db.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
+      console.log("ERRO_EQUIPAMENTOS_INSERT", error);
       reject(error);
     }
   });
@@ -155,6 +150,7 @@ function update(req) {
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
+      console.log("ERRO_EQUIPAMENTOS_UPDATE", error);
       reject(error);
       return;
     }

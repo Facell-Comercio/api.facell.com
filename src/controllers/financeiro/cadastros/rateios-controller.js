@@ -3,20 +3,16 @@ const { db } = require("../../../../mysql");
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    // user.perfil = 'Financeiro'
     if (!user) {
       reject("Usuário não autenticado!");
       return false;
     }
-    // Filtros
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
     };
     const { active, id_grupo_economico, nome, codigo } = filters || {};
-    // const { id_filial, termo } = filters || {id_filial: 1, termo: null}
-    // console.log(filters);
     var where = ` WHERE 1=1 `;
     const params = [];
 
@@ -52,7 +48,6 @@ function getAll(req) {
 
       params.push(pageSize);
       params.push(offset);
-      // console.log(params);
       var query = `
             SELECT fr.id, fr.id_grupo_economico, fr.nome, fr.codigo, fr.active, ge.apelido as grupo_economico FROM fin_rateio fr
             LEFT JOIN grupos_economicos ge ON fr.id_grupo_economico = ge.id
@@ -61,19 +56,14 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched Titulos', titulos.size)
-      // console.log(objResponse)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
-      // console.log(objResponse)
     } catch (error) {
       reject(error);
     }
@@ -168,7 +158,8 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_RATEIO_INSERT_ONE", error);
+      console.log("ERRO_RATEIO_INSERT", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -224,7 +215,7 @@ function update(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_RATEIO_UPDATE", error);
-      conn.rollback();
+      await conn.rollback();
       reject(error);
     }
   });

@@ -69,11 +69,8 @@ function getAll(req) {
             ORDER BY f.id DESC
             ${limit}
             `;
-      // console.log(query)
-      // console.log(params)
       const [rows] = await db.execute(query, params);
 
-      // console.log('Fetched users', users.length)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
@@ -89,7 +86,6 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    console.log(id);
     try {
       const [rowItem] = await db.execute(
         `
@@ -229,8 +225,8 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      await conn.rollback();
       console.log("ERRO_FILIAL_UPDATE", error);
+      await conn.rollback();
       reject(error);
     }
   });
