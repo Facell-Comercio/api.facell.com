@@ -7,6 +7,8 @@ const {
   update,
   deleteBordero,
   transferBordero,
+  deleteTitulo,
+  exportBorderos,
 } = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 const checkUserDepartment = require("../../../../middlewares/derpartment-middleware");
@@ -19,6 +21,16 @@ router.put("/transfer", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+router.put("/export", async (req, res) => {
+  try {
+    const result = await exportBorderos(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const result = await getAll(req);
@@ -60,6 +72,15 @@ router.put(
     }
   }
 );
+
+router.delete("/titulo/:id", async (req, res) => {
+  try {
+    const result = await deleteTitulo(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 router.delete("/:id", async (req, res) => {
   try {

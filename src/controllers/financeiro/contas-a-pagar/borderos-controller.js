@@ -165,16 +165,18 @@ function getOne(req) {
       const [rowTitulos] = await db.execute(
         `
             SELECT 
-              tb.id_titulo, t.data_vencimento as vencimento, f.nome as nome_fornecedor,
+              tb.id_titulo, t.id_status, 
+              f.nome as nome_fornecedor, cs.status, 
               b.data_pagamento, t.valor as valor_total, t.num_doc,
               t.descricao, b.id_conta_bancaria, fi.apelido as filial, 
-              t.data_pagamento, false AS checked 
+              t.data_prevista as previsao, t.data_pagamento, false AS checked 
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
             LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
+            LEFT JOIN fin_cp_status cs ON cs.id = t.id_status
             WHERE b.id = ?
             `,
         [id]
@@ -279,17 +281,73 @@ function update(req) {
   });
 }
 
-function deleteBordero(req) {
+function deleteTitulo(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    console.log(req.params);
+
+    const conn = await db.getConnection();
     try {
       if (!id) {
         throw new Error("ID não informado!");
       }
-      await db.execute(
+      await conn.beginTransaction();
+
+      const [rowTitulo] = await conn.execute(
+        `SELECT id_status FROM fin_cp_titulos WHERE id = ?`,
+        [id]
+      );
+
+      if (rowTitulo[0].id_status === 4) {
+        throw new Error(
+          "Não é possível remover do borderô titulos com status pago!"
+        );
+      }
+
+      await conn.execute(
         `DELETE FROM fin_cp_titulos_borderos WHERE id_titulo = ? LIMIT 1`,
         [id]
       );
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERRO NO DELETE_BORDERO", error);
+      reject(error);
+    }
+  });
+}
+
+function deleteBordero(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    const titulos = req.body;
+
+    console.log(id);
+
+    const conn = await db.getConnection();
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+
+      await conn.beginTransaction();
+
+      for (const titulo of titulos) {
+        if (titulo.id_status === 4) {
+          throw new Error(
+            "Não é possível remover do borderô titulos com status pago!"
+          );
+        }
+      }
+
+      await conn.execute(`DELETE FROM fin_cp_bordero WHERE id = ? LIMIT 1`, [
+        id,
+      ]);
+
+      console.log("Pode excluir");
+
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO NO DELETE_BORDERO", error);
@@ -301,6 +359,7 @@ function deleteBordero(req) {
 function transferBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { new_id, titulos } = req.body;
+
     try {
       if (!new_id) {
         throw new Error("ID novo não informado!");
@@ -324,11 +383,58 @@ function transferBordero(req) {
   });
 }
 
+async function exportBorderos(req) {
+  return new Promise(async (resolve, reject) => {
+    const { data: borderos } = req.body;
+    const titulosBordero = [];
+    try {
+      if (!borderos.length) {
+        throw new Error("Quantidade inválida de de borderos!");
+      }
+
+      for (const b_id of borderos) {
+        const response = await getOne({ params: { id: b_id } });
+        response.titulos.forEach((titulo) => {
+          const normalizeDate = (data) => {
+            const date = new Date(data);
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            const formattedDay = String(day).padStart(2, "0");
+            const formattedMonth = String(month).padStart(2, "0");
+            return `${formattedDay}/${formattedMonth}/${year}`;
+          };
+
+          titulosBordero.push({
+            BANCO: response.banco,
+            "CONTA BANCÁRIA": response.conta_bancaria,
+            "DATA PAGAMENTO": normalizeDate(response.data_pagamento),
+            "ID TÍTULO": titulo.id_titulo,
+            VENCIMENTO: normalizeDate(titulo.vencimento),
+            VALOR: parseFloat(titulo.valor_total.toString()),
+            DOC: titulo.num_doc || "",
+            FORNECEDOR: titulo.nome_fornecedor,
+            DESCRIÇÃO: titulo.descricao,
+            STATUS: titulo.status,
+          });
+        });
+      }
+
+      resolve(titulosBordero);
+    } catch (error) {
+      console.log("ERRO NO TRANSFER_BORDERO", error);
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
   insertOne,
   update,
+  deleteTitulo,
   deleteBordero,
   transferBordero,
+  exportBorderos,
 };

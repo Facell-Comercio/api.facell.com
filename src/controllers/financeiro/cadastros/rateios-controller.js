@@ -104,7 +104,7 @@ function getOne(req) {
             SELECT 
               fri.id as id_item, 
               fri.id_filial, 
-              FORMAT(fri.percentual * 100, 2) as percentual 
+              FORMAT(fri.percentual * 100, 4) as percentual 
             FROM fin_rateio_itens fri
             LEFT JOIN fin_rateio fr ON fri.id_rateio = fr.id
             WHERE fr.id = ?
