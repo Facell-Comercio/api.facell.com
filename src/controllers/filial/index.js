@@ -1,7 +1,17 @@
 const { db } = require("../../../mysql");
+const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
+    const { user } = req;
+    const isMaster = checkUserPermission(req, "MASTER");
+
+    const filiais_habilitadas = [];
+
+    user?.filiais?.forEach((f) => {
+      filiais_habilitadas.push(f.id);
+    });
+
     // Filtros
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
@@ -13,6 +23,10 @@ function getAll(req) {
     var where = ` WHERE 1=1 `;
     const params = [];
     const limit = pagination ? "LIMIT ? OFFSET ?" : "";
+
+    if (!isMaster) {
+      where += `AND f.id IN(${filiais_habilitadas.join(",")}) `;
+    }
 
     if (termo) {
       const termoSoNumeros = termo.replace(/[^\d]/g, "")

@@ -4,7 +4,8 @@ const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-
+    const isMaster = checkUserPermission(req, "MASTER");
+    
     const centros_custo_habilitados = [];
 
     user?.centros_custo?.forEach((ucc) => {
@@ -23,7 +24,7 @@ function getAll(req) {
     let where = ` WHERE 1=1 `;
     const params = [];
 
-    const isMaster = checkUserPermission(req, "MASTER");
+    
     if (!isMaster) {
       where += `AND cc.id IN(${centros_custo_habilitados.join(",")}) `;
     }

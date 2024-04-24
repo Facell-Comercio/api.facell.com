@@ -1,7 +1,6 @@
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
-const { param } = require("../../../routes/financeiro/contas-pagar");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -87,7 +86,7 @@ function getAll(req) {
 
       var query = `
             SELECT 
-                t.id, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
+                t.id, s.status, t.created_at, t.data_prevista, t.descricao, t.valor,
                 f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor, u.nome as solicitante
             FROM fin_cp_titulos t 
@@ -103,8 +102,8 @@ function getAll(req) {
             LIMIT ? OFFSET ?`;
       params.push(pageSize);
       params.push(offset);
-      console.log(query);
-      console.log(params);
+      // console.log(query);
+      // console.log(params);
       const [titulos] = await db.execute(query, params);
 
       const objResponse = {
@@ -255,7 +254,7 @@ function getAllCpTitulosBordero(req) {
       termo,
     } = filters || {};
 
-    console.log(filters);
+    // console.log(filters);
     const params = [];
     if (termo) {
       where += ` AND (
@@ -372,10 +371,74 @@ function getAllCpTitulosBordero(req) {
   });
 }
 
+function changeStatusTitulo(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id_titulo, id_novo_status, motivo } = req.body;
+    // console.log("REQ.BODY", req.body);
+
+    const tipos_status = [
+      {id: '1', status: 'Solicitado'},
+      {id: '2', status: 'Negado'},
+      {id: '3', status: 'Aprovado'},
+      {id: '4', status: 'Pago'},
+    ]
+
+    const conn = await db.getConnection();
+    try {
+      if (!id_titulo) {
+        throw new Error("ID do título não informado!");
+      }
+      if (!id_novo_status) {
+        throw new Error("ID do novo status não informado!");
+      }
+      
+      await conn.beginTransaction();
+
+      // * Obter titulo e status
+      const [rowTitulo] = await conn.execute(`SELECT id_status FROM fin_cp_titulos WHERE id = ? `, [id_titulo])
+      // Rejeitar caso título não encontrado
+      if(!rowTitulo || rowTitulo.length === 0){
+        throw new Error(`Titulo de ID: ${id_titulo} não localizado!`)
+      }
+      const titulo = rowTitulo && rowTitulo[0]
+
+      // Rejeitar caso id_status = '4'
+      if(titulo.id_status == '4'){
+        throw new Error('Alteração rejeitada pois o título já consta como pago!')
+      }
+
+      // * Update fin_cp_titulos
+      await conn.execute(`UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`, [id_novo_status, id_titulo])
+      
+      // !: Caso Negado - Remover Consumo Orçamento 
+      if(id_novo_status == '2'){
+        await conn.execute(`DELETE FROM fin_orcamento_consumo foc 
+        INNER JOIN fin_cp_titulos_itens ti ON ti.id = foc.id_titulo_item
+        WHERE ti.id_titulo = ?`, [id_titulo])
+      }
+      
+      // !: Caso Diferente de Aprovado e Pago - Remover de Borderô 
+      if(id_novo_status != '3' && id_novo_status != '4'){
+        await conn.execute(`DELETE FROM fin_cp_titulos_bordero WHERE id_titulo = ?`, [id_titulo])
+      }
+
+      // ^ Gerar histórico no título
+      await conn.execute(`INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?, ?)`, [id_titulo, 'teste'])
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERRO_CHANGE_STATUS_TITULO_PAGAR", error);
+      conn.rollback();
+      reject(error);
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
   updateFileTitulo,
-
+  changeStatusTitulo,
   getAllCpTitulosBordero,
 };
