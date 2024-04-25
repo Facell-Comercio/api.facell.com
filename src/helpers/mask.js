@@ -85,6 +85,22 @@ const normalizeCurrency = (data) => {
   }
 };
 
+function normalizeFirstAndLastName(nomeCompleto) {
+  if(!nomeCompleto) return 'NOME NÃO INFORMADO!'
+  // Usa uma expressão regular para extrair o primeiro e último nome
+  const match = nomeCompleto.match(/^(\S+)\s+(.+)\s+(\S+)$/);
+  
+  // Verifica se houve uma correspondência
+  if (match) {
+    const primeiroNome = match[1];
+    const ultimoNome = match[3];
+    return `${primeiroNome} ${ultimoNome}`;
+  } else {
+    // Se não houver correspondência, assume que o nome completo é o primeiro nome
+    return `${nomeCompleto}`;
+  }
+}
+
 module.exports = {
   normalizeNumberOnly,
   normalizePhoneNumber,
@@ -94,4 +110,5 @@ module.exports = {
   normalizeDataDayOne,
   normalizeDate,
   normalizeCurrency,
+  normalizeFirstAndLastName,
 };

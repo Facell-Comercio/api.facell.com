@@ -1,6 +1,8 @@
+const { format } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { normalizeFirstAndLastName, normalizeCurrency } = require("../../../helpers/mask");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -57,9 +59,8 @@ function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -167,7 +168,7 @@ function getOne(req) {
       );
 
       const [historico] = await db.execute(
-        `SELECT * FROM fin_cp_titulos_historico WHERE id_titulo = ?`,
+        `SELECT * FROM fin_cp_titulos_historico WHERE id_titulo = ? ORDER BY created_at DESC`,
         [id]
       );
 
@@ -302,9 +303,8 @@ function getAllCpTitulosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -381,19 +381,287 @@ function getAllCpTitulosBordero(req) {
   });
 }
 
+function insertOne(req) {
+  return new Promise(async (resolve, reject) => {
+    const conn = db.getConnection();
+    try {
+      await conn.beginTransaction()
+      // todo validar campos obrigatórios, data, etc;
+
+      // todo: persistir titulo
+      // todo: obter o ID
+      // todo: persistir os itens do titulo
+
+      // todo: obter orçamento atual
+
+      // todo: obter os itens do titulo[]
+      // todo: persistir o esquema de rateio
+      // todo: persistir os titulo_rateio_itens
+      // todo: obter conta do orçamento
+      // todo: persistir o consumo do orçamento
+
+      // todo: persitir os anexos
+      // todo: registar historico: CRIADO POR: fulano;
+
+      await conn.commit()
+    } catch (error) {
+      await conn.rollback()
+
+    }
+  })
+}
+
+function update(req) {
+  return new Promise(async (resolve, reject) => {
+    const conn = await db.getConnection();
+
+    try {
+      await conn.beginTransaction()
+      const data = req.body
+      const {
+        id,
+        id_filial,
+        id_grupo_economico,
+
+        id_fornecedor,
+        id_forma_pagamento,
+        favorecido,
+        cnpj_favorecido,
+        id_tipo_chave_pix,
+        chave_pix,
+
+        id_banco,
+
+        agencia,
+        dv_agencia,
+        id_tipo_conta,
+        conta,
+        dv_conta,
+
+        // Geral
+        id_centro_custo,
+        data_emissao,
+        data_vencimento,
+        data_prevista,
+        num_parcelas,
+        parcela,
+
+        num_doc,
+        valor,
+
+        id_tipo_solicitacao,
+        descricao,
+
+        itens,
+        itens_rateio,
+
+        url_nota_fiscal,
+        url_xml_nota,
+        url_boleto,
+        url_contrato,
+        url_planilha,
+        url_txt,
+
+      } = data || {}
+
+      // console.log('NOVOS_DADOS', novos_dados)
+      // console.log(`TITULO ${data.id}: ITENS: `,itens)
+      // console.log(`TITULO ${data.id}: ITENS_RATEIO: `,itens_rateio)
+
+      // ^ Validações
+      // Titulo
+      if (!id) {
+        throw new Error('ID do título não informado!');
+      }
+      if (!id_filial) {
+        throw new Error('Campo id_filial não informado!');
+      }
+      if (!id_grupo_economico) {
+        throw new Error('Campo id_grupo_economico não informado!');
+      }
+      if (!id_fornecedor) {
+        throw new Error('Campo id_fornecedor não informado!');
+      }
+      if (!id_forma_pagamento) {
+        throw new Error('Campo id_forma_pagamento não informado!');
+      }
+      if (!id_centro_custo) {
+        throw new Error('Campo id_centro_custo não informado!');
+      }
+      if (!descricao) {
+        throw new Error('Campo Descrição não informado!');
+      }
+      if (!data_vencimento) {
+        throw new Error('Campo data_vencimento não informado!');
+      }
+      if (!data_emissao) {
+        throw new Error('Campo data_emissao não informado!');
+      }
+      if (!data_prevista) {
+        throw new Error('Campo data_prevista não informado!');
+      }
+
+      // Se for PIX: Exigir id_tipo_chave_pix e chave_pix
+      if (id_forma_pagamento === '4') {
+        if (!id_tipo_chave_pix || !chave_pix) {
+          throw new Error('Selecionado forma de pagamento PIX mas não informado tipo chave ou chave PIX')
+        }
+      }
+      // Se forma de pagamento for na conta, então exigir os dados bancários
+      if (id_forma_pagamento === '2' || id_forma_pagamento === '5' || id_forma_pagamento === '8') {
+        if (!id_banco || !id_tipo_conta || !agencia || !conta) {
+          throw new Error('Preencha corretamente os dádos bancários!')
+        }
+      }
+
+      // Se tipo solicitação for Com nota, exigir anexos
+      if (id_tipo_solicitacao === '1') {
+        if (!url_nota_fiscal) {
+          throw new Error('Faça o upload da Nota Fiscal!')
+        }
+      } else {
+        if (!url_contrato) {
+          throw new Error('Faça o upload do Contrato/Autorização!')
+        }
+      }
+
+      // Itens
+      if (!itens || itens.length === 0) {
+        throw new Error('Campo itens não informado!');
+      }
+
+      // Esquema de rateio
+      if (!itens_rateio || itens_rateio.length === 0) {
+        throw new Error('Campo itens_rateio não informado!');
+      }
+
+
+
+      // Obter dados do Titulo no banco:
+      const [rowTitulo] = await conn.execute(`SELECT * FROM fin_cp_titulos WHERE id = ?`, [id]);
+      const titulo = rowTitulo && rowTitulo[0]
+      if (!titulo) throw new Error('Título não localizado!');
+      console.log('TITULO_NO_BANCO', titulo)
+
+      // ^ Vamos validar se orçamento possui saldo:
+      // Passamos por cada item novo, analisando o orçamento
+      for (const item of itens) {
+        // ^ Validar item se possui todos os campos obrigatórios
+        if (!item.id_plano_conta) {
+          throw new Error(`O item não possui plano de contas selecionado! Item: ${JSON.stringify(item)}`)
+        }
+        if (!item.valor) {
+          throw new Error(`O item não possui valor! Item: ${JSON.stringify(item)}`)
+        }
+
+        // Obter o registro de consumo anterior:
+        const [rowConsumo] = await conn.execute(`SELECT sum(foc.valor) as valor 
+        FROM fin_orcamento_consumo foc
+        WHERE foc.id_titulo_item IN (
+          SELECT ti.id
+          FROM fin_cp_titulos_itens ti
+          WHERE ti.id_titulo = ? AND ti.id_plano_conta = ?
+        )
+        GROUP BY foc.id
+      `, [id, item.id_plano_conta])
+        let valorConsumidoAnteriormente = rowConsumo && rowConsumo[0] || 0;
+        valorConsumidoAnteriormente = parseFloat(valorConsumidoAnteriormente);
+
+        // Obter o saldo do orçamento:
+        const [rowOrcamento] = await conn.execute(`SELECT id FROM fin_orcamento WHERE DATE_FORMAT(ref, '%y-%m') = ? and id_grupo_economico = ?`, [format(titulo.created_at, 'yyyy-MM'), id_grupo_economico])
+
+        if (!rowOrcamento || rowOrcamento.length === 0) {
+          throw new Error('Orçamento não localizado!')
+        }
+        if (rowOrcamento.length > 1) {
+          throw new Error(`${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`)
+        }
+        const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]['id']
+
+        // Obter a conta de orçamento:
+        const [rowContaOrcamento] = await conn.execute(`SELECT valor_previsto FROM fin_orcamento_contas WHERE id_orcamento = ? AND id_plano_contas = ? `, [id_orcamento, item.id_plano_conta])
+
+        if (!rowContaOrcamento || rowContaOrcamento.length === 0) {
+          throw new Error('Não existe saldo no orçamento para o plano de contas!')
+        }
+        let saldo = rowContaOrcamento && rowContaOrcamento[0] && rowContaOrcamento[0]['valor_previsto']
+        saldo = parseFloat(saldo) + valorConsumidoAnteriormente;
+        if (saldo < item.valor) {
+          throw new Error(`Saldo insuficiente para o plano de contas: ${item.plano_conta}. Necessário ${normalizeCurrency(item.valor - saldo)}`)
+        }
+      }
+
+
+      throw new Error('Interrompi...')
+      // Itens anteriores
+      const [itens_anteriores] = await conn.execute(`SELECT ti.*, CONCAT(pc.codigo, ' - ', pc.descricao) as plano_conta
+      FROM fin_cp_titulos_itens t
+      INNER JOIN fin_plano_contas pc ON pc.id = ti.id_plano_conta
+      WHERE id_titulo = ?`, [titulo.id])
+
+      // todo validar campos obrigatórios, data, etc;
+      // todo: persistir titulo
+      // todo: persistir os itens do titulo
+
+      // todo: obter orçamento atual
+
+      // todo: obter os itens do titulo[]
+      // todo: persistir o esquema de rateio
+      // todo: persistir os titulo_rateio_itens
+      // todo: obter conta do orçamento
+      // todo: persistir o consumo do orçamento
+
+      // todo: persitir os anexos
+
+      // todo: registar historico:
+      let modelo =
+        `EDITADO POR: ALEX BEZERRA. 
+      VENCIMENTO: DE: 29/04/2024 PARA: 25/04/2024
+      VALOR: DE: 200,00 PARA: 300,00 
+      RATEIO: DE: XXX - MANUAL PARA: R05 - RATEIO TODAS AS FILIAIS 
+      DESCRICAO: 
+        DE: 'DDKJKDJDKADJAKDADAKDAJKSDJAKJ' 
+        PARA: 'DJKADKAJDSAKDJADKASJDKASDJASKDJ431001'
+      CENTRO DE CUSTO: 
+        DE: ADMINISTRATIVO 
+        PARA: DP
+      ITENS ANTERIORES: 
+        1
+          PLANO DE CONTAS: 09.08.01 - COMPRA DE MATERIAL DE ALGO
+          VALOR: 150,00 
+        2
+          PLANO DE CONTAS: 09.08.01 - TESTE
+          VALOR: 300,00
+        `
+
+
+
+
+      await conn.commit()
+      resolve()
+    } catch (error) {
+      console.log('ERROR_TITULO_PAGAR_UPDATE', error)
+      await conn.rollback()
+      reject(error)
+    }
+  })
+}
+
 function changeStatusTitulo(req) {
   return new Promise(async (resolve, reject) => {
     const { id_titulo, id_novo_status, motivo } = req.body;
+    const user = req.user
     // console.log("REQ.BODY", req.body);
 
     const tipos_status = [
-      {id: '1', status: 'Solicitado'},
-      {id: '2', status: 'Negado'},
-      {id: '3', status: 'Aprovado'},
-      {id: '4', status: 'Pago'},
+      { id: '1', status: 'Solicitado' },
+      { id: '2', status: 'Negado' },
+      { id: '3', status: 'Aprovado' },
+      { id: '4', status: 'Pago' },
     ]
 
     const conn = await db.getConnection();
+    await conn.beginTransaction();
     try {
       if (!id_titulo) {
         throw new Error("ID do título não informado!");
@@ -401,45 +669,75 @@ function changeStatusTitulo(req) {
       if (!id_novo_status) {
         throw new Error("ID do novo status não informado!");
       }
-      
-      await conn.beginTransaction();
+
 
       // * Obter titulo e status
       const [rowTitulo] = await conn.execute(`SELECT id_status FROM fin_cp_titulos WHERE id = ? `, [id_titulo])
       // Rejeitar caso título não encontrado
-      if(!rowTitulo || rowTitulo.length === 0){
+      if (!rowTitulo || rowTitulo.length === 0) {
         throw new Error(`Titulo de ID: ${id_titulo} não localizado!`)
       }
       const titulo = rowTitulo && rowTitulo[0]
 
       // Rejeitar caso id_status = '4'
-      if(titulo.id_status == '4'){
+      if (titulo.id_status == '4') {
         throw new Error('Alteração rejeitada pois o título já consta como pago!')
+      }
+      if (titulo.id_status == '2') {
+        //* O título constava como Negado, então agora que o status será alterado, devemos Ativar os registros de consumo:
+        await conn.execute(`UPDATE fin_orcamento_consumo SET active = true
+        WHERE id_titulo_item 
+        IN (
+            SELECT ti.id
+            FROM fin_cp_titulos_itens ti
+            WHERE ti.id_titulo = ?
+        )`, [id_titulo])
       }
 
       // * Update fin_cp_titulos
       await conn.execute(`UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`, [id_novo_status, id_titulo])
-      
-      // !: Caso Negado - Remover Consumo Orçamento 
-      if(id_novo_status == '2'){
-        await conn.execute(`DELETE FROM fin_orcamento_consumo foc 
-        INNER JOIN fin_cp_titulos_itens ti ON ti.id = foc.id_titulo_item
-        WHERE ti.id_titulo = ?`, [id_titulo])
+
+      // !: Caso Negado - Inativar Consumo Orçamento 
+      if (id_novo_status == '2') {
+        await conn.execute(`UPDATE fin_orcamento_consumo SET active = false
+        WHERE id_titulo_item 
+        IN (
+            SELECT ti.id
+            FROM fin_cp_titulos_itens ti
+            WHERE ti.id_titulo = ?
+        )`, [id_titulo])
       }
-      
+
       // !: Caso Diferente de Aprovado e Pago - Remover de Borderô 
-      if(id_novo_status != '3' && id_novo_status != '4'){
-        await conn.execute(`DELETE FROM fin_cp_titulos_bordero WHERE id_titulo = ?`, [id_titulo])
+      if (id_novo_status != '3' && id_novo_status != '4') {
+        await conn.execute(`DELETE FROM fin_cp_titulos_borderos WHERE id_titulo = ?`, [id_titulo])
+      }
+      let historico = ``
+      let author = normalizeFirstAndLastName(user?.nome);
+      let textoMotivo = motivo ? ` MOTIVO: ${conn.escape(motivo)?.toUpperCase()}` : '';
+
+      if (id_novo_status == '1') {
+        historico = `RETORNADO PARA SOLICITADO POR: ${author}.`
+        historico += textoMotivo;
+      }
+      if (id_novo_status == '2') {
+        historico = `NEGADO POR: ${author}.`
+        historico += textoMotivo;
+      }
+      if (id_novo_status == '3') {
+        historico = `APROVADO POR: ${author}`
       }
 
       // ^ Gerar histórico no título
-      await conn.execute(`INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?, ?)`, [id_titulo, 'teste'])
+      if (historico) {
+        await conn.execute(`INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?, ?)`, [id_titulo, historico])
+      }
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_CHANGE_STATUS_TITULO_PAGAR", error);
-      conn.rollback();
+      await conn.rollback();
       reject(error);
     }
   });
@@ -448,6 +746,8 @@ function changeStatusTitulo(req) {
 module.exports = {
   getAll,
   getOne,
+  insertOne,
+  update,
   updateFileTitulo,
   changeStatusTitulo,
   getAllCpTitulosBordero,
