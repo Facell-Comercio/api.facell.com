@@ -25,7 +25,6 @@ const checkUserDepartment = (req, depart, gestor = undefined) => {
         ) >= 0
       );
     }
-    console.log(depart);
     return user.departamentos.findIndex((perm) => perm.nome === depart) >= 0;
   }
   return true;
