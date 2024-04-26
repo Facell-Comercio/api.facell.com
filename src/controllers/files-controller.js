@@ -82,6 +82,9 @@ function urlContemTemp(url) {
 // Função para mover um arquivo da pasta temp para a pasta uploads
 function moverArquivoTempParaUploads(url) {
     return new Promise((resolve, reject) => {
+        if(!url){
+            resolve('')
+        }
         if (urlContemTemp(url)) {
             const nomeArquivo = url.split('/').pop(); // Captura o nome do arquivo da URL
             const origem = path.join(process.env.BASE_DIR, 'public', 'temp', nomeArquivo);
@@ -89,15 +92,18 @@ function moverArquivoTempParaUploads(url) {
             const novaUrl = `${process.env.BASE_URL}/uploads/${nomeArquivo}`;
 
             // Move o arquivo da pasta temp para a pasta uploads
+            if (fs.existsSync(destino)) {
+                resolve(novaUrl)
+            } 
             fs.rename(origem, destino, (err) => {
                 if (err) {
-                    reject(err);
+                    resolve('')
                 } else {
                     resolve(novaUrl);
                 }
             });
         } else {
-            reject(new Error('A URL da imagem não contém "/temp/"'));
+            resolve(url);
         }
     });
 }
