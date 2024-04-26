@@ -12,6 +12,8 @@ function getAll(req) {
       termo: null,
     };
 
+    console.log(id_matriz);
+
     var where = ` WHERE 1=1 `;
     const params = [];
     const limit = pagination ? "LIMIT ? OFFSET ?" : "";

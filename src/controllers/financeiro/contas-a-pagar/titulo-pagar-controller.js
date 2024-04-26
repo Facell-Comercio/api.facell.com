@@ -103,7 +103,7 @@ function getAll(req) {
             LIMIT ? OFFSET ?`;
       params.push(pageSize);
       params.push(offset);
-      console.log(query);
+      // console.log(query);
       console.log(params);
       const [titulos] = await db.execute(query, params);
 

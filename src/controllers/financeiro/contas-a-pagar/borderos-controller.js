@@ -1,4 +1,5 @@
 const { db } = require("../../../../mysql");
+const { normalizeCnpjNumber } = require("../../../helpers/mask");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -17,6 +18,7 @@ function getAll(req) {
     const {
       id_conta_bancaria,
       banco,
+      id_grupo_economico,
       fornecedor,
       id_titulo,
       num_doc,
@@ -36,6 +38,10 @@ function getAll(req) {
     if (banco) {
       where += ` AND fb.nome LIKE CONCAT('%', ?, '%')`;
       params.push(banco);
+    }
+    if (id_grupo_economico) {
+      where += ` AND f.id_grupo_economico = ?`;
+      params.push(id_grupo_economico);
     }
     if (fornecedor) {
       where += ` AND ff.nome LIKE CONCAT('%', ?, '%') `;
@@ -72,10 +78,10 @@ function getAll(req) {
         }'  `;
       } else {
         if (data_de) {
-          where += ` AND b.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND b.${tipo_data} = '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND b.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND b.${tipo_data} = '${data_ate.split("T")[0]}' `;
         }
       }
     }
@@ -88,13 +94,13 @@ function getAll(req) {
         FROM (
           SELECT DISTINCT
             b.id
-          FROM fin_cp_bordero b
-          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-          LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-          LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-          LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-          LEFT JOIN fin_bancos fb ON b.id = cb.id_banco
-          LEFT JOIN filiais f ON f.id = t.id_filial
+            FROM fin_cp_bordero b
+            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+            LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
+            LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
+            LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+            LEFT JOIN filiais f ON f.id = t.id_filial
           ${where}
           GROUP BY b.id
 
@@ -110,7 +116,10 @@ function getAll(req) {
 
       const query = `
         SELECT
-          b.id, b.data_pagamento, cb.descricao as conta_bancaria, t.descricao, f.id_matriz
+          b.id, b.data_pagamento, cb.descricao as conta_bancaria, 
+          t.descricao, f.id_matriz,
+          COUNT(t.id) as qtde_titulos,
+          SUM(t.valor) as valor_total
         FROM fin_cp_bordero b
         LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
         LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
@@ -153,7 +162,7 @@ function getOne(req) {
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
             LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-            LEFT JOIN filiais f ON f.id = t.id_filial
+            LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
             WHERE b.id = ?
             `,
@@ -165,8 +174,11 @@ function getOne(req) {
               tb.id_titulo, t.id_status, 
               f.nome as nome_fornecedor, cs.status, 
               b.data_pagamento, t.valor as valor_total, t.num_doc,
-              t.descricao, b.id_conta_bancaria, fi.apelido as filial, 
-              t.data_prevista as previsao, t.data_pagamento, false AS checked 
+              t.descricao, b.id_conta_bancaria, fi.nome as filial, 
+              t.data_prevista as previsao, t.data_pagamento, false AS checked,
+              t.data_emissao, t.data_vencimento,
+              pl.descricao as plano_contas, c.nome as centro_custo,
+              f.cnpj
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
@@ -174,6 +186,8 @@ function getOne(req) {
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
             LEFT JOIN fin_cp_status cs ON cs.id = t.id_status
+            LEFT JOIN fin_plano_contas pl ON pl.id = t.id_plano_contas
+            LEFT JOIN fin_centros_custo c ON c.id = t.id_centro_custo
             WHERE b.id = ?
             `,
         [id]
@@ -352,26 +366,60 @@ function deleteBordero(req) {
 
 function transferBordero(req) {
   return new Promise(async (resolve, reject) => {
-    const { new_id, titulos } = req.body;
+    const { id_conta_bancaria, date, titulos } = req.body;
 
+    console.log(req.body);
+    const conn = await db.getConnection();
     try {
-      if (!new_id) {
-        throw new Error("ID novo não informado!");
+      if (!id_conta_bancaria) {
+        throw new Error("ID_CONTA_BANCARIA novo não informado!");
+      }
+      if (!date) {
+        throw new Error("DATA_PAGAMENTO novo não informado!");
       }
       if (titulos.length < 0) {
         throw new Error("TITULOS não informado!");
       }
 
-      titulos.forEach(async (id_titulo) => {
-        await db.execute(
-          `UPDATE fin_cp_titulos_borderos SET id_bordero = ? WHERE id_titulo = ?  LIMIT 1`,
-          [new_id, id_titulo]
-        );
-      });
+      await conn.beginTransaction();
 
+      const [rowBordero] = await conn.execute(
+        `
+          SELECT id 
+          FROM fin_cp_bordero 
+          WHERE data_pagamento = ?
+          AND id_conta_bancaria = ?
+      `,
+        [new Date(date), id_conta_bancaria]
+      );
+
+      let id = (rowBordero[0] && rowBordero[0].id) || "";
+
+      if (!id) {
+        const [newBordero] = await conn.execute(
+          `INSERT INTO fin_cp_bordero (data_pagamento, id_conta_bancaria) VALUES (?, ?);`,
+          [new Date(date), id_conta_bancaria]
+        );
+        id = newBordero.insertId;
+      }
+
+      for(const titulo of titulos){
+        if (titulo.id_status != 3) {
+          throw new Error(
+            "Não é possível realizar a transfência de titulos com status diferente de aprovado!"
+          );
+        }
+        await conn.execute(
+          `UPDATE fin_cp_titulos_borderos SET id_bordero = ? WHERE id_titulo = ?  LIMIT 1`,
+          [id, titulo.id_titulo]
+        );
+      };
+
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_TRANSFER_BORDERO", error);
+      await conn.rollback();
       reject(error);
     }
   });
@@ -400,23 +448,38 @@ async function exportBorderos(req) {
           };
 
           titulosBordero.push({
-            BANCO: response.banco,
-            "CONTA BANCÁRIA": response.conta_bancaria,
-            "DATA PAGAMENTO": normalizeDate(response.data_pagamento),
-            "ID TÍTULO": titulo.id_titulo,
-            PREVISAO: normalizeDate(titulo.previsao),
-            VALOR: parseFloat(titulo.valor_total.toString()),
-            DOC: titulo.num_doc || "",
-            FORNECEDOR: titulo.nome_fornecedor,
-            DESCRIÇÃO: titulo.descricao,
-            STATUS: titulo.status,
+            IDPG: titulo.id_titulo || "",
+            PAGAMENTO: titulo.data_pagamento
+              ? normalizeDate(titulo.data_pagamento)
+              : "",
+            EMISSÃO: titulo.data_emissao
+              ? normalizeDate(titulo.data_emissao)
+              : "",
+            VENCIMENTO: titulo.data_vencimento
+              ? normalizeDate(titulo.data_vencimento)
+              : "",
+            FILIAL: titulo.filial || "",
+            "CPF/CNPJ": titulo.cnpj ? normalizeCnpjNumber(titulo.cnpj) : "",
+            FORNECEDOR: titulo.nome_fornecedor || "",
+            "Nº DOC": titulo.num_doc || "",
+            DESCRIÇÃO: titulo.descricao || "",
+            VALOR:
+              parseFloat(titulo.valor_total && titulo.valor_total.toString()) ||
+              "",
+            "PLANO CONTAS": titulo.plano_contas || "",
+            "CENTRO CUSTO": titulo.centro_custo || "",
+
+            "CONTA BANCÁRIA": response.conta_bancaria || "",
+            BANCO: response.banco || "",
+            PREVISÃO: normalizeDate(titulo.previsao) || "",
+            STATUS: titulo.status || "",
           });
         });
       }
 
       resolve(titulosBordero);
     } catch (error) {
-      console.log("ERRO_TRANSFER_BORDERO", error);
+      console.log("ERRO_EXPORT_BORDERO", error);
       reject(error);
     }
   });

@@ -175,6 +175,4 @@ module.exports = {
   getOne,
   insertOne,
   update,
-  consultaCnpj,
-  toggleActive,
 };
