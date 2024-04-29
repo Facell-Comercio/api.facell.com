@@ -106,7 +106,8 @@ function getOne(req) {
           CONCAT(fpc.codigo," - ",fpc.descricao) as plano_contas, 
           foc.valor_previsto as valor,
           foc.valor_previsto as valor_inicial,
-          foc.valor_previsto - (SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id) as saldo 
+          COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as realizado,
+          foc.valor_previsto - COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as saldo 
         FROM fin_orcamento_contas foc
         LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
         LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
@@ -121,6 +122,7 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
+      console.log(error);
       reject(error);
       return;
     }
@@ -208,12 +210,13 @@ function update(req) {
           } = conta;
 
           if (id_conta) {
-            const valorAtualizado = valor - valor_inicial;
+            const diferenca = valor - valor_inicial;
 
             const [oldRow] = await conn.execute(
               `SELECT 
                   fcc.nome as centro_custo, 
-                  CONCAT(fpc.codigo, " - ", fpc.descricao) as plano_contas 
+                  CONCAT(fpc.codigo, " - ", fpc.descricao) as plano_contas,
+                  COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as realizado
                 FROM fin_orcamento_contas foc
                 LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
                 LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
@@ -221,18 +224,22 @@ function update(req) {
               [id_conta]
             );
 
+            const realizado = (oldRow && oldRow[0] && oldRow[0].realizado) || 0;
+            if (valor < realizado) {
+              throw new Error(
+                `Valor não pode ser menor que o valor realizado ${normalizeCurrency(
+                  realizado
+                )}!`
+              );
+            }
+
             await conn.execute(
               `UPDATE fin_orcamento_contas SET 
                       id_centro_custo = ?, 
                       id_plano_contas = ?, 
-                      valor_previsto = valor_previsto + ?, 
+                      valor_previsto = valor_previsto + ? 
                     WHERE id = ?`,
-              [
-                id_centro_custo,
-                id_plano_contas,
-                valorAtualizado,
-                id_conta,
-              ]
+              [id_centro_custo, id_plano_contas, diferenca, id_conta]
             );
 
             const { centro_custo, plano_contas } = oldRow && oldRow[0];
@@ -240,7 +247,7 @@ function update(req) {
               valor_inicial
             )} | DEPOIS: ${normalizeCurrency(
               valor
-            )} | DIF.: ${normalizeCurrency(valorAtualizado)}`;
+            )} | DIF.: ${normalizeCurrency(diferenca)}`;
             await conn.execute(
               `
                     INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -421,7 +428,7 @@ function getMyBudgets(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log(error)
+      console.log(error);
       reject(error);
     }
   });
@@ -529,7 +536,7 @@ function transfer(req) {
         throw new Error("Saldo da conta insuficiente!");
       }
 
-      // * Atualização da conta de saída: 
+      // * Atualização da conta de saída:
       await conn.execute(
         `UPDATE fin_orcamento_contas SET valor_previsto = valor_previsto - ? WHERE id = ?`,
         [valor_transferido, contaSaida.id]
@@ -580,9 +587,11 @@ function transfer(req) {
           [id_conta_entrada]
         );
 
-        const descricao = `TRANSFERÊNCIA -> DE: ${contaSaida.centro_custo} - ${contaSaida.plano_contas
-          } | PARA: ${newCentroCusto[0].nome} - ${newPlanoContas[0].nome
-          } | VALOR: ${normalizeCurrency(valor_transferido)}`;
+        const descricao = `TRANSFERÊNCIA -> DE: ${contaSaida.centro_custo} - ${
+          contaSaida.plano_contas
+        } | PARA: ${newCentroCusto[0].nome} - ${
+          newPlanoContas[0].nome
+        } | VALOR: ${normalizeCurrency(valor_transferido)}`;
         await conn.execute(
           `
           INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -597,8 +606,9 @@ function transfer(req) {
         );
         const descricao = `TRANSFERÊNCIA -> VALOR: ${normalizeCurrency(
           valor_transferido
-        )} | DE: ${contaSaida.centro_custo} - ${contaSaida.plano_contas
-          } | PARA: ${contaEntrada.centro_custo} - ${contaEntrada.plano_contas}`;
+        )} | DE: ${contaSaida.centro_custo} - ${
+          contaSaida.plano_contas
+        } | PARA: ${contaEntrada.centro_custo} - ${contaEntrada.plano_contas}`;
         await conn.execute(
           `
           INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -738,12 +748,7 @@ function faker() {
             `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto)
             VALUES(?,?,?,?)
           `,
-            [
-              5,
-              centro_custo.id,
-              conta.id,
-              Math.random() * 1000,
-            ]
+            [5, centro_custo.id, conta.id, Math.random() * 1000]
           );
         }
       }
