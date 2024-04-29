@@ -8,6 +8,8 @@ const {
   changeStatusTitulo,
   update,
   insertOne,
+  insertOneRecorrencia,
+  getAllRecorrencias,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
 router.post("/update-anexo", async (req, res) => {
@@ -45,6 +47,16 @@ router.get("/titulos-bordero", async (req, res) => {
     res.status(400).json({ message: error.message })
   }
 });
+
+router.get("/recorrencia", async (req, res) => {
+  try {
+    const result = await getAllRecorrencias(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message })
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const result = await getOne(req);
@@ -53,6 +65,15 @@ router.get("/:id", async (req, res) => {
     res.status(400).json({ message: error.message })
   }
 });
+
+router.post('/criar-recorrencia', async (req, res) => {
+  try {
+    const result = await insertOneRecorrencia(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message })
+  }
+})
 
 router.post('/', async (req, res) => {
   try {

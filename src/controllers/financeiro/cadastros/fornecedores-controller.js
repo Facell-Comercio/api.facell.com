@@ -73,9 +73,10 @@ function getOne(req) {
     try {
       const [rowFornecedor] = await db.execute(
         `
-            SELECT *
-            FROM fin_fornecedores
-            WHERE id = ?
+            SELECT ff.*, fb.codigo as codigo_banco, fb.nome as banco
+            FROM fin_fornecedores ff
+            LEFT JOIN fin_bancos fb ON fb.id = ff.id_banco
+            WHERE ff.id = ?
             `,
         [id]
       );

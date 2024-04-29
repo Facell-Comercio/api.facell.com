@@ -80,7 +80,7 @@ function getAll(req) {
             SELECT f.*, g.nome as grupo_economico FROM filiais f
             JOIN grupos_economicos g ON g.id = f.id_grupo_economico
             ${where}
-            ORDER BY f.id DESC
+            ORDER BY g.id ASC, f.nome ASC
             ${limit}
             `;
       const [rows] = await db.execute(query, params);
