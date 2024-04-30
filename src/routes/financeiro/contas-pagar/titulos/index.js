@@ -10,6 +10,7 @@ const {
   insertOne,
   insertOneRecorrencia,
   getAllRecorrencias,
+  changeFieldTitulos,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
 router.post("/update-anexo", async (req, res) => {
@@ -24,6 +25,15 @@ router.post("/update-anexo", async (req, res) => {
 router.post("/change-status", async (req, res) => {
   try {
     const result = await changeStatusTitulo(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.put("/change-fields", async (req, res) => {
+  try {
+    const result = await changeFieldTitulos(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
