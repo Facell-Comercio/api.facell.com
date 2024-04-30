@@ -91,7 +91,7 @@ function getAll(req) {
         params
       );
       const totalTitulos = (rowsTitulos && rowsTitulos[0]["total"]) || 0;
-
+      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       var query = `
             SELECT 
                 t.id, s.status, t.created_at, t.data_prevista, t.descricao, t.valor,
@@ -107,7 +107,7 @@ function getAll(req) {
 
             ORDER BY 
                 t.created_at DESC 
-            LIMIT ? OFFSET ?`;
+            ${limit}`;
       params.push(pageSize);
       params.push(offset);
       console.log(query);
@@ -631,7 +631,7 @@ function insertOne(req) {
         let valor_total_consumo =
           (rowConsumoOrcamento &&
             rowConsumoOrcamento[0] &&
-            rowConsumoOrcamento["valor"]) ||
+            rowConsumoOrcamento[0]["valor"]) ||
           0;
         valor_total_consumo = parseFloat(valor_total_consumo);
 
@@ -1177,7 +1177,7 @@ function update(req) {
           let valor_total_consumo =
             (rowConsumoOrcamento &&
               rowConsumoOrcamento[0] &&
-              rowConsumoOrcamento["valor"]) ||
+              rowConsumoOrcamento[0]["valor"]) ||
             0;
           valor_total_consumo = parseFloat(valor_total_consumo);
 
@@ -1578,9 +1578,51 @@ function changeStatusTitulo(req) {
 
 function changeFieldTitulos(req) {
   return new Promise(async (resolve, reject) => {
+    const { type, value, ids } = req.body;
+    const conn = await db.getConnection();
+
+    await conn.beginTransaction();
     try {
+      if (!type) {
+        throw new Error("TIPO de alteração não informado!");
+      }
+      if (!value) {
+        throw new Error("VALOR da alteração não informado!");
+      }
+      if (ids && ids.length <= 0) {
+        throw new Error("SOLICITAÇÕES a serem alteradas não selecionadas!");
+      }
+
+      for (const id of ids) {
+        if (type == "data_prevista") {
+          const [rowTitulo] = await conn.execute(
+            `SELECT id_status FROM fin_cp_titulos WHERE id = ? `,
+            [id]
+          );
+          const titulo = rowTitulo && rowTitulo[0];
+          if (titulo.id_status == "4") {
+            throw new Error(
+              `Alteração rejeitada pois o título ${id} já consta como pago!`
+            );
+          }
+          await conn.execute(
+            `UPDATE fin_cp_titulos SET data_prevista = ? WHERE id = ? `,
+            [new Date(value), id]
+          );
+        } else if (type === "status") {
+          await changeStatusTitulo({
+            body: {
+              id_titulo: id,
+              id_novo_status: value,
+            },
+          });
+        }
+      }
+
+      await conn.commit();
       resolve(true);
     } catch (error) {
+      await conn.rollback();
       reject(error);
     }
   });
@@ -1596,4 +1638,5 @@ module.exports = {
   update,
   updateFileTitulo,
   changeStatusTitulo,
+  changeFieldTitulos,
 };
