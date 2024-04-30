@@ -73,9 +73,8 @@ function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND b.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND b.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND b.${tipo_data} = '${data_de.split("T")[0]}' `;
@@ -171,14 +170,23 @@ function getOne(req) {
       const [rowTitulos] = await db.execute(
         `
             SELECT 
-              tb.id_titulo, t.id_status, 
-              f.nome as nome_fornecedor, cs.status, 
-              b.data_pagamento, t.valor as valor_total, t.num_doc,
-              t.descricao, b.id_conta_bancaria, fi.nome as filial, 
-              t.data_prevista as previsao, t.data_pagamento, false AS checked,
-              t.data_emissao, t.data_vencimento,
-              pl.descricao as plano_contas, c.nome as centro_custo,
-              f.cnpj
+              tb.id_titulo, 
+              t.id_status, 
+              t.valor as valor_total, 
+              t.descricao, 
+              t.num_doc,
+              t.data_prevista as previsao, 
+              t.data_pagamento, 
+              f.nome as nome_fornecedor, 
+              t.data_emissao, 
+              t.data_vencimento,
+              c.nome as centro_custo,
+              cs.status, 
+              b.data_pagamento, 
+              b.id_conta_bancaria, 
+              f.cnpj,
+              fi.nome as filial, 
+              false AS checked
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
@@ -186,7 +194,6 @@ function getOne(req) {
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
             LEFT JOIN fin_cp_status cs ON cs.id = t.id_status
-            LEFT JOIN fin_plano_contas pl ON pl.id = t.id_plano_contas
             LEFT JOIN fin_centros_custo c ON c.id = t.id_centro_custo
             WHERE b.id = ?
             `,
@@ -201,6 +208,7 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
+      console.log(error)
       reject(error);
       return;
     }
@@ -403,7 +411,7 @@ function transferBordero(req) {
         id = newBordero.insertId;
       }
 
-      for(const titulo of titulos){
+      for (const titulo of titulos) {
         if (titulo.id_status != 3) {
           throw new Error(
             "Não é possível realizar a transfência de titulos com status diferente de aprovado!"
@@ -466,7 +474,6 @@ async function exportBorderos(req) {
             VALOR:
               parseFloat(titulo.valor_total && titulo.valor_total.toString()) ||
               "",
-            "PLANO CONTAS": titulo.plano_contas || "",
             "CENTRO CUSTO": titulo.centro_custo || "",
 
             "CONTA BANCÁRIA": response.conta_bancaria || "",
