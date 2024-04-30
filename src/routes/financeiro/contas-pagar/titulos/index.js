@@ -17,7 +17,7 @@ router.post("/update-anexo", async (req, res) => {
     const result = await updateFileTitulo(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
 });
 
@@ -26,7 +26,7 @@ router.post("/change-status", async (req, res) => {
     const result = await changeStatusTitulo(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
 });
 
@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
     const result = await getAll(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
 });
 
@@ -44,16 +44,16 @@ router.get("/titulos-bordero", async (req, res) => {
     const result = await getAllCpTitulosBordero(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
 });
 
-router.get("/recorrencia", async (req, res) => {
+router.get("/recorrencias", async (req, res) => {
   try {
     const result = await getAllRecorrencias(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
 });
 
@@ -62,35 +62,35 @@ router.get("/:id", async (req, res) => {
     const result = await getOne(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
 });
 
-router.post('/criar-recorrencia', async (req, res) => {
+router.post("/criar-recorrencia", async (req, res) => {
   try {
     const result = await insertOneRecorrencia(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
-})
+});
 
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const result = await insertOne(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
-})
+});
 
-router.put('/', async (req, res) => {
+router.put("/", async (req, res) => {
   try {
     const result = await update(req);
     res.status(200).json(result);
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(400).json({ message: error.message });
   }
-})
+});
 
 module.exports = router;
