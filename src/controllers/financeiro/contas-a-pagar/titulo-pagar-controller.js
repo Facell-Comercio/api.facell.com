@@ -7,6 +7,8 @@ const {
   normalizeCurrency,
 } = require("../../../helpers/mask");
 const { moverArquivoTempParaUploads } = require("../../files-controller");
+const { addMonths } = require("date-fns/addMonths");
+const { param } = require("../../../routes/financeiro/contas-pagar/titulos");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -290,9 +292,10 @@ function getAllCpTitulosBordero(req) {
 
 function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
     try {
       const { user } = req;
+      const { filters } = req.query || {};
+      const { mes, ano } = filters || {};
       const params = [];
       let where = "WHERE 1=1 ";
 
@@ -305,8 +308,52 @@ function getAllRecorrencias(req) {
           .join(",");
         where += ` AND r.id_centro_custo IN(${centro_custo})`;
       }
+      where += `AND YEAR(r.data_vencimento) = ?
+        AND MONTH(r.data_vencimento) = ?`;
+      params.push(ano);
+      params.push(mes);
+      // fornecedor, filial, data-vencimento, valor, descricao, centro-custo, grupo-economico, criador (usuario)
+
+      console.log(
+        `SELECT 
+      r.id_titulo, r.data_vencimento,
+      t.descricao, t.valor,
+      forn.nome as fornecedor,
+      f.nome as filial, f.id_matriz,
+      cc.nome as centro_custo,
+      ge.nome as grupo_economico,
+      u.nome as criador,
+      CASE WHEN r.data_vencimento = t.data_vencimento AND r.id_titulo = t.id THEN true ELSE false END as lancado
+    FROM fin_cp_titulos_recorrencias r 
+    LEFT JOIN fin_cp_titulos t ON t.id = r.id_titulo
+    LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+    LEFT JOIN filiais f ON f.id = t.id_filial
+    LEFT JOIN fin_centros_custo cc ON cc.id = t.id_centro_custo
+    LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
+    LEFT JOIN users u ON u.id = r.id_user
+    ${where}
+    `,
+        params
+      );
+
       const [recorrencias] = await db.execute(
-        `SELECT r.* FROM fin_cp_titulos_recorrencias r ${where}`,
+        `SELECT 
+          r.*,
+          t.descricao, t.valor,
+          forn.nome as fornecedor,
+          f.nome as filial, f.id_matriz,
+          cc.nome as centro_custo,
+          ge.nome as grupo_economico,
+          u.nome as criador
+        FROM fin_cp_titulos_recorrencias r 
+        LEFT JOIN fin_cp_titulos t ON t.id = r.id_titulo
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_centros_custo cc ON cc.id = t.id_centro_custo
+        LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
+        LEFT JOIN users u ON u.id = r.id_user
+        ${where}
+        `,
         params
       );
       resolve({ rows: recorrencias });
@@ -390,6 +437,7 @@ function insertOne(req) {
       const data = req.body;
       const {
         id_filial,
+        id_recorrencia,
         id_grupo_economico,
 
         id_fornecedor,
@@ -698,6 +746,14 @@ function insertOne(req) {
       const newId = resultInsertTitulo.insertId;
       // ~ Fim da criação do Título ////////////
 
+      // * Atualizar recorrência
+      if (id_recorrencia) {
+        await conn.execute(
+          `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id =?`,
+          [id_recorrencia]
+        );
+      }
+
       // * Persistir Esquema de rateio
       for (const item_rateio of itens_rateio) {
         await conn.execute(
@@ -795,126 +851,41 @@ function insertOneRecorrencia(req) {
       await conn.beginTransaction();
       const { user } = req;
       const data = req.body;
-      const {
-        id,
-        id_filial,
-        id_grupo_economico,
-        id_fornecedor,
-        id_forma_pagamento,
+      const { id, data_vencimento } = data || {};
 
-        // Geral
-        id_centro_custo,
-        data_vencimento,
-        valor,
-
-        id_tipo_solicitacao,
-        descricao,
-
-        itens,
-      } = data || {};
-
-      // console.log('NOVOS_DADOS', novos_dados)
-      // console.log(`TITULO ${data.id}: ITENS: `,itens)
-      // console.log(`TITULO ${data.id}: ITENS_RATEIO: `,itens_rateio)
+      // ~ Criação da data do mês seguinte
+      const new_data_vencimento = addMonths(data_vencimento, 1);
+      console.log(new_data_vencimento);
 
       // ^ Validações
       // Titulo
       if (!id) {
         throw new Error("Campo id não informado!");
       }
+
       const [rowsExistentes] = await conn.execute(
-        `SELECT id FROM fin_cp_titulos_recorrencias WHERE id_titulo = ?`,
-        [id]
+        `SELECT id FROM fin_cp_titulos_recorrencias WHERE id_titulo = ? AND data_vencimento = ?`,
+        [id, new Date(new_data_vencimento)]
       );
       if (rowsExistentes && rowsExistentes.length > 0) {
         throw new Error("Recorrência já criada com base nesse título!");
       }
-
-      if (!id_filial) {
-        throw new Error("Campo id_filial não informado!");
-      }
-      if (!id_fornecedor) {
-        throw new Error("Campo id_fornecedor não informado!");
-      }
-      if (!id_forma_pagamento) {
-        throw new Error("Campo id_forma_pagamento não informado!");
-      }
-      if (!id_centro_custo) {
-        throw new Error("Campo id_centro_custo não informado!");
-      }
-      if (!descricao) {
-        throw new Error("Campo Descrição não informado!");
-      }
       if (!data_vencimento) {
         throw new Error("Campo data_vencimento não informado!");
       }
-      // Itens
-      if (!itens || itens.length === 0) {
-        throw new Error("Campo itens não informado!");
-      }
-
-      // Passamos por cada item novo, validando campos e analisando o orçamento
-      for (const item of itens) {
-        // ^ Validar item se possui todos os campos obrigatórios
-        if (!item.id_plano_conta) {
-          throw new Error(
-            `O item não possui plano de contas selecionado! Item: ${JSON.stringify(
-              item
-            )}`
-          );
-        }
-        if (!item.valor) {
-          throw new Error(
-            `O item não possui valor! Item: ${JSON.stringify(item)}`
-          );
-        }
-      }
-
-      const dia_vencimento = format(data_vencimento, "dd");
 
       // * Criação da Recorrência
-      const [resultInsertRecorrencia] = await conn.execute(
+      await conn.execute(
         `INSERT INTO fin_cp_titulos_recorrencias 
         (
-          id_criador,
           id_titulo,
-          id_fornecedor,
-          id_forma_pagamento,
-          id_tipo_solicitacao,
-          id_filial,
-          id_centro_custo,
-          descricao,
-          valor,
-          dia_vencimento          
+          data_vencimento,
+          id_user
         )
-
-          VALUES (?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?)
         `,
-        [
-          user.id,
-          id,
-          id_fornecedor,
-          id_forma_pagamento,
-          id_tipo_solicitacao,
-          id_filial,
-          id_centro_custo,
-          descricao,
-          valor,
-          dia_vencimento,
-        ]
+        [id, new Date(new_data_vencimento), user.id]
       );
-
-      const newId = resultInsertRecorrencia.insertId;
-      // ~ Fim da criação da recorrência ////////////
-
-      // * Salvar os itens da recorrência
-      for (const item of itens) {
-        await conn.execute(
-          `INSERT INTO fin_cp_titulos_recorrencias_itens (id_recorrencia, id_plano_conta, valor) VALUES (?,?,?)`,
-          [newId, item.id_plano_conta, item.valor]
-        );
-      }
-      //~ Fim de manipulação de itens //////////////////////
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
