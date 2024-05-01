@@ -1,11 +1,36 @@
-const router = require('express').Router()
+const router = require("express").Router();
 
-const contasPagar = require('./contas-pagar')
-const planoContas = require('./plano-contas')
-const fornecedores = require('./fornecedores')
+const contasPagar = require("./contas-pagar");
 
-router.use('/contas-a-pagar', contasPagar)
-router.use('/plano-contas', planoContas)
-router.use('/fornecedores', fornecedores)
+const orcamento = require("./orcamento");
+
+const fornecedores = require("./cadastros/fornecedores");
+const planoContas = require("./cadastros/plano-contas");
+const centroCustos = require("./cadastros/centro-custos");
+const bancos = require("./cadastros/bancos");
+const contasBancarias = require("./cadastros/contas-bancarias");
+const equipamentosCielo = require("./cadastros/equipamentos-cielo");
+const rateios = require("./cadastros/rateios");
+
+const formasPagamento = require("./formas-pagamento");
+const ofx = require("./ofx");
+
+// Contas a pagar
+router.use("/contas-a-pagar", contasPagar);
+
+// Orçamento
+router.use("/orcamento", orcamento);
+
+// Cadastros
+router.use("/fornecedores", fornecedores);
+router.use("/plano-contas", planoContas);
+router.use("/centro-custos", centroCustos);
+router.use("/bancos", bancos);
+router.use("/contas-bancarias", contasBancarias);
+router.use("/equipamentos-cielo", equipamentosCielo);
+router.use("/rateios", rateios);
+
+router.use("/formas-pagamento", formasPagamento);
+router.use("/ofx", ofx);
 
 module.exports = router;

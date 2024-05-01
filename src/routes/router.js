@@ -1,25 +1,38 @@
-const router = require('express').Router()
+const express = require("express");
+const path = require("path");
+const router = require("express").Router();
 
-const authRouter = require('./auth-router')
-const uploadRouter = require('./upload-router')
-const financeiroRouter = require('./financeiro/financeiro-router')
-const grupoEconomico = require('./grupo-economico-router')
-const filial = require('./filial-router')
-const authMiddleware = require('../middlewares/authentication-middleware')
+const authRouter = require("./auth-router");
+const uploadRouter = require("./upload-router");
+const financeiroRouter = require("./financeiro/financeiro-router");
+const grupoEconomico = require("./grupo-economico-router");
+const filial = require("./filial-router");
+const banco = require("./banco-router");
+const user = require("./user-router");
+const departamento = require("./departamento-router");
+const permissao = require("./permissao-router");
+const authMiddleware = require("../middlewares/auth-middleware");
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')
 // const esteiraRouter = require('./esteira/esteiraRouter')
 // const facellRouter = require('./facell/facellRouter')
 
-app.use('/auth', authRouter)
+router.get("/", (req, res) => {
+  res.status(200).json({ msg: "Sucesso!" });
+});
+router.use("/auth", authRouter);
 
-app.use(authMiddleware)
+router.use("/", authMiddleware);
 
-app.use('/upload', uploadRouter)
-app.use('/financeiro', financeiroRouter)
-app.use('/grupo-economico', grupoEconomico)
-app.use('/filial', filial)
+router.use("/upload", uploadRouter);
+router.use("/financeiro", financeiroRouter);
+router.use("/grupo-economico", grupoEconomico);
+router.use("/banco", banco);
+router.use("/filial", filial);
+router.use("/user", user);
+router.use("/departamento", departamento);
+router.use("/permissao", permissao);
 
 // app.use('/datasys', datasysRouter)
 // app.use('/comissao-tim', timRouter)
@@ -27,8 +40,4 @@ app.use('/filial', filial)
 // app.use('/esteira', esteiraRouter)
 // app.use('/facell', facellRouter)
 
-app.get('/', (req, res)=>{
-    res.status(200).json({msg: 'Sucesso!'})
-})
-
-module.exports = router
+module.exports = router;

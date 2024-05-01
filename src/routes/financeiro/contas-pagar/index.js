@@ -1,15 +1,13 @@
-const router = require('express').Router()
+const router = require("express").Router();
 
-const { getAll, getOne } = require('../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller');
+const titulos = require("./titulos");
+const bordero = require("./borderos");
+const conciliacao = require("./conciliacao");
+const movimentoContabil = require("./movimento-contabil");
 
-router.get('/titulo', async (req, res)=>{
-    const result = await getAll(req)
-    res.status(200).json(result)
-})
-
-router.get('/titulo/:id', async (req, res)=>{
-    const result = await getOne(req)
-    res.status(200).json(result)
-})
+router.use("/titulo", titulos);
+router.use("/bordero", bordero);
+router.use("/conciliacao", conciliacao);
+router.use("/movimento-contabil", movimentoContabil);
 
 module.exports = router;

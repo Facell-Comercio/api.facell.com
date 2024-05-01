@@ -37,7 +37,6 @@ async function register(req){
 async function login(req){
     return new Promise(async (resolve, reject)=>{
         try {
-            console.log(req.body)
             const {email, senha } = req.body;
             if(!email){
                 throw new Error('Preencha o email!')
@@ -47,7 +46,7 @@ async function login(req){
                 throw new Error('Preencha a senha!')
             }
 
-            const [rowUser] = await db.execute(`SELECT u.*, p.perfil FROM users u LEFT JOIN users_perfis p ON p.id = u.id_perfil WHERE email = ?`, [email])
+            const [rowUser] = await db.execute(`SELECT u.* FROM users u WHERE email = ?`, [email])
             const user = rowUser && rowUser[0]
 
             if(!user){
@@ -58,15 +57,48 @@ async function login(req){
             if(!matchPass){
                 throw new Error('Usuário ou senha inválidos!')
             }
+            
             user.senha = '';
+            // Filiais de acesso
+            const [filiais] = await db.execute(`
+            SELECT f.id, f.nome, uf.gestor 
+            FROM users_filiais uf
+            INNER JOIN filiais f ON f.id = uf.id_filial
+            WHERE uf.id_user = ?`, [user.id])
+            user.filiais = filiais
+
+            // Departamentos de acesso
+            const [departamentos] = await db.execute(`
+            SELECT  d.id, d.nome, ud.gestor 
+            FROM users_departamentos ud
+            INNER JOIN  departamentos d ON d.id = ud.id_departamento
+            WHERE ud.id_user = ?`, [user.id])
+            user.departamentos = departamentos
+
+            // Centros de custo de acesso
+            const [centros_custo] = await db.execute(`
+            SELECT  fcc.id, fcc.nome, ucc.gestor 
+            FROM users_centros_custo ucc
+            INNER JOIN  fin_centros_custo fcc ON fcc.id = ucc.id_centro_custo
+            WHERE ucc.id_user = ?`, [user.id])
+            user.centros_custo = centros_custo
+
+            // Permissoes
+            const [permissoes] = await db.execute(`
+            SELECT p.id, p.nome 
+            FROM users_permissoes up
+            INNER JOIN permissoes p ON p.id = up.id_permissao
+            WHERE up.id_user = ?`, [user.id])
+            user.permissoes = permissoes
+
             const token = jwt.sign({
-                user:user
+                user:user,
+                exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) //token válido por 7 dias
             }, process.env.SECRET)
             
-            console.log(token, user)
+            // console.log(token, user)
             resolve({token, user})
         } catch (error) {
-            console.log(error)
             reject(error)
         }
     })
