@@ -1,3 +1,4 @@
+const { startOfDay } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 
@@ -181,7 +182,7 @@ function getOne(req) {
               t.data_emissao, 
               t.data_vencimento,
               c.nome as centro_custo,
-              cs.status, 
+              st.status,
               b.data_pagamento, 
               b.id_conta_bancaria, 
               f.cnpj,
@@ -190,10 +191,10 @@ function getOne(req) {
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
+            LEFT JOIN fin_cp_status st ON st.id = t.id_status
             LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
-            LEFT JOIN fin_cp_status cs ON cs.id = t.id_status
             LEFT JOIN fin_centros_custo c ON c.id = t.id_centro_custo
             WHERE b.id = ?
             `,
@@ -208,7 +209,6 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.log(error)
       reject(error);
       return;
     }
@@ -259,7 +259,7 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, id_conta_bancaria, data_pagamento, titulos } = req.body;
-
+    // console.log(req.body)
     const conn = await db.getConnection();
     try {
       if (!id) {
@@ -269,25 +269,42 @@ function update(req) {
         throw new Error("ID_CONTA_BANCARIA não informado!");
       }
       if (!data_pagamento) {
-        throw new Error("DATA_PAGAMENTO não informado!");
+        throw new Error("DATA_PAGAMENTO não informada!");
       }
 
       await conn.beginTransaction();
 
+      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_cp_bordero WHERE id =?`, [id])
+      const bordero = rowBordero && rowBordero[0]
+      if(!bordero){
+        throw new Error('Borderô inexistente!')
+      }
+      const data_pagamento_anterior = bordero.data_pagamento;
+    
       // Update do bordero
       await conn.execute(
         `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
         [data_pagamento, id_conta_bancaria, id]
       );
 
+      if(startOfDay(data_pagamento).toISOString() != startOfDay(data_pagamento_anterior).toISOString()){
+        // Update titulos do bordero igualando a data_prevista à data_pagamento do bordero
+        await conn.execute(`
+        UPDATE fin_cp_titulos 
+        SET data_prevista = ? 
+        WHERE id IN (
+          SELECT id_titulo FROM fin_cp_titulos_borderos WHERE id_bordero = ?
+        )`, [data_pagamento, id])
+      }
+
       // Inserir os itens do bordero
       if (titulos.length > 0) {
-        titulos.forEach(async ({ id_titulo }) => {
+        for(const titulo of titulos){
           await conn.execute(
             `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
-            [id_titulo, id]
+            [titulo.id_titulo, id]
           );
-        });
+        };
       }
 
       await conn.commit();
@@ -376,7 +393,6 @@ function transferBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { id_conta_bancaria, date, titulos } = req.body;
 
-    console.log(req.body);
     const conn = await db.getConnection();
     try {
       if (!id_conta_bancaria) {

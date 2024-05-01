@@ -1,4 +1,5 @@
 const { format } = require("date-fns");
+const path = require('path')
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
@@ -6,9 +7,9 @@ const {
   normalizeFirstAndLastName,
   normalizeCurrency,
 } = require("../../../helpers/mask");
-const { moverArquivoTempParaUploads } = require("../../files-controller");
+const { moverArquivoTempParaUploads, replaceFilePath, zipFiles, createUploadsPath } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
-const { param } = require("../../../routes/financeiro/contas-pagar/titulos");
+require('dotenv').config();
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -65,9 +66,8 @@ function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -94,7 +94,7 @@ function getAll(req) {
       const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       var query = `
             SELECT 
-                t.id, s.status, t.created_at, t.data_prevista, t.descricao, t.valor,
+                t.id, s.status, t.created_at, t.data_prevista, t.data_pagamento, t.descricao, t.valor,
                 f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor, u.nome as solicitante
             FROM fin_cp_titulos t 
@@ -110,8 +110,8 @@ function getAll(req) {
             ${limit}`;
       params.push(pageSize);
       params.push(offset);
-      console.log(query);
-      console.log(params);
+      // console.log(query);
+      // console.log(params);
       const [titulos] = await db.execute(query, params);
 
       const objResponse = {
@@ -211,9 +211,8 @@ function getAllCpTitulosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -234,7 +233,7 @@ function getAllCpTitulosBordero(req) {
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT 
-          t.id as id_titulo, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
+          t.id as id_titulo, t.id_status, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
           f.nome as filial, f.id_matriz,
           forn.nome as fornecedor, u.nome as solicitante
           FROM fin_cp_titulos t 
@@ -253,7 +252,7 @@ function getAllCpTitulosBordero(req) {
 
       var query = `
             SELECT DISTINCT 
-                t.id as id_titulo, s.status, t.data_prevista as previsao, 
+                t.id as id_titulo, t.id_status, s.status, t.data_prevista as previsao, 
                 t.descricao, t.valor as valor_total,
                 f.nome as filial, f.id_matriz,
                 forn.nome as nome_fornecedor, t.num_doc, t.data_pagamento
@@ -313,28 +312,6 @@ function getAllRecorrencias(req) {
       params.push(ano);
       params.push(mes);
       // fornecedor, filial, data-vencimento, valor, descricao, centro-custo, grupo-economico, criador (usuario)
-
-      console.log(
-        `SELECT 
-      r.id_titulo, r.data_vencimento,
-      t.descricao, t.valor,
-      forn.nome as fornecedor,
-      f.nome as filial, f.id_matriz,
-      cc.nome as centro_custo,
-      ge.nome as grupo_economico,
-      u.nome as criador,
-      CASE WHEN r.data_vencimento = t.data_vencimento AND r.id_titulo = t.id THEN true ELSE false END as lancado
-    FROM fin_cp_titulos_recorrencias r 
-    LEFT JOIN fin_cp_titulos t ON t.id = r.id_titulo
-    LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-    LEFT JOIN filiais f ON f.id = t.id_filial
-    LEFT JOIN fin_centros_custo cc ON cc.id = t.id_centro_custo
-    LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
-    LEFT JOIN users u ON u.id = r.id_user
-    ${where}
-    `,
-        params
-      );
 
       const [recorrencias] = await db.execute(
         `SELECT 
@@ -417,7 +394,6 @@ function getOne(req) {
       const titulo = rowTitulo && rowTitulo[0];
       // console.log(titulo)
       const objResponse = { titulo, itens, itens_rateio, historico };
-      console.log(objResponse);
       resolve(objResponse);
       return;
     } catch (error) {
@@ -639,8 +615,7 @@ function insertOne(req) {
         const saldo = valor_previsto - valor_total_consumo;
         if (saldo < item.valor) {
           throw new Error(
-            `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${
-              item.plano_conta
+            `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${item.plano_conta
             }. Necessário ${normalizeCurrency(item.valor - saldo)}`
           );
         }
@@ -809,7 +784,6 @@ function insertOne(req) {
         // * Persistir o rateio dos itens
         for (const item_rateio of itens_rateio) {
           const valor_rateado = item_rateio.percentual * item.valor;
-          console.log(item_rateio.percentual, item.valor, valor_rateado);
           await conn.execute(
             `INSERT INTO fin_cp_titulos_rateio_itens (id_titulo, id_titulo_item, id_rateio, id_filial, percentual, valor) VALUES (?,?,?,?,?,?)`,
             [
@@ -855,7 +829,6 @@ function insertOneRecorrencia(req) {
 
       // ~ Criação da data do mês seguinte
       const new_data_vencimento = addMonths(data_vencimento, 1);
-      console.log(new_data_vencimento);
 
       // ^ Validações
       // Titulo
@@ -1188,8 +1161,7 @@ function update(req) {
             valorConsumidoPeloItemAnterior;
           if (saldo < item.valor) {
             throw new Error(
-              `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${
-                item.plano_conta
+              `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${item.plano_conta
               }. Necessário ${normalizeCurrency(item.valor - saldo)}`
             );
           }
@@ -1258,7 +1230,6 @@ function update(req) {
           // * Persistir o rateio dos itens
           for (const item_rateio of itens_rateio) {
             const valor_rateado = item_rateio.percentual * item.valor;
-            console.log(item_rateio.percentual, item.valor, valor_rateado);
             await conn.execute(
               `INSERT INTO fin_cp_titulos_rateio_itens (id_titulo, id_titulo_item, id_rateio, id_filial, percentual, valor) VALUES (?,?,?,?,?,?)`,
               [
@@ -1628,6 +1599,73 @@ function changeFieldTitulos(req) {
   });
 }
 
+function downloadAnexos(req, res) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // const { type, idSelection } = req.body || {
+      //   type: 'url_boleto',
+      //   idSelection: [10657, 10655, 10640]
+      // };
+      // const tipos_anexos = ['url_boleto', 'url_xml', 'url_nota_fiscal', 'url_planilha', 'url_txt']
+      // if (!tipos_anexos.contains(type)) {
+      //   throw new Error('Tipo de anexo desconhecido!')
+      // }
+
+      // const titulos = [];
+      // for(const id_titulo of idSelection){
+      //   const titulo = {
+      //     id: id_titulo,
+      //     fileUrl: ''
+      //   }
+
+      //   const [rowTitulo] = await db.execute(`SELECT ${type} FROM fin_cp_titulos WHERE id = ?`, [titulo.id])
+      //   const tituloBanco = rowTitulo && rowTitulo[0]
+      //   titulo.fileUrl = tituloBanco[type]
+      //   titulo.filePath = replaceFilePath(titulo.fileUrl)
+      // }
+
+      const zip = await zipFiles(
+        {
+        items: [
+          {
+            type: 'folder',
+            folderName: 'arquivos',
+            items: [
+              {
+                type: 'folder',
+                folderName: '01',
+                items: [
+                  { type:'file', fileName: 'IMG Alex.jpg', filePath: createUploadsPath('eu_n7gr6lo82xvjv7cxaq417nje.jpg') },
+                  { type:'file', fileName: 'IMG Leandro.png', filePath: createUploadsPath('Leandro_mx77q4c8372vfyf5vmx9qdp7.png') },
+                ]
+              },
+              {
+                type: 'folder',
+                folderName: '02',
+                items: [
+                  { type:'file', fileName: 'BOLETO 102030.pdf', filePath: createUploadsPath('NOTAS_-_Manual_Tecnico_SISPAG__kqx5ixqs9oq3k1bzwmmlqa0k.pdf') },
+                  { type:'file', fileName: 'BOLETO 111213.pdf', filePath: createUploadsPath('Parcial 04-04 17_iwptugddgzbrljwretm1aje2.pdf') },
+                ]
+              },
+
+            ]
+          },
+          {
+            type: 'file', fileName: 'Relatório.xlsx', filePath: createUploadsPath('rateio-novo-titulo_ap7iu8h7ns4uaw296q9kfcyj.xlsx')
+          }
+        ]
+      }
+    )
+      res.set('Content-Type', 'application/zip');
+      res.set('Content-Disposition', 'attachment; filename=example.zip');
+      res.send(zip);
+      resolve()
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
 module.exports = {
   getAll,
   getAllCpTitulosBordero,
@@ -1639,4 +1677,5 @@ module.exports = {
   updateFileTitulo,
   changeStatusTitulo,
   changeFieldTitulos,
+  downloadAnexos,
 };

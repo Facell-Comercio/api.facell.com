@@ -11,7 +11,16 @@ const {
   insertOneRecorrencia,
   getAllRecorrencias,
   changeFieldTitulos,
+  downloadAnexos,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
+
+router.get("/download", async (req, res) => {
+  try {
+    const result = await downloadAnexos(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
 router.post("/update-anexo", async (req, res) => {
   try {
