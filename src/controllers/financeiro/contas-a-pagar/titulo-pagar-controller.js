@@ -208,6 +208,7 @@ function getAllCpTitulosBordero(req) {
     AND t.id_status = 3 
       AND tb.id_titulo IS NULL `;
 
+      console.log(tipo_data, range_data)
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
@@ -294,7 +295,7 @@ function getAllRecorrencias(req) {
     try {
       const { user } = req;
       const { filters } = req.query || {};
-      const { mes, ano } = filters || {};
+      const { mes, ano } = filters || {mes: format(new Date(), 'MM'), ano: format(new Date(), 'yyyy')};
       const params = [];
       let where = "WHERE 1=1 ";
 
@@ -1016,6 +1017,11 @@ function update(req) {
       const titulo = rowTitulo && rowTitulo[0];
       if (!titulo) throw new Error("Título não localizado!");
 
+      // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
+      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_cp_titulos_borderos WHERE id_titulo = ?`, [id])
+      const data_pagamento_bordero = rowBordero && rowBordero[0] && rowBordero[0]['data_pagamento'];
+      const data_prevista_utilizada = data_pagamento_bordero ? data_pagamento_bordero : data_prevista;
+
       // Obter os Itens anteriores para registra-los no histórico caso precise
       const [itens_anteriores] = await conn.execute(
         `SELECT ti.valor, CONCAT(pc.codigo, ' - ', pc.descricao) as plano_conta
@@ -1325,7 +1331,7 @@ function update(req) {
 
           data_emissao,
           data_vencimento,
-          data_prevista,
+          data_prevista_utilizada,
           num_doc,
           valor,
           descricao,

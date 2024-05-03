@@ -284,7 +284,7 @@ function update(req) {
       // Update do bordero
       await conn.execute(
         `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
-        [data_pagamento, id_conta_bancaria, id]
+        [startOfDay(data_pagamento), id_conta_bancaria, id]
       );
 
       if(startOfDay(data_pagamento).toISOString() != startOfDay(data_pagamento_anterior).toISOString()){
@@ -294,7 +294,7 @@ function update(req) {
         SET data_prevista = ? 
         WHERE id IN (
           SELECT id_titulo FROM fin_cp_titulos_borderos WHERE id_bordero = ?
-        )`, [data_pagamento, id])
+        )`, [startOfDay(data_pagamento), id])
       }
 
       // Inserir os itens do bordero
