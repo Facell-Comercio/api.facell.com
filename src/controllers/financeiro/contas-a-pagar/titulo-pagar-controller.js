@@ -208,7 +208,7 @@ function getAllCpTitulosBordero(req) {
     AND t.id_status = 3 
       AND tb.id_titulo IS NULL `;
 
-      console.log(tipo_data, range_data)
+    console.log(tipo_data, range_data)
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
@@ -295,7 +295,7 @@ function getAllRecorrencias(req) {
     try {
       const { user } = req;
       const { filters } = req.query || {};
-      const { mes, ano } = filters || {mes: format(new Date(), 'MM'), ano: format(new Date(), 'yyyy')};
+      const { mes, ano } = filters || { mes: format(new Date(), 'MM'), ano: format(new Date(), 'yyyy') };
       const params = [];
       let where = "WHERE 1=1 ";
 
@@ -1582,10 +1582,16 @@ function changeFieldTitulos(req) {
               `Alteração rejeitada pois o título ${id} já consta como pago!`
             );
           }
-          await conn.execute(
-            `UPDATE fin_cp_titulos SET data_prevista = ? WHERE id = ? `,
-            [new Date(value), id]
-          );
+          // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
+          const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_cp_titulos_borderos WHERE id_titulo = ?`, [id])
+          const bordero = rowBordero && rowBordero[0]
+          
+          if(!bordero || bordero.length === 0){
+            await conn.execute(
+              `UPDATE fin_cp_titulos SET data_prevista = ? WHERE id = ? `,
+              [new Date(value), id]
+            );
+          }
         } else if (type === "status") {
           await changeStatusTitulo({
             body: {
@@ -1632,36 +1638,36 @@ function downloadAnexos(req, res) {
 
       const zip = await zipFiles(
         {
-        items: [
-          {
-            type: 'folder',
-            folderName: 'arquivos',
-            items: [
-              {
-                type: 'folder',
-                folderName: '01',
-                items: [
-                  { type:'file', fileName: 'IMG Alex.jpg', filePath: createUploadsPath('eu_n7gr6lo82xvjv7cxaq417nje.jpg') },
-                  { type:'file', fileName: 'IMG Leandro.png', filePath: createUploadsPath('Leandro_mx77q4c8372vfyf5vmx9qdp7.png') },
-                ]
-              },
-              {
-                type: 'folder',
-                folderName: '02',
-                items: [
-                  { type:'file', fileName: 'BOLETO 102030.pdf', filePath: createUploadsPath('NOTAS_-_Manual_Tecnico_SISPAG__kqx5ixqs9oq3k1bzwmmlqa0k.pdf') },
-                  { type:'file', fileName: 'BOLETO 111213.pdf', filePath: createUploadsPath('Parcial 04-04 17_iwptugddgzbrljwretm1aje2.pdf') },
-                ]
-              },
+          items: [
+            {
+              type: 'folder',
+              folderName: 'arquivos',
+              items: [
+                {
+                  type: 'folder',
+                  folderName: '01',
+                  items: [
+                    { type: 'file', fileName: 'IMG Alex.jpg', filePath: createUploadsPath('eu_n7gr6lo82xvjv7cxaq417nje.jpg') },
+                    { type: 'file', fileName: 'IMG Leandro.png', filePath: createUploadsPath('Leandro_mx77q4c8372vfyf5vmx9qdp7.png') },
+                  ]
+                },
+                {
+                  type: 'folder',
+                  folderName: '02',
+                  items: [
+                    { type: 'file', fileName: 'BOLETO 102030.pdf', filePath: createUploadsPath('NOTAS_-_Manual_Tecnico_SISPAG__kqx5ixqs9oq3k1bzwmmlqa0k.pdf') },
+                    { type: 'file', fileName: 'BOLETO 111213.pdf', filePath: createUploadsPath('Parcial 04-04 17_iwptugddgzbrljwretm1aje2.pdf') },
+                  ]
+                },
 
-            ]
-          },
-          {
-            type: 'file', fileName: 'Relatório.xlsx', filePath: createUploadsPath('rateio-novo-titulo_ap7iu8h7ns4uaw296q9kfcyj.xlsx')
-          }
-        ]
-      }
-    )
+              ]
+            },
+            {
+              type: 'file', fileName: 'Relatório.xlsx', filePath: createUploadsPath('rateio-novo-titulo_ap7iu8h7ns4uaw296q9kfcyj.xlsx')
+            }
+          ]
+        }
+      )
       res.set('Content-Type', 'application/zip');
       res.set('Content-Disposition', 'attachment; filename=example.zip');
       res.send(zip);
