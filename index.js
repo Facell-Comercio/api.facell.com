@@ -23,6 +23,7 @@ app.use(
       "https://app.facell.com",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
+    exposedHeaders: ["Content-Disposition"],
   })
 );
 // const configureSocketModule = require('./src/socket/socket')

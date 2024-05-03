@@ -12,11 +12,22 @@ const {
   getAllRecorrencias,
   changeFieldTitulos,
   downloadAnexos,
+  deleteRecorrencia,
+  changeRecorrencia,
+  exportDatasys,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
-router.get("/download", async (req, res) => {
+router.get("/export-datasys", async (req, res) => {
   try {
-    const result = await downloadAnexos(req, res);
+    const result = await exportDatasys(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+router.post("/download", async (req, res) => {
+  try {
+    await downloadAnexos(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -70,6 +81,24 @@ router.get("/titulos-bordero", async (req, res) => {
 router.get("/recorrencias", async (req, res) => {
   try {
     const result = await getAllRecorrencias(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.delete("/recorrencias/:id", async (req, res) => {
+  try {
+    const result = await deleteRecorrencia(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.put("/recorrencias/:id", async (req, res) => {
+  try {
+    const result = await changeRecorrencia(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
