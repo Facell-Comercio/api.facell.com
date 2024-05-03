@@ -1,4 +1,4 @@
-const { format } = require("date-fns");
+const { format, startOfDay, formatDate } = require("date-fns");
 const path = require("path");
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
@@ -309,12 +309,15 @@ function getAllRecorrencias(req) {
         !checkUserPermission(req, "MASTER") &&
         !checkUserDepartment(req, "FINANCEIRO")
       ) {
-        const centro_custo = user?.centros_custo
+        if (!user.centro_custo || user.centro_custo.length == 0) {
+          throw new Error("Usuário sem acesso a centros de custos");
+        }
+        const centro_custo = user?.centros_custo;
+        where += ` AND r.id_centro_custo IN(${centro_custo
           ?.map((centro) => centro.id)
-          .join(",");
-        where += ` AND r.id_centro_custo IN(${centro_custo})`;
+          .join(",")})`;
       }
-      where += `AND YEAR(r.data_vencimento) = ?
+      where += ` AND YEAR(r.data_vencimento) = ?
         AND MONTH(r.data_vencimento) = ?`;
       params.push(ano);
       params.push(mes);
@@ -1700,6 +1703,68 @@ function downloadAnexos(req, res) {
   });
 }
 
+function exportDatasys(req) {
+  return new Promise(async (resolve, reject) => {
+    const { filters } = req.query || {};
+    const conn = await db.getConnection();
+    await conn.beginTransaction();
+    const { data_pagamento, id_grupo_economico } = filters;
+    try {
+      if (!data_pagamento) {
+        throw new Error("DATA PAGAMENTO não selecionada!");
+      }
+      if (!id_grupo_economico) {
+        throw new Error("GRUPO ECONÔMICO não selecionada!");
+      }
+
+      const [datasys] = await conn.execute(
+        `
+        SELECT 
+          f.cnpj as cnpj_loja,
+          fo.cnpj as cnpj_fornecedor,
+          ti.id as documento,
+          t.data_emissao as emisao, t.data_vencimento as vencimento,
+          ti.valor,
+          fp.forma_pagamento as tipo_documento,
+          t.descricao as historico,
+          cc.nome as centro_custo,
+          pc.codigo as plano_contas,
+          f_item.cnpj as cnpj_rateio,
+          tri.valor as valor_rateio,
+          cb.descricao as banco_pg,
+          t.data_pagamento as data_pg,
+          fo.nome as nome_fornecedor
+        FROM fin_cp_titulos t
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
+        LEFT JOIN fin_cp_titulos_itens ti ON ti.id_titulo = t.id
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+        LEFT JOIN fin_centros_custo cc ON cc.id = t.id_centro_custo
+        LEFT JOIN fin_plano_contas pc ON pc.id = ti.id_plano_conta
+        LEFT JOIN fin_cp_titulos_rateio_itens tri ON tri.id_titulo = t.id
+        LEFT JOIN filiais f_item ON f_item.id = tri.id_filial
+        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        WHERE t.data_pagamento = ?
+        AND cc.id_grupo_economico = ?
+        AND t.id_status =  4
+        ORDER BY ti.id DESC
+      `,
+        [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
+      );
+      resolve(datasys);
+      await conn.commit();
+    } catch (error) {
+      console.log(error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 function deleteRecorrencia(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
@@ -1739,5 +1804,6 @@ module.exports = {
   changeStatusTitulo,
   changeFieldTitulos,
   changeRecorrencia,
+  exportDatasys,
   downloadAnexos,
 };

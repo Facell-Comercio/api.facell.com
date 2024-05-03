@@ -14,8 +14,17 @@ const {
   downloadAnexos,
   deleteRecorrencia,
   changeRecorrencia,
+  exportDatasys,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
+router.get("/export-datasys", async (req, res) => {
+  try {
+    const result = await exportDatasys(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 router.post("/download", async (req, res) => {
   try {
     await downloadAnexos(req, res);
