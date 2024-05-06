@@ -1,6 +1,6 @@
 const router = require('express').Router()
 
-const { getAll, getOne, toggleActive, update, insertOne } = require('../../../controllers/financeiro/formas-pagamento-controller');
+const { getAll, getOne, toggleActive, update, insertOne } = require('../../../controllers/financeiro/cadastros/formas-pagamento-controller');
 
 router.get('/', async (req, res) => {
     try {

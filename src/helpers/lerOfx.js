@@ -1,0 +1,60 @@
+const { parse: parseOFX } = require('ofx-js');
+const fs = require('fs');
+const { format } = require('date-fns');
+require('dotenv').config();
+
+async function lerOFX(pathOFX) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!pathOFX){
+                reject('Caminho do OFX não enviado!')
+                return
+            }
+            const ofxString = await readOFX(pathOFX)
+
+            if (typeof ofxString !== 'string') {
+                throw new Error('Não consegui ler o arquivo!')
+            }
+            const ofxData = await parseOFX(ofxString)
+            resolve(ofxData)
+            return;
+        } catch (error) {
+            reject('ERRO EM LEITURA DE OFX', error)
+        }
+    })
+}
+
+async function readOFX(caminho) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(caminho, 'utf-8', (err, data) => {
+            if (err) {
+                reject('Não consegui ler')
+            } else {
+                resolve(data)
+            }
+        });
+    })
+}
+
+function formatarDataTransacao(dataTransacao) {
+    // Extrair os componentes da data
+    const ano = parseInt(dataTransacao.slice(0, 4));
+    const mes = parseInt(dataTransacao.slice(4, 6));
+    const dia = parseInt(dataTransacao.slice(6, 8));
+    const hora = parseInt(dataTransacao.slice(8, 10));
+    const minuto = parseInt(dataTransacao.slice(10, 12));
+    const segundo = parseInt(dataTransacao.slice(12, 14));
+
+    // Criar um objeto Date
+    const dataObjeto = new Date(ano, mes - 1, dia, hora, minuto, segundo);
+
+    // Formatar a data no formato do MariaDB ('YYYY-MM-DD HH:MM:SS')
+    const dataFormatada = format(dataObjeto, 'yyyy-MM-dd HH:mm:ss');
+
+    return dataFormatada;
+}
+
+module.exports = {
+    lerOFX,
+    formatarDataTransacao
+}

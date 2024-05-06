@@ -9,7 +9,6 @@ const {
 } = require("../../../helpers/mask");
 const {
   moverArquivoTempParaUploads,
-  replaceFilePath,
   zipFiles,
   createUploadsPath,
 } = require("../../files-controller");

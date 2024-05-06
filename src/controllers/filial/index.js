@@ -27,6 +27,14 @@ function getAll(req) {
     const limit = pagination ? "LIMIT ? OFFSET ?" : "";
 
     if (!isMaster) {
+      if(!filiais_habilitadas || filiais_habilitadas.length === 0){
+        resolve({
+          rows: [],
+          pageCount: 0,
+          rowCount: 0,
+        })
+        return;
+      }
       where += `AND f.id IN(${filiais_habilitadas.join(",")}) `;
     }
 

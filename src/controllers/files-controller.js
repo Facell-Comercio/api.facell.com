@@ -168,18 +168,20 @@ function moverArquivoTempParaUploads(url) {
     });
 }
 
-function replaceFilePath(url) {
+function createFilePathFromUrl(url) {
     return new Promise(async (resolve, reject) => {
         try {
             if(!url || typeof url !== 'string'){
                 resolve(null)
                 return;
             }
-            const partes = url.split('uploads/')
+            const isTemp = url.includes('temp/')
+
+            const partes = isTemp ? url.split('temp/') : url.split('uploads/')
             const fileName = partes[1];
 
             const BASE_DIR = process.env.BASE_DIR;
-            const newPath = path.join(BASE_DIR, 'public', 'uploads', fileName)
+            const newPath = isTemp ? path.join(BASE_DIR, 'public', 'temp', fileName) : path.join(BASE_DIR, 'public', 'uploads', fileName)
             
             resolve(newPath)
         } catch (error) {
@@ -194,7 +196,7 @@ module.exports = {
     moveFile,
     urlContemTemp,
     moverArquivoTempParaUploads,
-    replaceFilePath,
+    createFilePathFromUrl,
     createUploadsPath,
     zipFiles,
 }
