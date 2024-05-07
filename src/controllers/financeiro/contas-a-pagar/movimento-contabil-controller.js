@@ -3,6 +3,7 @@ const path = require("path");
 const { db } = require("../../../../mysql");
 const { createUploadsPath, zipFiles } = require("../../files-controller");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
+const XLSX = require("xlsx");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -19,8 +20,6 @@ function getAll(req) {
       pageSize: 15,
     };
     const { id_grupo_economico, id_conta_bancaria } = filters || {};
-
-    console.log(filters);
 
     let where = ` WHERE 1=1 `;
     const params = [];
@@ -109,8 +108,6 @@ function downloadMovimentoContabil(req, res) {
       // ^ id_grupo_economico - id_conta_bancaria - mes - ano
       const { id_grupo_economico, id_conta_bancaria, mes, ano } =
         req.query.filters || {};
-
-      console.log(req.query);
       if (!id_grupo_economico) {
         throw new Error("ID GRUPO ECONÔMICO não informado");
       }
@@ -129,13 +126,11 @@ function downloadMovimentoContabil(req, res) {
         const diasArray = new Array(ultimoDia)
           .fill(0)
           .map((_, index) => index + 1);
-        console.log("ULTIMO DIA", ultimoDia);
         return diasArray;
       }
 
       const dias = gerarArrayDeDias(ano, mes);
       const items = [];
-      console.log(dias);
 
       if (id_conta_bancaria) {
         await appendItem(id_conta_bancaria);
@@ -163,10 +158,6 @@ function downloadMovimentoContabil(req, res) {
         );
         const contaBancaria = rowContaBancaria && rowContaBancaria[0];
 
-        console.log(
-          "Passando pela conta bancaria -> ",
-          contaBancaria.descricao
-        );
         // *  Gerar objeto que representa a pasta na conta bancaria no zip
         const objConta = {
           type: "folder",
@@ -179,7 +170,6 @@ function downloadMovimentoContabil(req, res) {
 
         // * Passar por cada dia gerando uma pasta do dia e gerar os files
         for (const dia of dias) {
-          console.log(dia);
           const objDia = {
             type: "folder",
             folderName: dia.toString().padStart(2, "0"),
@@ -218,7 +208,6 @@ function downloadMovimentoContabil(req, res) {
             params
           );
 
-          console.log(params);
           if (!titulos || titulos.length == 0) {
             continue;
           }
@@ -236,7 +225,6 @@ function downloadMovimentoContabil(req, res) {
 
           // * Adiciona os títulos no array do excel e no Objeto de dia
           titulos.forEach((titulo) => {
-            console.log("Passando pelo título de id: ", titulo.id);
             itemsExcel.push({
               ID: titulo.id,
               "CPF/CNPJ": normalizeCnpjNumber(titulo.cnpj || ""),
@@ -258,7 +246,7 @@ function downloadMovimentoContabil(req, res) {
                 objDia.items.push({
                   type: "file",
                   fileName: `${tipo.acronym} ${titulo.id}${ext}`,
-                  filePath: createUploadsPath(url),
+                  content: createUploadsPath(url),
                 });
               }
             });
@@ -268,6 +256,31 @@ function downloadMovimentoContabil(req, res) {
           objConta.items.push({ ...objDia });
         }
 
+        // * Cria a matriz bidimensional com o cabeçalho como primeira linha
+        if (itemsExcel.length > 1) {
+          const cabecalhos = Object.keys(itemsExcel[0]);
+          const matrizBidimensional = [cabecalhos];
+          itemsExcel.forEach((item) => {
+            const valores = cabecalhos.map((cabecalho) => item[cabecalho]);
+            matrizBidimensional.push(valores);
+          });
+
+          // * Geração do buffer da planilha excel
+          const workbook = XLSX.utils.book_new();
+          const worksheet = XLSX.utils.aoa_to_sheet(matrizBidimensional);
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+          const excelBuffer = XLSX.write(workbook, {
+            type: "buffer",
+            bookType: "xlsx",
+          });
+
+          // * Inserção do buffer da planilha no zip
+          objConta.items.push({
+            type: "buffer",
+            fileName: `RELATÓRIO DE PAGAMENTO ${mes}-${ano} ${contaBancaria.descricao.toUpperCase()}.xlsx`,
+            content: excelBuffer,
+          });
+        }
         // * Adicionar cada pasta referente às contas bancárias
         items.push(objConta);
       }
@@ -275,9 +288,9 @@ function downloadMovimentoContabil(req, res) {
       const zip = await zipFiles({
         items: items,
       });
-      console.log("ITEMS", items);
+      const filename = `MOVIMENTO CONTABIL ${mes} ${ano}.zip`;
       res.set("Content-Type", "application/zip");
-      res.set("Content-Disposition", "attachment; filename=example.zip");
+      res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(zip);
       await conn.commit();
       resolve();

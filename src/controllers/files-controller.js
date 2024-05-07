@@ -64,14 +64,26 @@ function zipFiles({ items }) {
               ? `${parentPath}/${item.folderName}`
               : item.folderName;
             await addItemsToZip(item.items, folderPath);
-          } else if (item.type === "file") {
+            continue;
+          }
+          if (item.type === "file") {
             try {
-              const content = fs.readFileSync(item.filePath);
+              const content = fs.readFileSync(item.content);
               const filePath = parentPath
                 ? `${parentPath}/${item.fileName}`
                 : item.fileName;
               zip.file(filePath, content);
             } catch (e) {}
+            continue;
+          }
+          if (item.type === "buffer") {
+            try {
+              const filePath = parentPath
+                ? `${parentPath}/${item.fileName}`
+                : item.fileName;
+              zip.file(filePath, item.content);
+            } catch (e) {}
+            continue;
           }
         }
       }

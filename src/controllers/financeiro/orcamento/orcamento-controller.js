@@ -1,4 +1,5 @@
 const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { normalizeCurrency } = require("../../../helpers/mask");
 
 function getAll(req) {
@@ -25,9 +26,11 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
+    const conn = await db.getConnection();
 
     try {
-      const [rowQtdeTotal] = await db.execute(
+      await conn.beginTransaction();
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(fo.id) as qtde  
             FROM fin_orcamento fo
@@ -48,16 +51,20 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
+      await conn.commit();
       resolve(objResponse);
     } catch (error) {
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -65,8 +72,11 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id, mes, ano, termo } = req.params;
+    const conn = await db.getConnection();
+
     try {
-      const [rowOrcamento] = await db.execute(
+      await conn.beginTransaction();
+      const [rowOrcamento] = await conn.execute(
         `
       SELECT 
         fo.id, fo.id_grupo_economico, fo.ref, fo.active,
@@ -97,7 +107,7 @@ function getOne(req) {
         params.push(id);
       }
 
-      const [rowOrcamentoItens] = await db.execute(
+      const [rowOrcamentoItens] = await conn.execute(
         `
         SELECT 
           foc.id as id_conta,
@@ -119,6 +129,7 @@ function getOne(req) {
       );
 
       const orcamento = rowOrcamento && rowOrcamento[0];
+      await conn.commit();
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
@@ -171,6 +182,8 @@ function insertOne(req) {
       console.log("ERRO_ORCAMENTO_INSERT", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -269,6 +282,8 @@ function update(req) {
       console.log("ERRO_ORCAMENTO_UPDATE", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -331,13 +346,24 @@ function deleteItemBudget(req) {
       console.log("ERRO_DELETE_ITEM_BUDGET", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
 
 function getMyBudgets(req) {
   return new Promise(async (resolve, reject) => {
-    // Filtros
+    // Filtros]
+    const { user } = req;
+    const isMaster = checkUserPermission(req, "MASTER");
+
+    const orcamentos_habilitados = [];
+
+    user?.centros_custo?.forEach((f) => {
+      orcamentos_habilitados.push(f.id);
+    });
+
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
@@ -350,6 +376,18 @@ function getMyBudgets(req) {
       };
     var where = ` WHERE 1=1 `;
     const params = [];
+
+    if (!isMaster) {
+      if (!orcamentos_habilitados || orcamentos_habilitados.length === 0) {
+        resolve({
+          rows: [],
+          pageCount: 0,
+          rowCount: 0,
+        });
+        return;
+      }
+      where += `AND fcc.id IN(${orcamentos_habilitados.join(",")}) `;
+    }
 
     if (mes && ano) {
       where += ` AND fo.ref = ? `;
@@ -369,9 +407,11 @@ function getMyBudgets(req) {
     }
 
     const offset = pageIndex * pageSize;
+    const conn = await db.getConnection();
 
     try {
-      const [rowQtdeTotal] = await db.execute(
+      await conn.beginTransaction();
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(foc.id) as qtde  
             FROM fin_orcamento_contas foc
@@ -417,7 +457,7 @@ function getMyBudgets(req) {
             ${limit}
             `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
@@ -426,9 +466,13 @@ function getMyBudgets(req) {
         mes,
         ano,
       };
+      await conn.commit();
       resolve(objResponse);
     } catch (error) {
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -436,8 +480,10 @@ function getMyBudgets(req) {
 function getMyBudget(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowOrcamento] = await db.execute(
+      await conn.beginTransaction();
+      const [rowOrcamento] = await conn.execute(
         `
       SELECT 
         foc.id as id_conta_saida,
@@ -465,9 +511,13 @@ function getMyBudget(req) {
       );
 
       const orcamento = rowOrcamento && rowOrcamento[0];
+      await conn.commit();
       resolve(orcamento);
     } catch (error) {
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -622,6 +672,8 @@ function transfer(req) {
       console.log("ERRO_TRANSFER_BUDGET", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -696,6 +748,8 @@ function getIds(req) {
     } catch (error) {
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -704,8 +758,10 @@ function getLogs(req) {
   return new Promise(async (resolve, reject) => {
     // Filtros
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rows] = await db.execute(
+      await conn.beginTransaction();
+      const [rows] = await conn.execute(
         `
             SELECT 
               u.nome,
@@ -720,9 +776,13 @@ function getLogs(req) {
       const objResponse = {
         rows,
       };
+      await conn.commit();
       resolve(objResponse);
     } catch (error) {
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -757,6 +817,8 @@ function faker() {
     } catch (error) {
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

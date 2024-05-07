@@ -1,7 +1,17 @@
 const { db } = require("../../../mysql");
+const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
+    const { user } = req;
+    const isMaster = checkUserPermission(req, "MASTER");
+
+    const grupos_economicos_habilitados = [];
+
+    user?.filiais?.forEach((f) => {
+      grupos_economicos_habilitados.push(f.id);
+    });
+
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
@@ -16,16 +26,34 @@ function getAll(req) {
 
     const params = [];
 
+    if (!isMaster) {
+      if (
+        !grupos_economicos_habilitados ||
+        grupos_economicos_habilitados.length === 0
+      ) {
+        resolve({
+          rows: [],
+          pageCount: 0,
+          rowCount: 0,
+        });
+        return;
+      }
+      where += `AND f.id IN(${grupos_economicos_habilitados.join(",")}) `;
+    }
+
     if (id_matriz) {
       where += ` AND g.id_matriz = ?`;
       params.push(id_matriz);
     }
-
+    const conn = await db.getConnection();
     try {
-      const [rowQtdeTotal] = await db.execute(
+      await conn.beginTransaction();
+
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(g.id) as qtde 
             FROM grupos_economicos g
+            JOIN filiais f ON f.id = g.id_matriz
              ${where} `,
         params
       );
@@ -36,22 +64,27 @@ function getAll(req) {
         params.push(pageSize);
         params.push(offset);
       }
-      var query = `
+      const query = `
             SELECT g.*, f.nome as matriz FROM grupos_economicos g
             JOIN filiais f ON f.id = g.id_matriz
             ${where}
             ORDER BY g.id DESC
             ${limit}
             `;
+
       const [rows] = await db.execute(query, params);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
+      await conn.commit();
       resolve(objResponse);
     } catch (error) {
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -59,8 +92,10 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowPlanoContas] = await db.execute(
+      await conn.beginTransaction();
+      const [rowPlanoContas] = await conn.execute(
         `
             SELECT *
             FROM grupos_economicos
@@ -69,11 +104,14 @@ function getOne(req) {
         [id]
       );
       const planoContas = rowPlanoContas && rowPlanoContas[0];
+      await conn.commit();
       resolve(planoContas);
       return;
     } catch (error) {
+      await conn.rollback();
       reject(error);
-      return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -120,12 +158,13 @@ function update(req) {
       );
 
       await conn.commit();
-
       resolve({ message: "Sucesso!" });
     } catch (error) {
       await conn.rollback();
       console.log("ERRO_GRUPO_ECONOMICO_UPDATE", error);
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -133,7 +172,9 @@ function update(req) {
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id, nome, apelido } = req.body;
+    const conn = await db.getConnection();
     try {
+      conn.beginTransaction();
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
@@ -145,11 +186,15 @@ function insertOne(req) {
 
       const query = `INSERT INTO grupos_economicos (${campos}) VALUES (?);`;
 
-      await db.execute(query, params);
+      await conn.execute(query, params);
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_GRUPO_ECONOMICO_INSERT", error);
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

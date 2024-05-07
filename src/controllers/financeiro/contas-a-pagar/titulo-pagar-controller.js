@@ -323,11 +323,11 @@ function getAllRecorrencias(req) {
         !checkUserPermission(req, "MASTER") &&
         !checkUserDepartment(req, "FINANCEIRO")
       ) {
-        if (!user.centro_custo || user.centro_custo.length == 0) {
+        if (!user.centros_custo || user.centros_custo.length == 0) {
           throw new Error("Usuário sem acesso a centros de custos");
         }
         const centro_custo = user?.centros_custo;
-        where += ` AND r.id_centro_custo IN(${centro_custo
+        where += ` AND cc.id IN(${centro_custo
           ?.map((centro) => centro.id)
           .join(",")})`;
       }
@@ -361,6 +361,7 @@ function getAllRecorrencias(req) {
       await conn.commit();
       resolve({ rows: recorrencias });
     } catch (error) {
+      console.log("ERRO RECORRENCIAS", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -1741,21 +1742,22 @@ function downloadAnexos(req, res) {
           fileName: `${
             tipos_anexos.find((tipo) => tipo.name == type).acronym
           } - ${id_titulo}${ext}`,
-          filePath: createUploadsPath(tituloBanco[type]),
+          content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);
       }
 
-      if (!titulos.filter((item) => item.filePath).length) {
+      if (!titulos.filter((item) => item.content).length) {
         throw new Error("Nenhum anexo encontrado!");
       }
 
-      console.log(titulos.filter((item) => item.filePath));
+      console.log(titulos.filter((item) => item.content));
 
       const filename = tipos_anexos.find((tipo) => tipo.name == type).zipName;
       const zip = await zipFiles({
-        items: titulos.filter((item) => item.filePath),
+        items: titulos.filter((item) => item.content),
       });
+      console.log(filename);
       res.set("Content-Type", "application/zip");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send({ zip, filename });
@@ -1775,7 +1777,6 @@ function exportDatasys(req) {
   return new Promise(async (resolve, reject) => {
     const { filters } = req.query || {};
     const conn = await db.getConnection();
-    await conn.beginTransaction();
     const { data_pagamento, id_grupo_economico } = filters;
     try {
       if (!data_pagamento) {
@@ -1784,6 +1785,7 @@ function exportDatasys(req) {
       if (!id_grupo_economico) {
         throw new Error("GRUPO ECONÔMICO não selecionada!");
       }
+      await conn.beginTransaction();
 
       const [datasys] = await conn.execute(
         `
@@ -1821,8 +1823,8 @@ function exportDatasys(req) {
       `,
         [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
       );
-      resolve(datasys);
       await conn.commit();
+      resolve(datasys);
     } catch (error) {
       console.log("ERRO EXPORT DATASYS TITULOS", error);
       await conn.rollback();
