@@ -1,9 +1,17 @@
 const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    // user.perfil = 'Financeiro'
+    const isMaster = checkUserPermission(req, "MASTER");
+
+    const contas_bancarias_habilitadas = [];
+
+    user?.filiais?.forEach((f) => {
+      contas_bancarias_habilitadas.push(f.id);
+    });
+
     if (!user) {
       reject("Usuário não autenticado!");
       return false;
@@ -25,6 +33,21 @@ function getAll(req) {
     } = filters || {};
     var where = ` WHERE 1=1 `;
     const params = [];
+
+    if (!isMaster) {
+      if (
+        !contas_bancarias_habilitadas ||
+        contas_bancarias_habilitadas.length === 0
+      ) {
+        resolve({
+          rows: [],
+          pageCount: 0,
+          rowCount: 0,
+        });
+        return;
+      }
+      where += `AND f.id IN(${contas_bancarias_habilitadas.join(",")}) `;
+    }
 
     if (id_filial) {
       where += ` AND f.id = ? `;
@@ -57,7 +80,7 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
-    const conn = await db.getConnection()
+    const conn = await db.getConnection();
     try {
       const [rowQtdeTotal] = await conn.execute(
         `SELECT 
@@ -92,6 +115,7 @@ function getAll(req) {
 
       const [rows] = await conn.execute(query, params);
 
+      console.log(query, contas_bancarias_habilitadas);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
@@ -100,8 +124,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
-    } finally{
-      await conn.release()
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -109,7 +133,7 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const conn = await db.getConnection()
+    const conn = await db.getConnection();
     try {
       const [rowPlanoContas] = await conn.execute(
         `
@@ -128,9 +152,9 @@ function getOne(req) {
       return;
     } catch (error) {
       reject(error);
-      return;
-    } finally{
-      await conn.release()
+      reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -138,8 +162,10 @@ function getOne(req) {
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id, ...rest } = req.body;
-    const conn = await db.getConnection()
+    const conn = await db.getConnection();
     try {
+      await conn.beginTransaction();
+
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
@@ -166,12 +192,14 @@ function insertOne(req) {
       const query = `INSERT INTO fin_contas_bancarias (${campos}) VALUES (${values});`;
 
       await conn.execute(query, params);
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_CONTAS_BANCARIAS_INSERT", error);
+      await conn.rollback();
       reject(error);
-    } finally{
-      await conn.release()
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -179,8 +207,10 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, ...rest } = req.body;
-    const conn = await db.getConnection()
+    const conn = await db.getConnection();
     try {
+      await conn.beginTransaction();
+
       if (!id) {
         throw new Error("ID não informado!");
       }
@@ -203,13 +233,14 @@ function update(req) {
       params.push(id);
 
       await conn.execute(updateQuery + " WHERE id = ?", params);
-
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_CONTAS_BANCARIAS_UPDATE", error);
+      await conn.rollback();
       reject(error);
-    } finally{
-      await conn.release()
+    } finally {
+      await conn.release();
     }
   });
 }

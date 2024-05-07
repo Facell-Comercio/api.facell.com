@@ -74,8 +74,9 @@ function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND b.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND b.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND b.${tipo_data} = '${data_de.split("T")[0]}' `;
@@ -87,9 +88,9 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
-
+    const conn = await db.getConnection();
     try {
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT
@@ -134,7 +135,7 @@ function getAll(req) {
         LIMIT ? OFFSET ?
       `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
@@ -144,6 +145,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -151,8 +154,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowPlanoContas] = await db.execute(
+      const [rowPlanoContas] = await conn.execute(
         `
             SELECT 
               b.id, b.data_pagamento, b.id_conta_bancaria, 
@@ -168,7 +172,7 @@ function getOne(req) {
             `,
         [id]
       );
-      const [rowTitulos] = await db.execute(
+      const [rowTitulos] = await conn.execute(
         `
             SELECT 
               tb.id_titulo, 
@@ -211,6 +215,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -252,6 +258,8 @@ function insertOne(req) {
       console.log("ERRO_BORDERO_INSERT", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -274,37 +282,46 @@ function update(req) {
 
       await conn.beginTransaction();
 
-      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_cp_bordero WHERE id =?`, [id])
-      const bordero = rowBordero && rowBordero[0]
-      if(!bordero){
-        throw new Error('Borderô inexistente!')
+      const [rowBordero] = await conn.execute(
+        `SELECT data_pagamento FROM fin_cp_bordero WHERE id =?`,
+        [id]
+      );
+      const bordero = rowBordero && rowBordero[0];
+      if (!bordero) {
+        throw new Error("Borderô inexistente!");
       }
       const data_pagamento_anterior = bordero.data_pagamento;
-    
+
       // Update do bordero
       await conn.execute(
         `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
         [startOfDay(data_pagamento), id_conta_bancaria, id]
       );
 
-      if(startOfDay(data_pagamento).toISOString() != startOfDay(data_pagamento_anterior).toISOString()){
+      if (
+        startOfDay(data_pagamento).toISOString() !=
+        startOfDay(data_pagamento_anterior).toISOString()
+      ) {
         // Update titulos do bordero igualando a data_prevista à data_pagamento do bordero
-        await conn.execute(`
+        await conn.execute(
+          `
         UPDATE fin_cp_titulos 
         SET data_prevista = ? 
         WHERE id IN (
           SELECT id_titulo FROM fin_cp_titulos_borderos WHERE id_bordero = ?
-        )`, [startOfDay(data_pagamento), id])
+        )`,
+          [startOfDay(data_pagamento), id]
+        );
       }
 
       // Inserir os itens do bordero
       if (titulos.length > 0) {
-        for(const titulo of titulos){
+        for (const titulo of titulos) {
           await conn.execute(
             `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
             [titulo.id_titulo, id]
           );
-        };
+        }
       }
 
       await conn.commit();
@@ -313,6 +330,8 @@ function update(req) {
       console.log("ERRO_BORDEROS_UPDATE", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -350,6 +369,8 @@ function deleteTitulo(req) {
       console.log("ERRO_DELETE_TITULO_BORDERO", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -385,6 +406,8 @@ function deleteBordero(req) {
       console.log("ERRO_DELETE_BORDERO", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -437,7 +460,7 @@ function transferBordero(req) {
           `UPDATE fin_cp_titulos_borderos SET id_bordero = ? WHERE id_titulo = ?  LIMIT 1`,
           [id, titulo.id_titulo]
         );
-      };
+      }
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
@@ -445,6 +468,8 @@ function transferBordero(req) {
       console.log("ERRO_TRANSFER_BORDERO", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

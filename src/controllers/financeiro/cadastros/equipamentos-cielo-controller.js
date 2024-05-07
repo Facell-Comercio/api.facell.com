@@ -40,9 +40,9 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
-
+    const conn = await db.getConnection();
     try {
-      const [rowTotal] = await db.execute(
+      const [rowTotal] = await conn.execute(
         `SELECT 
           COUNT(fe.id) as qtde 
           FROM fin_equipamentos_cielo as fe
@@ -63,17 +63,18 @@ function getAll(req) {
             ORDER BY fe.id DESC
             LIMIT ? OFFSET ?
             `;
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -81,8 +82,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowFornecedor] = await db.execute(
+      const [rowFornecedor] = await conn.execute(
         `
             SELECT *
             FROM fin_equipamentos_cielo fe
@@ -96,6 +98,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -103,12 +107,14 @@ function getOne(req) {
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id, ...rest } = req.body;
+    const conn = await db.getConnection();
     try {
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
+      await conn.beginTransaction();
       let campos = "";
       let values = "";
       const params = [];
@@ -125,11 +131,15 @@ function insertOne(req) {
 
       const query = `INSERT INTO fin_equipamentos_cielo (${campos}) VALUES (${values});`;
 
-      await db.execute(query, params);
+      await conn.execute(query, params);
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_RATEIOS_INSERT", error);
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -137,10 +147,12 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, ...rest } = req.body;
+    const conn = await db.getConnection();
     try {
       if (!id) {
         throw new Error("ID não informado!");
       }
+      await conn.beginTransaction();
       const params = [];
       let updateQuery = "UPDATE fin_equipamentos_cielo SET ";
 
@@ -155,17 +167,21 @@ function update(req) {
 
       params.push(id);
 
-      await db.execute(
+      await conn.execute(
         updateQuery +
           ` WHERE id = ?
         `,
         params
       );
 
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_RATEIOS_UPDATE", error);
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

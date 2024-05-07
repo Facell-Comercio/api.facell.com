@@ -27,8 +27,9 @@ function getAll(req) {
 
     const offset = pageIndex * pageSize;
 
+    const conn = await db.getConnection();
     try {
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(d.id) as qtde 
             FROM fin_bancos d
@@ -48,7 +49,7 @@ function getAll(req) {
             `;
       // console.log(query)
       // console.log(params)
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       // console.log('Fetched fin_bancos', fin_bancos.length)
       const objResponse = {
@@ -60,6 +61,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -67,8 +70,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowPlanoContas] = await db.execute(
+      const [rowPlanoContas] = await conn.execute(
         `
             SELECT *
             FROM fin_bancos
@@ -82,6 +86,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
