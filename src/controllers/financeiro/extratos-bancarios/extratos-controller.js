@@ -46,14 +46,14 @@ function getAll(req) {
       }
 
       if (data_de && data_ate) {
-        where += ` AND e.data_transacao BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+        where += ` AND e.data_transacao BETWEEN '${formatDate(data_de,'yyyy-MM-dd')}' AND '${formatDate(data_ate,'yyyy-MM-dd')
           }'  `;
       } else {
         if (data_de) {
-          where += ` AND e.data_transacao = '${data_de.split("T")[0]}' `;
+          where += ` AND e.data_transacao = '${formatDate(data_de,'yyyy-MM-dd')}' `;
         }
         if (data_ate) {
-          where += ` AND e.data_transacao = '${data_ate.split("T")[0]}' `;
+          where += ` AND e.data_transacao = '${formatDate(data_ate,'yyyy-MM-dd')}' `;
         }
       }
 
@@ -103,6 +103,7 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
+      console.log(error)
       reject(error);
     }
   });
