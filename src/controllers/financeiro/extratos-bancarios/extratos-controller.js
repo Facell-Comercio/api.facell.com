@@ -1,4 +1,4 @@
-const { startOfDay } = require("date-fns");
+const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const { lerOFX, formatarDataTransacao } = require("../../../helpers/lerOfx");
@@ -6,13 +6,8 @@ const { createFilePathFromUrl } = require("../../files-controller");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
-    // user.perfil = 'Financeiro'
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
     // Filtros
+    console.log(req.query)
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
@@ -20,129 +15,92 @@ function getAll(req) {
     };
     const {
       id_conta_bancaria,
-      banco,
-      id_grupo_economico,
-      fornecedor,
-      id_titulo,
-      num_doc,
-      tipo_data,
-      range_data,
-      id_matriz,
-      termo,
+      periodo,
     } = filters || {};
-    // const { id_matriz, termo } = filters || {id_matriz: 1, termo: null}
+
     let where = ` WHERE 1=1 `;
     const params = [];
+    let limit = '';
+    let offset = 0;
+    const conn = await db.getConnection();
+    try {
 
-    if (id_conta_bancaria) {
-      where += ` AND b.id_conta_bancaria = ? `;
-      params.push(id_conta_bancaria);
-    }
-    if (banco) {
-      where += ` AND fb.nome LIKE CONCAT('%', ?, '%')`;
-      params.push(banco);
-    }
-    if (id_grupo_economico) {
-      where += ` AND f.id_grupo_economico = ?`;
-      params.push(id_grupo_economico);
-    }
-    if (fornecedor) {
-      where += ` AND ff.nome LIKE CONCAT('%', ?, '%') `;
-      params.push(fornecedor);
-    }
-    if (id_titulo) {
-      where += ` AND tb.id_titulo = ? `;
-      params.push(id_titulo);
-    }
-    if (num_doc) {
-      where += ` AND t.num_doc = ? `;
-      params.push(num_doc);
-    }
-    if (id_matriz) {
-      where += ` AND f.id_matriz = ? `;
-      params.push(id_matriz);
-    }
-    if (termo) {
-      where += ` AND (
-                  b.id LIKE CONCAT(?,"%") OR
-                  cb.descricao LIKE CONCAT("%",?,"%") OR
-                  b.data_pagamento LIKE CONCAT("%",?,"%")
-                ) `;
-      //? Realizar a normalização de data_pagamento?
-      params.push(termo);
-      params.push(termo);
-      params.push(termo);
-    }
-    if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } = range_data;
+      if (pagination) {
+        limit = ' LIMIT ? OFFSET ? '
+        offset = pageIndex * pageSize;
+      }
+
+      if (id_conta_bancaria) {
+        where += ` AND e.id_conta_bancaria = ? `;
+        params.push(id_conta_bancaria);
+      }
+
+      if (!periodo) {
+        throw new Error('Informe a data ou o período de visualização!')
+      }
+
+      const { from: data_de, to: data_ate } = periodo;
+
+      if (!data_de && !data_ate) {
+        throw new Error('Informe a data ou período de visualização!')
+      }
+
       if (data_de && data_ate) {
-        where += ` AND b.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+        where += ` AND e.data_transacao BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
           }'  `;
       } else {
         if (data_de) {
-          where += ` AND b.${tipo_data} = '${data_de.split("T")[0]}' `;
+          where += ` AND e.data_transacao = '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND b.${tipo_data} = '${data_ate.split("T")[0]}' `;
+          where += ` AND e.data_transacao = '${data_ate.split("T")[0]}' `;
         }
       }
-    }
 
-    const offset = pageIndex * pageSize;
-
-    try {
-      const [rowQtdeTotal] = await db.execute(
-        `SELECT COUNT(*) AS qtde
-        FROM (
-          SELECT DISTINCT
-            b.id
-            FROM fin_cp_bordero b
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-            LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-            LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-            LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
-            LEFT JOIN filiais f ON f.id = t.id_filial
-          ${where}
-          GROUP BY b.id
-
-        ) AS subconsulta
-        `,
-        params
-      );
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde FROM fin_extratos_bancarios e ${where} `, params);
 
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
-      params.push(pageSize);
-      params.push(offset);
+
+      if (limit) {
+        params.push(pageSize);
+        params.push(offset);
+      }
 
       const query = `
         SELECT
-          b.id, b.data_pagamento, cb.descricao as conta_bancaria, 
-          t.descricao, f.id_matriz,
-          COUNT(t.id) as qtde_titulos,
-          SUM(t.valor) as valor_total
-        FROM fin_cp_bordero b
-        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-        LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-        LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-        LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
-        LEFT JOIN filiais f ON f.id = t.id_filial
+          e.*, u.nome as nome_user
+        FROM fin_extratos_bancarios e
+        LEFT JOIN users u ON u.id = e.id_user
 
         ${where}
-        GROUP BY b.id
-        ORDER BY b.id DESC
-        LIMIT ? OFFSET ?
+        ORDER BY e.id DESC
+        ${limit}
       `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
+
+      const [chartData] = await conn.execute(`
+      SELECT
+          DATE_FORMAT(e.data_transacao, '%d/%m') as data_transacao, 
+          COUNT(e.id) as 'Transações',
+          SUM(CASE WHEN e.tipo_transacao = 'DEBIT' THEN e.valor ELSE 0 END) as 'Débito',
+          SUM(CASE WHEN e.tipo_transacao = 'CREDIT' THEN e.valor ELSE 0 END) as 'Crédito'
+
+        FROM fin_extratos_bancarios e
+        ${where}
+        GROUP BY e.data_transacao
+        ORDER BY e.data_transacao ASC
+      `, params)
 
       const objResponse = {
         rows: rows,
+        chartData: chartData,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
+
       resolve(objResponse);
     } catch (error) {
       reject(error);
@@ -159,7 +117,7 @@ function getOne(req) {
             SELECT 
               b.id, b.data_pagamento, b.id_conta_bancaria, 
               cb.descricao as conta_bancaria, f.id_matriz, fb.nome as banco
-            FROM fin_cp_bordero b
+            FROM fin_extratos_bancarios b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
             LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
@@ -190,7 +148,7 @@ function getOne(req) {
               f.cnpj,
               fi.nome as filial, 
               false AS checked
-            FROM fin_cp_bordero b
+            FROM fin_extratos_bancarios b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
             LEFT JOIN fin_cp_status st ON st.id = t.id_status
@@ -217,7 +175,7 @@ function getOne(req) {
   });
 }
 
-function insertOne(req) {
+function importarExtrato(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     const { id_conta_bancaria, url_extrato } = req.body;
@@ -247,31 +205,31 @@ function insertOne(req) {
       }
 
       const [transacoesIgnoradas] = await conn.execute(`SELECT * FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`, [id_conta_bancaria])
-      transacoesIgnoradas.push({descricao: 'SALDO ANTERIOR', tipo_transacao: 'CREDIT'})
-      transacoesIgnoradas.push({descricao: 'SALDO DO DIA', tipo_transacao: 'CREDIT'})
-
+      transacoesIgnoradas.push({ descricao: 'SALDO ANTERIOR', tipo_transacao: 'CREDIT' })
+      transacoesIgnoradas.push({ descricao: 'SALDO DO DIA', tipo_transacao: 'CREDIT' })
 
       function deveIgnorarTransacao(transacao) {
-        if(!transacoesIgnoradas || transacoesIgnoradas.length === 0){
+        if (!transacoesIgnoradas || transacoesIgnoradas.length === 0) {
           return false
         }
         return transacoesIgnoradas.some(ignorada => ignorada.descricao === transacao.MEMO && ignorada.tipo_transacao === transacao.TRNTYPE);
       }
 
       const ofx_transactions = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN.filter(transacao => !deveIgnorarTransacao(transacao));
+      const data_atual = formatDate(new Date(), 'yyyy-MM-dd');
 
       for (const transaction of ofx_transactions) {
         const data_transaction = formatarDataTransacao(transaction.DTPOSTED)
         const id_transacao = transaction.FITID
-        const valor_transacao = transaction.TRNAMT
+        const valor_transacao = parseFloat(transaction.TRNAMT).toFixed(2)
         const documento_transacao = transaction.CHECKNUM
         const descricao_transacao = transaction.MEMO
         const tipo_transacao = transaction.TRNTYPE
 
-        const [transacaoExistente] = await conn.execute(`SELECT id FROM fin_extratos_bancarios WHERE id_conta_bancaria = ? AND id_transacao = ?`,[id_conta_bancaria, id_transacao])
-        if(transacaoExistente && transacaoExistente.length > 0){
-          continue;
+        if(data_transaction > data_atual){
+          continue
         }
+
         await conn.execute(`INSERT IGNORE INTO fin_extratos_bancarios (
           id_conta_bancaria, 
           id_transacao,
@@ -300,7 +258,7 @@ function insertOne(req) {
       //   ofx_conta,
       //   ofx_transactions,
       // });
-      resolve({message: 'Sucesso!'})
+      resolve({ message: 'Sucesso!' })
 
     } catch (error) {
       console.log("ERRO_EXTRATO_INSERT_ONE", error);
@@ -328,7 +286,7 @@ function update(req) {
 
       await conn.beginTransaction();
 
-      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_cp_bordero WHERE id =?`, [id])
+      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_extratos_bancarios WHERE id =?`, [id])
       const bordero = rowBordero && rowBordero[0]
       if (!bordero) {
         throw new Error('Borderô inexistente!')
@@ -337,7 +295,7 @@ function update(req) {
 
       // Update do bordero
       await conn.execute(
-        `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
+        `UPDATE fin_extratos_bancarios SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
         [startOfDay(data_pagamento), id_conta_bancaria, id]
       );
 
@@ -392,7 +350,7 @@ function deleteBordero(req) {
         }
       }
 
-      await conn.execute(`DELETE FROM fin_cp_bordero WHERE id = ? LIMIT 1`, [
+      await conn.execute(`DELETE FROM fin_extratos_bancarios WHERE id = ? LIMIT 1`, [
         id,
       ]);
 
@@ -468,7 +426,7 @@ async function exportBorderos(req) {
 module.exports = {
   getAll,
   getOne,
-  insertOne,
+  importarExtrato,
   update,
   deleteBordero,
   exportBorderos,

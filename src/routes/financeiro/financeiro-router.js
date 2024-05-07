@@ -32,6 +32,6 @@ router.use("/rateios", rateios);
 
 router.use("/formas-pagamento", formasPagamento);
 
-router.use("/extratos-bancarios", extratosBancarios);
+router.use("/conciliacao-bancaria", extratosBancarios);
 
 module.exports = router;

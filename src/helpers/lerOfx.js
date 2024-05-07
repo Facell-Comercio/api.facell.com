@@ -41,15 +41,12 @@ function formatarDataTransacao(dataTransacao) {
     const ano = parseInt(dataTransacao.slice(0, 4));
     const mes = parseInt(dataTransacao.slice(4, 6));
     const dia = parseInt(dataTransacao.slice(6, 8));
-    const hora = parseInt(dataTransacao.slice(8, 10));
-    const minuto = parseInt(dataTransacao.slice(10, 12));
-    const segundo = parseInt(dataTransacao.slice(12, 14));
 
     // Criar um objeto Date
-    const dataObjeto = new Date(ano, mes - 1, dia, hora, minuto, segundo);
+    const dataObjeto = new Date(ano, mes - 1, dia);
 
-    // Formatar a data no formato do MariaDB ('YYYY-MM-DD HH:MM:SS')
-    const dataFormatada = format(dataObjeto, 'yyyy-MM-dd HH:mm:ss');
+    // Formatar a data no formato do MariaDB ('YYYY-MM-DD')
+    const dataFormatada = format(dataObjeto, 'yyyy-MM-dd');
 
     return dataFormatada;
 }

@@ -57,9 +57,9 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
-
+    const conn = await db.getConnection()
     try {
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(cb.id) as qtde 
             FROM fin_contas_bancarias cb
@@ -90,7 +90,7 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
@@ -100,6 +100,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally{
+      await conn.release()
     }
   });
 }
@@ -107,8 +109,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection()
     try {
-      const [rowPlanoContas] = await db.execute(
+      const [rowPlanoContas] = await conn.execute(
         `
             SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
             FROM fin_contas_bancarias cb
@@ -126,6 +129,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally{
+      await conn.release()
     }
   });
 }
@@ -133,6 +138,7 @@ function getOne(req) {
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id, ...rest } = req.body;
+    const conn = await db.getConnection()
     try {
       if (id) {
         throw new Error(
@@ -159,11 +165,13 @@ function insertOne(req) {
 
       const query = `INSERT INTO fin_contas_bancarias (${campos}) VALUES (${values});`;
 
-      await db.execute(query, params);
+      await conn.execute(query, params);
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_CONTAS_BANCARIAS_INSERT", error);
       reject(error);
+    } finally{
+      await conn.release()
     }
   });
 }
@@ -171,6 +179,7 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, ...rest } = req.body;
+    const conn = await db.getConnection()
     try {
       if (!id) {
         throw new Error("ID não informado!");
@@ -193,12 +202,14 @@ function update(req) {
 
       params.push(id);
 
-      await db.execute(updateQuery + " WHERE id = ?", params);
+      await conn.execute(updateQuery + " WHERE id = ?", params);
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_CONTAS_BANCARIAS_UPDATE", error);
       reject(error);
+    } finally{
+      await conn.release()
     }
   });
 }
