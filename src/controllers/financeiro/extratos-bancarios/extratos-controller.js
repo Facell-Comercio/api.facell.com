@@ -7,7 +7,7 @@ const { createFilePathFromUrl } = require("../../files-controller");
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     // Filtros
-    console.log(req.query)
+    // console.log(req.query)
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
@@ -103,7 +103,6 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.log(error)
       reject(error);
     }
   });
@@ -262,7 +261,7 @@ function importarExtrato(req) {
       resolve({ message: 'Sucesso!' })
 
     } catch (error) {
-      console.log("ERRO_EXTRATO_INSERT_ONE", error);
+      console.log("ERRO_EXTRATO_IMPORT", error);
       await conn.rollback();
       reject(error);
     }
