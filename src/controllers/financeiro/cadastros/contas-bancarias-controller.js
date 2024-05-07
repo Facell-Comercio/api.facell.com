@@ -82,8 +82,6 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
-
       const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(cb.id) as qtde 
@@ -123,10 +121,8 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -139,8 +135,6 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
-
       const [rowPlanoContas] = await conn.execute(
         `
             SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
@@ -154,12 +148,10 @@ function getOne(req) {
         [id]
       );
       const planoContas = rowPlanoContas && rowPlanoContas[0];
-      await conn.commit();
       resolve(planoContas);
       return;
     } catch (error) {
       reject(error);
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();

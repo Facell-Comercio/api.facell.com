@@ -36,11 +36,8 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
 
     const conn = await db.getConnection();
-
     try {
-      await conn.beginTransaction();
-
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
           FROM (
             SELECT
@@ -64,7 +61,7 @@ function getAll(req) {
 
       const query = `
           SELECT
-            cb.id, cb.descricao, cb.saldo_final as saldo_atual,
+            cb.id, cb.descricao,
             fb.nome as banco,
             tc.tipo,
             ge.nome as grupo_economico,
@@ -82,17 +79,15 @@ function getAll(req) {
           LIMIT ? OFFSET ?
         `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -187,7 +182,7 @@ function downloadMovimentoContabil(req, res) {
                 ff.cnpj, ff.nome as nome_fornecedor,
                 f.nome as filial, f.cnpj as cnpj_filial,
                 t.descricao, t.num_doc, t.valor, 
-                b.data_pagamento, cb.descricao as banco,
+                eb.data_transacao, cb.descricao as banco,
                 t.url_nota_fiscal,
                 t.url_xml,
                 t.url_boleto,
@@ -200,10 +195,12 @@ function downloadMovimentoContabil(req, res) {
             LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
             LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
+            LEFT JOIN fin_extratos_bancarios as eb ON eb.id_conta_bancaria = b.id_conta_bancaria
             WHERE 
             cb.id = ?
-            AND DATE(b.data_pagamento) = ?
+            AND DATE(eb.data_transacao) = ?
             AND t.id_status = ?
+            GROUP BY t.id
         `,
             params
           );
@@ -234,7 +231,7 @@ function downloadMovimentoContabil(req, res) {
               DESCRIÇÃO: titulo.descricao || "",
               "Nº DOC": titulo.num_doc || "",
               "VALOR TÍTULO": titulo.valor || "",
-              "DT PAG": titulo.data_pagamento || "",
+              "DT PAG": titulo.data_transacao || "",
               BANCO: titulo.banco || "",
               "ID EXTRATO": titulo.id,
             });

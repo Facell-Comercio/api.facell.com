@@ -89,8 +89,7 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
             SELECT DISTINCT pc.id
@@ -102,18 +101,6 @@ function getAll(req) {
         `,
         params
       );
-
-      // ? Por algum motivo desconhecido no Cadastro plano_de_contas
-      // ? os rows ficavam corretos, mas no modal não, por isso mudei
-      // const [rowQtdeTotal] = await db.execute(
-      //   `SELECT DISTINCT
-      //       COUNT(pc.id) as qtde
-      //       FROM fin_plano_contas pc
-      //       LEFT JOIN filiais f ON f.id_grupo_economico = pc.id_grupo_economico
-      //       LEFT JOIN grupos_economicos gp ON f.id_grupo_economico = gp.id
-      //        ${where} `,
-      //   params
-      // );
 
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
@@ -130,7 +117,7 @@ function getAll(req) {
       LIMIT ? OFFSET ?
       `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       console.log(rows, planos_contas_habilitados);
       const objResponse = {
@@ -141,6 +128,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -150,7 +139,7 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      const [rowPlanoContas] = await db.execute(
+      const [rowPlanoContas] = await conn.execute(
         `
             SELECT pc.*, gp.nome as grupo_economico FROM fin_plano_contas pc
             INNER JOIN filiais f ON f.id_grupo_economico = pc.id_grupo_economico
@@ -166,6 +155,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -180,6 +171,7 @@ function insertOne(req) {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
+      await conn.beginTransaction();
       let campos = "";
       let values = "";
       let params = [];
@@ -201,11 +193,15 @@ function insertOne(req) {
 
       const query = `INSERT INTO fin_plano_contas (${campos}) VALUES (${values});`;
 
-      await db.execute(query, params);
+      await conn.execute(query, params);
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_PLANO_CONTAS_INSERT", error);
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -218,6 +214,7 @@ function update(req) {
       if (!id) {
         throw new Error("ID não informado!");
       }
+      await conn.beginTransaction();
       const params = [];
       let updateQuery = "UPDATE fin_plano_contas SET ";
 
@@ -236,12 +233,15 @@ function update(req) {
 
       params.push(id);
 
-      await db.execute(updateQuery + " WHERE id = ?", params);
-
+      await conn.execute(updateQuery + " WHERE id = ?", params);
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       console.log("ERRO_PLANO_CONTAS_UPDATE", error);
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

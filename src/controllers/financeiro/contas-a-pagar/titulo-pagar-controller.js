@@ -89,7 +89,6 @@ function getAll(req) {
     // console.log(where)
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
         FROM fin_cp_titulos t 
@@ -127,10 +126,8 @@ function getAll(req) {
       };
       // console.log('Fetched Titulos', titulos.length)
       // console.log(objResponse)
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -241,7 +238,6 @@ function getAllCpTitulosBordero(req) {
 
     const conn = await db.getConnection();
     try {
-      conn.beginTransaction();
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
@@ -294,10 +290,8 @@ function getAllCpTitulosBordero(req) {
       };
       // console.log('Fetched Titulos', titulos.length)
       // console.log(objResponse)
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -309,7 +303,6 @@ function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const { user } = req;
       const { filters } = req.query || {};
       const { mes, ano } = filters || {
@@ -358,11 +351,9 @@ function getAllRecorrencias(req) {
         `,
         params
       );
-      await conn.commit();
       resolve({ rows: recorrencias });
     } catch (error) {
       console.log("ERRO RECORRENCIAS", error);
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -376,7 +367,6 @@ function getOne(req) {
     // console.log(req.params)
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const [rowTitulo] = await conn.execute(
         `
         SELECT t.*, st.status,
@@ -425,11 +415,9 @@ function getOne(req) {
       const titulo = rowTitulo && rowTitulo[0];
       // console.log(titulo)
       const objResponse = { titulo, itens, itens_rateio, historico };
-      await conn.commit();
       resolve(objResponse);
       return;
     } catch (error) {
-      await conn.rollback();
       reject(error);
       return;
     } finally {
@@ -1507,7 +1495,6 @@ function changeStatusTitulo(req) {
     ];
 
     const conn = await db.getConnection();
-    await conn.beginTransaction();
     try {
       if (!id_titulo) {
         throw new Error("ID do título não informado!");
@@ -1515,6 +1502,7 @@ function changeStatusTitulo(req) {
       if (!id_novo_status) {
         throw new Error("ID do novo status não informado!");
       }
+      await conn.beginTransaction();
 
       // * Obter titulo e status
       const [rowTitulo] = await conn.execute(
@@ -1714,7 +1702,6 @@ function downloadAnexos(req, res) {
     const { type, idSelection } = req.body || {};
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       if (!(idSelection && idSelection.length)) {
         throw new Error("SOLICITAÇÕES não selecionadas!");
       }
@@ -1761,11 +1748,9 @@ function downloadAnexos(req, res) {
       res.set("Content-Type", "application/zip");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send({ zip, filename });
-      await conn.commit();
       resolve();
     } catch (error) {
       console.log("ERRO_DOWNLOAD_ANEXOS_TITULOS", error);
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -1785,8 +1770,6 @@ function exportDatasys(req) {
       if (!id_grupo_economico) {
         throw new Error("GRUPO ECONÔMICO não selecionada!");
       }
-      await conn.beginTransaction();
-
       const [datasys] = await conn.execute(
         `
         SELECT 
@@ -1823,11 +1806,9 @@ function exportDatasys(req) {
       `,
         [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
       );
-      await conn.commit();
       resolve(datasys);
     } catch (error) {
       console.log("ERRO EXPORT DATASYS TITULOS", error);
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();

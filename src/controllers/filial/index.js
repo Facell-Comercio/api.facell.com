@@ -27,12 +27,12 @@ function getAll(req) {
     const limit = pagination ? "LIMIT ? OFFSET ?" : "";
 
     if (!isMaster) {
-      if(!filiais_habilitadas || filiais_habilitadas.length === 0){
+      if (!filiais_habilitadas || filiais_habilitadas.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
           rowCount: 0,
-        })
+        });
         return;
       }
       where += `AND f.id IN(${filiais_habilitadas.join(",")}) `;
@@ -69,8 +69,9 @@ function getAll(req) {
 
     const offset = pageIndex * pageSize;
 
+    const conn = await db.getConnection();
     try {
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(f.id) as qtde 
             FROM filiais f
@@ -91,7 +92,7 @@ function getAll(req) {
             ORDER BY g.id ASC, f.nome ASC
             ${limit}
             `;
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
@@ -101,6 +102,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -108,8 +111,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowItem] = await db.execute(
+      const [rowItem] = await conn.execute(
         `
             SELECT *
             FROM filiais
@@ -123,6 +127,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -250,6 +256,8 @@ function update(req) {
       console.log("ERRO_FILIAL_UPDATE", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -277,12 +285,14 @@ function insertOne(req) {
       uf,
     } = req.body;
 
+    const conn = await db.getConnection();
     try {
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
+      await conn.beginTransaction();
 
       const campos = [];
       const values = [];
@@ -378,11 +388,15 @@ function insertOne(req) {
         ","
       )}) VALUES (${values.join(",")});`;
 
-      await db.execute(query, params);
+      await conn.execute(query, params);
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       console.log("ERRO_FILIAL_INSERT", error);
+      await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

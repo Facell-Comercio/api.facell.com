@@ -47,8 +47,6 @@ function getAll(req) {
     }
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
-
       const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(g.id) as qtde 
@@ -72,16 +70,14 @@ function getAll(req) {
             ${limit}
             `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -94,7 +90,6 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const [rowPlanoContas] = await conn.execute(
         `
             SELECT *
@@ -104,11 +99,9 @@ function getOne(req) {
         [id]
       );
       const planoContas = rowPlanoContas && rowPlanoContas[0];
-      await conn.commit();
       resolve(planoContas);
       return;
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -160,8 +153,8 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      await conn.rollback();
       console.log("ERRO_GRUPO_ECONOMICO_UPDATE", error);
+      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();

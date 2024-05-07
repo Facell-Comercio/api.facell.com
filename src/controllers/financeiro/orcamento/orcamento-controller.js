@@ -29,7 +29,6 @@ function getAll(req) {
     const conn = await db.getConnection();
 
     try {
-      await conn.beginTransaction();
       const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(fo.id) as qtde  
@@ -58,10 +57,8 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -75,7 +72,6 @@ function getOne(req) {
     const conn = await db.getConnection();
 
     try {
-      await conn.beginTransaction();
       const [rowOrcamento] = await conn.execute(
         `
       SELECT 
@@ -129,13 +125,14 @@ function getOne(req) {
       );
 
       const orcamento = rowOrcamento && rowOrcamento[0];
-      await conn.commit();
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
       console.log(error);
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -410,7 +407,6 @@ function getMyBudgets(req) {
     const conn = await db.getConnection();
 
     try {
-      await conn.beginTransaction();
       const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(foc.id) as qtde  
@@ -466,7 +462,6 @@ function getMyBudgets(req) {
         mes,
         ano,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
       await conn.rollback();
@@ -482,7 +477,6 @@ function getMyBudget(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const [rowOrcamento] = await conn.execute(
         `
       SELECT 
@@ -511,7 +505,6 @@ function getMyBudget(req) {
       );
 
       const orcamento = rowOrcamento && rowOrcamento[0];
-      await conn.commit();
       resolve(orcamento);
     } catch (error) {
       await conn.rollback();
@@ -689,8 +682,6 @@ function getIds(req) {
     }
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
-
       const returnedIds = [];
       const erros = [];
       for (const array of data) {
@@ -743,7 +734,6 @@ function getIds(req) {
 
         erros.push(erro);
       }
-      await conn.commit();
       resolve({ returnedIds, erros });
     } catch (error) {
       await conn.rollback();
@@ -760,7 +750,6 @@ function getLogs(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const [rows] = await conn.execute(
         `
             SELECT 
@@ -776,7 +765,6 @@ function getLogs(req) {
       const objResponse = {
         rows,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
       await conn.rollback();

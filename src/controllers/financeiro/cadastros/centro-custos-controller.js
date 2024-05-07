@@ -63,8 +63,6 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
-
       const [rowQtdeTotal] = await conn.execute(
         `SELECT
           COUNT(cc.id) as qtde
@@ -99,10 +97,8 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      await conn.commit();
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -115,7 +111,6 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      await conn.beginTransaction();
       const [rowPlanoContas] = await conn.execute(
         `
             SELECT cc.* FROM fin_centros_custo as cc
@@ -126,11 +121,9 @@ function getOne(req) {
         [id]
       );
       const planoContas = rowPlanoContas && rowPlanoContas[0];
-      await conn.commit();
       resolve(planoContas);
       return;
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
