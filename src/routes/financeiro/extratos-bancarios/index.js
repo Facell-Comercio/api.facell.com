@@ -6,9 +6,13 @@ const {
   getOne,
   importarExtrato,
   update,
+  deleteTransacaoPadrao,
+  insertOneTransacaoPadrao,
+  updateTransacaoPadrao,
 } = require("../../../controllers/financeiro/extratos-bancarios/extratos-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware.js");
 
+// * Transação Padrão
 router.get("/transacao-padrao", async (req, res) => {
   try {
     const result = await getAllTransacaoPadrao(req);
@@ -18,6 +22,35 @@ router.get("/transacao-padrao", async (req, res) => {
   }
 });
 
+router.post("/transacao-padrao", async (req, res) => {
+  try {
+    const result = await insertOneTransacaoPadrao(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/transacao-padrao", async (req, res) => {
+  try {
+    const result = await deleteTransacaoPadrao(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/transacao-padrao", async (req, res) => {
+  try {
+    const result = await updateTransacaoPadrao(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// * Extratos Bancários
 router.get("/extratos-bancarios/", async (req, res) => {
   try {
     const result = await getAll(req);
