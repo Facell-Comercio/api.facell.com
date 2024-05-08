@@ -108,6 +108,45 @@ function getAll(req) {
   });
 }
 
+function getAllTransacaoPadrao(req) {
+  return new Promise(async (resolve, reject) => {
+    // Filtros
+    const { id_conta_bancaria } = req.query;
+
+    let where = ` WHERE 1=1 `;
+    const params = [];
+
+    const conn = await db.getConnection();
+    try {
+
+      if (id_conta_bancaria) {
+        where += ` AND e.id_conta_bancaria = ? `;
+        params.push(id_conta_bancaria);
+      }
+
+      const query = `
+        SELECT
+          e.*
+        FROM fin_extratos_padroes e
+
+        ${where}
+        ORDER BY e.id DESC
+      `;
+
+      const [rows] = await conn.execute(query, params);
+
+      const objResponse = {
+        rows: rows,
+      };
+
+      resolve(objResponse);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
@@ -425,6 +464,7 @@ async function exportBorderos(req) {
 
 module.exports = {
   getAll,
+  getAllTransacaoPadrao,
   getOne,
   importarExtrato,
   update,

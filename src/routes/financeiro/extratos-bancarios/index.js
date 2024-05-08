@@ -2,11 +2,21 @@ const router = require("express").Router();
 
 const {
   getAll,
+  getAllTransacaoPadrao,
   getOne,
   importarExtrato,
   update,
 } = require("../../../controllers/financeiro/extratos-bancarios/extratos-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware.js");
+
+router.get("/transacao-padrao", async (req, res) => {
+  try {
+    const result = await getAllTransacaoPadrao(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 router.get("/extratos-bancarios/", async (req, res) => {
   try {
