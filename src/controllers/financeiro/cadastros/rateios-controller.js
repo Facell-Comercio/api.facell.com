@@ -34,9 +34,9 @@ function getAll(req) {
     }
 
     const offset = pageIndex * pageSize;
-
+    const conn = await db.getConnection();
     try {
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT 
             COUNT(fr.id) as qtde  
             FROM fin_rateio fr
@@ -56,7 +56,7 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      const [rows] = await db.execute(query, params);
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
@@ -66,6 +66,8 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -73,8 +75,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const conn = await db.getConnection();
     try {
-      const [rowRateios] = await db.execute(
+      const [rowRateios] = await conn.execute(
         `
         SELECT 
         fr.id, 
@@ -89,7 +92,7 @@ function getOne(req) {
         [id]
       );
       const rateios = rowRateios && rowRateios[0];
-      const [rowRateioItens] = await db.execute(
+      const [rowRateioItens] = await conn.execute(
         `
             SELECT 
               fri.id as id_item, 
@@ -106,6 +109,8 @@ function getOne(req) {
     } catch (error) {
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -161,6 +166,8 @@ function insertOne(req) {
       console.log("ERRO_RATEIO_INSERT", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -217,6 +224,8 @@ function update(req) {
       console.log("ERRO_RATEIO_UPDATE", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }

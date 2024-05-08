@@ -1,5 +1,5 @@
-const { format } = require("date-fns");
-const path = require('path')
+const { format, startOfDay, formatDate } = require("date-fns");
+const path = require("path");
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
@@ -7,9 +7,13 @@ const {
   normalizeFirstAndLastName,
   normalizeCurrency,
 } = require("../../../helpers/mask");
-const { moverArquivoTempParaUploads, replaceFilePath, zipFiles, createUploadsPath } = require("../../files-controller");
+const {
+  moverArquivoTempParaUploads,
+  zipFiles,
+  createUploadsPath,
+} = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
-require('dotenv').config();
+require("dotenv").config();
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -66,8 +70,9 @@ function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -82,9 +87,9 @@ function getAll(req) {
       params.push(id_grupo_economico);
     }
     // console.log(where)
-
+    const conn = await db.getConnection();
     try {
-      const [rowsTitulos] = await db.execute(
+      const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
         FROM fin_cp_titulos t 
         LEFT JOIN filiais f ON f.id = t.id_filial ${where}`,
@@ -112,7 +117,7 @@ function getAll(req) {
       params.push(offset);
       // console.log(query);
       // console.log(params);
-      const [titulos] = await db.execute(query, params);
+      const [titulos] = await conn.execute(query, params);
 
       const objResponse = {
         rows: titulos,
@@ -123,8 +128,9 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log("ERRO TITULOS PAGAR GET_ALL", error);
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -208,12 +214,13 @@ function getAllCpTitulosBordero(req) {
     AND t.id_status = 3 
       AND tb.id_titulo IS NULL `;
 
-      console.log(tipo_data, range_data)
+    console.log(tipo_data, range_data);
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -229,8 +236,9 @@ function getAllCpTitulosBordero(req) {
     }
     // console.log(where)
 
+    const conn = await db.getConnection();
     try {
-      const [rowQtdeTotal] = await db.execute(
+      const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT 
@@ -273,7 +281,7 @@ function getAllCpTitulosBordero(req) {
       params.push(offset);
       // console.log(query);
       // console.log(params);
-      const [titulos] = await db.execute(query, params);
+      const [titulos] = await conn.execute(query, params);
 
       const objResponse = {
         rows: titulos,
@@ -284,18 +292,23 @@ function getAllCpTitulosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log("ERRO TITULOS PAGAR GET_ALL_CP_TITULOS_BORDERO", error);
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
 
 function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
+    const conn = await db.getConnection();
     try {
       const { user } = req;
       const { filters } = req.query || {};
-      const { mes, ano } = filters || {mes: format(new Date(), 'MM'), ano: format(new Date(), 'yyyy')};
+      const { mes, ano } = filters || {
+        mes: format(new Date(), "MM"),
+        ano: format(new Date(), "yyyy"),
+      };
       const params = [];
       let where = "WHERE 1=1 ";
 
@@ -303,18 +316,21 @@ function getAllRecorrencias(req) {
         !checkUserPermission(req, "MASTER") &&
         !checkUserDepartment(req, "FINANCEIRO")
       ) {
-        const centro_custo = user?.centros_custo
+        if (!user.centros_custo || user.centros_custo.length == 0) {
+          throw new Error("Usuário sem acesso a centros de custos");
+        }
+        const centro_custo = user?.centros_custo;
+        where += ` AND cc.id IN(${centro_custo
           ?.map((centro) => centro.id)
-          .join(",");
-        where += ` AND r.id_centro_custo IN(${centro_custo})`;
+          .join(",")})`;
       }
-      where += `AND YEAR(r.data_vencimento) = ?
+      where += ` AND YEAR(r.data_vencimento) = ?
         AND MONTH(r.data_vencimento) = ?`;
       params.push(ano);
       params.push(mes);
       // fornecedor, filial, data-vencimento, valor, descricao, centro-custo, grupo-economico, criador (usuario)
 
-      const [recorrencias] = await db.execute(
+      const [recorrencias] = await conn.execute(
         `SELECT 
           r.*,
           t.descricao, t.valor,
@@ -331,13 +347,16 @@ function getAllRecorrencias(req) {
         LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
         LEFT JOIN users u ON u.id = r.id_user
         ${where}
+        ORDER BY r.data_vencimento
         `,
         params
       );
       resolve({ rows: recorrencias });
     } catch (error) {
-      console.log("ERROR_GET_ALL_RECORRENCIAS", error);
+      console.log("ERRO RECORRENCIAS", error);
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -346,8 +365,9 @@ function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
     // console.log(req.params)
+    const conn = await db.getConnection();
     try {
-      const [rowTitulo] = await db.execute(
+      const [rowTitulo] = await conn.execute(
         `
         SELECT t.*, st.status,
                 f.id_grupo_economico,
@@ -372,7 +392,7 @@ function getOne(req) {
         [id]
       );
 
-      const [itens] = await db.execute(
+      const [itens] = await conn.execute(
         `SELECT fcpti.*, CONCAT(fpc.codigo, ' - ',fpc.descricao) as plano_conta 
         FROM fin_cp_titulos_itens fcpti 
         LEFT JOIN fin_plano_contas fpc ON fpc.id = fcpti.id_plano_conta
@@ -382,12 +402,12 @@ function getOne(req) {
         [id]
       );
 
-      const [itens_rateio] = await db.execute(
+      const [itens_rateio] = await conn.execute(
         `SELECT fcpt.id_filial, FORMAT(fcpt.percentual * 100, 2) as percentual FROM fin_cp_titulos_rateio fcpt WHERE fcpt.id_titulo = ?`,
         [id]
       );
 
-      const [historico] = await db.execute(
+      const [historico] = await conn.execute(
         `SELECT * FROM fin_cp_titulos_historico WHERE id_titulo = ? ORDER BY created_at DESC`,
         [id]
       );
@@ -398,9 +418,10 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.log("ERROR_GET_ONE_TITULO_PAGAR", error);
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -616,7 +637,8 @@ function insertOne(req) {
         const saldo = valor_previsto - valor_total_consumo;
         if (saldo < item.valor) {
           throw new Error(
-            `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${item.plano_conta
+            `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${
+              item.plano_conta
             }. Necessário ${normalizeCurrency(item.valor - saldo)}`
           );
         }
@@ -727,6 +749,10 @@ function insertOne(req) {
         await conn.execute(
           `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id =?`,
           [id_recorrencia]
+        );
+        await conn.execute(
+          `INSERT INTO fin_cp_titulos_recorrencias (id_user, id_titulo, data_vencimento) VALUES (?, ?, ?)`,
+          [req.user.id, newId, addMonths(new Date(data_vencimento), 1)]
         );
       }
 
@@ -1018,9 +1044,18 @@ function update(req) {
       if (!titulo) throw new Error("Título não localizado!");
 
       // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
-      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_cp_titulos_borderos WHERE id_titulo = ?`, [id])
-      const data_pagamento_bordero = rowBordero && rowBordero[0] && rowBordero[0]['data_pagamento'];
-      const data_prevista_utilizada = data_pagamento_bordero ? data_pagamento_bordero : data_prevista;
+      const [rowBordero] = await conn.execute(
+        `SELECT b.data_pagamento 
+        FROM fin_cp_bordero b
+        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id 
+        WHERE tb.id_titulo = ?`,
+        [id]
+      );
+      const data_pagamento_bordero =
+        rowBordero && rowBordero[0] && rowBordero[0]["data_pagamento"];
+      const data_prevista_utilizada = data_pagamento_bordero
+        ? data_pagamento_bordero
+        : data_prevista;
 
       // Obter os Itens anteriores para registra-los no histórico caso precise
       const [itens_anteriores] = await conn.execute(
@@ -1167,7 +1202,8 @@ function update(req) {
             valorConsumidoPeloItemAnterior;
           if (saldo < item.valor) {
             throw new Error(
-              `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${item.plano_conta
+              `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${
+                item.plano_conta
               }. Necessário ${normalizeCurrency(item.valor - saldo)}`
             );
           }
@@ -1401,7 +1437,11 @@ function update(req) {
 function updateFileTitulo(req) {
   return new Promise(async (resolve, reject) => {
     const { id, fileUrl, campo } = req.body;
+    const conn = await db.getConnection();
+
     try {
+      await conn.beginTransaction();
+
       if (!id) {
         resolve({ message: "Sucesso!" });
       }
@@ -1422,16 +1462,21 @@ function updateFileTitulo(req) {
         );
       }
 
-      await db.execute(`UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `, [
-        fileUrl,
-        id,
-      ]);
+      await conn.execute(
+        `UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `,
+        [fileUrl, id]
+      );
 
+      await conn.commit();
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
+      console.log("ERROR_UPDATE_FILE_TITULO", error);
+      await conn.rollback();
       reject(error);
       return;
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -1450,7 +1495,6 @@ function changeStatusTitulo(req) {
     ];
 
     const conn = await db.getConnection();
-    await conn.beginTransaction();
     try {
       if (!id_titulo) {
         throw new Error("ID do título não informado!");
@@ -1458,6 +1502,7 @@ function changeStatusTitulo(req) {
       if (!id_novo_status) {
         throw new Error("ID do novo status não informado!");
       }
+      await conn.beginTransaction();
 
       // * Obter titulo e status
       const [rowTitulo] = await conn.execute(
@@ -1549,6 +1594,8 @@ function changeStatusTitulo(req) {
       console.log("ERRO_CHANGE_STATUS_TITULO_PAGAR", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
@@ -1582,10 +1629,19 @@ function changeFieldTitulos(req) {
               `Alteração rejeitada pois o título ${id} já consta como pago!`
             );
           }
-          await conn.execute(
-            `UPDATE fin_cp_titulos SET data_prevista = ? WHERE id = ? `,
-            [new Date(value), id]
+          // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
+          const [rowBordero] = await conn.execute(
+            `SELECT data_pagamento FROM fin_cp_titulos_borderos WHERE id_titulo = ?`,
+            [id]
           );
+          const bordero = rowBordero && rowBordero[0];
+
+          if (!bordero || bordero.length === 0) {
+            await conn.execute(
+              `UPDATE fin_cp_titulos SET data_prevista = ? WHERE id = ? `,
+              [new Date(value), id]
+            );
+          }
         } else if (type === "status") {
           await changeStatusTitulo({
             body: {
@@ -1599,77 +1655,194 @@ function changeFieldTitulos(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
+      console.log("ERROR_CHANGE_FIELD_TITULOS", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      await conn.release();
+    }
+  });
+}
+
+function changeRecorrencia(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    const { data_vencimento } = req.body;
+
+    const conn = await db.getConnection();
+
+    await conn.beginTransaction();
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+      if (!data_vencimento) {
+        throw new Error("DATA DE VENCIMENTO não informada!");
+      }
+
+      await conn.execute(
+        `UPDATE fin_cp_titulos_recorrencias SET data_vencimento = ? WHERE id = ? LIMIT 1`,
+        [new Date(data_vencimento), id]
+      );
+
+      await conn.commit();
+      resolve(true);
+    } catch (error) {
+      console.log("ERROR_CHANGE_RECORRENCIAS", error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      await conn.release();
     }
   });
 }
 
 function downloadAnexos(req, res) {
   return new Promise(async (resolve, reject) => {
+    const { type, idSelection } = req.body || {};
+    const conn = await db.getConnection();
     try {
-      // const { type, idSelection } = req.body || {
-      //   type: 'url_boleto',
-      //   idSelection: [10657, 10655, 10640]
-      // };
-      // const tipos_anexos = ['url_boleto', 'url_xml', 'url_nota_fiscal', 'url_planilha', 'url_txt']
-      // if (!tipos_anexos.contains(type)) {
-      //   throw new Error('Tipo de anexo desconhecido!')
-      // }
-
-      // const titulos = [];
-      // for(const id_titulo of idSelection){
-      //   const titulo = {
-      //     id: id_titulo,
-      //     fileUrl: ''
-      //   }
-
-      //   const [rowTitulo] = await db.execute(`SELECT ${type} FROM fin_cp_titulos WHERE id = ?`, [titulo.id])
-      //   const tituloBanco = rowTitulo && rowTitulo[0]
-      //   titulo.fileUrl = tituloBanco[type]
-      //   titulo.filePath = replaceFilePath(titulo.fileUrl)
-      // }
-
-      const zip = await zipFiles(
-        {
-        items: [
-          {
-            type: 'folder',
-            folderName: 'arquivos',
-            items: [
-              {
-                type: 'folder',
-                folderName: '01',
-                items: [
-                  { type:'file', fileName: 'IMG Alex.jpg', filePath: createUploadsPath('eu_n7gr6lo82xvjv7cxaq417nje.jpg') },
-                  { type:'file', fileName: 'IMG Leandro.png', filePath: createUploadsPath('Leandro_mx77q4c8372vfyf5vmx9qdp7.png') },
-                ]
-              },
-              {
-                type: 'folder',
-                folderName: '02',
-                items: [
-                  { type:'file', fileName: 'BOLETO 102030.pdf', filePath: createUploadsPath('NOTAS_-_Manual_Tecnico_SISPAG__kqx5ixqs9oq3k1bzwmmlqa0k.pdf') },
-                  { type:'file', fileName: 'BOLETO 111213.pdf', filePath: createUploadsPath('Parcial 04-04 17_iwptugddgzbrljwretm1aje2.pdf') },
-                ]
-              },
-
-            ]
-          },
-          {
-            type: 'file', fileName: 'Relatório.xlsx', filePath: createUploadsPath('rateio-novo-titulo_ap7iu8h7ns4uaw296q9kfcyj.xlsx')
-          }
-        ]
+      if (!(idSelection && idSelection.length)) {
+        throw new Error("SOLICITAÇÕES não selecionadas!");
       }
-    )
-      res.set('Content-Type', 'application/zip');
-      res.set('Content-Disposition', 'attachment; filename=example.zip');
-      res.send(zip);
-      resolve()
+      const tipos_anexos = [
+        { name: "url_boleto", acronym: "BO", zipName: "Boletos.zip" },
+        { name: "url_nota_fiscal", acronym: "NF", zipName: "NotasFiscais.zip" },
+        { name: "url_contrato", acronym: "CT", zipName: "Contratos.zip" },
+        { name: "url_txt", acronym: "TX", zipName: "Textos.zip" },
+        { name: "url_planilha", acronym: "PL", zipName: "Planilhas.zip" },
+      ];
+      if (!tipos_anexos.map((tipo) => tipo.name).includes(type)) {
+        throw new Error("Tipo de anexo desconhecido!");
+      }
+
+      const titulos = [];
+      for (const id_titulo of idSelection) {
+        const [rowTitulo] = await conn.execute(
+          `SELECT ${type} FROM fin_cp_titulos WHERE id = ?`,
+          [id_titulo]
+        );
+        const tituloBanco = rowTitulo && rowTitulo[0];
+        const ext = path.extname(tituloBanco[type]);
+        const titulo = {
+          type: "file",
+          fileName: `${
+            tipos_anexos.find((tipo) => tipo.name == type).acronym
+          } - ${id_titulo}${ext}`,
+          content: createUploadsPath(tituloBanco[type]),
+        };
+        titulos.push(titulo);
+      }
+
+      if (!titulos.filter((item) => item.content).length) {
+        throw new Error("Nenhum anexo encontrado!");
+      }
+
+      console.log(titulos.filter((item) => item.content));
+
+      const filename = tipos_anexos.find((tipo) => tipo.name == type).zipName;
+      const zip = await zipFiles({
+        items: titulos.filter((item) => item.content),
+      });
+      console.log(filename);
+      res.set("Content-Type", "application/zip");
+      res.set("Content-Disposition", `attachment; filename=${filename}`);
+      res.send({ zip, filename });
+      resolve();
     } catch (error) {
-      reject(error)
+      console.log("ERRO_DOWNLOAD_ANEXOS_TITULOS", error);
+      reject(error);
+    } finally {
+      await conn.release();
     }
-  })
+  });
+}
+
+function exportDatasys(req) {
+  return new Promise(async (resolve, reject) => {
+    const { filters } = req.query || {};
+    const conn = await db.getConnection();
+    const { data_pagamento, id_grupo_economico } = filters;
+    try {
+      if (!data_pagamento) {
+        throw new Error("DATA PAGAMENTO não selecionada!");
+      }
+      if (!id_grupo_economico) {
+        throw new Error("GRUPO ECONÔMICO não selecionada!");
+      }
+      const [datasys] = await conn.execute(
+        `
+        SELECT 
+          f.cnpj as cnpj_loja,
+          fo.cnpj as cnpj_fornecedor,
+          ti.id as documento,
+          t.data_emissao as emisao, t.data_vencimento as vencimento,
+          ti.valor,
+          fp.forma_pagamento as tipo_documento,
+          t.descricao as historico,
+          cc.nome as centro_custo,
+          pc.codigo as plano_contas,
+          f_item.cnpj as cnpj_rateio,
+          tri.valor as valor_rateio,
+          cb.descricao as banco_pg,
+          t.data_pagamento as data_pg,
+          fo.nome as nome_fornecedor
+        FROM fin_cp_titulos t
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
+        LEFT JOIN fin_cp_titulos_itens ti ON ti.id_titulo = t.id
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+        LEFT JOIN fin_centros_custo cc ON cc.id = t.id_centro_custo
+        LEFT JOIN fin_plano_contas pc ON pc.id = ti.id_plano_conta
+        LEFT JOIN fin_cp_titulos_rateio_itens tri ON tri.id_titulo = t.id
+        LEFT JOIN filiais f_item ON f_item.id = tri.id_filial
+        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        WHERE t.data_pagamento = ?
+        AND cc.id_grupo_economico = ?
+        AND t.id_status =  4
+        ORDER BY ti.id DESC
+      `,
+        [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
+      );
+      resolve(datasys);
+    } catch (error) {
+      console.log("ERRO EXPORT DATASYS TITULOS", error);
+      reject(error);
+    } finally {
+      await conn.release();
+    }
+  });
+}
+
+function deleteRecorrencia(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+
+    const conn = await db.getConnection();
+
+    await conn.beginTransaction();
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+
+      await conn.execute(
+        `DELETE FROM fin_cp_titulos_recorrencias WHERE id = ? LIMIT 1`,
+        [id]
+      );
+
+      await conn.commit();
+      resolve(true);
+    } catch (error) {
+      console.log("ERROR_DELETE_RECORRENCIAS", error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      await conn.release();
+    }
+  });
 }
 
 module.exports = {
@@ -1681,7 +1854,10 @@ module.exports = {
   insertOneRecorrencia,
   update,
   updateFileTitulo,
+  deleteRecorrencia,
   changeStatusTitulo,
   changeFieldTitulos,
+  changeRecorrencia,
+  exportDatasys,
   downloadAnexos,
 };

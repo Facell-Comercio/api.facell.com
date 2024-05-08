@@ -1,24 +1,25 @@
 const { parse: parseOFX } = require('ofx-js');
 const fs = require('fs');
-const path = require('path')
+const { format } = require('date-fns');
 require('dotenv').config();
 
-async function lerOFX(buffer) {
+async function lerOFX(pathOFX) {
     return new Promise(async (resolve, reject) => {
         try {
-            const pathOFX = path.join(process.env.BASE_DIR, "public/uploads/teste.ofx");
+            if(!pathOFX){
+                reject('Caminho do OFX não enviado!')
+                return
+            }
             const ofxString = await readOFX(pathOFX)
 
             if (typeof ofxString !== 'string') {
                 throw new Error('Não consegui ler o arquivo!')
             }
             const ofxData = await parseOFX(ofxString)
-            // do something...
-            console.log(ofxData)
             resolve(ofxData)
-
+            return;
         } catch (error) {
-
+            reject('ERRO EM LEITURA DE OFX', error)
         }
     })
 }
@@ -35,6 +36,22 @@ async function readOFX(caminho) {
     })
 }
 
+function formatarDataTransacao(dataTransacao) {
+    // Extrair os componentes da data
+    const ano = parseInt(dataTransacao.slice(0, 4));
+    const mes = parseInt(dataTransacao.slice(4, 6));
+    const dia = parseInt(dataTransacao.slice(6, 8));
+
+    // Criar um objeto Date
+    const dataObjeto = new Date(ano, mes - 1, dia);
+
+    // Formatar a data no formato do MariaDB ('YYYY-MM-DD')
+    const dataFormatada = format(dataObjeto, 'yyyy-MM-dd');
+
+    return dataFormatada;
+}
+
 module.exports = {
-    lerOFX
+    lerOFX,
+    formatarDataTransacao
 }

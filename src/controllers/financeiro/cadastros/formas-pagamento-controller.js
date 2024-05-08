@@ -4,64 +4,17 @@ function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     // user.perfil = 'Financeiro'
-
     if (!user) {
       reject("Usuário não autenticado!");
       return false;
     }
-    // Filtros
-    const { filters, pagination } = req.query;
-    const { termo } = filters || {};
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
-    const params = [];
-
-    var where = ` WHERE 1=1 `;
-    if (termo) {
-      params.push(termo);
-      params.push(termo);
-      params.push(termo);
-
-      where += ` AND (
-                ff.nome LIKE CONCAT('%', ?, '%')  OR
-                ff.razao LIKE CONCAT('%', ?, '%')  OR
-                ff.cnpj LIKE CONCAT('%', ?, '%')
-            )`;
-    }
-
-    const offset = pageIndex * pageSize;
-    params.push(pageSize);
-    params.push(offset);
     const conn = await db.getConnection();
     try {
-      const [rowTotal] = await conn.execute(
-        `SELECT count(ff.id) as qtde FROM fin_fornecedores ff
-            WHERE 
-                ff.nome LIKE CONCAT('%', ?, '%')  OR
-                ff.razao LIKE CONCAT('%', ?, '%')  OR
-                ff.cnpj LIKE CONCAT('%', ?, '%')
-            `,
-        [termo, termo, termo]
-      );
-      const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
-
-      var query = `
-            SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.active FROM fin_fornecedores ff
-            ${where}
-            ORDER BY ff.id DESC
-            LIMIT ? OFFSET ?
-            `;
-      const [rows] = await conn.execute(query, params);
-
-      const objResponse = {
-        rows: rows,
-        pageCount: Math.ceil(qtdeTotal / pageSize),
-        rowCount: qtdeTotal,
-      };
-
-      resolve(objResponse);
+      var query = `SELECT ffp.id, ffp.forma_pagamento FROM fin_formas_pagamento ffp ORDER BY ffp.id DESC`;
+      // console.log(query)
+      // console.log(params)
+      const [rows] = await conn.execute(query);
+      resolve(rows);
     } catch (error) {
       reject(error);
     } finally {
@@ -75,17 +28,16 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      const [rowFornecedor] = await conn.execute(
+      const [rowFormaPagamento] = await conn.execute(
         `
-            SELECT ff.*, fb.codigo as codigo_banco, fb.nome as banco
-            FROM fin_fornecedores ff
-            LEFT JOIN fin_bancos fb ON fb.id = ff.id_banco
-            WHERE ff.id = ?
+            SELECT *
+            FROM fin_formas_pagamento
+            WHERE id = ?
             `,
         [id]
       );
-      const fornecedor = rowFornecedor && rowFornecedor[0];
-      resolve(fornecedor);
+      const formaPagamento = rowFormaPagamento && rowFormaPagamento[0];
+      resolve(formaPagamento);
       return;
     } catch (error) {
       reject(error);
@@ -107,8 +59,8 @@ function insertOne(req) {
         );
       }
       await conn.beginTransaction();
-      let campos = "";
-      let values = "";
+      const campos = "";
+      const values = "";
       const params = [];
 
       Object.keys(rest).forEach((key, index) => {
@@ -117,17 +69,16 @@ function insertOne(req) {
           values += ", "; // Adicionar vírgula entre os values
         }
         campos += `${key}`;
-        values += `?`;
+        campos += `?`;
         params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
       });
 
-      const query = `INSERT INTO fin_fornecedores (${campos}) VALUES (${values});`;
+      const query = `INSERT INTO fin_formas_pagamento (${campos}) VALUES (${values});`;
 
       await conn.execute(query, params);
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_FORNECEDOR_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -146,7 +97,7 @@ function update(req) {
       }
       await conn.beginTransaction();
       const params = [];
-      let updateQuery = "UPDATE fin_fornecedores SET ";
+      let updateQuery = "UPDATE fin_formas_pagamento SET ";
 
       // Construir a parte da query para atualização dinâmica
       Object.keys(rest).forEach((key, index) => {
@@ -167,28 +118,14 @@ function update(req) {
       );
       await conn.commit();
       resolve({ message: "Sucesso!" });
+      return;
     } catch (error) {
-      console.log("ERRO_FORNECEDORES_UPDATE", error);
       await conn.rollback();
       reject(error);
+      return;
     } finally {
       await conn.release();
     }
-  });
-}
-
-function consultaCnpj(req) {
-  return new Promise(async (resolve, reject) => {
-    const { cnpj } = req.params;
-
-    fetch(`https://receitaws.com.br/v1/cnpj/${cnpj}`)
-      .then((res) => res.json())
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((error) => {
-        reject(error);
-      });
   });
 }
 
@@ -202,7 +139,7 @@ function toggleActive(req) {
       }
       await conn.beginTransaction();
       await conn.execute(
-        `UPDATE fin_fornecedores SET active = NOT active WHERE id = ?`,
+        `UPDATE fin_formas_pagamento SET active = NOT active WHERE id = ?`,
         [id]
       );
       await conn.commit();
@@ -210,8 +147,6 @@ function toggleActive(req) {
     } catch (error) {
       await conn.rollback();
       reject(error);
-    } finally {
-      await conn.release();
     }
   });
 }
@@ -221,6 +156,5 @@ module.exports = {
   getOne,
   insertOne,
   update,
-  consultaCnpj,
   toggleActive,
 };

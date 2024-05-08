@@ -5,9 +5,8 @@ const {
   getOne,
   update,
   insertOne,
+  downloadMovimentoContabil,
 } = require("../../../../controllers/financeiro/contas-a-pagar/movimento-contabil-controller");
-
-
 
 router.get("/", async (req, res) => {
   try {
@@ -18,10 +17,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/download", async (req, res) => {
   try {
-    const result = await getOne(req);
-    res.status(200).json(result);
+    const response = await downloadMovimentoContabil(req, res);
+    console.log(response);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

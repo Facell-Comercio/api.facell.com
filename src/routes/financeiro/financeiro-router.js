@@ -13,7 +13,7 @@ const equipamentosCielo = require("./cadastros/equipamentos-cielo");
 const rateios = require("./cadastros/rateios");
 
 const formasPagamento = require("./formas-pagamento");
-const ofx = require("./ofx");
+const extratosBancarios = require("./extratos-bancarios");
 
 // Contas a pagar
 router.use("/contas-a-pagar", contasPagar);
@@ -31,6 +31,7 @@ router.use("/equipamentos-cielo", equipamentosCielo);
 router.use("/rateios", rateios);
 
 router.use("/formas-pagamento", formasPagamento);
-router.use("/ofx", ofx);
+
+router.use("/conciliacao-bancaria", extratosBancarios);
 
 module.exports = router;
