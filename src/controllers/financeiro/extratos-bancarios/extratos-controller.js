@@ -243,18 +243,7 @@ function importarExtrato(req) {
         throw new Error(`OFX Agência/Conta ${ofx_conta.ACCTID}, diverge de conta selecionada: Agência: ${contaBancaria.agencia} Conta: ${contaBancaria.conta}`)
       }
 
-      const [transacoesIgnoradas] = await conn.execute(`SELECT * FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`, [id_conta_bancaria])
-      transacoesIgnoradas.push({ descricao: 'SALDO ANTERIOR', tipo_transacao: 'CREDIT' })
-      transacoesIgnoradas.push({ descricao: 'SALDO DO DIA', tipo_transacao: 'CREDIT' })
-
-      function deveIgnorarTransacao(transacao) {
-        if (!transacoesIgnoradas || transacoesIgnoradas.length === 0) {
-          return false
-        }
-        return transacoesIgnoradas.some(ignorada => ignorada.descricao === transacao.MEMO && ignorada.tipo_transacao === transacao.TRNTYPE);
-      }
-
-      const ofx_transactions = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN.filter(transacao => !deveIgnorarTransacao(transacao));
+      const ofx_transactions = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN
       const data_atual = formatDate(new Date(), 'yyyy-MM-dd');
 
       for (const transaction of ofx_transactions) {
@@ -265,7 +254,7 @@ function importarExtrato(req) {
         const descricao_transacao = transaction.MEMO
         const tipo_transacao = transaction.TRNTYPE
 
-        if(data_transaction > data_atual){
+        if(data_transaction >= data_atual){
           continue
         }
 
