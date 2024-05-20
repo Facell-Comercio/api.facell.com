@@ -137,6 +137,61 @@ function getOne(req) {
   });
 }
 
+function findAccountFromParams(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id_grupo_economico, id_centro_custo, id_plano_conta } = req.query;
+  
+    const conn = await db.getConnection();
+
+    try {
+      if(!id_grupo_economico){
+        throw new Error('ID GRUPO ECONOMICO não informado!')
+      }
+      if(!id_centro_custo){
+        throw new Error('ID GRUPO ECONOMICO não informado!')
+      }
+      if(!id_plano_conta){
+        throw new Error('ID GRUPO ECONOMICO não informado!')
+      }
+      const [rowOrcamentoItens] = await conn.execute(
+        `
+        SELECT 
+          foc.id as id_conta,
+          foc.id_centro_custo, foc.id_plano_contas,
+          fcc.nome as centro_custo, 
+          CONCAT(fpc.codigo," - ",fpc.descricao) as plano_contas, 
+          foc.valor_previsto as valor,
+          foc.valor_previsto as valor_inicial,
+          COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as realizado,
+          foc.valor_previsto - COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as saldo 
+        FROM fin_orcamento_contas foc
+        LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
+        LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
+        LEFT JOIN fin_orcamento as fo ON fo.id = foc.id_orcamento
+        WHERE 
+          fo.id_grupo_economico = ?
+          AND DATE_FORMAT(fo.ref, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m')
+          AND foc.id_centro_custo = ?
+          AND foc.id_plano_contas = ?
+        GROUP BY foc.id
+            `,
+        [id_grupo_economico, id_centro_custo, id_plano_conta]
+      );
+      if(!rowOrcamentoItens || rowOrcamentoItens?.length <= 0){
+        throw new Error('Não existe orçamento definido para este Centro de custos e Plano de contas')
+      }
+      const contaOrcamento = rowOrcamentoItens && rowOrcamentoItens[0];
+      resolve(contaOrcamento);
+      return;
+    } catch (error) {
+      reject(error);
+      return;
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const { active, id_grupo_economico, ref, contas } = req.body;
@@ -629,11 +684,9 @@ function transfer(req) {
           [id_conta_entrada]
         );
 
-        const descricao = `TRANSFERÊNCIA -> DE: ${contaSaida.centro_custo} - ${
-          contaSaida.plano_contas
-        } | PARA: ${newCentroCusto[0].nome} - ${
-          newPlanoContas[0].nome
-        } | VALOR: ${normalizeCurrency(valor_transferido)}`;
+        const descricao = `TRANSFERÊNCIA -> DE: ${contaSaida.centro_custo} - ${contaSaida.plano_contas
+          } | PARA: ${newCentroCusto[0].nome} - ${newPlanoContas[0].nome
+          } | VALOR: ${normalizeCurrency(valor_transferido)}`;
         await conn.execute(
           `
           INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -648,9 +701,8 @@ function transfer(req) {
         );
         const descricao = `TRANSFERÊNCIA -> VALOR: ${normalizeCurrency(
           valor_transferido
-        )} | DE: ${contaSaida.centro_custo} - ${
-          contaSaida.plano_contas
-        } | PARA: ${contaEntrada.centro_custo} - ${contaEntrada.plano_contas}`;
+        )} | DE: ${contaSaida.centro_custo} - ${contaSaida.plano_contas
+          } | PARA: ${contaEntrada.centro_custo} - ${contaEntrada.plano_contas}`;
         await conn.execute(
           `
           INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -814,6 +866,7 @@ function faker() {
 module.exports = {
   getAll,
   getOne,
+  findAccountFromParams,
   insertOne,
   update,
   deleteItemBudget,

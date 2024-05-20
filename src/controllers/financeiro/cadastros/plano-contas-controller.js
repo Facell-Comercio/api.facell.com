@@ -119,7 +119,6 @@ function getAll(req) {
 
       const [rows] = await conn.execute(query, params);
 
-      console.log(rows, planos_contas_habilitados);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),

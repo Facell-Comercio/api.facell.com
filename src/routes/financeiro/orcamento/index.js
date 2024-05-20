@@ -8,11 +8,11 @@ const {
   getMyBudget,
   transfer,
   getMyBudgets,
-  deleteBudget,
   faker,
   getIds,
   getLogs,
   deleteItemBudget,
+  findAccountFromParams,
 } = require("../../../controllers/financeiro/orcamento/orcamento-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
@@ -81,6 +81,15 @@ router.put(
     }
   }
 );
+
+router.get("/find-account", async (req, res) => {
+  try {
+    const result = await findAccountFromParams(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {
