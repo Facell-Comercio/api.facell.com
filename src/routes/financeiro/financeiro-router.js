@@ -14,6 +14,7 @@ const rateios = require("./cadastros/rateios");
 
 const formasPagamento = require("./formas-pagamento");
 const extratosBancarios = require("./extratos-bancarios");
+const conciliacaoCP = require("./conciliacao-bancaria/conciliacao/cp");
 
 // Contas a pagar
 router.use("/contas-a-pagar", contasPagar);
@@ -33,5 +34,6 @@ router.use("/rateios", rateios);
 router.use("/formas-pagamento", formasPagamento);
 
 router.use("/conciliacao-bancaria", extratosBancarios);
+router.use("/conciliacao-cp", conciliacaoCP);
 
 module.exports = router;

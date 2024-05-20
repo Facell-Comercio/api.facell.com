@@ -128,7 +128,6 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
-      console.log(error);
       reject(error);
       return;
     } finally {

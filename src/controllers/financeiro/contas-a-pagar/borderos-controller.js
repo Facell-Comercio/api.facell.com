@@ -22,6 +22,7 @@ function getAll(req) {
       id_grupo_economico,
       fornecedor,
       id_titulo,
+      id_vencimento,
       num_doc,
       tipo_data,
       range_data,
@@ -44,21 +45,25 @@ function getAll(req) {
       where += ` AND f.id_grupo_economico = ?`;
       params.push(id_grupo_economico);
     }
-    if (fornecedor) {
-      where += ` AND ff.nome LIKE CONCAT('%', ?, '%') `;
-      params.push(fornecedor);
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
     }
-    if (id_titulo) {
-      where += ` AND tb.id_titulo = ? `;
-      params.push(id_titulo);
+    if (fornecedor) {
+      where += ` AND ff.nome LIKE CONCAT('%',?, '%') `;
+      params.push(fornecedor);
     }
     if (num_doc) {
       where += ` AND t.num_doc = ? `;
       params.push(num_doc);
     }
-    if (id_matriz) {
-      where += ` AND f.id_matriz = ? `;
-      params.push(id_matriz);
+    if (id_titulo) {
+      where += ` AND tv.id_titulo = ? `;
+      params.push(id_titulo);
+    }
+    if (id_vencimento) {
+      where += ` AND tv.id = ? `;
+      params.push(id_vencimento);
     }
     if (termo) {
       where += ` AND (
@@ -90,18 +95,80 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();
     try {
+      // ^ Filtros que necessitam de consultas no banco
+      // if (id_vencimento) {
+      //   const [vencimento] = await conn.execute(
+      //     `
+      //     SELECT b.id
+      //     FROM fin_cp_bordero b
+      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+      //     WHERE tb.id_vencimento = ?
+      //   `,
+      //     [id_vencimento]
+      //   );
+      //   where += ` AND b.id = ? `;
+      //   params.push(vencimento[0].id);
+      // }
+      // if (id_titulo) {
+      //   const [vencimento] = await conn.execute(
+      //     `
+      //     SELECT b.id
+      //     FROM fin_cp_bordero b
+      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+      //     LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+      //     WHERE tv.id_titulo = ?
+      //   `,
+      //     [id_titulo]
+      //   );
+      //   where += ` AND b.id = ? `;
+      //   params.push(vencimento[0].id);
+      // }
+      // if (fornecedor) {
+      //   const [vencimento] = await conn.execute(
+      //     `
+      //     SELECT b.id
+      //     FROM fin_cp_bordero b
+      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+      //     LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+      //     LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      //     LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
+      //     WHERE ff.nome LIKE CONCAT('%', ?, '%')
+      //   `,
+      //     [fornecedor]
+      //   );
+      //   where += ` AND b.id IN ? `;
+      //   params.push(vencimento[0].id);
+      // }
+      // if (num_doc) {
+      //   const [vencimento] = await conn.execute(
+      //     `
+      //     SELECT b.id
+      //     FROM fin_cp_bordero b
+      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+      //     LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+      //     LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      //     WHERE t.num_doc = ?
+      //   `,
+      //     [num_doc]
+      //   );
+      //   where += ` AND b.id = ? `;
+      //   params.push(vencimento[0].id);
+      // }
+
+      //^ Consultas com todos os filtros
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT
             b.id
-            FROM fin_cp_bordero b
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-            LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
-            LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-            LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-            LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
-            LEFT JOIN filiais f ON f.id = t.id_filial
+          FROM fin_cp_bordero b
+          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+          LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+          LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+          LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
+          LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+          LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+          LEFT JOIN filiais f ON f.id = t.id_filial
           ${where}
           GROUP BY b.id
 
@@ -119,11 +186,21 @@ function getAll(req) {
         SELECT
           b.id, b.data_pagamento, cb.descricao as conta_bancaria, 
           t.descricao, f.id_matriz,
-          COUNT(t.id) as qtde_titulos,
-          SUM(t.valor) as valor_total
+          (SELECT COUNT(tv.id_titulo)
+            FROM fin_cp_titulos_vencimentos tv
+            INNER JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            WHERE tb.id_bordero = b.id
+          ) as qtde_titulos,
+          (
+            SELECT SUM(tv.valor)
+            FROM fin_cp_titulos_vencimentos tv
+            INNER JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            WHERE tb.id_bordero = b.id
+          ) as valor_total
         FROM fin_cp_bordero b
         LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-        LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
         LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
         LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -144,9 +221,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.log(error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -163,7 +241,8 @@ function getOne(req) {
               cb.descricao as conta_bancaria, f.id_matriz, fb.nome as banco
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-            LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
             LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais f ON f.id = cb.id_filial
@@ -175,16 +254,17 @@ function getOne(req) {
       const [rowTitulos] = await conn.execute(
         `
             SELECT 
-              tb.id_titulo, 
+              tv.id as id_vencimento,
+              tv.id_titulo, 
               t.id_status, 
-              t.valor as valor_total, 
+              SUM(tv.valor) as valor_total, 
               t.descricao, 
               t.num_doc,
-              t.data_prevista as previsao, 
-              t.data_pagamento, 
+              tv.data_prevista as previsao, 
+              tv.data_pagamento, 
               f.nome as nome_fornecedor, 
               t.data_emissao, 
-              t.data_vencimento,
+              tv.data_vencimento,
               c.nome as centro_custo,
               st.status,
               b.data_pagamento, 
@@ -194,13 +274,15 @@ function getOne(req) {
               false AS checked
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-            LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
             LEFT JOIN fin_cp_status st ON st.id = t.id_status
             LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
             LEFT JOIN fin_centros_custo c ON c.id = t.id_centro_custo
             WHERE b.id = ?
+            GROUP BY tv.id
             `,
         [id]
       );
@@ -208,7 +290,7 @@ function getOne(req) {
 
       const objResponse = {
         ...planoContas,
-        titulos: rowTitulos,
+        vencimentos: rowTitulos,
       };
       resolve(objResponse);
       return;
@@ -223,7 +305,7 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, id_conta_bancaria, data_pagamento, titulos } = req.body;
+    const { id, id_conta_bancaria, data_pagamento, vencimentos } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -244,13 +326,14 @@ function insertOne(req) {
         throw new Error("Falha ao inserir o rateio!");
       }
 
-      // Inserir os titulos no borderô
-      titulos.forEach(async ({ id_titulo }) => {
+      // Inserir os vencimentos no borderô
+
+      for (const vencimento of vencimentos) {
         await conn.execute(
-          `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
-          [id_titulo, newId]
+          `INSERT INTO fin_cp_titulos_borderos (id_vencimento, id_bordero) VALUES(?,?)`,
+          [vencimento.id_vencimento, newId]
         );
-      });
+      }
 
       await conn.commit();
       resolve({ message: "Sucesso" });
@@ -266,7 +349,7 @@ function insertOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, id_conta_bancaria, data_pagamento, titulos } = req.body;
+    const { id, id_conta_bancaria, data_pagamento, vencimentos } = req.body;
     // console.log(req.body)
     const conn = await db.getConnection();
     try {
@@ -305,23 +388,21 @@ function update(req) {
         // Update titulos do bordero igualando a data_prevista à data_pagamento do bordero
         await conn.execute(
           `
-        UPDATE fin_cp_titulos 
+        UPDATE fin_cp_titulos_vencimentos 
         SET data_prevista = ? 
         WHERE id IN (
-          SELECT id_titulo FROM fin_cp_titulos_borderos WHERE id_bordero = ?
+          SELECT id_vencimento FROM fin_cp_titulos_borderos WHERE id_bordero = ?
         )`,
           [startOfDay(data_pagamento), id]
         );
       }
 
       // Inserir os itens do bordero
-      if (titulos.length > 0) {
-        for (const titulo of titulos) {
-          await conn.execute(
-            `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
-            [titulo.id_titulo, id]
-          );
-        }
+      for (const vencimento of vencimentos) {
+        await conn.execute(
+          `INSERT INTO fin_cp_titulos_borderos (id_vencimento, id_bordero) VALUES(?,?)`,
+          [vencimento.id_vencimento, id]
+        );
       }
 
       await conn.commit();
@@ -331,12 +412,12 @@ function update(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
 
-function deleteTitulo(req) {
+function deleteVencimento(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
 
@@ -347,19 +428,22 @@ function deleteTitulo(req) {
       }
       await conn.beginTransaction();
 
-      const [rowTitulo] = await conn.execute(
-        `SELECT id_status FROM fin_cp_titulos WHERE id = ?`,
+      const [rowVencimento] = await conn.execute(
+        `SELECT id_status 
+        FROM fin_cp_titulos t
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        WHERE tv.id = ?`,
         [id]
       );
 
-      if (rowTitulo[0].id_status === 4) {
+      if (rowVencimento[0].id_status === 4) {
         throw new Error(
           "Não é possível remover do borderô titulos com status pago!"
         );
       }
 
       await conn.execute(
-        `DELETE FROM fin_cp_titulos_borderos WHERE id_titulo = ? LIMIT 1`,
+        `DELETE FROM fin_cp_titulos_borderos WHERE id_vencimento = ?`,
         [id]
       );
 
@@ -414,7 +498,7 @@ function deleteBordero(req) {
 
 function transferBordero(req) {
   return new Promise(async (resolve, reject) => {
-    const { id_conta_bancaria, date, titulos } = req.body;
+    const { id_conta_bancaria, date, vencimentos } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -424,8 +508,8 @@ function transferBordero(req) {
       if (!date) {
         throw new Error("DATA_PAGAMENTO novo não informado!");
       }
-      if (titulos.length < 0) {
-        throw new Error("TITULOS não informado!");
+      if (vencimentos.length < 0) {
+        throw new Error("VENCIMENTOS não informado!");
       }
 
       await conn.beginTransaction();
@@ -450,15 +534,15 @@ function transferBordero(req) {
         id = newBordero.insertId;
       }
 
-      for (const titulo of titulos) {
-        if (titulo.id_status != 3) {
+      for (const vencimento of vencimentos) {
+        if (vencimento.id_status != 3) {
           throw new Error(
-            "Não é possível realizar a transfência de titulos com status diferente de aprovado!"
+            "Não é possível realizar a transfência de vencimentos com status diferente de aprovado!"
           );
         }
         await conn.execute(
-          `UPDATE fin_cp_titulos_borderos SET id_bordero = ? WHERE id_titulo = ?  LIMIT 1`,
-          [id, titulo.id_titulo]
+          `UPDATE fin_cp_titulos_borderos SET id_bordero = ? WHERE id_vencimento =  ?`,
+          [id, vencimento.id_vencimento]
         );
       }
 
@@ -469,7 +553,7 @@ function transferBordero(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -477,7 +561,7 @@ function transferBordero(req) {
 async function exportBorderos(req) {
   return new Promise(async (resolve, reject) => {
     const { data: borderos } = req.body;
-    const titulosBordero = [];
+    const vencimentosBordero = [];
     try {
       if (!borderos.length) {
         throw new Error("Quantidade inválida de de borderos!");
@@ -485,7 +569,7 @@ async function exportBorderos(req) {
 
       for (const b_id of borderos) {
         const response = await getOne({ params: { id: b_id } });
-        response.titulos.forEach((titulo) => {
+        response.vencimentos.forEach((titulo) => {
           const normalizeDate = (data) => {
             const date = new Date(data);
             const day = date.getDate();
@@ -496,8 +580,9 @@ async function exportBorderos(req) {
             return `${formattedDay}/${formattedMonth}/${year}`;
           };
 
-          titulosBordero.push({
-            IDPG: titulo.id_titulo || "",
+          vencimentosBordero.push({
+            IDPG: titulo.id_vencimento || "",
+            "ID TÍTULO": titulo.id_titulo || "",
             PAGAMENTO: titulo.data_pagamento
               ? normalizeDate(titulo.data_pagamento)
               : "",
@@ -525,7 +610,7 @@ async function exportBorderos(req) {
         });
       }
 
-      resolve(titulosBordero);
+      resolve(vencimentosBordero);
     } catch (error) {
       console.log("ERRO_EXPORT_BORDERO", error);
       reject(error);
@@ -538,7 +623,7 @@ module.exports = {
   getOne,
   insertOne,
   update,
-  deleteTitulo,
+  deleteVencimento,
   deleteBordero,
   transferBordero,
   exportBorderos,

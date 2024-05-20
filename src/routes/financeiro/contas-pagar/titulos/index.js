@@ -4,7 +4,6 @@ const {
   getAll,
   getOne,
   updateFileTitulo,
-  getAllCpTitulosBordero,
   changeStatusTitulo,
   update,
   insertOne,
@@ -15,6 +14,7 @@ const {
   deleteRecorrencia,
   changeRecorrencia,
   exportDatasys,
+  getAllCpVencimentosBordero,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
 router.get("/export-datasys", async (req, res) => {
@@ -69,9 +69,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/titulos-bordero", async (req, res) => {
+router.get("/vencimentos-bordero", async (req, res) => {
   try {
-    const result = await getAllCpTitulosBordero(req);
+    const result = await getAllCpVencimentosBordero(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
