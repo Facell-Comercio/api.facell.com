@@ -37,7 +37,7 @@ function getAll(req) {
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
-    // console.log(filters)
+    console.log(filters);
     const {
       id,
       id_grupo_economico,
@@ -113,12 +113,14 @@ function getAll(req) {
             ORDER BY 
                 t.created_at DESC 
             ${limit}`;
-      params.push(pageSize);
-      params.push(offset);
+      if (limit) {
+        params.push(pageSize);
+        params.push(offset);
+      }
       // console.log(query);
       // console.log(params);
       const [titulos] = await conn.execute(query, params);
-
+      // console.log(query, params, titulos);
       const objResponse = {
         rows: titulos,
         pageCount: Math.ceil(totalTitulos / pageSize),
@@ -135,7 +137,7 @@ function getAll(req) {
   });
 }
 
-function getAllCpTitulosBordero(req) {
+function getAllCpVencimentosBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
@@ -157,9 +159,10 @@ function getAllCpTitulosBordero(req) {
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
-    // console.log(filters)
+    // console.log(filters);
     const {
-      id,
+      id_vencimento,
+      id_titulo,
       id_grupo_economico,
       tipo_data,
       fornecedor,
@@ -171,7 +174,7 @@ function getAllCpTitulosBordero(req) {
       termo,
     } = filters || {};
 
-    // console.log(filters);
+    console.log(filters);
     const params = [];
     if (termo) {
       where += ` AND (
@@ -189,9 +192,13 @@ function getAllCpTitulosBordero(req) {
       params.push(termo);
       params.push(termo);
     }
-    if (id) {
-      where += ` AND t.id LIKE CONCAT(?,'%') `;
-      params.push(id);
+    if (id_vencimento) {
+      where += ` AND tv.id LIKE CONCAT(?,'%') `;
+      params.push(id_vencimento);
+    }
+    if (id_titulo) {
+      where += ` AND tv.id_titulo LIKE CONCAT(?,'%') `;
+      params.push(id_titulo);
     }
     if (descricao) {
       where += ` t.descricao LIKE CONCAT('%',?,'%')  `;
@@ -212,21 +219,20 @@ function getAllCpTitulosBordero(req) {
 
     where += ` 
     AND t.id_status = 3 
-      AND tb.id_titulo IS NULL `;
+      AND tb.id_vencimento IS NULL `;
 
-    console.log(tipo_data, range_data);
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
-          where += ` AND t.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND t.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
@@ -242,35 +248,35 @@ function getAllCpTitulosBordero(req) {
         `SELECT COUNT(*) AS qtde
         FROM (
           SELECT DISTINCT 
-          t.id as id_titulo, t.id_status, s.status, t.created_at, t.data_vencimento, t.descricao, t.valor,
-          f.nome as filial, f.id_matriz,
-          forn.nome as fornecedor, u.nome as solicitante
+          tv.id 
           FROM fin_cp_titulos t 
-          LEFT JOIN fin_cp_status s ON s.id = t.id_status 
-          LEFT JOIN filiais f ON f.id = t.id_filial 
-          LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-          LEFT JOIN users u ON u.id = t.id_solicitante
-          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
 
           ${where}
         ) AS subconsulta
         `,
         params
       );
-      const totalTitulos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
 
       var query = `
             SELECT DISTINCT 
-                t.id as id_titulo, t.id_status, s.status, t.data_prevista as previsao, 
+                tv.id as id_vencimento, t.id as id_titulo, t.id_status, s.status, tv.data_prevista as previsao, 
                 t.descricao, t.valor as valor_total,
                 f.nome as filial, f.id_matriz,
-                forn.nome as nome_fornecedor, t.num_doc, t.data_pagamento
+                forn.nome as nome_fornecedor, t.num_doc, tv.data_vencimento as data_pagamento
             FROM fin_cp_titulos t 
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
 
             ${where}
 
@@ -281,17 +287,18 @@ function getAllCpTitulosBordero(req) {
       params.push(offset);
       // console.log(query);
       // console.log(params);
-      const [titulos] = await conn.execute(query, params);
+      const [vencimentos] = await conn.execute(query, params);
 
       const objResponse = {
-        rows: titulos,
-        pageCount: Math.ceil(totalTitulos / pageSize),
-        rowCount: totalTitulos,
+        rows: vencimentos,
+        pageCount: Math.ceil(totalVencimentos / pageSize),
+        rowCount: totalVencimentos,
       };
       // console.log('Fetched Titulos', titulos.length)
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
+      console.log(error);
       reject(error);
     } finally {
       await conn.release();
@@ -1738,13 +1745,12 @@ function downloadAnexos(req, res) {
         throw new Error("Nenhum anexo encontrado!");
       }
 
-      console.log(titulos.filter((item) => item.content));
+      // console.log(titulos.filter((item) => item.content));
 
       const filename = tipos_anexos.find((tipo) => tipo.name == type).zipName;
       const zip = await zipFiles({
         items: titulos.filter((item) => item.content),
       });
-      console.log(filename);
       res.set("Content-Type", "application/zip");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send({ zip, filename });
@@ -1776,7 +1782,7 @@ function exportDatasys(req) {
           f.cnpj as cnpj_loja,
           fo.cnpj as cnpj_fornecedor,
           ti.id as documento,
-          t.data_emissao as emisao, t.data_vencimento as vencimento,
+          t.data_emissao as emisao, tv.data_vencimento as vencimento,
           ti.valor,
           fp.forma_pagamento as tipo_documento,
           t.descricao as historico,
@@ -1785,7 +1791,7 @@ function exportDatasys(req) {
           f_item.cnpj as cnpj_rateio,
           tri.valor as valor_rateio,
           cb.descricao as banco_pg,
-          t.data_pagamento as data_pg,
+          tv.data_pagamento as data_pg,
           fo.nome as nome_fornecedor
         FROM fin_cp_titulos t
         LEFT JOIN filiais f ON f.id = t.id_filial
@@ -1796,12 +1802,13 @@ function exportDatasys(req) {
         LEFT JOIN fin_plano_contas pc ON pc.id = ti.id_plano_conta
         LEFT JOIN fin_cp_titulos_rateio_itens tri ON tri.id_titulo = t.id
         LEFT JOIN filiais f_item ON f_item.id = tri.id_filial
-        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_titulo = t.id
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
         LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-        WHERE t.data_pagamento = ?
+        WHERE tv.data_pagamento = ?
         AND cc.id_grupo_economico = ?
-        AND t.id_status =  4
+        AND t.id_status = 4
         ORDER BY ti.id DESC
       `,
         [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
@@ -1847,7 +1854,7 @@ function deleteRecorrencia(req) {
 
 module.exports = {
   getAll,
-  getAllCpTitulosBordero,
+  getAllCpVencimentosBordero,
   getAllRecorrencias,
   getOne,
   insertOne,

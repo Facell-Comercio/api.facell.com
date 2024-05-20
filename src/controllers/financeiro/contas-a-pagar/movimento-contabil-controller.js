@@ -139,6 +139,7 @@ function downloadMovimentoContabil(req, res) {
           [id_grupo_economico]
         );
         for (const conta_bancaria of contasBancarias) {
+          console.log("Conta bancaria: " + conta_bancaria.nome);
           await appendItem(conta_bancaria.id);
         }
       }
@@ -165,6 +166,7 @@ function downloadMovimentoContabil(req, res) {
 
         // * Passar por cada dia gerando uma pasta do dia e gerar os files
         for (const dia of dias) {
+          console.log("DIA:", dia);
           const objDia = {
             type: "folder",
             folderName: dia.toString().padStart(2, "0"),
@@ -178,10 +180,12 @@ function downloadMovimentoContabil(req, res) {
           const [titulos] = await conn.execute(
             `
             SELECT 
-                t.id, 
+                tv.id,
+                tv.id_titulo, 
+                eb.id as id_extrato_bancario,
                 ff.cnpj, ff.nome as nome_fornecedor,
                 f.nome as filial, f.cnpj as cnpj_filial,
-                t.descricao, t.num_doc, t.valor, 
+                t.descricao, t.num_doc, tv.valor, 
                 eb.data_transacao, cb.descricao as banco,
                 t.url_nota_fiscal,
                 t.url_xml,
@@ -190,8 +194,9 @@ function downloadMovimentoContabil(req, res) {
                 t.url_planilha,
                 t.url_txt
             FROM fin_cp_titulos as t
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo  = t.id 
             LEFT JOIN filiais as f ON f.id = t.id_filial
-            LEFT JOIN fin_cp_titulos_borderos as tb ON tb.id_titulo = t.id
+            LEFT JOIN fin_cp_titulos_borderos as tb ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
             LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
@@ -221,28 +226,31 @@ function downloadMovimentoContabil(req, res) {
           ];
 
           // * Adiciona os títulos no array do excel e no Objeto de dia
-          titulos.forEach((titulo) => {
+          titulos.forEach((vencimento) => {
+            console.log("VENCIMENTO", vencimento);
             itemsExcel.push({
-              ID: titulo.id,
-              "CPF/CNPJ": normalizeCnpjNumber(titulo.cnpj || ""),
-              "NOME FORNECEDOR": titulo.nome_fornecedor || "",
-              FILIAL: titulo.filial || "",
-              "CNPJ FILIAL": titulo.cnpj_filial || "",
-              DESCRIÇÃO: titulo.descricao || "",
-              "Nº DOC": titulo.num_doc || "",
-              "VALOR TÍTULO": titulo.valor || "",
-              "DT PAG": titulo.data_transacao || "",
-              BANCO: titulo.banco || "",
-              "ID EXTRATO": titulo.id,
+              ID: vencimento.id,
+              "ID EXTRATO BANCÁRIO": vencimento.id_extrato_bancario,
+              "ID TÍTULO": vencimento.id_titulo,
+              "CPF/CNPJ": normalizeCnpjNumber(vencimento.cnpj || ""),
+              "NOME FORNECEDOR": vencimento.nome_fornecedor || "",
+              FILIAL: vencimento.filial || "",
+              "CNPJ FILIAL": vencimento.cnpj_filial || "",
+              DESCRIÇÃO: vencimento.descricao || "",
+              "Nº DOC": vencimento.num_doc || "",
+              "VALOR TÍTULO": vencimento.valor || "",
+              "DT PAG": vencimento.data_transacao || "",
+              BANCO: vencimento.banco || "",
+              "ID EXTRATO": vencimento.id,
             });
 
             tipos_anexos.forEach((tipo) => {
-              const url = titulo[tipo.name];
+              const url = vencimento[tipo.name];
               if (url) {
                 const ext = path.extname(url);
                 objDia.items.push({
                   type: "file",
-                  fileName: `${tipo.acronym} ${titulo.id}${ext}`,
+                  fileName: `${tipo.acronym} ${vencimento.id}${ext}`,
                   content: createUploadsPath(url),
                 });
               }

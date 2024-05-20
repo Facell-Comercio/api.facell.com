@@ -6,34 +6,36 @@ const {
   insertOne,
   update,
   deleteBordero,
-  transferBordero,
-  exportBorderos,
-  deleteVencimento,
-} = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
-const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
-const checkUserDepartment = require("../../../../middlewares/derpartment-middleware");
-
-router.put("/transfer", async (req, res) => {
-  try {
-    const result = await transferBordero(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.put("/export", async (req, res) => {
-  try {
-    const result = await exportBorderos(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+  deleteTitulo,
+  faker,
+  deleteConciliacao,
+  conciliacaoAutomatica,
+  getConciliacoes,
+} = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
+const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
+const checkUserDepartment = require("../../../../../middlewares/derpartment-middleware");
 
 router.get("/", async (req, res) => {
   try {
     const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/conciliacoes", async (req, res) => {
+  try {
+    const result = await getConciliacoes(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/faker", async (req, res) => {
+  try {
+    const result = await faker(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -60,6 +62,18 @@ router.post(
     }
   }
 );
+router.post(
+  "/automatica",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await conciliacaoAutomatica(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 router.put(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -75,7 +89,7 @@ router.put(
 
 router.delete("/titulo/:id", async (req, res) => {
   try {
-    const result = await deleteVencimento(req);
+    const result = await deleteTitulo(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -84,7 +98,7 @@ router.delete("/titulo/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const result = await deleteBordero(req);
+    const result = await deleteConciliacao(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
