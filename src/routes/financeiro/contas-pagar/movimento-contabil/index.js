@@ -20,7 +20,6 @@ router.get("/", async (req, res) => {
 router.get("/download", async (req, res) => {
   try {
     const response = await downloadMovimentoContabil(req, res);
-    console.log(response);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

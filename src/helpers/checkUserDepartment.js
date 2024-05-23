@@ -21,13 +21,13 @@ const checkUserDepartment = (req, depart, gestor = undefined) => {
     if (gestor !== undefined) {
       return (
         user.departamentos.findIndex(
-          (perm) => perm.id === depart && perm.gestor === gestor
+          (perm) => perm.nome === depart && perm.gestor === gestor
         ) >= 0
       );
     }
     return user.departamentos.findIndex((perm) => perm.nome === depart) >= 0;
   }
-  return true;
+  return false;
 };
 
 module.exports = {

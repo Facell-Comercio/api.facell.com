@@ -115,7 +115,7 @@ function getAll(req) {
 
       const [rows] = await conn.execute(query, params);
 
-      console.log(query, contas_bancarias_habilitadas);
+      // console.log(query, contas_bancarias_habilitadas);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),

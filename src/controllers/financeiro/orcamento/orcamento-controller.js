@@ -1,3 +1,4 @@
+const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { normalizeCurrency } = require("../../../helpers/mask");
@@ -128,11 +129,78 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
-      console.log(error);
       reject(error);
       return;
     } finally {
       await conn.release();
+    }
+  });
+}
+
+function findAccountFromParams(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id_grupo_economico, id_centro_custo, id_plano_conta, data_titulo } =
+      req.query;
+
+    const conn = await db.getConnection();
+
+    try {
+      if (!id_grupo_economico) {
+        throw new Error("ID GRUPO ECONOMICO não informado!");
+      }
+      if (!id_centro_custo) {
+        throw new Error("ID GRUPO ECONOMICO não informado!");
+      }
+      if (!id_plano_conta) {
+        throw new Error("ID GRUPO ECONOMICO não informado!");
+      }
+      const params = [id_grupo_economico, id_centro_custo, id_plano_conta];
+      let where = `
+      fo.id_grupo_economico = ?
+      AND foc.id_centro_custo = ?
+      AND foc.id_plano_contas = ?
+      `;
+      if (data_titulo) {
+        where += ` AND DATE_FORMAT(fo.ref, '%Y-%m') = ?`;
+        params.push(formatDate(data_titulo, "yyyy-MM"));
+      } else {
+        where += ` AND DATE_FORMAT(fo.ref, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m') `;
+      }
+
+      const [rowOrcamentoItens] = await conn.execute(
+        `
+        SELECT 
+          foc.id as id_conta,
+          foc.id_centro_custo, foc.id_plano_contas,
+          fcc.nome as centro_custo, 
+          CONCAT(fpc.codigo," - ",fpc.descricao) as plano_contas, 
+          foc.valor_previsto as valor,
+          foc.valor_previsto as valor_inicial,
+          COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as realizado,
+          foc.valor_previsto - COALESCE((SELECT sum(valor) FROM fin_orcamento_consumo tb_consumo WHERE tb_consumo.active = true AND tb_consumo.id_orcamento_conta = foc.id), 0) as saldo 
+        FROM fin_orcamento_contas foc
+        LEFT JOIN fin_centros_custo fcc ON fcc.id = foc.id_centro_custo
+        LEFT JOIN fin_plano_contas fpc ON fpc.id = foc.id_plano_contas
+        LEFT JOIN fin_orcamento as fo ON fo.id = foc.id_orcamento
+        WHERE 
+          ${where}
+        GROUP BY foc.id
+            `,
+        params
+      );
+      if (!rowOrcamentoItens || rowOrcamentoItens?.length <= 0) {
+        throw new Error(
+          "Não existe orçamento definido para este Centro de custos e Plano de contas"
+        );
+      }
+      const contaOrcamento = rowOrcamentoItens && rowOrcamentoItens[0];
+      resolve(contaOrcamento);
+      return;
+    } catch (error) {
+      reject(error);
+      return;
+    } finally {
+      conn.release();
     }
   });
 }
@@ -464,7 +532,6 @@ function getMyBudgets(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
       reject(error);
     } finally {
       await conn.release();
@@ -510,7 +577,7 @@ function getMyBudget(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -814,6 +881,7 @@ function faker() {
 module.exports = {
   getAll,
   getOne,
+  findAccountFromParams,
   insertOne,
   update,
   deleteItemBudget,
