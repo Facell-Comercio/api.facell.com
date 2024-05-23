@@ -104,7 +104,7 @@ function getAll(req) {
       const totalTitulos = (rowsTitulos && rowsTitulos[0]["total"]) || 0;
       const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       var query = `
-            SELECT 
+            SELECT DISTINCT 
                 t.id, s.status, t.created_at, t.descricao, t.valor,
                 f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor, u.nome as solicitante
@@ -232,9 +232,8 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -395,7 +394,7 @@ function getOne(req) {
                 fb.codigo as codigo_banco,
                 fo.nome as nome_fornecedor, 
                 fo.cnpj as cnpj_fornecedor,
-                fr.manual as rateio_manual
+                COALESCE(fr.manual, TRUE) as rateio_manual
 
             FROM fin_cp_titulos t 
             INNER JOIN fin_cp_status st ON st.id = t.id_status
@@ -411,7 +410,7 @@ function getOne(req) {
 
       const [vencimentos] = await conn.execute(
         `SELECT 
-          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor 
+          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.linha_digitavel 
         FROM fin_cp_titulos_vencimentos tv 
         WHERE tv.id_titulo = ? 
         `,
@@ -1332,7 +1331,7 @@ function insertManyFromGN(req) {
   });
 }
 
-// ! refatorar
+// * ok
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
@@ -1363,13 +1362,7 @@ function update(req) {
         dv_conta,
 
         // Geral
-        id_centro_custo,
-        centro_custo,
         data_emissao,
-        data_vencimento,
-        data_prevista,
-        num_parcelas,
-        parcela,
 
         num_doc,
         valor,
@@ -1377,7 +1370,7 @@ function update(req) {
         id_tipo_solicitacao,
         descricao,
 
-        update_itens,
+        update_vencimentos,
         vencimentos,
 
         update_rateio,
@@ -1413,20 +1406,11 @@ function update(req) {
       if (!id_forma_pagamento) {
         throw new Error("Campo id_forma_pagamento não informado!");
       }
-      if (!id_centro_custo) {
-        throw new Error("Campo id_centro_custo não informado!");
-      }
       if (!descricao) {
         throw new Error("Campo Descrição não informado!");
       }
-      if (!data_vencimento) {
-        throw new Error("Campo data_vencimento não informado!");
-      }
       if (!data_emissao) {
         throw new Error("Campo data_emissao não informado!");
-      }
-      if (!data_prevista) {
-        throw new Error("Campo data_prevista não informado!");
       }
 
       // Se for PIX: Exigir id_tipo_chave_pix e chave_pix
@@ -1459,12 +1443,12 @@ function update(req) {
         }
       }
 
-      // Itens
+      // Vencimentos
       if (!vencimentos || vencimentos.length === 0) {
         throw new Error("Campo vencimentos não informado!");
       }
 
-      // Esquema de rateio
+      // Rateio
       if (!itens_rateio || itens_rateio.length === 0) {
         throw new Error("Campo itens_rateio não informado!");
       }
@@ -1477,26 +1461,28 @@ function update(req) {
       const titulo = rowTitulo && rowTitulo[0];
       if (!titulo) throw new Error("Título não localizado!");
 
-      // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
-      const [rowBordero] = await conn.execute(
-        `SELECT b.data_pagamento 
-        FROM fin_cp_bordero b
-        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id 
-        WHERE tb.id_titulo = ?`,
+      // ^ Validar se algum vencimento já foi pago, se sim, abortar.
+      const [vencimentosPagos] = await conn.execute('SELECT id FROM fin_cp_titulos_vencimentos WHERE id_titulo = ? AND NOT data_pagamento IS NULL', [id])
+      if (vencimentosPagos && vencimentosPagos.length) {
+        throw new Error(`Impossível editar a solicitação pois já existem ${vencimentosPagos.length} vencimentos pagos..`)
+      }
+
+      // ^ Vamos verificar se algum vencimento está em bordero, se estiver, vamos impedir a alteração:
+      const [vencimentosEmBordero] = await conn.execute(
+        `SELECT tb.id FROM fin_cp_titulos_borderos tb 
+        INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento 
+        WHERE tv.id_titulo = ?`,
         [id]
       );
-      const data_pagamento_bordero =
-        rowBordero && rowBordero[0] && rowBordero[0]["data_pagamento"];
-      const data_prevista_utilizada = data_pagamento_bordero
-        ? data_pagamento_bordero
-        : data_prevista;
+      if (vencimentosEmBordero && vencimentosEmBordero.length > 0) {
+        throw new Error(`Você não pode alterar a solicitação pois ${vencimentosEmBordero.length} vencimentos já estão em bordero de pagamento.`)
+      }
 
-      // Obter os Itens anteriores para registra-los no histórico caso precise
-      const [itens_anteriores] = await conn.execute(
-        `SELECT ti.valor, CONCAT(pc.codigo, ' - ', pc.descricao) as plano_conta
-        FROM fin_cp_titulos_itens ti
-        INNER JOIN fin_plano_contas pc ON pc.id = ti.id_plano_conta
-        WHERE ti.id_titulo = ?`,
+      // Obter os Vencimentos anteriores para registra-los no histórico caso precise
+      const [vencimentos_anteriores] = await conn.execute(
+        `SELECT tv.*
+        FROM fin_cp_titulos_vencimentos tv
+        WHERE tv.id_titulo = ?`,
         [titulo.id]
       );
 
@@ -1518,78 +1504,61 @@ function update(req) {
         rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // ~ Início de Manipulação de Rateio //////////////////////
+      // * Validação de orçamento e atualização do rateio
       if (update_rateio) {
-        // ! Excluir Antigo Esquema de rateio
+        if (!id_orcamento) {
+          throw new Error("Orçamento não localizado!");
+        }
+
+        // ! Excluir Antigo rateio
         await conn.execute(
           `DELETE FROM fin_cp_titulos_rateio WHERE id_titulo = ?`,
           [id]
         );
 
-        // Salvar Esquema de rateio
+        // * Persistir o rateio
         for (const item_rateio of itens_rateio) {
-          await conn.execute(
-            `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_rateio, id_filial, percentual) VALUES (?,?,?,?)`,
-            [id, id_rateio, item_rateio.id_filial, item_rateio.percentual]
-          );
-        }
-      }
-      if (update_rateio || update_itens) {
-        // ! Excluir Antigos Itens Rateados
-        await conn.execute(
-          `DELETE FROM fin_cp_titulos_rateio_itens WHERE id_titulo = ?`,
-          [id]
-        );
-        // Vamos ratear e salvar os vencimentos lá nos vencimentos
-      }
-      // ~ Fim de Manipulação de Rateio //////////////////////
-
-      //~ Início de manipulação de vencimentos - caso update_itens = true //////////////////////
-      if (update_itens) {
-        if (!id_orcamento) {
-          throw new Error("Orçamento não localizado!");
-        }
-
-        // Passamos por cada item novo, validando campos e analisando o orçamento
-        for (const item of vencimentos) {
-          // ^ Validar item se possui todos os campos obrigatórios
-          if (!item.id_plano_conta) {
+          const valorRateio = parseFloat(item_rateio.valor)
+          if (!valorRateio) {
             throw new Error(
-              `O item não possui plano de contas selecionado! Item: ${JSON.stringify(
-                item
+              `O Rateio não possui Valor! Rateio: ${JSON.stringify(
+                item_rateio
               )}`
             );
           }
-          if (!item.valor) {
+          if (!item_rateio.id_filial) {
             throw new Error(
-              `O item não possui valor! Item: ${JSON.stringify(item)}`
+              `O Rateio não possui Filial! Rateio: ${JSON.stringify(
+                item_rateio
+              )}`
+            );
+          }
+          if (!item_rateio.id_centro_custo) {
+            throw new Error(
+              `O Rateio não possui Centro de custo! Rateio: ${JSON.stringify(
+                item_rateio
+              )}`
+            );
+          }
+          if (!item_rateio.id_plano_conta) {
+            throw new Error(
+              `O Rateio não possui Plano de contas! Rateio: ${JSON.stringify(
+                item_rateio
+              )}`
             );
           }
 
+          // ! Excluir o consumo do orçamento pelo titulo
+          await conn.execute(
+            `DELETE FROM fin_orcamento_consumo 
+            WHERE id_item_rateio IN (
+              SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?
+            )`,
+            [id]
+          );
+
           // ^ Vamos validar se orçamento possui saldo:
-          // Obter o registro de consumo anterior - para poder agregar no saldo atual do orçamento:
-          const [rowConsumoTitulo] = await conn.execute(
-            `SELECT sum(foc.valor) as valor 
-            FROM fin_orcamento_consumo foc
-            WHERE foc.active = true AND foc.id_titulo_item IN (
-              SELECT ti.id
-              FROM fin_cp_titulos_itens ti
-              WHERE ti.id_titulo = ? AND ti.id_plano_conta = ?
-            )
-            GROUP BY foc.id
-          `,
-            [id, item.id_plano_conta]
-          );
-
-          let valorConsumidoPeloItemAnterior =
-            (rowConsumoTitulo &&
-              rowConsumoTitulo[0] &&
-              rowConsumoTitulo[0]["valor"]) ||
-            0;
-          valorConsumidoPeloItemAnterior = parseFloat(
-            valorConsumidoPeloItemAnterior
-          );
-
-          // Obter a Conta de Orçamento com o Valor Previsto:
+          // Obter a Conta de Orçamento com o Valor Previsto [orçado]:
           const [rowOrcamentoConta] = await conn.execute(
             `SELECT id, valor_previsto FROM fin_orcamento_contas 
           WHERE 
@@ -1597,12 +1566,12 @@ function update(req) {
             AND id_centro_custo = ?
             AND id_plano_contas = ?
             `,
-            [id_orcamento, id_centro_custo, item.id_plano_conta]
+            [id_orcamento, item_rateio.id_centro_custo, item_rateio.id_plano_conta]
           );
 
           if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
             throw new Error(
-              `Não existe conta no orçamento para o seu Centro de custos + Plano de contas ${item.plano_conta}!`
+              `Não existe conta no orçamento para o ${item_rateio.centro_custo} + ${item_rateio.plano_conta}!`
             );
           }
           const id_orcamento_conta =
@@ -1632,93 +1601,83 @@ function update(req) {
           // Calcular o saldo da conta do orçamento:
           const saldo =
             valor_previsto -
-            valor_total_consumo +
-            valorConsumidoPeloItemAnterior;
-          if (saldo < item.valor) {
+            valor_total_consumo
+          if (saldo < valorRateio) {
             throw new Error(
-              `Saldo insuficiente para o seu Centro de Custos + Plano de contas: ${item.plano_conta
-              }. Necessário ${normalizeCurrency(item.valor - saldo)}`
+              `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
+              }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
             );
           }
-        }
 
-        // ! Excluir todos os vencimentos antigos do titulo
-        await conn.execute(
-          `DELETE FROM fin_cp_titulos_itens WHERE id_titulo = ?`,
-          [id]
-        );
-
-        // ! Excluir todas as contas de consumo do orçamento anteriores
-        await conn.execute(
-          `DELETE FROM fin_orcamento_consumo 
-        WHERE id_titulo_item IN (
-          SELECT id FROM fin_cp_titulos_itens WHERE id_titulo = ?
-        )`,
-          [id]
-        );
-
-        // * Salvar os novos vencimentos
-        for (const item of vencimentos) {
-          // * Persistir o item do titulo e obter o id:
           const [result] = await conn.execute(
-            `INSERT INTO fin_cp_titulos_itens (id_titulo, id_plano_conta, valor) VALUES (?,?,?)`,
-            [id, item.id_plano_conta, item.valor]
+            `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
+            [
+              id,
+              item_rateio.id_filial,
+              item_rateio.id_centro_custo,
+              item_rateio.id_plano_conta,
+              item_rateio.percentual,
+              valorRateio,
+            ]
           );
-
-          // Obter o id_orcamento_conta
-          const [rowOrcamentoConta] = await conn.execute(
-            `SELECT id, valor_previsto FROM fin_orcamento_contas 
-          WHERE 
-            id_orcamento = ?
-            AND id_centro_custo = ?
-            AND id_plano_contas = ?
-            `,
-            [id_orcamento, id_centro_custo, item.id_plano_conta]
-          );
-
-          if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
-            throw new Error(
-              `Não existe conta no orçamento para o seu Centro de custos + Plano de contas ${item.plano_conta}!`
-            );
-          }
-          const id_orcamento_conta =
-            rowOrcamentoConta &&
-            rowOrcamentoConta[0] &&
-            rowOrcamentoConta[0]["id"];
-
           // * Persistir a conta de consumo do orçamento:
           await conn.execute(
-            `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_titulo_item, valor) VALUES (?,?,?)`,
-            [id_orcamento_conta, result.insertId, item.valor]
+            `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
+            [id_orcamento_conta, result.insertId, valorRateio]
+          );
+        }
+      }
+      // ~ Fim de Manipulação de Rateio //////////////////////
+
+
+      // * Manipulação de vencimentos - caso update_vencimentos = true //////////////////////
+      if (update_vencimentos) {
+        // ! Excluir Antigos Vencimentos
+        await conn.execute(
+          `DELETE FROM fin_cp_titulos_vencimentos WHERE id_titulo = ?`,
+          [id]
+        );
+
+        // Passamos por cada vencimento novo, validando campos e inserindo no banco
+        for (const vencimento of vencimentos) {
+          // ^ Validar se vencimento possui todos os campos obrigatórios
+          const valorVencimento = parseFloat(vencimento.valor)
+
+          if (!vencimento.data_vencimento) {
+            throw new Error(
+              `O vencimento não possui data de vencimento! Vencimento: ${JSON.stringify(
+                vencimento
+              )}`
+            );
+          }
+          if (!vencimento.data_prevista) {
+            throw new Error(
+              `O vencimento não possui data prevista para pagamento! Vencimento: ${JSON.stringify(
+                vencimento
+              )}`
+            );
+          }
+          if (!valorVencimento) {
+            throw new Error(
+              `O vencimento não possui valor! Item: ${JSON.stringify(vencimento)}`
+            );
+          }
+
+          // * Persistir o vencimento
+          await conn.execute(
+            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, linha_digitavel) VALUES (?,?,?,?,?)`,
+            [
+              id,
+              formatDate(vencimento.data_vencimento, 'yyyy-MM-dd'),
+              formatDate(vencimento.data_prevista, 'yyyy-MM-dd'),
+              valorVencimento,
+              vencimento.linha_digitavel || null
+            ]
           );
         }
       }
       //~ Fim de manipulação de vencimentos //////////////////////
 
-      if (update_itens || update_rateio) {
-        // Persistir os vencimentos do rateio
-        const [itens_no_banco] = await conn.execute(
-          `SELECT * FROM fin_cp_titulos_itens WHERE id_titulo = ?`,
-          [id]
-        );
-        for (const item of itens_no_banco) {
-          // * Persistir o rateio dos vencimentos
-          for (const item_rateio of itens_rateio) {
-            const valor_rateado = item_rateio.percentual * item.valor;
-            await conn.execute(
-              `INSERT INTO fin_cp_titulos_rateio_itens (id_titulo, id_titulo_item, id_rateio, id_filial, percentual, valor) VALUES (?,?,?,?,?,?)`,
-              [
-                id,
-                item.id,
-                id_rateio,
-                item_rateio.id_filial,
-                item_rateio.percentual,
-                valor_rateado,
-              ]
-            );
-          }
-        }
-      }
 
       // Persitir os anexos
       const nova_url_nota_fiscal = await moverArquivoTempParaUploads(
@@ -1751,13 +1710,8 @@ function update(req) {
 
         id_tipo_solicitacao = ?,
         id_filial = ?,
-        id_centro_custo = ?,
-        num_parcelas = ?,
-        parcela = ?,
         
         data_emissao = ?,
-        data_vencimento = ?,
-        data_prevista = ?,
         num_doc = ?,
         valor = ?,
         descricao = ?,
@@ -1777,42 +1731,36 @@ function update(req) {
       `,
         [
           id_fornecedor,
-          id_banco,
+          id_banco || null,
           id_forma_pagamento,
 
-          agencia,
+          agencia || null,
           dv_agencia,
-          id_tipo_conta,
-          conta,
+          id_tipo_conta || null,
+          conta || null,
           dv_conta,
-          favorecido,
-          cnpj_favorecido,
+          favorecido || null,
+          cnpj_favorecido || null,
 
-          id_tipo_chave_pix,
-          chave_pix,
+          id_tipo_chave_pix || null,
+          chave_pix || null,
 
           id_tipo_solicitacao,
           id_filial,
-          id_centro_custo,
 
-          num_parcelas,
-          parcela,
-
-          data_emissao,
-          data_vencimento,
-          data_prevista_utilizada,
-          num_doc,
+          startOfDay(data_emissao),
+          num_doc || null,
           valor,
           descricao,
 
           id_rateio,
 
-          nova_url_nota_fiscal,
-          nova_url_xml,
-          nova_url_boleto,
-          nova_url_contrato,
-          nova_url_planilha,
-          nova_url_txt,
+          nova_url_nota_fiscal || null,
+          nova_url_xml || null,
+          nova_url_boleto || null,
+          nova_url_contrato || null,
+          nova_url_planilha || null,
+          nova_url_txt || null,
 
           // ID do título ao final!
           id,
@@ -1821,12 +1769,7 @@ function update(req) {
 
       // Gerar e Registar historico:
       let historico = `EDITADO POR: ${normalizeFirstAndLastName(user.nome)}.\n`;
-      if (data_vencimento != titulo.data_vencimento) {
-        historico += `VENCIMENTO: DE: ${format(
-          titulo.data_vencimento,
-          "dd/MM/yyyy"
-        )} PARA: ${format(data_vencimento, "dd/MM/yyyy")}\n`;
-      }
+
       if (valor != titulo.valor) {
         historico += `VALOR: DE: ${normalizeCurrency(
           titulo.valor
@@ -1835,17 +1778,15 @@ function update(req) {
       if (descricao != titulo.descricao) {
         historico += `DESCRICAO:\n \t DE: '${titulo.descricao}'\n \tPARA: '${descricao}'\n`;
       }
-      if (id_centro_custo != titulo.id_centro_custo) {
-        historico += `CENTRO DE CUSTO:\n \tDE: '${titulo.centro_custo}'\n \tPARA: '${centro_custo}'\n`;
-      }
 
-      if (update_itens) {
-        historico += `ITENS ANTERIORES:\n `;
-        itens_anteriores.forEach((item_anterior, index) => {
-          historico += `\t ITEM ${index + 1}: \n`;
-          historico += `\t PLANO DE CONTAS: '${item_anterior.plano_conta}' \n`;
+      if (update_vencimentos) {
+        historico += `VENCIMENTOS ANTERIORES:\n `;
+        vencimentos_anteriores.forEach((venc_anterior, index) => {
+          historico += `\t VENCIMENTO ${index + 1}: \n`;
+          historico += `\t DATA VENC.: '${formatDate(venc_anterior.data_vencimento, 'dd/MM/yyyy')}' \n`;
+          historico += `\t DATA PREV..: '${formatDate(venc_anterior.data_prevista, 'dd/MM/yyyy')}' \n`;
           historico += `\t VALOR: '${normalizeCurrency(
-            item_anterior.valor
+            venc_anterior.valor
           )}' \n`;
         });
       }
@@ -1862,7 +1803,7 @@ function update(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -1914,7 +1855,7 @@ function updateFileTitulo(req) {
   });
 }
 
-// ! refatorar
+// * ok
 function changeStatusTitulo(req) {
   return new Promise(async (resolve, reject) => {
     const { id_titulo, id_novo_status, motivo } = req.body;
@@ -1949,21 +1890,26 @@ function changeStatusTitulo(req) {
       }
       const titulo = rowTitulo && rowTitulo[0];
 
-      // Rejeitar caso id_status = '4'
+      // Rejeitar caso id_status = '4', ou caso um vencimento já tenha sido pago:
       if (titulo.id_status == "4") {
         throw new Error(
           "Alteração rejeitada pois o título já consta como pago!"
         );
       }
+      const [vencimentosPagos] = await conn.execute(`SELECT id FROM fin_cp_titulos_vencimentos WHERE id_titulo = ? AND NOT data_pagamento IS NULL`, [id_titulo])
+      if (vencimentosPagos && vencimentosPagos.length > 0) {
+        throw new Error('Título possui vencimento(s) pago(s)')
+      }
+
       if (titulo.id_status == "2") {
         //* O título constava como Negado, então agora que o status será alterado, devemos Ativar os registros de consumo:
         await conn.execute(
-          `UPDATE fin_orcamento_consumo SET active = true
-        WHERE id_titulo_item
+          `UPDATE fin_orcamento_consumo foc SET foc.active = true
+        WHERE foc.id_item_rateio
       IN(
-        SELECT ti.id
-            FROM fin_cp_titulos_itens ti
-            WHERE ti.id_titulo = ?
+        SELECT tr.id
+            FROM fin_cp_titulos_rateio tr
+            WHERE tr.id_titulo = ?
         )`,
           [id_titulo]
         );
@@ -1978,12 +1924,12 @@ function changeStatusTitulo(req) {
       // !: Caso Negado - Inativar Consumo Orçamento
       if (id_novo_status == "2") {
         await conn.execute(
-          `UPDATE fin_orcamento_consumo SET active = false
-        WHERE id_titulo_item
+          `UPDATE fin_orcamento_consumo foc SET foc.active = false
+        WHERE foc.id_item_rateio
       IN(
-        SELECT ti.id
-            FROM fin_cp_titulos_itens ti
-            WHERE ti.id_titulo = ?
+        SELECT tr.id
+            FROM fin_cp_titulos_rateio tr
+            WHERE tr.id_titulo = ?
         )`,
           [id_titulo]
         );
@@ -1992,10 +1938,12 @@ function changeStatusTitulo(req) {
       // !: Caso Diferente de Aprovado e Pago - Remover de Borderô
       if (id_novo_status != "3" && id_novo_status != "4") {
         await conn.execute(
-          `DELETE FROM fin_cp_titulos_borderos WHERE id_titulo = ? `,
+          `DELETE FROM fin_cp_titulos_borderos WHERE id_vencimento IN( 
+          SELECT tv.id FROM fin_cp_titulos_vencimentos tv WHERE tv.id_titulo = ?)`,
           [id_titulo]
         );
       }
+
       let historico = ``;
       let author = normalizeFirstAndLastName(user?.nome);
       let textoMotivo = motivo
@@ -2029,18 +1977,16 @@ function changeStatusTitulo(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
 
-// ! refatorar
+// * ok
 function changeFieldTitulos(req) {
   return new Promise(async (resolve, reject) => {
     const { type, value, ids } = req.body;
-    const conn = await db.getConnection();
 
-    await conn.beginTransaction();
     try {
       if (!type) {
         throw new Error("TIPO de alteração não informado!");
@@ -2051,50 +1997,27 @@ function changeFieldTitulos(req) {
       if (ids && ids.length <= 0) {
         throw new Error("SOLICITAÇÕES a serem alteradas não selecionadas!");
       }
-
+      const result = []
       for (const id of ids) {
-        if (type == "data_prevista") {
-          const [rowTitulo] = await conn.execute(
-            `SELECT id_status FROM fin_cp_titulos WHERE id = ? `,
-            [id]
-          );
-          const titulo = rowTitulo && rowTitulo[0];
-          if (titulo.id_status == "4") {
-            throw new Error(
-              `Alteração rejeitada pois o título ${id} já consta como pago!`
-            );
+        if (type === "status") {
+          try {
+            await changeStatusTitulo({
+              body: {
+                id_titulo: id,
+                id_novo_status: value,
+              },
+            });
+            result.push({id: id, resultado: 'Alterado', message: 'OK'})
+          } catch (error) {
+            result.push({id: id, resultado: 'Erro', message: error.message})
           }
-          // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
-          const [rowBordero] = await conn.execute(
-            `SELECT data_pagamento FROM fin_cp_titulos_borderos WHERE id_titulo = ?`,
-            [id]
-          );
-          const bordero = rowBordero && rowBordero[0];
-
-          if (!bordero || bordero.length === 0) {
-            await conn.execute(
-              `UPDATE fin_cp_titulos SET data_prevista = ? WHERE id = ? `,
-              [new Date(value), id]
-            );
-          }
-        } else if (type === "status") {
-          await changeStatusTitulo({
-            body: {
-              id_titulo: id,
-              id_novo_status: value,
-            },
-          });
         }
       }
 
-      await conn.commit();
-      resolve(true);
+      resolve(result);
     } catch (error) {
       console.log("ERROR_CHANGE_FIELD_TITULOS", error);
-      await conn.rollback();
       reject(error);
-    } finally {
-      await conn.release();
     }
   });
 }
@@ -2186,7 +2109,7 @@ function downloadAnexos(req, res) {
       console.log("ERRO_DOWNLOAD_ANEXOS_TITULOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

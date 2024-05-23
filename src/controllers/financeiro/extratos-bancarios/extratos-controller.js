@@ -405,6 +405,7 @@ function deleteTransacaoPadrao(req) {
   });
 }
 
+// ! refatorar para extratos
 async function exportBorderos(req) {
   return new Promise(async (resolve, reject) => {
     const { data: borderos } = req.body;
