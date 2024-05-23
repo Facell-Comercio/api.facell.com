@@ -23,7 +23,8 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          cd /home/api.facell.com/
+          cd /home/api.facell.com/+
+          git stash
           git pull origin main
           git status
           npm install
