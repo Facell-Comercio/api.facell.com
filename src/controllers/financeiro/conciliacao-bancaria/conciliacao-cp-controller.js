@@ -123,7 +123,7 @@ function getAll(req) {
         ${whereTituloConciliado}
         AND NOT cbi.id IS NULL
         GROUP BY t.id
-        ORDER BY tv.id
+        ORDER BY tv.data_prevista DESC
       `,
         params
       );
@@ -140,6 +140,7 @@ function getAll(req) {
         ${whereTransacao}
         AND tipo_transacao = 'DEBIT'
         AND NOT cbi.id IS NULL
+        ORDER BY eb.data_transacao DESC
     `,
         params
       );
@@ -260,10 +261,10 @@ function getOne(req) {
         [id]
       );
       const conciliacao = rowConciliacao && rowConciliacao[0];
-      const [rowTitulos] = await conn.execute(
+      const [rowVencimentos] = await conn.execute(
         `
           SELECT
-            tv.id_titulo, tv.valor, tv.valor_pago, tv.tipo_baixa,
+            tv.id as id_vencimento, tv.id_titulo, tv.valor, tv.valor_pago, tv.tipo_baixa,
             t.descricao, forn.nome as nome_fornecedor,
             f.nome as filial,
             tv.data_prevista as data_pagamento
@@ -293,7 +294,7 @@ function getOne(req) {
         data_conciliacao: conciliacao.data_conciliacao,
         tipo: conciliacao.tipo,
         responsavel: conciliacao.responsavel,
-        titulos: rowTitulos,
+        vencimentos: rowVencimentos,
         transacoes: rowTransacoes,
       };
       resolve(objResponse);
@@ -309,7 +310,8 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, vencimentos, transacoes, data_pagamento } = req.body;
+    const { id, vencimentos, transacoes, data_pagamento, id_conta_bancaria } =
+      req.body;
 
     const conn = await db.getConnection();
     try {
@@ -318,8 +320,11 @@ function insertOne(req) {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
+      if (!id_conta_bancaria) {
+        throw new Error("É necessário informar uma conta bancária!");
+      }
       console.log(req.body);
-      const titulosSoma = vencimentos.reduce(
+      const vencimentosSoma = vencimentos.reduce(
         (acc, item) => acc + +item.valor_pago,
         0
       );
@@ -328,15 +333,15 @@ function insertOne(req) {
         0
       );
       // ^ Verificando os valores de títulos e transações batem
-      if (titulosSoma !== transacoesSoma) {
-        throw new Error("A soma dos titulos e transações não batem!");
+      if (vencimentosSoma !== transacoesSoma) {
+        throw new Error("A soma dos vencimentos e das transações não batem!");
       }
       await conn.beginTransaction();
 
       // ^ Realiza a conciliação do tipo MANUAL
       const [result] = await conn.execute(
-        `INSERT INTO fin_conciliacao_bancaria (id_user, tipo) VALUES (?, ?);`,
-        [req.user.id, "MANUAL"]
+        `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
+        [req.user.id, "MANUAL", id_conta_bancaria]
       );
 
       const newId = result.insertId;
@@ -354,6 +359,7 @@ function insertOne(req) {
 
       for (const vencimento of vencimentos) {
         // ^ Consulta os vencimentos pelo id_titulo para conseguir o id do vencimento
+        console.log(vencimento);
         const [rowsVencimentoTitulo] = await conn.execute(
           `
           SELECT 
@@ -368,24 +374,34 @@ function insertOne(req) {
           rowsVencimentoTitulo && rowsVencimentoTitulo[0];
         // ^ Atualiza o vencimento com os dados da conciliação
         await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ? WHERE id_titulo = ?`,
+          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ? WHERE id = ?`,
           [
             new Date(data_pagamento),
             vencimento.tipo_baixa,
             vencimento.valor_pago,
-            vencimento.id_titulo,
+            vencimento.id_vencimento,
           ]
         );
 
         //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
-        if (vencimento.tipo_baixa === "COM DESCONTO" || vencimento.tipo_baixa === "COM ACRÉSCIMO" ) {
-            const [itens_rateio] = await conn.execute(`SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?`, [vencimento.id_titulo])
-            // Aqui obtemos a diferença entre valor pago e valor do vencimento
-            const diferenca = parseFloat(vencimento.valor_pago) - parseFloat(vencimento.valor);
-            // Aqui geramos a diferença que será acrescida ou descontada de cada item rateio:
-            const difAplicada = diferenca / (itens_rateio?.length || 1);
-            // Aplicamos a diferença nos itens
-            await conn.execute('UPDATE fin_cp_titulos_rateio SET valor = valor + ? WHERE id_titulo = ?', [difAplicada, vencimento.id_titulo])
+        if (
+          vencimento.tipo_baixa === "COM DESCONTO" ||
+          vencimento.tipo_baixa === "COM ACRÉSCIMO"
+        ) {
+          const [itens_rateio] = await conn.execute(
+            `SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?`,
+            [vencimento.id_titulo]
+          );
+          // Aqui obtemos a diferença entre valor pago e valor do vencimento
+          const diferenca =
+            parseFloat(vencimento.valor_pago) - parseFloat(vencimento.valor);
+          // Aqui geramos a diferença que será acrescida ou descontada de cada item rateio:
+          const difAplicada = diferenca / (itens_rateio?.length || 1);
+          // Aplicamos a diferença nos itens
+          await conn.execute(
+            "UPDATE fin_cp_titulos_rateio SET valor = valor + ? WHERE id_titulo = ?",
+            [difAplicada, vencimento.id_titulo]
+          );
         }
 
         if (vencimento.tipo_baixa === "PARCIAL") {
@@ -424,6 +440,7 @@ function insertOne(req) {
             [4, vencimento.id_titulo]
           );
         }
+
         // ^ Adiciona o título nos itens da conciliação bancária
         await conn.execute(
           `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
@@ -432,6 +449,7 @@ function insertOne(req) {
       }
 
       await conn.commit();
+      // await conn.rollback();
 
       resolve({ message: "Sucesso" });
     } catch (error) {
@@ -446,9 +464,12 @@ function insertOne(req) {
 
 function conciliacaoAutomatica(req) {
   return new Promise(async (resolve, reject) => {
-    let { vencimentos, transacoes } = req.body;
+    let { vencimentos, transacoes, id_conta_bancaria } = req.body;
     const conn = await db.getConnection();
     try {
+      if (!id_conta_bancaria) {
+        throw new Error("A conta bancária não foi informada!");
+      }
       await conn.beginTransaction();
       const result = [];
       for (let v = 0; v < vencimentos.length; v++) {
@@ -465,13 +486,14 @@ function conciliacaoAutomatica(req) {
         for (let t = 0; t < transacoes.length; t++) {
           const transacao = transacoes[t];
           if (
-            vencimento.data_pagamento == transacao.data_transacao &&
+            formatDate(vencimento.data_pagamento, "dd-MM-yyyy").toString() ==
+              formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
             vencimento.valor == transacao.valor
           ) {
             //^ UPDATE do Vencimento
             const [result] = await conn.execute(
-              `INSERT INTO fin_conciliacao_bancaria (id_user, tipo) VALUES (?, ?);`,
-              [req.user.id, "AUTOMATICA"]
+              `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
+              [req.user.id, "AUTOMATICA", id_conta_bancaria]
             );
             const newId = result.insertId;
             if (!newId) {
