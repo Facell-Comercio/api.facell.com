@@ -37,7 +37,6 @@ function getAll(req) {
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
-    console.log(filters);
     const {
       id,
       id_grupo_economico,
@@ -69,8 +68,14 @@ function getAll(req) {
     }
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
+
+      const campo_data =
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+          ? `tv.${tipo_data}`
+          : `t.${tipo_data}`;
+
       if (data_de && data_ate) {
-        where += ` AND t.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
           data_ate.split("T")[0]
         }'  `;
       } else {
@@ -130,6 +135,7 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
+      console.log("ERROR_GET_ALL_TITULOS", error);
       reject(error);
     } finally {
       await conn.release();
@@ -491,6 +497,483 @@ function insertOne(req) {
       // console.log('NOVOS_DADOS', novos_dados)
       // console.log(`TITULO ${data.id}: ITENS: `,itens)
       // console.log(`TITULO ${data.id}: ITENS_RATEIO: `,itens_rateio)
+
+      // ^ Validações
+      // Titulo
+      if (!id_filial) {
+        throw new Error("Campo id_filial não informado!");
+      }
+      if (!id_grupo_economico) {
+        throw new Error("Campo id_grupo_economico não informado!");
+      }
+      if (!id_fornecedor) {
+        throw new Error("Campo id_fornecedor não informado!");
+      }
+      if (!id_forma_pagamento) {
+        throw new Error("Campo id_forma_pagamento não informado!");
+      }
+      if (!descricao) {
+        throw new Error("Campo Descrição não informado!");
+      }
+      if (!data_emissao) {
+        throw new Error("Campo data_emissao não informado!");
+      }
+
+      // Se for PIX: Exigir id_tipo_chave_pix e chave_pix
+      if (id_forma_pagamento === "4") {
+        if (!id_tipo_chave_pix || !chave_pix) {
+          throw new Error(
+            "Selecionado forma de pagamento PIX mas não informado tipo chave ou chave PIX"
+          );
+        }
+      }
+      // Se forma de pagamento for na conta, então exigir os dados bancários
+      if (
+        id_forma_pagamento === "2" ||
+        id_forma_pagamento === "5" ||
+        id_forma_pagamento === "8"
+      ) {
+        if (!id_banco || !id_tipo_conta || !agencia || !conta) {
+          throw new Error("Preencha corretamente os dádos bancários!");
+        }
+      }
+
+      // Se tipo solicitação for Com nota, exigir anexos
+      if (id_tipo_solicitacao === "1") {
+        if (!url_nota_fiscal) {
+          throw new Error("Faça o upload da Nota Fiscal!");
+        }
+      } else {
+        if (!url_contrato) {
+          throw new Error("Faça o upload do Contrato/Autorização!");
+        }
+      }
+
+      if (!vencimentos || vencimentos.length === 0) {
+        throw new Error("Vencimento(s) não informado(s)!");
+      }
+
+      // Rateio
+      if (!itens_rateio || itens_rateio.length === 0) {
+        throw new Error("Campo itens_rateio não informado!");
+      }
+
+      // ^ Passamos por cada vencimento, validando os campos
+      for (const vencimento of vencimentos) {
+        const valorVencimento = parseFloat(vencimento.valor);
+        // ^ Validar vencimento se possui todos os campos obrigatórios
+        if (!vencimento.data_vencimento) {
+          throw new Error(
+            `O vencimento não possui data de vencimento! Vencimento: ${JSON.stringify(
+              vencimento
+            )}`
+          );
+        }
+        if (!vencimento.data_prevista) {
+          throw new Error(
+            `O vencimento não possui data prevista para pagamento! Vencimento: ${JSON.stringify(
+              vencimento
+            )}`
+          );
+        }
+        if (!valorVencimento) {
+          throw new Error(
+            `O vencimento não possui valor! Item: ${JSON.stringify(vencimento)}`
+          );
+        }
+        vencimento.valor = valorVencimento;
+      }
+
+      // ^ Passamos por cada item de rateio, validando os campos
+      for (const item_rateio of itens_rateio) {
+        // ^ Validar vencimento se possui todos os campos obrigatórios
+        if (!item_rateio.id_filial) {
+          throw new Error(
+            `ID Filial não informado para o item de rateio: ${JSON.stringify(
+              item_rateio
+            )}`
+          );
+        }
+        if (!item_rateio.id_centro_custo) {
+          throw new Error(
+            `ID CENTRO DE CUSTO não informado para o item de rateio: ${JSON.stringify(
+              item_rateio
+            )}`
+          );
+        }
+        if (!item_rateio.id_plano_conta) {
+          throw new Error(
+            `ID PLANO DE CONTAS não informado para o item de rateio: ${JSON.stringify(
+              item_rateio
+            )}`
+          );
+        }
+        const valorRateio = parseFloat(item_rateio.valor);
+        const percentualRateio = parseFloat(item_rateio.percentual);
+        if (!valorRateio) {
+          throw new Error(
+            `Valor não informado para o item de rateio: ${JSON.stringify(
+              item_rateio
+            )}`
+          );
+        }
+        if (!percentualRateio) {
+          throw new Error(
+            `Percentual não informado para o item de rateio: ${JSON.stringify(
+              item_rateio
+            )}`
+          );
+        }
+        item_rateio.valor = valorRateio;
+        item_rateio.percentual = percentualRateio;
+      }
+
+      // * Obter o Orçamento:
+      const [rowOrcamento] = await conn.execute(
+        `SELECT id FROM fin_orcamento WHERE DATE_FORMAT(ref, '%Y-%m') = ? and id_grupo_economico = ?`,
+        [format(new Date(), "yyyy-MM"), id_grupo_economico]
+      );
+
+      if (!rowOrcamento || rowOrcamento.length === 0) {
+        throw new Error("Orçamento não localizado!");
+      }
+      if (rowOrcamento.length > 1) {
+        throw new Error(
+          `${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`
+        );
+      }
+      const id_orcamento =
+        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
+
+      if (!id_orcamento) {
+        throw new Error("Orçamento não localizado!");
+      }
+
+      // * Persitir os anexos
+      const nova_url_nota_fiscal = await moverArquivoTempParaUploads(
+        url_nota_fiscal
+      );
+      const nova_url_xml = await moverArquivoTempParaUploads(url_xml);
+      const nova_url_boleto = await moverArquivoTempParaUploads(url_boleto);
+      const nova_url_contrato = await moverArquivoTempParaUploads(url_contrato);
+      const nova_url_planilha = await moverArquivoTempParaUploads(url_planilha);
+      const nova_url_txt = await moverArquivoTempParaUploads(url_txt);
+
+      // * Criação do Título a Pagar
+      const [resultInsertTitulo] = await conn.execute(
+        `INSERT INTO fin_cp_titulos 
+        (
+          id_solicitante,
+          id_fornecedor,
+          id_banco,
+          id_forma_pagamento,
+
+          agencia,
+          dv_agencia,
+          id_tipo_conta,
+          conta,
+          dv_conta,
+          favorecido,
+          cnpj_favorecido,
+
+          id_tipo_chave_pix,
+          chave_pix,
+
+          id_tipo_solicitacao,
+          id_filial,
+          
+          data_emissao,
+          num_doc,
+          valor,
+          descricao,
+          
+          id_rateio,
+
+          url_nota_fiscal,
+          url_xml,
+          url_boleto,
+          url_contrato,
+          url_planilha,
+          url_txt
+        )
+
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `,
+        [
+          user.id,
+          id_fornecedor,
+          id_banco || null,
+          id_forma_pagamento,
+
+          agencia || null,
+          dv_agencia || null,
+          id_tipo_conta || null,
+          conta || null,
+          dv_conta || null,
+          favorecido || null,
+          cnpj_favorecido,
+
+          id_tipo_chave_pix || null,
+          chave_pix || null,
+
+          id_tipo_solicitacao,
+          id_filial,
+
+          startOfDay(data_emissao),
+          num_doc,
+          valor,
+          descricao,
+
+          id_rateio || null,
+
+          nova_url_nota_fiscal || null,
+          nova_url_xml || null,
+          nova_url_boleto || null,
+          nova_url_contrato || null,
+          nova_url_planilha || null,
+          nova_url_txt || null,
+        ]
+      );
+
+      const newId = resultInsertTitulo.insertId;
+      // ~ Fim da criação do Título ////////////
+
+      // * Atualizar recorrência
+      if (id_recorrencia) {
+        await conn.execute(
+          `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id =?`,
+          [id_recorrencia]
+        );
+        // !: Increment da recorrência querbrou:
+        // await conn.execute(
+        //   `INSERT INTO fin_cp_titulos_recorrencias (id_user, id_titulo, data_vencimento) VALUES (?, ?, ?)`,
+        //   [user.id, newId, addMonths(new Date(data_vencimento), 1)]
+        // );
+      }
+
+      // * Salvar os novos vencimentos
+      for (const vencimento of vencimentos) {
+        // * Persistir o vencimento do titulo e obter o id:
+        await conn.execute(
+          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, linha_digitavel, valor) VALUES (?,?,?,?,?)`,
+          [
+            newId,
+            startOfDay(vencimento.data_vencimento),
+            startOfDay(vencimento.data_prevista),
+            vencimento.linha_digitavel,
+            vencimento.valor,
+          ]
+        );
+      }
+      //~ Fim de manipulação de vencimentos //////////////////////
+
+      // * Persistir o rateio
+      for (const item_rateio of itens_rateio) {
+        // Validar os campos do item rateio:
+
+        // ^ Vamos validar se orçamento possui saldo:
+        // Obter a Conta de Orçamento com o Valor Previsto:
+        const [rowOrcamentoConta] = await conn.execute(
+          `SELECT id, valor_previsto FROM fin_orcamento_contas 
+          WHERE 
+            id_orcamento = ?
+            AND id_centro_custo = ?
+            AND id_plano_contas = ?
+            `,
+          [
+            id_orcamento,
+            item_rateio.id_centro_custo,
+            item_rateio.id_plano_conta,
+          ]
+        );
+
+        if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
+          throw new Error(
+            `Não existe conta no orçamento para ${item_rateio.centro_custo}: ${item_rateio.plano_conta}!`
+          );
+        }
+        const id_orcamento_conta =
+          rowOrcamentoConta &&
+          rowOrcamentoConta[0] &&
+          rowOrcamentoConta[0]["id"];
+
+        let valor_previsto =
+          rowOrcamentoConta &&
+          rowOrcamentoConta[0] &&
+          rowOrcamentoConta[0]["valor_previsto"];
+        valor_previsto = parseFloat(valor_previsto);
+
+        // Obter o Valor Realizado da Conta do Orçamento :
+        const [rowConsumoOrcamento] = await conn.execute(
+          `SELECT sum(valor) as valor 
+          FROM fin_orcamento_consumo 
+          WHERE active = true AND id_orcamento_conta = ?`,
+          [id_orcamento_conta]
+        );
+        let valor_total_consumo =
+          (rowConsumoOrcamento &&
+            rowConsumoOrcamento[0] &&
+            rowConsumoOrcamento[0]["valor"]) ||
+          0;
+        valor_total_consumo = parseFloat(valor_total_consumo);
+
+        // Calcular o saldo da conta do orçamento:
+        const saldo = valor_previsto - valor_total_consumo;
+        if (saldo < item_rateio.valor) {
+          throw new Error(
+            `Saldo insuficiente para ${item_rateio.centro_custo}: ${
+              item_rateio.plano_conta
+            }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
+          );
+        }
+
+        // * Persistir Item Rateio
+        const [resultInsertItemRateio] = await conn.execute(
+          `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, valor, percentual) VALUES (?,?,?,?,?,?)`,
+          [
+            newId,
+            item_rateio.id_filial,
+            item_rateio.id_centro_custo,
+            item_rateio.id_plano_conta,
+            item_rateio.valor,
+            item_rateio.percentual,
+          ]
+        );
+
+        // * Persistir a conta de consumo do orçamento:
+        await conn.execute(
+          `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
+          [
+            id_orcamento_conta,
+            resultInsertItemRateio.insertId,
+            item_rateio.valor,
+          ]
+        );
+      }
+
+      // Gerar e Registar historico:
+      let historico = `CRIADO POR: ${normalizeFirstAndLastName(user.nome)}.\n`;
+
+      await conn.execute(
+        `INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
+        [newId, historico]
+      );
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERROR_INSERT_ONE_TITULO_PAGAR", error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+// ^ Verificar se quebrou
+function insertOneRecorrencia(req) {
+  return new Promise(async (resolve, reject) => {
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      const { user } = req;
+      const data = req.body;
+      const { id, data_vencimento } = data || {};
+
+      // ~ Criação da data do mês seguinte
+      const new_data_vencimento = addMonths(data_vencimento, 1);
+
+      // ^ Validações
+      // Titulo
+      if (!id) {
+        throw new Error("Campo id não informado!");
+      }
+
+      const [rowsExistentes] = await conn.execute(
+        `SELECT id FROM fin_cp_titulos_recorrencias WHERE id_titulo = ? AND data_vencimento = ?`,
+        [id, new Date(new_data_vencimento)]
+      );
+      if (rowsExistentes && rowsExistentes.length > 0) {
+        throw new Error("Recorrência já criada com base nesse título!");
+      }
+      if (!data_vencimento) {
+        throw new Error("Campo data_vencimento não informado!");
+      }
+
+      // * Criação da Recorrência
+      await conn.execute(
+        `INSERT INTO fin_cp_titulos_recorrencias 
+        (
+          id_titulo,
+          data_vencimento,
+          id_user
+        )
+          VALUES (?,?,?)
+        `,
+        [id, new Date(new_data_vencimento), user.id]
+      );
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.log("ERROR_INSERT_ONE_RECORRÊNCIA_PGTO", error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      await conn.release();
+    }
+  });
+}
+
+// ? rascunho
+function insertManyFromGN(req) {
+  return new Promise(async (resolve, reject) => {
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      const { user } = req;
+      {
+        vencimentos: [
+          {
+            id_filial: 1,
+            data_emissao: "2024-05-01",
+            data_vencimento: "2024-05-05",
+            valor: 40000.0,
+            cnpj_fornecedor: "24",
+          },
+        ];
+      }
+
+      const data = req.body;
+      const {
+        id_filial, //! receber
+        id_grupo_economico, //! obter pela filial
+
+        id_fornecedor, //! buscar pelo cnpj
+        id_forma_pagamento, // fixar uma opção
+
+        // Geral
+        id_centro_custo, // fixar o de Compras
+        data_emissao, //! data_emissao do GN
+        data_vencimento, //! data_vencimento do GN
+        data_prevista, // gerar com base na data de vencimento
+        num_parcelas, //1
+        parcela, //1
+
+        num_doc, //! nota fiscal
+        valor, //! valor da nota
+
+        id_tipo_solicitacao, // 3 - Sem nota fiscal
+        descricao, // COMPRA DE MERCADORIA TIM - NF XXX
+
+        vencimentos, // fixar 1 item com base no plano de contas X
+
+        id_rateio, // fixar em rateio manual
+        itens_rateio, // fixar em 100% para o id_filial
+
+        url_contrato, // fixar um anexo salvo em uploads
+      } = data || {};
 
       // ^ Validações
       // Titulo
@@ -1776,32 +2259,35 @@ function exportDatasys(req) {
       if (!id_grupo_economico) {
         throw new Error("GRUPO ECONÔMICO não selecionada!");
       }
+      console.log(filters);
       const [datasys] = await conn.execute(
         `
         SELECT 
+          tr.id_titulo,  
           f.cnpj as cnpj_loja,
           fo.cnpj as cnpj_fornecedor,
-          ti.id as documento,
-          t.data_emissao as emisao, tv.data_vencimento as vencimento,
-          ti.valor,
+          tr.id as documento,
+          t.data_emissao as emissao, tv.data_vencimento as vencimento,
+          tv.valor_pago as valor,
           fp.forma_pagamento as tipo_documento,
           t.descricao as historico,
           cc.nome as centro_custo,
           pc.codigo as plano_contas,
           f_item.cnpj as cnpj_rateio,
-          tri.valor as valor_rateio,
+          tr.valor as valor_rateio,
           cb.descricao as banco_pg,
           tv.data_pagamento as data_pg,
+          tr.id_centro_custo, tr.id_plano_conta, tr.id_filial,
+          tv.linha_digitavel as bar_code,
           fo.nome as nome_fornecedor
         FROM fin_cp_titulos t
-        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_cp_titulos_rateio tr ON tr.id_titulo = t.id
+        LEFT JOIN filiais f ON f.id = tr.id_filial
         LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
-        LEFT JOIN fin_cp_titulos_itens ti ON ti.id_titulo = t.id
         LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
-        LEFT JOIN fin_centros_custo cc ON cc.id = t.id_centro_custo
-        LEFT JOIN fin_plano_contas pc ON pc.id = ti.id_plano_conta
-        LEFT JOIN fin_cp_titulos_rateio_itens tri ON tri.id_titulo = t.id
-        LEFT JOIN filiais f_item ON f_item.id = tri.id_filial
+        LEFT JOIN fin_centros_custo cc ON cc.id = tr.id_centro_custo
+        LEFT JOIN fin_plano_contas pc ON pc.id = tr.id_plano_conta
+        LEFT JOIN filiais f_item ON f_item.id = tr.id_filial
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
         LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
         LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -1809,11 +2295,37 @@ function exportDatasys(req) {
         WHERE tv.data_pagamento = ?
         AND cc.id_grupo_economico = ?
         AND t.id_status = 4
-        ORDER BY ti.id DESC
+        ORDER BY tr.id DESC
       `,
         [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
       );
-      resolve(datasys);
+
+      function ajustarIdTitulo(array) {
+        const map = new Map();
+        const id_titulo = array[0].id_titulo;
+        let autoIncrement = 1;
+
+        array.forEach((objeto) => {
+          const chave = `${objeto.id_centro_custo}-${objeto.id_plano_conta}`;
+
+          if (map.has(chave)) {
+            objeto.id_titulo = map.get(chave);
+          } else {
+            objeto.id_titulo = `${id_titulo}.${autoIncrement}`;
+            map.set(chave, objeto.id_titulo);
+            autoIncrement++;
+          }
+        });
+
+        return array;
+      }
+
+      if (!datasys.length) {
+        throw new Error("Nenhum título encontrado!");
+      }
+      // console.log(output);
+      // resolve();
+      resolve(ajustarIdTitulo(datasys));
     } catch (error) {
       console.log("ERRO EXPORT DATASYS TITULOS", error);
       reject(error);

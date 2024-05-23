@@ -95,67 +95,6 @@ function getAll(req) {
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();
     try {
-      // ^ Filtros que necessitam de consultas no banco
-      // if (id_vencimento) {
-      //   const [vencimento] = await conn.execute(
-      //     `
-      //     SELECT b.id
-      //     FROM fin_cp_bordero b
-      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-      //     WHERE tb.id_vencimento = ?
-      //   `,
-      //     [id_vencimento]
-      //   );
-      //   where += ` AND b.id = ? `;
-      //   params.push(vencimento[0].id);
-      // }
-      // if (id_titulo) {
-      //   const [vencimento] = await conn.execute(
-      //     `
-      //     SELECT b.id
-      //     FROM fin_cp_bordero b
-      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-      //     LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
-      //     WHERE tv.id_titulo = ?
-      //   `,
-      //     [id_titulo]
-      //   );
-      //   where += ` AND b.id = ? `;
-      //   params.push(vencimento[0].id);
-      // }
-      // if (fornecedor) {
-      //   const [vencimento] = await conn.execute(
-      //     `
-      //     SELECT b.id
-      //     FROM fin_cp_bordero b
-      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-      //     LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
-      //     LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-      //     LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-      //     WHERE ff.nome LIKE CONCAT('%', ?, '%')
-      //   `,
-      //     [fornecedor]
-      //   );
-      //   where += ` AND b.id IN ? `;
-      //   params.push(vencimento[0].id);
-      // }
-      // if (num_doc) {
-      //   const [vencimento] = await conn.execute(
-      //     `
-      //     SELECT b.id
-      //     FROM fin_cp_bordero b
-      //     LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
-      //     LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
-      //     LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-      //     WHERE t.num_doc = ?
-      //   `,
-      //     [num_doc]
-      //   );
-      //   where += ` AND b.id = ? `;
-      //   params.push(vencimento[0].id);
-      // }
-
-      //^ Consultas com todos os filtros
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
@@ -221,7 +160,7 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       reject(error);
     } finally {
       conn.release();
@@ -276,11 +215,12 @@ function getOne(req) {
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
             LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+            LEFT JOIN fin_cp_titulos_rateio tr ON tr.id_titulo = tv.id_titulo
             LEFT JOIN fin_cp_status st ON st.id = t.id_status
             LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
-            LEFT JOIN fin_centros_custo c ON c.id = t.id_centro_custo
+            LEFT JOIN fin_centros_custo c ON c.id = tr.id_centro_custo
             WHERE b.id = ?
             GROUP BY tv.id
             `,
@@ -295,6 +235,7 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
+      console.log(error);
       reject(error);
       return;
     } finally {

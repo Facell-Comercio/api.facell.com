@@ -66,7 +66,7 @@ function getAll(req) {
       const [rowsTitulosConciliar] = await conn.execute(
         `
       SELECT
-          tv.id_titulo, tv.valor, t.descricao, t.num_doc,
+          tv.id_titulo, tv.id as id_vencimento, tv.valor, t.descricao, t.num_doc,
           forn.nome as nome_fornecedor,
           f.nome as filial,
           tv.data_prevista as data_pagamento
@@ -318,6 +318,7 @@ function insertOne(req) {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
+      console.log(req.body);
       const titulosSoma = vencimentos.reduce(
         (acc, item) => acc + +item.valor_pago,
         0

@@ -182,11 +182,10 @@ function downloadMovimentoContabil(req, res) {
             SELECT 
                 tv.id,
                 tv.id_titulo, 
-                eb.id as id_extrato_bancario,
                 ff.cnpj, ff.nome as nome_fornecedor,
                 f.nome as filial, f.cnpj as cnpj_filial,
                 t.descricao, t.num_doc, tv.valor, 
-                eb.data_transacao, cb.descricao as banco,
+                tv.data_pagamento, cb.descricao as banco,
                 t.url_nota_fiscal,
                 t.url_xml,
                 t.url_boleto,
@@ -200,10 +199,9 @@ function downloadMovimentoContabil(req, res) {
             LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
             LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
-            LEFT JOIN fin_extratos_bancarios as eb ON eb.id_conta_bancaria = b.id_conta_bancaria
             WHERE 
             cb.id = ?
-            AND DATE(eb.data_transacao) = ?
+            AND DATE(tv.data_pagamento) = ?
             AND t.id_status = ?
             GROUP BY t.id
         `,
@@ -229,8 +227,7 @@ function downloadMovimentoContabil(req, res) {
           titulos.forEach((vencimento) => {
             console.log("VENCIMENTO", vencimento);
             itemsExcel.push({
-              ID: vencimento.id,
-              "ID EXTRATO BANCÁRIO": vencimento.id_extrato_bancario,
+              "ID VENCIMENTO": vencimento.id,
               "ID TÍTULO": vencimento.id_titulo,
               "CPF/CNPJ": normalizeCnpjNumber(vencimento.cnpj || ""),
               "NOME FORNECEDOR": vencimento.nome_fornecedor || "",
@@ -239,9 +236,8 @@ function downloadMovimentoContabil(req, res) {
               DESCRIÇÃO: vencimento.descricao || "",
               "Nº DOC": vencimento.num_doc || "",
               "VALOR TÍTULO": vencimento.valor || "",
-              "DT PAG": vencimento.data_transacao || "",
+              "DT PAG": vencimento.data_pagamento || "",
               BANCO: vencimento.banco || "",
-              "ID EXTRATO": vencimento.id,
             });
 
             tipos_anexos.forEach((tipo) => {
