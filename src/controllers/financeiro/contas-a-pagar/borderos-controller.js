@@ -239,7 +239,7 @@ function getOne(req) {
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -283,7 +283,7 @@ function insertOne(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -379,7 +379,7 @@ function deleteVencimento(req) {
 
       if (rowVencimento[0].id_status === 4) {
         throw new Error(
-          "Não é possível remover do borderô titulos com status pago!"
+          "Não é possível remover do borderô vencimentos pagos!"
         );
       }
 
@@ -391,11 +391,11 @@ function deleteVencimento(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_TITULO_BORDERO", error);
+      console.log("ERRO_DELETE_VENCIMENTO_BORDERO", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -403,7 +403,7 @@ function deleteVencimento(req) {
 function deleteBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const titulos = req.body;
+    const vencimentos = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -413,8 +413,9 @@ function deleteBordero(req) {
 
       await conn.beginTransaction();
 
-      for (const titulo of titulos) {
-        if (titulo.id_status === 4) {
+      for (const vencimento of vencimentos) {
+        const [rowVencimento] = await conn.execute('SELECT id FROM fin_cp_titulos_vencimentos WHERE id = ? AND NOT data_pagamento IS NULL ', [vencimento.id])
+        if(rowVencimento && rowVencimento.length > 0){
           throw new Error(
             "Não é possível remover do borderô titulos com status pago!"
           );
@@ -432,7 +433,7 @@ function deleteBordero(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
