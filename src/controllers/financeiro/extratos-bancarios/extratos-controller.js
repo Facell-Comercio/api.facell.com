@@ -108,6 +108,45 @@ function getAll(req) {
   });
 }
 
+function getAllTransacaoPadrao(req) {
+  return new Promise(async (resolve, reject) => {
+    // Filtros
+    const { id_conta_bancaria } = req.query;
+
+    let where = ` WHERE 1=1 `;
+    const params = [];
+
+    const conn = await db.getConnection();
+    try {
+
+      if (id_conta_bancaria) {
+        where += ` AND e.id_conta_bancaria = ? `;
+        params.push(id_conta_bancaria);
+      }
+
+      const query = `
+        SELECT
+          e.*
+        FROM fin_extratos_padroes e
+
+        ${where}
+        ORDER BY e.id DESC
+      `;
+
+      const [rows] = await conn.execute(query, params);
+
+      const objResponse = {
+        rows: rows,
+      };
+
+      resolve(objResponse);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
@@ -204,18 +243,7 @@ function importarExtrato(req) {
         throw new Error(`OFX Agência/Conta ${ofx_conta.ACCTID}, diverge de conta selecionada: Agência: ${contaBancaria.agencia} Conta: ${contaBancaria.conta}`)
       }
 
-      const [transacoesIgnoradas] = await conn.execute(`SELECT * FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`, [id_conta_bancaria])
-      transacoesIgnoradas.push({ descricao: 'SALDO ANTERIOR', tipo_transacao: 'CREDIT' })
-      transacoesIgnoradas.push({ descricao: 'SALDO DO DIA', tipo_transacao: 'CREDIT' })
-
-      function deveIgnorarTransacao(transacao) {
-        if (!transacoesIgnoradas || transacoesIgnoradas.length === 0) {
-          return false
-        }
-        return transacoesIgnoradas.some(ignorada => ignorada.descricao === transacao.MEMO && ignorada.tipo_transacao === transacao.TRNTYPE);
-      }
-
-      const ofx_transactions = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN.filter(transacao => !deveIgnorarTransacao(transacao));
+      const ofx_transactions = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN
       const data_atual = formatDate(new Date(), 'yyyy-MM-dd');
 
       for (const transaction of ofx_transactions) {
@@ -226,7 +254,7 @@ function importarExtrato(req) {
         const descricao_transacao = transaction.MEMO
         const tipo_transacao = transaction.TRNTYPE
 
-        if(data_transaction > data_atual){
+        if(data_transaction >= data_atual){
           continue
         }
 
@@ -268,102 +296,116 @@ function importarExtrato(req) {
   });
 }
 
-function update(req) {
+function insertOneTransacaoPadrao(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, id_conta_bancaria, data_pagamento, titulos } = req.body;
-    // console.log(req.body)
+    const { id_conta_bancaria, descricao, tipo_transacao } = req.body;
     const conn = await db.getConnection();
     try {
-      if (!id) {
-        throw new Error("ID não informado!");
-      }
       if (!id_conta_bancaria) {
-        throw new Error("ID_CONTA_BANCARIA não informado!");
+        throw new Error(
+          "ID Conta bancária não informado"
+        );
       }
-      if (!data_pagamento) {
-        throw new Error("DATA_PAGAMENTO não informada!");
+      if (!descricao || descricao.length === 0) {
+        throw new Error(
+          "Campo Descrição não informado"
+        );
+      }
+      if (!tipo_transacao) {
+        throw new Error(
+          "Campo Tipo Transação não informado"
+        );
       }
 
       await conn.beginTransaction();
 
-      const [rowBordero] = await conn.execute(`SELECT data_pagamento FROM fin_extratos_bancarios WHERE id =?`, [id])
-      const bordero = rowBordero && rowBordero[0]
-      if (!bordero) {
-        throw new Error('Borderô inexistente!')
-      }
-      const data_pagamento_anterior = bordero.data_pagamento;
-
-      // Update do bordero
-      await conn.execute(
-        `UPDATE fin_extratos_bancarios SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
-        [startOfDay(data_pagamento), id_conta_bancaria, id]
-      );
-
-      if (startOfDay(data_pagamento).toISOString() != startOfDay(data_pagamento_anterior).toISOString()) {
-        // Update titulos do bordero igualando a data_prevista à data_pagamento do bordero
-        await conn.execute(`
-        UPDATE fin_cp_titulos 
-        SET data_prevista = ? 
-        WHERE id IN (
-          SELECT id_titulo FROM fin_cp_titulos_borderos WHERE id_bordero = ?
-        )`, [startOfDay(data_pagamento), id])
-      }
-
-      // Inserir os itens do bordero
-      if (titulos.length > 0) {
-        for (const titulo of titulos) {
-          await conn.execute(
-            `INSERT INTO fin_cp_titulos_borderos (id_titulo, id_bordero) VALUES(?,?)`,
-            [titulo.id_titulo, id]
-          );
-        };
-      }
+      await conn.execute(`INSERT INTO fin_extratos_padroes (id_conta_bancaria, tipo_transacao, descricao) VALUES (?,?,?);`, 
+      [id_conta_bancaria,tipo_transacao, descricao]);
 
       await conn.commit();
-      resolve({ message: "Sucesso!" });
+      resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_BORDEROS_UPDATE", error);
+      console.log("ERRO_INSERT_ONE_TRANSACAO_PADRAO", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      conn.release();
     }
   });
 }
 
-function deleteBordero(req) {
+function updateTransacaoPadrao(req) {
   return new Promise(async (resolve, reject) => {
-    const { id } = req.params;
-    const titulos = req.body;
+    const { id_padrao, id_conta_bancaria, descricao, tipo_transacao } = req.body;
+    const conn = await db.getConnection();
+    try {
+      if (!id_padrao) {
+        throw new Error(
+          "ID do padrão não informado"
+        );
+      }
+      if (!id_conta_bancaria) {
+        throw new Error(
+          "ID Conta bancária não informado"
+        );
+      }
+      if (!descricao || descricao.length === 0) {
+        throw new Error(
+          "Campo Descrição não informado"
+        );
+      }
+      if (!tipo_transacao) {
+        throw new Error(
+          "Campo Tipo Transação não informado"
+        );
+      }
+
+      await conn.beginTransaction();
+
+      await conn.execute(`UPDATE fin_extratos_padroes SET tipo_transacao=?, descricao=? WHERE id=?;`, 
+      [tipo_transacao, descricao, id_padrao]);
+
+      await conn.commit();
+      resolve({ message: "Sucesso" });
+    } catch (error) {
+      console.log("ERRO_UPDATE_TRANSACAO_PADRAO", error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function deleteTransacaoPadrao(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id_padrao } = req.query;
 
     const conn = await db.getConnection();
     try {
-      if (!id) {
+      if (!id_padrao) {
         throw new Error("ID não informado!");
       }
 
       await conn.beginTransaction();
 
-      for (const titulo of titulos) {
-        if (titulo.id_status === 4) {
-          throw new Error(
-            "Não é possível remover do borderô titulos com status pago!"
-          );
-        }
-      }
-
-      await conn.execute(`DELETE FROM fin_extratos_bancarios WHERE id = ? LIMIT 1`, [
-        id,
+      await conn.execute(`DELETE FROM fin_extratos_padroes WHERE id = ? `, [
+        id_padrao,
       ]);
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_BORDERO", error);
+      console.log("ERRO_DELETE_TRANSACAO_PADRAO", error);
       await conn.rollback();
       reject(error);
+    } finally{
+      conn.release();
     }
   });
 }
 
+// ! refatorar para extratos
 async function exportBorderos(req) {
   return new Promise(async (resolve, reject) => {
     const { data: borderos } = req.body;
@@ -425,9 +467,11 @@ async function exportBorderos(req) {
 
 module.exports = {
   getAll,
+  getAllTransacaoPadrao,
   getOne,
+  insertOneTransacaoPadrao,
   importarExtrato,
-  update,
-  deleteBordero,
+  updateTransacaoPadrao,
+  deleteTransacaoPadrao,
   exportBorderos,
 };

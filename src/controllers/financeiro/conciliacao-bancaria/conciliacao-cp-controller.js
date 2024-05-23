@@ -363,6 +363,7 @@ function insertOne(req) {
         `,
           [vencimento.id_titulo]
         );
+
         const vencimentoTitulo =
           rowsVencimentoTitulo && rowsVencimentoTitulo[0];
         // ^ Atualiza o vencimento com os dados da conciliação
@@ -375,6 +376,18 @@ function insertOne(req) {
             vencimento.id_titulo,
           ]
         );
+
+        //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
+        if (vencimento.tipo_baixa === "COM DESCONTO" || vencimento.tipo_baixa === "COM ACRÉSCIMO" ) {
+            const [itens_rateio] = await conn.execute(`SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?`, [vencimento.id_titulo])
+            // Aqui obtemos a diferença entre valor pago e valor do vencimento
+            const diferenca = parseFloat(vencimento.valor_pago) - parseFloat(vencimento.valor);
+            // Aqui geramos a diferença que será acrescida ou descontada de cada item rateio:
+            const difAplicada = diferenca / (itens_rateio?.length || 1);
+            // Aplicamos a diferença nos itens
+            await conn.execute('UPDATE fin_cp_titulos_rateio SET valor = valor + ? WHERE id_titulo = ?', [difAplicada, vencimento.id_titulo])
+        }
+
         if (vencimento.tipo_baixa === "PARCIAL") {
           const valor =
             parseFloat(vencimento.valor) - parseFloat(vencimento.valor_pago);
