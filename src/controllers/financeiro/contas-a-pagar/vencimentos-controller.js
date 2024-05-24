@@ -50,11 +50,11 @@ function getAll(req) {
 
     const params = [];
     if (id) {
-      where += ` AND t.id LIKE CONCAT(?,'%') `;
+      where += ` AND t.id = ? `;
       params.push(id);
     }
     if (id_status && id_status !== "all") {
-      where += ` AND t.id_status LIKE CONCAT(?,'%') `;
+      where += ` AND t.id_status = ? `;
       params.push(id_status);
     }
     if (descricao) {

@@ -13,7 +13,6 @@ const {
   getConciliacoes,
 } = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
 const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
-const checkUserDepartment = require("../../../../../middlewares/derpartment-middleware");
 
 router.get("/", async (req, res) => {
   try {

@@ -48,7 +48,6 @@ function getAll(req) {
       nome_fornecedor,
       nome_user,
     } = filters || {};
-
     const params = [];
     if (id) {
       where += ` AND t.id LIKE CONCAT(?,'%') `;
@@ -127,8 +126,6 @@ function getAll(req) {
         params.push(pageSize);
         params.push(offset);
       }
-      // console.log(query);
-      // console.log(params);
       const [titulos] = await conn.execute(query, params);
       // console.log(query, params, titulos);
       const objResponse = {
@@ -170,7 +167,6 @@ function getAllCpVencimentosBordero(req) {
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
-    // console.log(filters);
     const {
       id_vencimento,
       id_titulo,
@@ -185,7 +181,7 @@ function getAllCpVencimentosBordero(req) {
       termo,
     } = filters || {};
 
-    console.log(filters);
+    // console.log(filters);
     const params = [];
     if (termo) {
       where += ` AND (
@@ -204,13 +200,14 @@ function getAllCpVencimentosBordero(req) {
       params.push(termo);
     }
     if (id_vencimento) {
-      where += ` AND tv.id LIKE CONCAT(?,'%') `;
+      where += ` AND tv.id = ? `;
       params.push(id_vencimento);
     }
     if (id_titulo) {
-      where += ` AND tv.id_titulo LIKE CONCAT(?,'%') `;
+      where += ` AND tv.id_titulo = ? `;
       params.push(id_titulo);
     }
+
     if (descricao) {
       where += ` t.descricao LIKE CONCAT('%',?,'%')  `;
       params.push(descricao);
@@ -278,7 +275,7 @@ function getAllCpVencimentosBordero(req) {
       var query = `
             SELECT DISTINCT 
                 tv.id as id_vencimento, t.id as id_titulo, t.id_status, s.status, tv.data_prevista as previsao, 
-                t.descricao, t.valor as valor_total,
+                t.descricao, tv.valor as valor_total,
                 f.nome as filial, f.id_matriz,
                 forn.nome as nome_fornecedor, t.num_doc, tv.data_vencimento as data_pagamento
             FROM fin_cp_titulos t 
@@ -309,7 +306,7 @@ function getAllCpVencimentosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error('GET_ALL_VENCIMENTOS_BORDERO',error.message);
+      console.log("ERROR_GET_CP_VENCIMENTOS_BORDERO", error);
       reject(error);
     } finally {
       conn.release();
@@ -2167,8 +2164,8 @@ function exportDatasys(req) {
       console.log(filters);
       const [datasys] = await conn.execute(
         `
-        SELECT 
-          tr.id_titulo,  
+        SELECT DISTINCT 
+          tv.id as id_vencimento, tr.id_titulo,  
           f.cnpj as cnpj_loja,
           fo.cnpj as cnpj_fornecedor,
           tr.id as documento,
@@ -2179,12 +2176,13 @@ function exportDatasys(req) {
           cc.nome as centro_custo,
           pc.codigo as plano_contas,
           f_item.cnpj as cnpj_rateio,
-          tr.valor as valor_rateio,
+          tv.valor_pago as valor_rateio,
           cb.descricao as banco_pg,
           tv.data_pagamento as data_pg,
           tr.id_centro_custo, tr.id_plano_conta, tr.id_filial,
           tv.linha_digitavel as bar_code,
-          fo.nome as nome_fornecedor
+          fo.nome as nome_fornecedor,
+          tr.percentual
         FROM fin_cp_titulos t
         LEFT JOIN fin_cp_titulos_rateio tr ON tr.id_titulo = t.id
         LEFT JOIN filiais f ON f.id = tr.id_filial
@@ -2199,7 +2197,6 @@ function exportDatasys(req) {
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
         WHERE tv.data_pagamento = ?
         AND cc.id_grupo_economico = ?
-        AND t.id_status = 4
         ORDER BY tr.id DESC
       `,
         [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
@@ -2207,16 +2204,21 @@ function exportDatasys(req) {
 
       function ajustarIdTitulo(array) {
         const map = new Map();
-        const id_titulo = array[0].id_titulo;
         let autoIncrement = 1;
+        let oldId = "";
 
         array.forEach((objeto) => {
-          const chave = `${objeto.id_centro_custo}-${objeto.id_plano_conta}`;
+          const chave = `${objeto.id_centro_custo}-${objeto.id_plano_conta}-${objeto.id_vencimento}`;
+
+          if (oldId != objeto.id_titulo) {
+            autoIncrement = 1;
+          }
+          oldId = objeto.id_titulo;
 
           if (map.has(chave)) {
             objeto.id_titulo = map.get(chave);
           } else {
-            objeto.id_titulo = `${id_titulo}.${autoIncrement}`;
+            objeto.id_titulo = `${objeto.id_titulo}.${objeto.id_vencimento}.${autoIncrement}`;
             map.set(chave, objeto.id_titulo);
             autoIncrement++;
           }
