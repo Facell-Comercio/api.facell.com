@@ -24,7 +24,6 @@ jobs:
         port: 22
         script: |
           cd /home/api.facell.com/+
-          git stash
           git pull origin main
           git status
           npm install
