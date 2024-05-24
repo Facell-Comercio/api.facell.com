@@ -270,6 +270,7 @@ function getVencimentosAPagar(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.log('ERROR_GET_VENCIMENTOS_PAGAR', error)
       reject(error);
     } finally {
       conn.release();
