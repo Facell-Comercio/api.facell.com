@@ -1,0 +1,189 @@
+const { endOfMonth, formatDate } = require("date-fns");
+const path = require("path");
+const { db } = require("../../../../mysql");
+const { createUploadsPath, zipFiles } = require("../../files-controller");
+const { normalizeCnpjNumber } = require("../../../helpers/mask");
+const XLSX = require("xlsx");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
+
+function getAllSolicitacoesNegadas(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const { pagination } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
+
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+
+    var where = ` WHERE 1=1 `;
+    //^ Somente o Financeiro/Master podem ver todos
+    if (
+      !checkUserDepartment(req, "FINANCEIRO") &&
+      !checkUserPermission(req, "MASTER")
+    ) {
+      where += ` AND t.id_solicitante = '${user.id}' `;
+    }
+    const params = [];
+    // where += `
+    // AND t.id_status = 3
+    //   AND tb.id_vencimento IS NULL `;
+
+    const conn = await db.getConnection();
+    try {
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde
+        FROM (
+          SELECT
+          t.id 
+          FROM fin_cp_titulos t 
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+
+
+          ${where}
+          AND t.id_status = 2
+        ) AS subconsulta
+        `
+      );
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+
+      var query = `
+            SELECT
+                t.id, t.created_at as data_solicitacao,
+                t.valor, forn.nome as nome_fornecedor,
+                f.nome as filial, t.descricao 
+            FROM fin_cp_titulos t 
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+
+
+            ${where}
+            AND t.id_status = 2
+            ORDER BY 
+                t.created_at DESC 
+            LIMIT ? OFFSET ?`;
+      params.push(pageSize);
+      params.push(offset);
+      const [vencimentos] = await conn.execute(query, params);
+
+      const objResponse = {
+        rows: vencimentos,
+        pageCount: Math.ceil(totalVencimentos / pageSize),
+        rowCount: totalVencimentos,
+      };
+      resolve(objResponse);
+    } catch (error) {
+      console.log("ERROR_GET_ALL_SOLICITAÇÕES_NEGADAS", error);
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function getAllNotasFiscaisPendentes(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const { pagination } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
+
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+
+    var where = ` WHERE 1=1 `;
+    //^ Somente o Financeiro/Master podem ver todos
+    if (
+      !checkUserDepartment(req, "FINANCEIRO") &&
+      !checkUserPermission(req, "MASTER")
+    ) {
+      where += ` AND t.id_solicitante = '${user.id}' `;
+    }
+    const params = [];
+    // where += `
+    // AND t.id_status = 3
+    //   AND tb.id_vencimento IS NULL `;
+
+    const conn = await db.getConnection();
+    try {
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde
+        FROM (
+          SELECT
+            t.id 
+          FROM fin_cp_titulos t 
+          LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+          LEFT JOIN filiais f ON f.id = t.id_filial 
+          LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+          LEFT JOIN users u ON u.id = t.id_solicitante
+          INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+
+
+          ${where}
+          AND t.id_tipo_solicitacao = 2
+          AND t.url_nota_fiscal IS NULL
+          OR t.url_nota_fiscal = ""
+        ) AS subconsulta
+        `
+      );
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+
+      var query = `
+            SELECT
+                t.id, t.created_at as data_solicitacao,
+                t.valor, forn.nome as nome_fornecedor,
+                f.nome as filial, t.descricao,
+                t.url_nota_fiscal 
+            FROM fin_cp_titulos t 
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+
+            ${where}
+            AND t.id_tipo_solicitacao = 2
+            AND (t.url_nota_fiscal IS NULL
+            OR t.url_nota_fiscal = "")
+
+            ORDER BY 
+                t.created_at DESC 
+            LIMIT ? OFFSET ?`;
+      params.push(pageSize);
+      params.push(offset);
+      const [vencimentos] = await conn.execute(query, params);
+
+      const objResponse = {
+        rows: vencimentos,
+        pageCount: Math.ceil(totalVencimentos / pageSize),
+        rowCount: totalVencimentos,
+      };
+      resolve(objResponse);
+    } catch (error) {
+      console.log(
+        "ERROR_GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
+        error
+      );
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+module.exports = {
+  getAllSolicitacoesNegadas,
+  getAllNotasFiscaisPendentes,
+};

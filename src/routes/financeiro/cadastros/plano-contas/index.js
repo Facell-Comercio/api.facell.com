@@ -7,7 +7,6 @@ const {
   update,
 } = require("../../../../controllers/financeiro/cadastros/plano-contas-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
-const checkUserDepartment = require("../../../../middlewares/derpartment-middleware");
 
 router.get("/", async (req, res) => {
   try {

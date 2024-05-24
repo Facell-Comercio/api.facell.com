@@ -1,4 +1,4 @@
-const { startOfDay, addYears, addMonths, formatDate } = require("date-fns");
+const { addMonths, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -122,7 +122,6 @@ function getAll(req) {
 
         ${whereTituloConciliado}
         AND NOT cbi.id IS NULL
-        GROUP BY t.id
         ORDER BY tv.data_prevista DESC
       `,
         params
@@ -153,7 +152,7 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log("ERRO GET ALL CONCILIACAO", error);
+      console.log("ERRO_CONCILIACAO_CP_GET_ALL", error);
       reject(error);
     } finally {
       conn.release();
@@ -237,7 +236,7 @@ function getConciliacoes(req) {
 
       resolve(rowsConciliacoes);
     } catch (error) {
-      console.log("ERRO GET ALL CONCILIACAO", error);
+      console.log("ERRO_CONCILIACAO_CP_GET_CONCILIACOES", error);
       reject(error);
     } finally {
       conn.release();
@@ -261,6 +260,9 @@ function getOne(req) {
         [id]
       );
       const conciliacao = rowConciliacao && rowConciliacao[0];
+      if (!conciliacao) {
+        throw new Error("Conciliação não encontrada!");
+      }
       const [rowVencimentos] = await conn.execute(
         `
           SELECT
@@ -300,6 +302,7 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
+      console.log("ERRO_CONCILIACAO_CP_GET_ONE", error);
       reject(error);
       return;
     } finally {
@@ -323,7 +326,6 @@ function insertOne(req) {
       if (!id_conta_bancaria) {
         throw new Error("É necessário informar uma conta bancária!");
       }
-      console.log(req.body);
       const vencimentosSoma = vencimentos.reduce(
         (acc, item) => acc + +item.valor_pago,
         0
@@ -359,26 +361,28 @@ function insertOne(req) {
 
       for (const vencimento of vencimentos) {
         // ^ Consulta os vencimentos pelo id_titulo para conseguir o id do vencimento
-        console.log(vencimento);
-        const [rowsVencimentoTitulo] = await conn.execute(
-          `
-          SELECT 
-          id
-          FROM fin_cp_titulos_vencimentos
-          WHERE id_titulo = ?
-        `,
-          [vencimento.id_titulo]
-        );
+        // const [rowsVencimentoTitulo] = await conn.execute(
+        //   `
+        //   SELECT
+        //   id
+        //   FROM fin_cp_titulos_vencimentos
+        //   WHERE id_titulo = ?
+        // `,
+        //   [vencimento.id_titulo]
+        // );
 
-        const vencimentoTitulo =
-          rowsVencimentoTitulo && rowsVencimentoTitulo[0];
+        // const vencimentoTitulo =
+        //   rowsVencimentoTitulo && rowsVencimentoTitulo[0];
         // ^ Atualiza o vencimento com os dados da conciliação
+        const isParcial = vencimento.tipo_baixa === "PARCIAL";
+        console.log(vencimento);
         await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ? WHERE id = ?`,
+          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ?, valor = ? WHERE id = ?`,
           [
             new Date(data_pagamento),
             vencimento.tipo_baixa,
             vencimento.valor_pago,
+            isParcial ? vencimento.valor_pago : vencimento.valor,
             vencimento.id_vencimento,
           ]
         );
@@ -411,13 +415,14 @@ function insertOne(req) {
           // ^ Baixa parcial -> Cria um novo vencimento
           await conn.execute(
             `
-            INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor) VALUES (?,?,?,?)
+            INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, vencimento_origem) VALUES (?,?,?,?,?)
           `,
             [
               vencimento.id_titulo,
               new Date(vencimento.data_prevista),
               new Date(vencimento.data_prevista),
               valor.toFixed(2),
+              vencimento.id_vencimento,
             ]
           );
         }
@@ -444,7 +449,7 @@ function insertOne(req) {
         // ^ Adiciona o título nos itens da conciliação bancária
         await conn.execute(
           `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
-          [newId, vencimentoTitulo.id, vencimento.valor_pago]
+          [newId, vencimento.id_vencimento, vencimento.valor_pago]
         );
       }
 
@@ -574,7 +579,6 @@ function conciliacaoAutomatica(req) {
         result.push(obj);
       }
 
-      console.log(result.filter((r) => r.CONCILIADO === "SIM"));
       await conn.commit();
       resolve(result);
     } catch (error) {
@@ -598,40 +602,65 @@ function deleteConciliacao(req) {
       }
 
       await conn.beginTransaction();
-      // const [rowTitulos] = await conn.execute(
-      //   `
-      //   SELECT
-      //     tv.id_titulo
-      //   FROM fin_cp_titulos_vencimentos tv
-      //   LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = tv.id
-      //   LEFT JOIN fin_conciliacao_bancaria cb ON cb.id = cbi.id_conciliacao
-      //   WHERE cb.id = ?
-      // `,
-      //   [id]
-      // );
-      // for (const titulo of rowTitulos) {
-      //   await conn.execute(
-      //     `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-      //     [3, titulo.id_titulo]
-      //   );
-      //   await conn.execute(
-      //     `
-      //   UPDATE fin_cp_titulos_vencimentos SET  WHERE id_titulo = ?`,
-      //     [null, null, null, titulo.id_titulo]
-      //   );
-      // }
-      await conn.execute(
+      // ^^ ANTES DA RECURSSÃO
+      const [rowVencimentos] = await conn.execute(
         `
-        UPDATE fin_cp_titulos_vencimentos
-        SET data_pagamento =  ?, tipo_baixa =  ?, valor_pago =  ?
-        WHERE id IN
-        (SELECT id_cp
-        FROM fin_conciliacao_bancaria_itens
-        WHERE id_conciliacao = ?
-        AND NOT id_cp IS NULL)
+          SELECT id, valor FROM fin_cp_titulos_vencimentos
+          WHERE id IN (SELECT id_cp
+          FROM fin_conciliacao_bancaria_itens
+          WHERE id_conciliacao = ?
+          AND NOT id_cp IS NULL)
       `,
-        [null, null, null, id]
+        [id]
       );
+      if (rowVencimentos.length === 0) {
+        throw new Error("Falha ao desfazer a conciliação!");
+      }
+
+      for (const vencimento of rowVencimentos) {
+        console.log(vencimento);
+        //^ Verifica se há algum vencimento que tenha sido criado pelo vencimento atual
+        const [rowVencimentosParciais] = await conn.execute(
+          `
+          SELECT id, data_pagamento, tipo_baixa, valor
+          FROM fin_cp_titulos_vencimentos
+          WHERE vencimento_origem = ?
+        `,
+          [vencimento.id]
+        );
+        let valor = +vencimento.valor;
+        for (const vencimentoParcial of rowVencimentosParciais) {
+          console.log(vencimentoParcial);
+          if (vencimentoParcial.data_pagamento) {
+            throw new Error(
+              `Não é possível desfazer a conciliação, pois um pagamento parcial foi feito em ${formatDate(
+                vencimentoParcial.data_pagamento,
+                "dd/MM/yyyy"
+              )}. Resolva todos os pagamentos parciais primeiro.`
+            );
+            // throw new Error(
+            //   `Desfazer a conciliação não é permitido, pois um pagamento parcial referente a este vencimento foi realizado em ${formatDate(
+            //     vencimentoParcial.data_pagamento,
+            //     "dd/MM/yyyy"
+            //   )}. Todos os pagamentos parciais devem ser resolvidos antes de desfazer esta conciliação.`
+            // );
+          } else {
+            valor += +vencimentoParcial.valor;
+            await conn.execute(
+              `
+              DELETE FROM fin_cp_titulos_vencimentos WHERE id = ?
+            `,
+              [vencimentoParcial.id]
+            );
+          }
+        }
+
+        await conn.execute(
+          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento =  ?, tipo_baixa =  ?, valor_pago =  ?, valor = ? WHERE id = ?`,
+          [null, null, null, valor, vencimento.id]
+        );
+      }
+
       await conn.execute(
         `
         UPDATE fin_cp_titulos t
@@ -670,7 +699,6 @@ function faker() {
       //   `SELECT id, data_vencimento, data_prevista, valor  FROM fin_cp_titulos WHERE id_status = ?`,
       //   [3]
       // );
-      // console.log(vencimentos.length);
       // let i = 0;
       // for (const titulo of titulos) {
       //   await conn.execute(
@@ -685,13 +713,11 @@ function faker() {
       //     ]
       //   );
       //   i++;
-      //   console.log("Item ->", i);
       // }
 
       const [vencimentos] = await conn.execute(
         `SELECT id, data_vencimento FROM fin_cp_titulos_vencimentos LIMIT 200 OFFSET 200`
       );
-      console.log(vencimentos.length);
       let i = 0;
       for (const vencimento of vencimentos) {
         await conn.execute(
@@ -709,8 +735,6 @@ function faker() {
           [vencimento.id, "5"]
         );
         i++;
-        console.log("Item ->", i);
-        // console.log(addMonths(new Date(vencimento.data_vencimento), 8));
       }
 
       await conn.commit();
