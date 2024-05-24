@@ -1,9 +1,4 @@
-const { endOfMonth, formatDate } = require("date-fns");
-const path = require("path");
 const { db } = require("../../../../mysql");
-const { createUploadsPath, zipFiles } = require("../../files-controller");
-const { normalizeCnpjNumber } = require("../../../helpers/mask");
-const XLSX = require("xlsx");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 
@@ -44,8 +39,6 @@ function getAllSolicitacoesNegadas(req) {
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
-            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-
 
           ${where}
           AND t.id_status = 2
@@ -64,8 +57,6 @@ function getAllSolicitacoesNegadas(req) {
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
-            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-
 
             ${where}
             AND t.id_status = 2
@@ -128,8 +119,6 @@ function getAllNotasFiscaisPendentes(req) {
           LEFT JOIN filiais f ON f.id = t.id_filial 
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
           LEFT JOIN users u ON u.id = t.id_solicitante
-          INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-
 
           ${where}
           AND t.id_tipo_solicitacao = 2
@@ -151,8 +140,6 @@ function getAllNotasFiscaisPendentes(req) {
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
-            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-
             ${where}
             AND t.id_tipo_solicitacao = 2
             AND (t.url_nota_fiscal IS NULL
