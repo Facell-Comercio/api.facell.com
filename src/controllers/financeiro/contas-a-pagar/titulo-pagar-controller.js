@@ -309,10 +309,10 @@ function getAllCpVencimentosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log(error);
+      console.error('GET_ALL_VENCIMENTOS_BORDERO',error.message);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
