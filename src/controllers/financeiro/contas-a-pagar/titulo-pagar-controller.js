@@ -99,7 +99,7 @@ function getAll(req) {
         `SELECT count(t.id) as total 
         FROM fin_cp_titulos t 
         LEFT JOIN filiais f ON f.id = t.id_filial 
-        INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
         ${where}
         `,
         params
@@ -115,7 +115,7 @@ function getAll(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN users u ON u.id = t.id_solicitante
 
             ${where}
