@@ -6,6 +6,7 @@ const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const {
   normalizeFirstAndLastName,
   normalizeCurrency,
+  normalizeDate,
 } = require("../../../helpers/mask");
 const {
   moverArquivoTempParaUploads,
@@ -13,6 +14,7 @@ const {
   createUploadsPath,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
+const doc = require("pdfkit");
 require("dotenv").config();
 
 function getAll(req) {
@@ -275,7 +277,7 @@ function getAllCpVencimentosBordero(req) {
       var query = `
             SELECT DISTINCT 
                 tv.id as id_vencimento, t.id as id_titulo, t.id_status, s.status, tv.data_prevista as previsao, 
-                t.descricao, tv.valor as valor_total,
+                UPPER(t.descricao) as descricao, tv.valor as valor_total,
                 f.nome as filial, f.id_matriz,
                 forn.nome as nome_fornecedor, t.num_doc, tv.data_vencimento as data_pagamento
             FROM fin_cp_titulos t 
@@ -314,7 +316,7 @@ function getAllCpVencimentosBordero(req) {
   });
 }
 
-// ! refatorar
+// * ok
 function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
@@ -328,31 +330,22 @@ function getAllRecorrencias(req) {
       const params = [];
       let where = "WHERE 1=1 ";
 
-      // ! vvv filtro quebrado com a saída de id_centro_custo de titulo a pagar: vvvvvvv
-      // if (
-      //   !checkUserPermission(req, "MASTER") &&
-      //   !checkUserDepartment(req, "FINANCEIRO")
-      // ) {
-      //   if (!user.centros_custo || user.centros_custo.length == 0) {
-      //     throw new Error("Usuário sem acesso a centros de custos");
-      //   }
-      //   const centro_custo = user?.centros_custo;
-      //   where += ` AND cc.id IN(${centro_custo
-      //     ?.map((centro) => centro.id)
-      //     .join(",")})`;
-      // }
-      // ! ^^^ filtro quebrado com a saída de id_centro_custo de titulo a pagar: ^^^^^^^
+      if (
+        !checkUserPermission(req, "MASTER") &&
+        !checkUserDepartment(req, "FINANCEIRO")
+      ) {
+        where += ` AND r.id_user = '${user.id}' `;
+      }
 
       where += ` AND YEAR(r.data_vencimento) = ?
         AND MONTH(r.data_vencimento) = ?`;
       params.push(ano);
       params.push(mes);
-      // fornecedor, filial, data-vencimento, valor, descricao, centro-custo, grupo-economico, criador (usuario)
 
       const [recorrencias] = await conn.execute(
         `SELECT 
           r.*,
-          t.descricao, t.valor,
+          UPPER(t.descricao) as descricao, r.valor,
           forn.nome as fornecedor,
           f.nome as filial, f.id_matriz,
           ge.nome as grupo_economico,
@@ -755,16 +748,27 @@ function insertOne(req) {
           `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id =?`,
           [id_recorrencia]
         );
-        // !: Increment da recorrência querbrou:
-        // await conn.execute(
-        //   `INSERT INTO fin_cp_titulos_recorrencias (id_user, id_titulo, data_vencimento) VALUES (?, ?, ?)`,
-        //   [user.id, newId, addMonths(new Date(data_vencimento), 1)]
-        // );
+        await conn.execute(
+          `INSERT INTO fin_cp_titulos_recorrencias (id_user, id_titulo, data_vencimento, valor) VALUES (?, ?, ?, ?)`,
+          [
+            user.id,
+            newId,
+            addMonths(new Date(vencimentos[0].data_vencimento), 1),
+            valor,
+          ]
+        );
       }
 
       // * Salvar os novos vencimentos
       for (const vencimento of vencimentos) {
         // * Persistir o vencimento do titulo e obter o id:
+        console.log(
+          newId,
+          startOfDay(vencimento.data_vencimento),
+          startOfDay(vencimento.data_prevista),
+          vencimento.linha_digitavel,
+          vencimento.valor
+        );
         await conn.execute(
           `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, linha_digitavel, valor) VALUES (?,?,?,?,?)`,
           [
@@ -882,7 +886,7 @@ function insertOne(req) {
   });
 }
 
-// ^ Verificar se quebrou
+// * ok
 function insertOneRecorrencia(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
@@ -890,10 +894,12 @@ function insertOneRecorrencia(req) {
       await conn.beginTransaction();
       const { user } = req;
       const data = req.body;
-      const { id, data_vencimento } = data || {};
+      const { id, data_vencimento, valor } = data || {};
+      console.log(data);
 
       // ~ Criação da data do mês seguinte
       const new_data_vencimento = addMonths(data_vencimento, 1);
+      console.log(new_data_vencimento);
 
       // ^ Validações
       // Titulo
@@ -918,11 +924,12 @@ function insertOneRecorrencia(req) {
         (
           id_titulo,
           data_vencimento,
+          valor,
           id_user
         )
-          VALUES (?,?,?)
+          VALUES (?,?,?,?)
         `,
-        [id, new Date(new_data_vencimento), user.id]
+        [id, new Date(new_data_vencimento), valor, user.id]
       );
 
       await conn.commit();
@@ -932,7 +939,7 @@ function insertOneRecorrencia(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -2059,8 +2066,9 @@ function changeFieldTitulos(req) {
 function changeRecorrencia(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const { data_vencimento } = req.body;
+    const { data_vencimento, valor } = req.body;
 
+    console.log(req.body);
     const conn = await db.getConnection();
 
     await conn.beginTransaction();
@@ -2073,8 +2081,8 @@ function changeRecorrencia(req) {
       }
 
       await conn.execute(
-        `UPDATE fin_cp_titulos_recorrencias SET data_vencimento = ? WHERE id = ? LIMIT 1`,
-        [new Date(data_vencimento), id]
+        `UPDATE fin_cp_titulos_recorrencias SET data_vencimento = ?, valor = ? WHERE id = ? LIMIT 1`,
+        [new Date(data_vencimento), valor, id]
       );
 
       await conn.commit();
@@ -2161,83 +2169,135 @@ function exportDatasys(req) {
       if (!id_grupo_economico) {
         throw new Error("GRUPO ECONÔMICO não selecionada!");
       }
-      console.log(filters);
-      const [datasys] = await conn.execute(
+
+      // ^ Consultando vencimentos de acordo com o grupo econômico e da data de pagamento
+      const [vencimentos] = await conn.execute(
         `
-        SELECT DISTINCT 
-          tv.id as id_vencimento, tr.id_titulo,  
-          f.cnpj as cnpj_loja,
-          fo.cnpj as cnpj_fornecedor,
-          tr.id as documento,
+        SELECT 
+          t.id as id_titulo, tv.id, tv.data_pagamento,
           t.data_emissao as emissao, tv.data_vencimento as vencimento,
           tv.valor_pago as valor,
-          fp.forma_pagamento as tipo_documento,
           t.descricao as historico,
-          cc.nome as centro_custo,
-          pc.codigo as plano_contas,
-          f_item.cnpj as cnpj_rateio,
-          tv.valor_pago as valor_rateio,
-          cb.descricao as banco_pg,
-          tv.data_pagamento as data_pg,
-          tr.id_centro_custo, tr.id_plano_conta, tr.id_filial,
           tv.linha_digitavel as bar_code,
-          fo.nome as nome_fornecedor,
-          tr.percentual
-        FROM fin_cp_titulos t
-        LEFT JOIN fin_cp_titulos_rateio tr ON tr.id_titulo = t.id
-        LEFT JOIN filiais f ON f.id = tr.id_filial
-        LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
-        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
-        LEFT JOIN fin_centros_custo cc ON cc.id = tr.id_centro_custo
-        LEFT JOIN fin_plano_contas pc ON pc.id = tr.id_plano_conta
-        LEFT JOIN filiais f_item ON f_item.id = tr.id_filial
+          f.cnpj as cnpj_loja,
+          fp.forma_pagamento as tipo_documento,
+          fo.cnpj as cnpj_fornecedor, fo.nome as nome_fornecedor
+        FROM fin_cp_titulos t 
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
-        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
-        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+        LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
         WHERE tv.data_pagamento = ?
-        AND cc.id_grupo_economico = ?
-        ORDER BY tr.id DESC
-      `,
+        AND f.id_grupo_economico = ?
+        `,
         [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
       );
+      const datasys = [];
+      for (const vencimento of vencimentos) {
+        // ^ Itereando sobre cada vencimento e pegando o valor de rateio referente
+        const [rateios] = await conn.execute(
+          `
+          SELECT 
+            tr.percentual,
+            cc.nome as centro_custo, cc.id as id_centro_custo,
+            pc.codigo as plano_contas, pc.id as id_plano_contas,
+            f.cnpj as cnpj_rateio,
+            cb.descricao as banco_pg
+          FROM fin_cp_titulos_vencimentos tv
+          LEFT JOIN fin_cp_titulos_rateio tr ON tr.id_titulo = tv.id_titulo 
+          LEFT JOIN fin_centros_custo cc ON cc.id = tr.id_centro_custo 
+          LEFT JOIN fin_plano_contas pc ON pc.id = tr.id_plano_conta
+          LEFT JOIN filiais f ON f.id = tr.id_filial 
+          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+          LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+          LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+          WHERE tv.id = ?
+          ORDER BY tr.id DESC
+        `,
+          [vencimento.id]
+        );
 
-      function ajustarIdTitulo(array) {
+        //^ Map para a criação do documento e Map para o armazenamento dos valores
         const map = new Map();
+        const valoresMap = new Map();
         let autoIncrement = 1;
-        let oldId = "";
+        let documento = "";
 
-        array.forEach((objeto) => {
-          const chave = `${objeto.id_centro_custo}-${objeto.id_plano_conta}-${objeto.id_vencimento}`;
+        for (const rateio of rateios) {
+          const valorRateio =
+            parseFloat(vencimento.valor) * parseFloat(rateio.percentual);
+          // ^ Criando a chave para agrupar os rateios por centro de custo e plano de contas
+          const chave = `${rateio.id_centro_custo}-${rateio.id_plano_contas}-${vencimento.id}`;
 
-          if (oldId != objeto.id_titulo) {
-            autoIncrement = 1;
-          }
-          oldId = objeto.id_titulo;
-
+          // ^ Verifica se a chave já foi criada, para adicionar o autoincremento no documento, se não, criar e adicionar ao map
           if (map.has(chave)) {
-            objeto.id_titulo = map.get(chave);
+            documento = map.get(chave);
           } else {
-            objeto.id_titulo = `${objeto.id_titulo}.${objeto.id_vencimento}.${autoIncrement}`;
-            map.set(chave, objeto.id_titulo);
+            documento = `${vencimento.id_titulo}.${vencimento.id}.${autoIncrement}`;
+            map.set(chave, documento);
             autoIncrement++;
           }
-        });
 
-        return array;
+          // ^ Verificando se o documento já foi criado, para adicionar ao autoincremento, se não, criando e adicionando ao map
+          if (valoresMap.has(documento)) {
+            valoresMap.set(
+              documento,
+              parseFloat(valoresMap.get(documento)) + valorRateio
+            );
+          } else {
+            valoresMap.set(documento, valorRateio);
+          }
+
+          datasys.push({
+            "CNPJ LOJA": vencimento.cnpj_loja,
+            "CPF / CNPJ FORNECEDOR": vencimento.cnpj_fornecedor,
+            DOCUMENTO: documento,
+            EMISSÃO: formatDate(vencimento.emissao.toString(), "dd/MM/yyyy"),
+            VENCIMENTO: formatDate(
+              vencimento.vencimento.toString(),
+              "dd/MM/yyyy"
+            ),
+            VALOR: valorRateio.toFixed(2),
+            "TIPO DOCUMENTO":
+              vencimento.tipo_documento &&
+              vencimento.tipo_documento.toUpperCase(),
+            HISTÓRICO: vencimento.historico.toUpperCase(),
+            BARCODE: vencimento.bar_code,
+            "CENTRO DE CUSTOS":
+              rateio.centro_custo && rateio.centro_custo.toUpperCase(),
+            "PLANO DE CONTAS": rateio.plano_contas,
+            "CNPJ RATEIO": rateio.cnpj_rateio,
+            "VALOR RATEIO": valorRateio.toFixed(2),
+            "BANCO PG": rateio.banco_pg && rateio.banco_pg.toUpperCase(),
+            "DATA PG": formatDate(
+              vencimento.data_pagamento.toString(),
+              "dd/MM/yyyy"
+            ),
+            "NOME FORNECEDOR":
+              vencimento.nome_fornecedor &&
+              vencimento.nome_fornecedor.toUpperCase(),
+            PERCENTUAL: parseFloat(rateio.percentual),
+          });
+        }
+
+        // ^ Adicionando o valor total dos rateios ao documento, usando os valores do map gerado anteriormente
+        for (const linha of datasys) {
+          if (valoresMap.has(linha.DOCUMENTO)) {
+            linha.VALOR = valoresMap.get(linha.DOCUMENTO).toFixed(2);
+          }
+        }
       }
 
       if (!datasys.length) {
         throw new Error("Nenhum título encontrado!");
       }
-      // console.log(output);
-      // resolve();
-      resolve(ajustarIdTitulo(datasys));
+
+      resolve(datasys);
     } catch (error) {
       console.log("ERRO EXPORT DATASYS TITULOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
