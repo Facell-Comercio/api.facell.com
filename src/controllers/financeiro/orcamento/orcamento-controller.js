@@ -167,6 +167,8 @@ function findAccountFromParams(req) {
         where += ` AND DATE_FORMAT(fo.ref, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m') `;
       }
 
+      console.log(where, params);
+
       const [rowOrcamentoItens] = await conn.execute(
         `
         SELECT 
@@ -197,6 +199,7 @@ function findAccountFromParams(req) {
       resolve(contaOrcamento);
       return;
     } catch (error) {
+      console.error("ERROR_FIND_ACCOUNT_FROM_PARAMS_ORCAMENTO", error);
       reject(error);
       return;
     } finally {
