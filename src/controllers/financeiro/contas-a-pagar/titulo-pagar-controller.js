@@ -225,7 +225,6 @@ function getAllCpVencimentosBordero(req) {
       termo,
     } = filters || {};
 
-    // console.log(filters);
     const params = [];
     if (termo) {
       where += ` AND (
