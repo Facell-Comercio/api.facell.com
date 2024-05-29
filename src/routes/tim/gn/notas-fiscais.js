@@ -1,4 +1,4 @@
-const { getAll } = require('../../../controllers/tim/gn/faturados')
+const { getAll } = require('../../../controllers/tim/gn/notas-fiscais')
 
 const router = require('express').Router()
 
