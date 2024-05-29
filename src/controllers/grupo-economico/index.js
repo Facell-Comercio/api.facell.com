@@ -19,7 +19,7 @@ function getAll(req) {
     };
     const offset = pageIndex * pageSize;
 
-    const { id_matriz } = filters || { id_matriz: null };
+    const { id_matriz, termo } = filters || { id_matriz: null };
 
     var where = ` WHERE 1=1 `;
     var limit = pagination ? " LIMIT ? OFFSET ? " : "";
@@ -44,6 +44,10 @@ function getAll(req) {
     if (id_matriz) {
       where += ` AND g.id_matriz = ?`;
       params.push(id_matriz);
+    }
+    if (termo) {
+      where += `AND g.nome LIKE CONCAT('%',?,'%')`;
+      params.push(termo);
     }
     const conn = await db.getConnection();
     try {
@@ -78,9 +82,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_GRUPOS_ECONÔMICOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -102,9 +107,10 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
+      console.log("ERRO_GET_ONE_GRUPO_ECONOMICO", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
