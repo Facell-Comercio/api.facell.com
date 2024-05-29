@@ -210,7 +210,7 @@ function getAllCpVencimentosBordero(req) {
     }
 
     if (descricao) {
-      where += ` t.descricao LIKE CONCAT('%',?,'%')  `;
+      where += ` AND t.descricao LIKE CONCAT('%',?,'%')  `;
       params.push(descricao);
     }
     if (id_matriz) {
