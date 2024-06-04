@@ -123,9 +123,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_CONTAS_BANCARIAS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -151,10 +152,10 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      reject(error);
+      console.error("ERRO_GET_ONE_CONTAS_BANCARIAS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -195,11 +196,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_CONTAS_BANCARIAS_INSERT", error);
+      console.error("ERRO_CONTAS_BANCARIAS_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -236,11 +237,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_CONTAS_BANCARIAS_UPDATE", error);
+      console.error("ERRO_CONTAS_BANCARIAS_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

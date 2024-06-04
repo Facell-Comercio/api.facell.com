@@ -74,7 +74,7 @@ function getAllSolicitacoesNegadas(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log("ERROR_GET_ALL_SOLICITAÇÕES_NEGADAS", error);
+      console.error("ERROR_GET_ALL_SOLICITAÇÕES_NEGADAS", error);
       reject(error);
     } finally {
       conn.release();
@@ -122,8 +122,8 @@ function getAllNotasFiscaisPendentes(req) {
 
           ${where}
           AND t.id_tipo_solicitacao = 2
-          AND t.url_nota_fiscal IS NULL
-          OR t.url_nota_fiscal = ""
+          AND NOT t.id_status = 2 
+          AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
         ) AS subconsulta
         `
       );
@@ -142,8 +142,8 @@ function getAllNotasFiscaisPendentes(req) {
             LEFT JOIN users u ON u.id = t.id_solicitante
             ${where}
             AND t.id_tipo_solicitacao = 2
-            AND (t.url_nota_fiscal IS NULL
-            OR t.url_nota_fiscal = "")
+            AND NOT t.id_status = 2 
+            AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
 
             ORDER BY 
                 t.created_at DESC 
@@ -159,7 +159,7 @@ function getAllNotasFiscaisPendentes(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log(
+      console.error(
         "ERROR_GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
         error
       );

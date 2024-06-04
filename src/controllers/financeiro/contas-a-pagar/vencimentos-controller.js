@@ -139,7 +139,7 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log("ERROR_GET_ALL_TITULOS", error);
+      console.error("ERROR_GET_ALL_TITULOS", error);
       reject(error);
     } finally {
       conn.release();
@@ -270,6 +270,7 @@ function getVencimentosAPagar(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERROR_GET_VENCIMENTOS_A_PAGAR", error);
       reject(error);
     } finally {
       conn.release();
@@ -401,6 +402,7 @@ function getVencimentosEmBordero(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERROR_GET_VENCIMENTOS_EM_BORDERO", error);
       reject(error);
     } finally {
       conn.release();
@@ -534,6 +536,7 @@ function getVencimentosPagos(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERROR_INSERT_ONE_TITULO_PAGAR", error);
       reject(error);
     } finally {
       conn.release();
@@ -588,7 +591,7 @@ function changeFieldVencimentos(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
-      console.log("ERROR_CHANGE_FIELD_TITULOS", error);
+      console.error("ERROR_CHANGE_FIELD_TITULOS", error);
       await conn.rollback();
       reject(error);
     } finally {

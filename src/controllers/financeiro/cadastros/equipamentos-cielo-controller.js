@@ -72,9 +72,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_EQUIPAMENTOS_CIELO", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -96,10 +97,11 @@ function getOne(req) {
       resolve(fornecedor);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_EQUIPAMENTOS_CIELO", error);
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -135,11 +137,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_RATEIOS_INSERT", error);
+      console.error("ERRO_RATEIOS_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -177,11 +179,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_RATEIOS_UPDATE", error);
+      console.error("ERRO_RATEIOS_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

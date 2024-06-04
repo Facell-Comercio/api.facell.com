@@ -55,6 +55,7 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_PERMISSAO", error);
       reject(error);
     } finally {
       await conn.release();
@@ -79,6 +80,7 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_PERMISSAO", error);
       reject(error);
       return;
     } finally {

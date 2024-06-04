@@ -13,20 +13,16 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const {
-      id_conta_bancaria,
-      periodo,
-    } = filters || {};
+    const { id_conta_bancaria, periodo } = filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
-    let limit = '';
+    let limit = "";
     let offset = 0;
     const conn = await db.getConnection();
     try {
-
       if (pagination) {
-        limit = ' LIMIT ? OFFSET ? '
+        limit = " LIMIT ? OFFSET ? ";
         offset = pageIndex * pageSize;
       }
 
@@ -36,29 +32,39 @@ function getAll(req) {
       }
 
       if (!periodo) {
-        throw new Error('Informe a data ou o período de visualização!')
+        throw new Error("Informe a data ou o período de visualização!");
       }
 
       const { from: data_de, to: data_ate } = periodo;
 
       if (!data_de && !data_ate) {
-        throw new Error('Informe a data ou período de visualização!')
+        throw new Error("Informe a data ou período de visualização!");
       }
 
       if (data_de && data_ate) {
-        where += ` AND e.data_transacao BETWEEN '${formatDate(data_de,'yyyy-MM-dd')}' AND '${formatDate(data_ate,'yyyy-MM-dd')
-          }'  `;
+        where += ` AND e.data_transacao BETWEEN '${formatDate(
+          data_de,
+          "yyyy-MM-dd"
+        )}' AND '${formatDate(data_ate, "yyyy-MM-dd")}'  `;
       } else {
         if (data_de) {
-          where += ` AND e.data_transacao = '${formatDate(data_de,'yyyy-MM-dd')}' `;
+          where += ` AND e.data_transacao = '${formatDate(
+            data_de,
+            "yyyy-MM-dd"
+          )}' `;
         }
         if (data_ate) {
-          where += ` AND e.data_transacao = '${formatDate(data_ate,'yyyy-MM-dd')}' `;
+          where += ` AND e.data_transacao = '${formatDate(
+            data_ate,
+            "yyyy-MM-dd"
+          )}' `;
         }
       }
 
       const [rowQtdeTotal] = await conn.execute(
-        `SELECT COUNT(*) AS qtde FROM fin_extratos_bancarios e ${where} `, params);
+        `SELECT COUNT(*) AS qtde FROM fin_extratos_bancarios e ${where} `,
+        params
+      );
 
       const qtdeTotal =
         (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
@@ -81,7 +87,8 @@ function getAll(req) {
 
       const [rows] = await conn.execute(query, params);
 
-      const [chartData] = await conn.execute(`
+      const [chartData] = await conn.execute(
+        `
       SELECT
           DATE_FORMAT(e.data_transacao, '%d/%m') as data_transacao, 
           COUNT(e.id) as 'Transações',
@@ -92,7 +99,9 @@ function getAll(req) {
         ${where}
         GROUP BY e.data_transacao
         ORDER BY e.data_transacao ASC
-      `, params)
+      `,
+        params
+      );
 
       const objResponse = {
         rows: rows,
@@ -103,6 +112,7 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_EXTRATOS", error);
       reject(error);
     }
   });
@@ -118,7 +128,6 @@ function getAllTransacaoPadrao(req) {
 
     const conn = await db.getConnection();
     try {
-
       if (id_conta_bancaria) {
         where += ` AND e.id_conta_bancaria = ? `;
         params.push(id_conta_bancaria);
@@ -141,11 +150,11 @@ function getAllTransacaoPadrao(req) {
 
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_TRANSACAO_PADRAO_EXTRATOS", error);
       reject(error);
     }
   });
 }
-
 
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
@@ -208,6 +217,7 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_EXTRATOS", error);
       reject(error);
       return;
     }
@@ -221,10 +231,10 @@ function importarExtrato(req) {
     const conn = await db.getConnection();
     try {
       if (!id_conta_bancaria) {
-        throw new Error('Conta bancária não selecionada!')
+        throw new Error("Conta bancária não selecionada!");
       }
       if (!url_extrato) {
-        throw new Error('Extrato não enviado!')
+        throw new Error("Extrato não enviado!");
       }
       await conn.beginTransaction();
 
@@ -232,33 +242,38 @@ function importarExtrato(req) {
         `SELECT * FROM fin_contas_bancarias WHERE id = ?;`,
         [id_conta_bancaria]
       );
-      const contaBancaria = rowContaBancaria && rowContaBancaria[0]
+      const contaBancaria = rowContaBancaria && rowContaBancaria[0];
 
-      const filePath = await createFilePathFromUrl(url_extrato)
-      const ofxParsed = await lerOFX(filePath)
-      const ofx_conta = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKACCTFROM;
+      const filePath = await createFilePathFromUrl(url_extrato);
+      const ofxParsed = await lerOFX(filePath);
+      const ofx_conta =
+        ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKACCTFROM;
 
       const ofx_correto = ofx_conta.ACCTID.includes(contaBancaria.conta);
       if (!ofx_correto) {
-        throw new Error(`OFX Agência/Conta ${ofx_conta.ACCTID}, diverge de conta selecionada: Agência: ${contaBancaria.agencia} Conta: ${contaBancaria.conta}`)
+        throw new Error(
+          `OFX Agência/Conta ${ofx_conta.ACCTID}, diverge de conta selecionada: Agência: ${contaBancaria.agencia} Conta: ${contaBancaria.conta}`
+        );
       }
 
-      const ofx_transactions = ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN
-      const data_atual = formatDate(new Date(), 'yyyy-MM-dd');
+      const ofx_transactions =
+        ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN;
+      const data_atual = formatDate(new Date(), "yyyy-MM-dd");
 
       for (const transaction of ofx_transactions) {
-        const data_transaction = formatarDataTransacao(transaction.DTPOSTED)
-        const id_transacao = transaction.FITID
-        const valor_transacao = parseFloat(transaction.TRNAMT).toFixed(2)
-        const documento_transacao = transaction.CHECKNUM
-        const descricao_transacao = transaction.MEMO
-        const tipo_transacao = transaction.TRNTYPE
+        const data_transaction = formatarDataTransacao(transaction.DTPOSTED);
+        const id_transacao = transaction.FITID;
+        const valor_transacao = parseFloat(transaction.TRNAMT).toFixed(2);
+        const documento_transacao = transaction.CHECKNUM;
+        const descricao_transacao = transaction.MEMO;
+        const tipo_transacao = transaction.TRNTYPE;
 
-        if(data_transaction >= data_atual){
-          continue
+        if (data_transaction >= data_atual) {
+          continue;
         }
 
-        await conn.execute(`INSERT IGNORE INTO fin_extratos_bancarios (
+        await conn.execute(
+          `INSERT IGNORE INTO fin_extratos_bancarios (
           id_conta_bancaria, 
           id_transacao,
           id_user,
@@ -267,16 +282,18 @@ function importarExtrato(req) {
           documento,
           descricao,
           tipo_transacao
-        ) VALUES (?,?,?,?,?,?,?,?)`, [
-          id_conta_bancaria,
-          id_transacao,
-          user.id,
-          data_transaction,
-          valor_transacao,
-          documento_transacao,
-          descricao_transacao,
-          tipo_transacao,
-        ])
+        ) VALUES (?,?,?,?,?,?,?,?)`,
+          [
+            id_conta_bancaria,
+            id_transacao,
+            user.id,
+            data_transaction,
+            valor_transacao,
+            documento_transacao,
+            descricao_transacao,
+            tipo_transacao,
+          ]
+        );
       }
 
       await conn.commit();
@@ -286,10 +303,9 @@ function importarExtrato(req) {
       //   ofx_conta,
       //   ofx_transactions,
       // });
-      resolve({ message: 'Sucesso!' })
-
+      resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_EXTRATO_IMPORT", error);
+      console.error("ERRO_EXTRATO_IMPORT", error);
       await conn.rollback();
       reject(error);
     }
@@ -302,30 +318,26 @@ function insertOneTransacaoPadrao(req) {
     const conn = await db.getConnection();
     try {
       if (!id_conta_bancaria) {
-        throw new Error(
-          "ID Conta bancária não informado"
-        );
+        throw new Error("ID Conta bancária não informado");
       }
       if (!descricao || descricao.length === 0) {
-        throw new Error(
-          "Campo Descrição não informado"
-        );
+        throw new Error("Campo Descrição não informado");
       }
       if (!tipo_transacao) {
-        throw new Error(
-          "Campo Tipo Transação não informado"
-        );
+        throw new Error("Campo Tipo Transação não informado");
       }
 
       await conn.beginTransaction();
 
-      await conn.execute(`INSERT INTO fin_extratos_padroes (id_conta_bancaria, tipo_transacao, descricao) VALUES (?,?,?);`, 
-      [id_conta_bancaria,tipo_transacao, descricao]);
+      await conn.execute(
+        `INSERT INTO fin_extratos_padroes (id_conta_bancaria, tipo_transacao, descricao) VALUES (?,?,?);`,
+        [id_conta_bancaria, tipo_transacao, descricao]
+      );
 
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_INSERT_ONE_TRANSACAO_PADRAO", error);
+      console.error("ERRO_INSERT_ONE_TRANSACAO_PADRAO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -336,39 +348,34 @@ function insertOneTransacaoPadrao(req) {
 
 function updateTransacaoPadrao(req) {
   return new Promise(async (resolve, reject) => {
-    const { id_padrao, id_conta_bancaria, descricao, tipo_transacao } = req.body;
+    const { id_padrao, id_conta_bancaria, descricao, tipo_transacao } =
+      req.body;
     const conn = await db.getConnection();
     try {
       if (!id_padrao) {
-        throw new Error(
-          "ID do padrão não informado"
-        );
+        throw new Error("ID do padrão não informado");
       }
       if (!id_conta_bancaria) {
-        throw new Error(
-          "ID Conta bancária não informado"
-        );
+        throw new Error("ID Conta bancária não informado");
       }
       if (!descricao || descricao.length === 0) {
-        throw new Error(
-          "Campo Descrição não informado"
-        );
+        throw new Error("Campo Descrição não informado");
       }
       if (!tipo_transacao) {
-        throw new Error(
-          "Campo Tipo Transação não informado"
-        );
+        throw new Error("Campo Tipo Transação não informado");
       }
 
       await conn.beginTransaction();
 
-      await conn.execute(`UPDATE fin_extratos_padroes SET tipo_transacao=?, descricao=? WHERE id=?;`, 
-      [tipo_transacao, descricao, id_padrao]);
+      await conn.execute(
+        `UPDATE fin_extratos_padroes SET tipo_transacao=?, descricao=? WHERE id=?;`,
+        [tipo_transacao, descricao, id_padrao]
+      );
 
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_UPDATE_TRANSACAO_PADRAO", error);
+      console.error("ERRO_UPDATE_TRANSACAO_PADRAO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -396,10 +403,10 @@ function deleteTransacaoPadrao(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_TRANSACAO_PADRAO", error);
+      console.error("ERRO_DELETE_TRANSACAO_PADRAO", error);
       await conn.rollback();
       reject(error);
-    } finally{
+    } finally {
       conn.release();
     }
   });
@@ -459,7 +466,7 @@ async function exportBorderos(req) {
 
       resolve(titulosBordero);
     } catch (error) {
-      console.log("ERRO_EXPORT_BORDERO", error);
+      console.error("ERRO_EXPORT_BORDERO", error);
       reject(error);
     }
   });

@@ -60,9 +60,10 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_BANCO", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -84,6 +85,7 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_BANCO", error);
       reject(error);
       return;
     } finally {

@@ -160,7 +160,7 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      // console.log(error);
+      console.error("ERRO_BORDEROS_GET_ALL", error);
       reject(error);
     } finally {
       conn.release();
@@ -197,6 +197,7 @@ function getOne(req) {
               tv.id_titulo, 
               t.id_status, 
               SUM(tv.valor) as valor_total, 
+              SUM(tv.valor_pago) as valor_pago, 
               t.descricao, 
               t.num_doc,
               tv.data_prevista as previsao, 
@@ -210,6 +211,7 @@ function getOne(req) {
               b.id_conta_bancaria, 
               f.cnpj,
               fi.nome as filial, 
+              CASE WHEN (tv.data_pagamento) THEN FALSE ELSE TRUE END as can_remove,
               false AS checked
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
@@ -235,11 +237,11 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.log(error);
+      console.error("ERRO_BORDEROS_GET_ONE", error);
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -279,11 +281,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_BORDERO_INSERT", error);
+      console.error("ERRO_BORDERO_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -291,7 +293,7 @@ function insertOne(req) {
 function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, id_conta_bancaria, data_pagamento, vencimentos } = req.body;
-    // console.log(req.body)
+    // console.error(req.body)
     const conn = await db.getConnection();
     try {
       if (!id) {
@@ -349,7 +351,7 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_BORDEROS_UPDATE", error);
+      console.error("ERRO_BORDEROS_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -370,17 +372,18 @@ function deleteVencimento(req) {
       await conn.beginTransaction();
 
       const [rowVencimento] = await conn.execute(
-        `SELECT id_status 
+        `SELECT t.id_status, tv.data_pagamento  
         FROM fin_cp_titulos t
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
         WHERE tv.id = ?`,
         [id]
       );
 
-      if (rowVencimento[0].id_status === 4) {
-        throw new Error(
-          "Não é possível remover do borderô titulos com status pago!"
-        );
+      if (
+        rowVencimento[0].id_status === 4 ||
+        !rowVencimento[0].data_pagamento
+      ) {
+        throw new Error("Não é possível remover do borderô vencimentos pagos!");
       }
 
       await conn.execute(
@@ -391,11 +394,11 @@ function deleteVencimento(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_TITULO_BORDERO", error);
+      console.error("ERRO_DELETE_TITULO_BORDERO", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -403,7 +406,7 @@ function deleteVencimento(req) {
 function deleteBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const titulos = req.body;
+    const vencimentos = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -412,11 +415,10 @@ function deleteBordero(req) {
       }
 
       await conn.beginTransaction();
-
-      for (const titulo of titulos) {
-        if (titulo.id_status === 4) {
+      for (const vencimento of vencimentos) {
+        if (vencimento.id_status === 4 || !vencimento.can_remove) {
           throw new Error(
-            "Não é possível remover do borderô titulos com status pago!"
+            "Não é possível deletar um borderô com vencimentos pagos!"
           );
         }
       }
@@ -428,11 +430,11 @@ function deleteBordero(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_BORDERO", error);
+      console.error("ERRO_DELETE_BORDERO", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -490,7 +492,7 @@ function transferBordero(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_TRANSFER_BORDERO", error);
+      console.error("ERRO_TRANSFER_BORDERO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -553,7 +555,7 @@ async function exportBorderos(req) {
 
       resolve(vencimentosBordero);
     } catch (error) {
-      console.log("ERRO_EXPORT_BORDERO", error);
+      console.error("ERRO_EXPORT_BORDERO", error);
       reject(error);
     }
   });

@@ -139,7 +139,7 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log("ERROR_GET_ALL_TITULOS", error);
+      console.error("ERROR_GET_ALL_TITULOS", error);
       reject(error);
     } finally {
       conn.release();
@@ -307,10 +307,10 @@ function getAllCpVencimentosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log("ERROR_GET_CP_VENCIMENTOS_BORDERO", error);
+      console.error("ERROR_GET_CP_VENCIMENTOS_BORDERO", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -362,7 +362,7 @@ function getAllRecorrencias(req) {
       );
       resolve({ rows: recorrencias });
     } catch (error) {
-      console.log("ERRO RECORRENCIAS", error);
+      console.error("ERRO RECORRENCIAS", error);
       reject(error);
     } finally {
       conn.release();
@@ -437,6 +437,7 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
+      console.error("ERROR_GET_ONE_TITULO_PAGAR", error);
       reject(error);
       return;
     } finally {
@@ -876,7 +877,7 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERROR_INSERT_ONE_TITULO_PAGAR", error);
+      console.error("ERROR_INSERT_ONE_TITULO_PAGAR", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -934,7 +935,7 @@ function insertOneRecorrencia(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERROR_INSERT_ONE_RECORRÊNCIA_PGTO", error);
+      console.error("ERROR_INSERT_ONE_RECORRÊNCIA_PGTO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -1836,7 +1837,7 @@ function update(req) {
       await conn.commit();
       resolve();
     } catch (error) {
-      console.log("ERROR_TITULO_PAGAR_UPDATE", error);
+      console.error("ERROR_TITULO_PAGAR_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -2013,7 +2014,7 @@ function changeStatusTitulo(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_CHANGE_STATUS_TITULO_PAGAR", error);
+      console.error("ERRO_CHANGE_STATUS_TITULO_PAGAR", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -2056,7 +2057,7 @@ function changeFieldTitulos(req) {
 
       resolve(result);
     } catch (error) {
-      console.log("ERROR_CHANGE_FIELD_TITULOS", error);
+      console.error("ERROR_CHANGE_FIELD_TITULOS", error);
       reject(error);
     }
   });
@@ -2087,7 +2088,7 @@ function changeRecorrencia(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
-      console.log("ERROR_CHANGE_RECORRENCIAS", error);
+      console.error("ERROR_CHANGE_RECORRENCIAS", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -2148,7 +2149,7 @@ function downloadAnexos(req, res) {
       res.send({ zip, filename });
       resolve();
     } catch (error) {
-      console.log("ERRO_DOWNLOAD_ANEXOS_TITULOS", error);
+      console.error("ERRO_DOWNLOAD_ANEXOS_TITULOS", error);
       reject(error);
     } finally {
       conn.release();
@@ -2293,7 +2294,7 @@ function exportDatasys(req) {
 
       resolve(datasys);
     } catch (error) {
-      console.log("ERRO EXPORT DATASYS TITULOS", error);
+      console.error("ERRO EXPORT DATASYS TITULOS", error);
       reject(error);
     } finally {
       conn.release();
@@ -2321,7 +2322,7 @@ function deleteRecorrencia(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
-      console.log("ERROR_DELETE_RECORRENCIAS", error);
+      console.error("ERROR_DELETE_RECORRENCIAS", error);
       await conn.rollback();
       reject(error);
     } finally {
