@@ -113,6 +113,7 @@ function downloadMovimentoContabil(req, res) {
       if (!ano) {
         throw new Error("Ano não informado");
       }
+
       await conn.beginTransaction();
 
       function gerarArrayDeDias(ano, mes) {

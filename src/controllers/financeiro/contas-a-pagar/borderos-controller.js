@@ -1,6 +1,17 @@
-const { startOfDay } = require("date-fns");
+const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
-const { normalizeCnpjNumber } = require("../../../helpers/mask");
+const {
+  normalizeCnpjNumber,
+  removeSpecialCharactersAndAccents,
+} = require("../../../helpers/mask");
+const {
+  createHeaderArquivo,
+  createHeaderLote,
+  createSegmentoA,
+  createTrailerLote,
+  createTrailerArquivo,
+} = require("../remessa/parsers/itau");
+const { normalizeValue } = require("../remessa/parsers/masks");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -561,6 +572,397 @@ async function exportBorderos(req) {
   });
 }
 
+function exportRemessa(req, res) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    const conn = await db.getConnection();
+
+    try {
+      if (!id) {
+        throw new Error("ID do Borderô não indicado!");
+      }
+      await conn.beginTransaction();
+
+      const [rowsBordero] = await conn.execute(
+        `
+      SELECT
+        f.cnpj as cnpj_empresa,
+        cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta,
+        f.razao as empresa_nome, f.logradouro as endereco_empresa,
+        f.numero as endereco_num, f.complemento as endereco_compl,
+        f.municipio as cidade, f.cep, f.uf,
+        cb.descricao as conta_bancaria, b.data_pagamento, fb.codigo as codigo_bancario
+      FROM fin_cp_bordero b
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN filiais f ON f.id = cb.id_filial
+      WHERE b.id = ?
+    `,
+        [id]
+      );
+      const borderoData = rowsBordero && rowsBordero[0];
+
+      //* Verificação de permissão de geração de remessa~
+      if (+borderoData.codigo_bancario !== 341) {
+        throw new Error(
+          "A Remessa não pode ser gerada por não ser do banco Itaú"
+        );
+      }
+
+      //* Consulta das formas de pagamento *//
+      const formasPagamento = new Map();
+
+      const [rowsPagamentoCorrenteItau] = await conn.execute(
+        `
+      SELECT
+        tv.id as id_vencimento  
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 5
+      AND forn.cnpj <> f.cnpj 
+      AND fb.codigo = 341
+      AND cb.id_tipo_conta = 1
+      AND tv.data_pagamento IS NULL
+    `,
+        [id]
+      );
+      formasPagamento.set("PagamentoCorrenteItau", rowsPagamentoCorrenteItau);
+
+      const [rowsPagamentoPoupancaItau] = await conn.execute(
+        `
+      SELECT
+        tv.id as id_vencimento  
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 5
+      AND forn.cnpj <> f.cnpj 
+      AND fb.codigo = 341
+      AND cb.id_tipo_conta = 2
+      AND tv.data_pagamento IS NULL
+    `,
+        [id]
+      );
+      formasPagamento.set("PagamentoPoupancaItau", rowsPagamentoPoupancaItau);
+
+      const [rowsPagamentoCorrenteMesmaTitularidade] = await conn.execute(
+        `
+      SELECT
+        tv.id as id_vencimento  
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 5
+      AND forn.cnpj = f.cnpj 
+      AND fb.codigo = 341
+      AND cb.id_tipo_conta = 1
+      AND tv.data_pagamento IS NULL
+    `,
+        [id]
+      );
+      formasPagamento.set(
+        "PagamentoCorrenteMesmaTitularidade",
+        rowsPagamentoCorrenteMesmaTitularidade
+      );
+
+      const [rowsPagamentoTEDOutroTitular] = await conn.execute(
+        `
+      SELECT
+        tv.id as id_vencimento  
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 5
+      AND forn.cnpj <> f.cnpj 
+      AND fb.codigo <> 341
+      AND tv.data_pagamento IS NULL
+    `,
+        [id]
+      );
+      formasPagamento.set(
+        "PagamentoTEDOutroTitular",
+        rowsPagamentoTEDOutroTitular
+      );
+
+      const [rowsPagamentoTEDMesmoTitular] = await conn.execute(
+        `
+      SELECT
+        tv.id as id_vencimento  
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 5
+      AND forn.cnpj = f.cnpj 
+      AND fb.codigo <> 341
+      AND tv.data_pagamento IS NULL
+    `,
+        [id]
+      );
+      formasPagamento.set(
+        "PagamentoTEDMesmoTitular",
+        rowsPagamentoTEDMesmoTitular
+      );
+
+      const [rowsPagamentoPIX] = await conn.execute(
+        `
+      SELECT
+        tv.id as id_vencimento  
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 4
+      AND tv.data_pagamento IS NULL
+    `,
+        [id]
+      );
+      formasPagamento.set("PagamentoPIX", rowsPagamentoPIX);
+
+      const arquivo = [];
+
+      let lote = 0;
+      let qtde_registros = 0;
+      let qtde_registros_arquivo = 0;
+      const dataCriacao = new Date();
+      const headerArquivo = createHeaderArquivo({
+        ...borderoData,
+        arquivo_data_geracao: formatDate(dataCriacao, "ddMMyyyy"),
+        arquivo_hora_geracao: formatDate(dataCriacao, "hhmmss"),
+      });
+      arquivo.push(headerArquivo);
+      qtde_registros_arquivo++;
+
+      for (const [key, formaPagamento] of formasPagamento) {
+        if (!formaPagamento.length) continue;
+        ++lote;
+
+        let somatoria_valores = 0;
+
+        const headerLote = createHeaderLote({
+          ...borderoData,
+          lote,
+        });
+        arquivo.push(headerLote);
+        qtde_registros++;
+        qtde_registros_arquivo++;
+
+        formaPagamento.shift(); //! Retirar isso dps
+        let registroLote = 1;
+        for (const pagamento of formaPagamento) {
+          const [rowVencimento] = await conn.execute(
+            `
+          SELECT
+            tv.id as doc_empresa,  
+            fb.codigo as cod_banco_favorecido,
+            forn.agencia,
+            forn.dv_agencia,
+            forn.conta,
+            forn.nome as favorecido_nome,
+            DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
+            tv.valor as valor_pagamento,
+            forn.cnpj as favorecido_cnpj
+          FROM fin_cp_titulos t
+          LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+          LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+          LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
+          WHERE tv.id = ?
+        `,
+            [pagamento.id_vencimento]
+          );
+          const vencimento = rowVencimento && rowVencimento[0];
+
+          //* Dependendo do banco o modelo muda
+          let bancoFavorecido = [];
+          if (vencimento.agencia == null) {
+            throw new Error(
+              `O número da agência do vencimento ${vencimento.id} é obrigatório`
+            );
+          }
+          if (vencimento.conta == null) {
+            throw new Error(
+              `O número da conta do vencimento ${vencimento.id} é obrigatório`
+            );
+          }
+          if (vencimento.banco === 341) {
+            bancoFavorecido.push(
+              0,
+              normalizeValue(vencimento.agencia, "numeric", 4),
+              " ",
+              new Array(5).fill("0").join(""),
+              normalizeValue(vencimento.conta, "numeric", 6),
+              " ",
+              normalizeValue(vencimento.dv_agencia, "numeric", 1)
+            );
+          } else {
+            bancoFavorecido.push(
+              normalizeValue(vencimento.agencia, "numeric", 5),
+              " ",
+              normalizeValue(vencimento.conta, "numeric", 12),
+              " ",
+              normalizeValue(vencimento.dv_agencia, "alphanumeric", 1)
+            );
+          }
+          //* Quando um pagamento é do tipo PIX Transferência o código câmara é 009 *//
+          const segmentoA = createSegmentoA({
+            ...vencimento,
+            lote,
+            num_registro_lote: registroLote,
+            cod_camara: key === "PagamentoPIX" && 9,
+            // banco_favorecido: bancoFavorecido.join(""),
+            vencimento: vencimento.id,
+            ident_transferencia: key === "PagamentoPIX" && "04", //^^ Verificar se está correto
+            cod_banco_favorecido:
+              key === "PagamentoPIX"
+                ? new Array(3).fill(0).join("")
+                : vencimento.cod_banco_favorecido,
+            agencia:
+              key === "PagamentoPIX"
+                ? new Array(3).fill(0).join("")
+                : bancoFavorecido.join(""),
+          });
+          arquivo.push(segmentoA);
+          qtde_registros++;
+          qtde_registros_arquivo++;
+          somatoria_valores += parseFloat(vencimento.valor_pagamento);
+
+          registroLote++;
+        }
+
+        qtde_registros++;
+        qtde_registros_arquivo++;
+        const trailerLote = createTrailerLote({
+          ...borderoData,
+          lote,
+          qtde_registros,
+          somatoria_valores: somatoria_valores.toFixed(2).replace(".", ""),
+        });
+
+        arquivo.push(trailerLote);
+      }
+
+      qtde_registros_arquivo++;
+      const trailerArquivo = createTrailerArquivo({
+        qtde_lotes: lote,
+        qtde_registros_arquivo,
+      });
+      arquivo.push(trailerArquivo);
+
+      //* Verificação da quantidade de lotes
+      if (arquivo.length < 3) {
+        throw new Error("Não há lotes gerados");
+      }
+
+      const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
+      const filename = `REMESSA - ${formatDate(
+        borderoData.data_pagamento,
+        "dd_MM_yyyy"
+      )} - ${removeSpecialCharactersAndAccents(
+        borderoData.conta_bancaria
+      )}.txt`.toUpperCase();
+      res.set("Content-Type", "text/plain");
+      res.set("Content-Disposition", `attachment; filename=${filename}`);
+      res.send(fileBuffer);
+      await conn.commit();
+      resolve();
+    } catch (error) {
+      await conn.rollback();
+      console.error("ERRO_EXPORT_REMESSA", error);
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+async function geradorDadosEmpresa() {
+  return new Promise(async (resolve, reject) => {
+    const conn = await db.getConnection();
+
+    try {
+      await conn.beginTransaction();
+
+      const [rowsFiliais] = await conn.execute(
+        `
+        SELECT
+          id, cnpj
+        FROM filiais 
+      `
+      );
+      for (const filial of rowsFiliais) {
+        await fetch(`https://receitaws.com.br/v1/cnpj/${filial.cnpj}`)
+          .then((res) => res.json())
+          .then(async (data) => {
+            // console.log("FILIAL - ", filial.id, " - OK");
+
+            await conn.execute(
+              `
+              UPDATE filiais SET logradouro = ?, numero = ?, complemento = ?, cep = ?, email = ? WHERE id = ?
+              `,
+              [
+                data.logradouro,
+                data.numero,
+                data.complemento,
+                data.cep.split("/")[0].replace(/\D/g, ""),
+                data.email,
+                filial.id,
+              ]
+            );
+          })
+          .catch((error) => {
+            console.error("ERRO_CONSULTA_CNPJ_BORDEROS", error);
+            reject(error);
+          });
+        await new Promise((resolve) => setTimeout(resolve, 20000));
+        console.log("20 seconds have passed!");
+      }
+
+      await conn.commit();
+      resolve();
+    } catch (error) {
+      console.error("ERRO_EXPORT_REMESSA", error);
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
@@ -570,4 +972,6 @@ module.exports = {
   deleteBordero,
   transferBordero,
   exportBorderos,
+  exportRemessa,
+  geradorDadosEmpresa,
 };
