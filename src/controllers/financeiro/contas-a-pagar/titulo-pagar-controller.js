@@ -1077,7 +1077,7 @@ function insertOneRecorrencia(req) {
   });
 }
 
-// ^ Pendente
+// ^ Testes
 function insertOneByGN(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
@@ -1087,7 +1087,7 @@ function insertOneByGN(req) {
     
       const {
         id_filial, //! receber
-        id_grupo_economico, //! obter pela filial
+        id_grupo_economico, //! receber
 
         cnpj_fornecedor, //! buscar id_fornecedor pelo cnpj
 
@@ -1195,7 +1195,7 @@ function insertOneByGN(req) {
         vencimento.valor,
       ])
 
-      //todo: Salvar o rateio
+      // Salvar o rateio
       await conn.execute(`INSERT INTO fin_cp_titulos_rateio (
         id_titulo, 
         id_filial, 
@@ -1225,7 +1225,7 @@ function insertOneByGN(req) {
       );
 
       await conn.commit();
-      resolve({ message: "Sucesso!" });
+      resolve({id:id_titulo});
     } catch (error) {
       console.log("ERROR_INSERT_ONE_TITULO_PAGAR_BY_GN", error);
       await conn.rollback();
