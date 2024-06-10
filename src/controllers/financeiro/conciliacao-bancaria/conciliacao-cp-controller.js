@@ -152,7 +152,7 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log("ERRO_CONCILIACAO_CP_GET_ALL", error);
+      console.error("ERRO_CONCILIACAO_CP_GET_ALL", error);
       reject(error);
     } finally {
       conn.release();
@@ -236,7 +236,7 @@ function getConciliacoes(req) {
 
       resolve(rowsConciliacoes);
     } catch (error) {
-      console.log("ERRO_CONCILIACAO_CP_GET_CONCILIACOES", error);
+      console.error("ERRO_CONCILIACAO_CP_GET_CONCILIACOES", error);
       reject(error);
     } finally {
       conn.release();
@@ -302,7 +302,7 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.log("ERRO_CONCILIACAO_CP_GET_ONE", error);
+      console.error("ERRO_CONCILIACAO_CP_GET_ONE", error);
       reject(error);
       return;
     } finally {
@@ -458,7 +458,7 @@ function insertOne(req) {
 
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_CONCILIACAO_CP_INSERT", error);
+      console.error("ERRO_CONCILIACAO_CP_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -680,7 +680,7 @@ function deleteConciliacao(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_BORDERO", error);
+      console.error("ERRO_DELETE_BORDERO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -737,13 +737,13 @@ function faker() {
         i++;
       }
 
-      await conn.commit();
+      await conn.rollback();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

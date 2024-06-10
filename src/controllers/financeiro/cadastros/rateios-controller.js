@@ -65,9 +65,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_RATEIOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -109,6 +110,7 @@ function getOne(req) {
       resolve({ ...rateios, itens: rowRateioItens });
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_RATEIOS", error);
       reject(error);
       return;
     } finally {
@@ -165,11 +167,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_RATEIO_INSERT", error);
+      console.error("ERRO_RATEIO_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -223,11 +225,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_RATEIO_UPDATE", error);
+      console.error("ERRO_RATEIO_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

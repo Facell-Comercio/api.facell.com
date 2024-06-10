@@ -86,10 +86,10 @@ const normalizeCurrency = (data) => {
 };
 
 function normalizeFirstAndLastName(nomeCompleto) {
-  if(!nomeCompleto) return 'NOME NÃO INFORMADO!'
+  if (!nomeCompleto) return "NOME NÃO INFORMADO!";
   // Usa uma expressão regular para extrair o primeiro e último nome
   const match = nomeCompleto.match(/^(\S+)\s+(.+)\s+(\S+)$/);
-  
+
   // Verifica se houve uma correspondência
   if (match) {
     const primeiroNome = match[1];
@@ -99,6 +99,14 @@ function normalizeFirstAndLastName(nomeCompleto) {
     // Se não houver correspondência, assume que o nome completo é o primeiro nome
     return `${nomeCompleto}`;
   }
+}
+
+function removeSpecialCharactersAndAccents(str) {
+  const regex = /[^A-Za-z0-9\s]/g;
+  const normalizedStr = str.replace(regex, "");
+  const lowerCaseStr = normalizedStr.toLowerCase();
+  const trimmedStr = lowerCaseStr.trim();
+  return trimmedStr;
 }
 
 module.exports = {
@@ -111,4 +119,5 @@ module.exports = {
   normalizeDate,
   normalizeCurrency,
   normalizeFirstAndLastName,
+  removeSpecialCharactersAndAccents,
 };

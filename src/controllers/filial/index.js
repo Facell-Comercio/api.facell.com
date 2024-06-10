@@ -110,9 +110,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_FILIAL", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -134,10 +135,11 @@ function getOne(req) {
       resolve(item);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_FILIAL", error);
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -262,11 +264,11 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_FILIAL_UPDATE", error);
+      console.error("ERRO_FILIAL_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

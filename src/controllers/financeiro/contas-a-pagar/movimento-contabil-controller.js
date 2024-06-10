@@ -88,9 +88,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_MOVIMENTO_CONTABIL_GET_ALL", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -112,6 +113,7 @@ function downloadMovimentoContabil(req, res) {
       if (!ano) {
         throw new Error("Ano não informado");
       }
+
       await conn.beginTransaction();
 
       function gerarArrayDeDias(ano, mes) {
@@ -297,10 +299,10 @@ function downloadMovimentoContabil(req, res) {
       resolve();
     } catch (error) {
       await conn.rollback();
-      console.log("ERRO NO DOWNLOAD MOVIMENTO CONTABIL", error);
+      console.error("ERRO NO DOWNLOAD MOVIMENTO CONTABIL", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

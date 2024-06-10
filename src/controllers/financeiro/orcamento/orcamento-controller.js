@@ -60,6 +60,7 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_ORCAMENTO", error);
       reject(error);
     } finally {
       await conn.release();
@@ -129,6 +130,7 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_ORCAMENTO", error);
       reject(error);
       return;
     } finally {
@@ -247,7 +249,7 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORCAMENTO_INSERT", error);
+      console.error("ERRO_ORCAMENTO_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -278,7 +280,7 @@ function update(req) {
         active,
         id,
       ]);
-
+      console.log(contas);
       if (contas?.length) {
         // * Insert das contas
         for (const conta of contas) {
@@ -289,7 +291,13 @@ function update(req) {
             valor,
             valor_inicial,
           } = conta;
-
+          console.log(
+            id_conta,
+            id_centro_custo,
+            id_plano_contas,
+            valor,
+            valor_inicial
+          );
           if (id_conta) {
             const diferenca = valor - valor_inicial;
 
@@ -336,10 +344,26 @@ function update(req) {
               [id, req.user.id, descricao]
             );
           } else {
-            await conn.execute(
-              `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto) VALUES(?, ?, ?, ?)`,
-              [id, id_centro_custo, id_plano_contas, valor]
+            const [contaOrcamento] = await conn.execute(
+              `
+              SELECT id FROM fin_orcamento_contas WHERE id_centro_custo = ? AND id_plano_contas = ? AND id_orcamento = ?
+            `,
+              [id_centro_custo, id_plano_contas, id]
             );
+            console.log(contaOrcamento);
+            if (!contaOrcamento.length) {
+              await conn.execute(
+                `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto) VALUES(?, ?, ?, ?)`,
+                [id, id_centro_custo, id_plano_contas, valor]
+              );
+            } else {
+              await conn.execute(
+                `
+              UPDATE fin_orcamento_contas SET valor_previsto = ? WHERE id = ?
+              `,
+                [valor, contaOrcamento[0].id]
+              );
+            }
           }
         }
       }
@@ -347,11 +371,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_ORCAMENTO_UPDATE", error);
+      console.error("ERRO_ORCAMENTO_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -411,7 +435,7 @@ function deleteItemBudget(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_DELETE_ITEM_BUDGET", error);
+      console.error("ERRO_DELETE_ITEM_BUDGET", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -535,6 +559,7 @@ function getMyBudgets(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_MY_BUDGETS_ORCAMENTO", error);
       reject(error);
     } finally {
       await conn.release();
@@ -577,6 +602,7 @@ function getMyBudget(req) {
       const orcamento = rowOrcamento && rowOrcamento[0];
       resolve(orcamento);
     } catch (error) {
+      console.error("ERRO_GET_MY_BUDGET_ORCAMENTO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -732,7 +758,7 @@ function transfer(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_TRANSFER_BUDGET", error);
+      console.error("ERRO_TRANSFER_BUDGET", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -763,8 +789,8 @@ function getIds(req) {
         const [rows_grupo_economico] = await conn.execute(
           "SELECT id FROM grupos_economicos ge WHERE ge.nome LIKE ? OR ge.apelido LIKE ?",
           [
-            array.grupo_economico.toString().toUpperCase(),
-            array.grupo_economico.toString().toUpperCase(),
+            array.grupo_economico.toUpperCase(),
+            array.grupo_economico.toUpperCase(),
           ]
         );
         const grupo_economico = rows_grupo_economico && rows_grupo_economico[0];
@@ -772,7 +798,7 @@ function getIds(req) {
         if (grupo_economico.id == id_grupo_economico) {
           const [rows_centro_custo] = await conn.execute(
             "SELECT id FROM fin_centros_custo fcc WHERE fcc.nome = ? AND fcc.id_grupo_economico = ?",
-            [array.centro_custo.toString().toUpperCase(), id_grupo_economico]
+            [array.centro_custo.toUpperCase(), id_grupo_economico]
           );
           const centro_custo = rows_centro_custo && rows_centro_custo[0];
           if (centro_custo) {
@@ -782,7 +808,7 @@ function getIds(req) {
           const [rows_plano_contas] = await conn.execute(
             "SELECT id FROM fin_plano_contas fpc WHERE fpc.codigo LIKE ? AND fpc.id_grupo_economico = ? AND fpc.tipo = 'Despesa'",
             [
-              array.plano_contas.toString().toUpperCase().split(" - ")[0],
+              array.plano_contas.toUpperCase().split(" - ")[0],
               id_grupo_economico,
             ]
           );
@@ -806,10 +832,10 @@ function getIds(req) {
       }
       resolve({ returnedIds, erros });
     } catch (error) {
-      await conn.rollback();
+      console.error("ERRO_ORCAMENTO_GET_IDS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -837,7 +863,7 @@ function getLogs(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      await conn.rollback();
+      console.error("ERRO_GET_LOGS_ORCAMENTO", error);
       reject(error);
     } finally {
       await conn.release();
@@ -870,13 +896,14 @@ function faker() {
         }
       }
 
-      await conn.commit();
+      await conn.rollback();
+      // await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

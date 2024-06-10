@@ -99,9 +99,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_CENTRO_CUSTOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -124,9 +125,10 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_CENTRO_CUSTOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -167,11 +169,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_CENTRO_CUSTO_INSERT", error);
+      console.error("ERRO_CENTRO_CUSTO_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -207,11 +209,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_CENTRO_CUSTO_UPDATE", error);
+      console.error("ERRO_CENTRO_CUSTO_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

@@ -59,9 +59,10 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_BANCOS", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -83,10 +84,11 @@ function getOne(req) {
       resolve(fornecedor);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_BANCOS", error);
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -122,11 +124,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_EQUIPAMENTOS_INSERT", error);
+      console.error("ERRO_EQUIPAMENTOS_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -164,12 +166,12 @@ function update(req) {
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
-      console.log("ERRO_EQUIPAMENTOS_UPDATE", error);
+      console.error("ERRO_EQUIPAMENTOS_UPDATE", error);
       await conn.rollback();
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

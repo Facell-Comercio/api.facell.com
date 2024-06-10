@@ -63,9 +63,10 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
+      console.error("ERRO_GET_ALL_FORNECEDORES", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -88,10 +89,11 @@ function getOne(req) {
       resolve(fornecedor);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_FORNECEDORES", error);
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -127,11 +129,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_FORNECEDOR_INSERT", error);
+      console.error("ERRO_FORNECEDOR_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -168,11 +170,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_FORNECEDORES_UPDATE", error);
+      console.error("ERRO_FORNECEDORES_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -187,6 +189,7 @@ function consultaCnpj(req) {
         resolve(data);
       })
       .catch((error) => {
+        console.error("ERRO_CONSULTA_CNPJ_FORNECEDORES", error);
         reject(error);
       });
   });
@@ -208,10 +211,11 @@ function toggleActive(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
+      console.error("ERRO_TOGGLE_ACTIVE_FORNECEDORES", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

@@ -107,7 +107,7 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      console.log("ERRO_GET_ONE_GRUPO_ECONOMICO", error);
+      console.error("ERRO_GET_ONE_GRUPO_ECONOMICO", error);
       reject(error);
     } finally {
       conn.release();
@@ -159,11 +159,11 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_GRUPO_ECONOMICO_UPDATE", error);
+      console.error("ERRO_GRUPO_ECONOMICO_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -189,11 +189,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.log("ERRO_GRUPO_ECONOMICO_INSERT", error);
+      console.error("ERRO_GRUPO_ECONOMICO_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

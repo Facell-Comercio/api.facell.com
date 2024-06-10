@@ -16,9 +16,10 @@ function getAll(req) {
       const [rows] = await conn.execute(query);
       resolve(rows);
     } catch (error) {
+      console.error("ERRO_GET_ALL_FORMAS_PAGAMENTO", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -40,10 +41,11 @@ function getOne(req) {
       resolve(formaPagamento);
       return;
     } catch (error) {
+      console.error("ERRO_GET_ONE_FORMAS_PAGAMENTO", error);
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -79,10 +81,11 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
+      console.error("ERRO_INSERT_ONE_FORMAS_PAGAMENTO", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -120,11 +123,12 @@ function update(req) {
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
+      console.error("ERRO_UPDATE_FORMAS_PAGAMENTO", error);
       await conn.rollback();
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -145,8 +149,11 @@ function toggleActive(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
+      console.error("ERRO_TOGGLE_ACTIVE_FORMAS_PAGAMENTO", error);
       await conn.rollback();
       reject(error);
+    } finally {
+      conn.release();
     }
   });
 }
