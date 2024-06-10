@@ -202,28 +202,33 @@ async function validarRecebimento(req) {
 
 async function lancarFinanceiroEmLote(req) {
     return new Promise(async (resolve, reject) => {
-        resolve({message: 'sucesso!'})
-        return true
         const conn = await db.getConnection()
         try {
 
             // * Listar as notas de PENDENTE FINANCEIRO
             const [notas] = await conn.execute(`
             SELECT 
-                tnf.*, f.id as id_filial, f.id_grupo_economico
+                tnf.*, 
+                f.id as id_filial, 
+                f.id_grupo_economico,
+                ff.id as id_fornecedor
             FROM tim_notas_fiscais tnf
             LEFT JOIN filiais f ON f.tim_cod_sap = tnf.tim_cod_sap
+            LEFT JOIN fin_fornecedores ff ON ff.cnpj = tnf.cnpj_fornecedor
             WHERE status = 'PENDENTE FINANCEIRO' `)
             for (const nota of notas) {
 
                 try {
+                    if(!nota.id_fornecedor){
+                        throw new Error(`Fornecedor de CNPJ ${nota.cnpj_fornecedor} não cadastrado no sistema! Providencie o cadastro e tente novamente.`)
+                    }
                     // * Lançar no financeiro
                     const result = await insertOneByGN({
                         ...req, body: {
                             id_filial: nota.id_filial,
                             id_grupo_economico: nota.id_grupo_economico,
 
-                            cnpj_fornecedor: nota.cnpj_fornecedor,
+                            id_fornecedor: nota.id_fornecedor,
 
                             data_emissao: nota.data_emissao,
                             data_vencimento: nota.data_vencimento,
@@ -234,10 +239,10 @@ async function lancarFinanceiroEmLote(req) {
                     if (!result.id) {
                         throw new Error('Título não criado!')
                     }
-                    // * Atualizar a nota
+                    // * Atualizar a nota fiscal em tim_notas_fiscais
                     await conn.execute(`UPDATE tim_notas_fiscais SET
                     status = 'OK',
-                    obs = null,
+                    obs = 'Lançado no financeiro',
                     id_titulo = ?
                     
                     `,

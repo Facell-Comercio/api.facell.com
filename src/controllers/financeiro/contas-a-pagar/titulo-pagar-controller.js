@@ -1087,11 +1087,10 @@ function insertOneByGN(req) {
       const { user } = req;
     
       const {
-        id_filial, //! receber
-        id_grupo_economico, //! receber
+        id_filial,
+        id_grupo_economico,
 
-        cnpj_fornecedor, //! buscar id_fornecedor pelo cnpj
-
+        id_fornecedor,
         // Geral
         data_emissao,
         data_vencimento,
@@ -1108,20 +1107,14 @@ function insertOneByGN(req) {
       if (!id_grupo_economico) {
         throw new Error("Campo id_grupo_economico não informado!");
       }
+      if (!id_fornecedor) {
+        throw new Error("Campo id_fornecedor não informado!");
+      }
       if (!data_emissao) {
         throw new Error("Campo data_emissao não informado!");
       }
       if (!data_vencimento) {
         throw new Error("Campo data_vencimento não informado!");
-      }
-      if (!cnpj_fornecedor) {
-        throw new Error("Campo cnpj_fornecedor não informado!");
-      }
-
-      const [rowFornecedor] = await conn.execute(`SELECT id FROM fin_fornecedores WHERE cnpj = ? LIMIT 1`,[cnpj_fornecedor])
-      const id_fornecedor = rowFornecedor && rowFornecedor[0] && rowFornecedor[0]['id']
-      if (!id_fornecedor) {
-        throw new Error(`Fornecedor não localizado com o CNPJ: ${cnpj_fornecedor}}. Cadastre-o!`);
       }
 
       const descricao = `COMPRA DE MERCADORIA TIM - NF ${num_doc}` // COMPRA DE MERCADORIA TIM - NF XXX

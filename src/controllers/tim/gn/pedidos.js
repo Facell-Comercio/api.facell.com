@@ -181,6 +181,8 @@ async function insertMany(req) {
             console.log('ERRO_GN_INSERT_PEDIDOS',error)
             await conn.rollback()
             reject(error)
+        } finally{
+            conn.release()
         }
     })
 }

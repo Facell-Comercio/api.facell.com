@@ -100,7 +100,6 @@ async function insertMany(req) {
             // const filePath = path.join(__dirname, '..', 'exemplos', 'Faturados.js');
             // await fs.writeFile(filePath, JSON.stringify(filiais, null, 2), (err) => {})
 
-            console.log('Faturados')
             await conn.beginTransaction()
             if (!filiais || !filiais?.length) {
                 throw new Error("Faturados não recebidos ou inexistentes no período")
@@ -114,11 +113,6 @@ async function insertMany(req) {
 
                 let data_inicial = formatDate(filial.data_inicial, 'yyyy-MM-dd')
                 let data_final = formatDate(filial.data_final, 'yyyy-MM-dd')
-                
-                console.log('FATURADOS DATA: ')
-                console.log({
-                    data_inicial, data_final, tim_cod_sap: filial.tim_cod_sap
-                })
 
                 // ! Deleta os dados capturados anteriormente
                 await conn.execute(`DELETE FROM tim_pedidos_faturados WHERE tim_cod_sap = ? AND data_criacao BETWEEN ? AND ? `, [
@@ -180,8 +174,6 @@ async function insertMany(req) {
                     ),`
                 }
                 values = values.substring(0, values.length - 1)
-                console.log('[VALUES FATURADOS] >>>>>', values)
-                
                 await conn.execute(query + values)
             }
 
@@ -191,6 +183,8 @@ async function insertMany(req) {
             console.log('ERRO_GN_INSERT_FATURADOS', error)
             await conn.rollback()
             reject(error)
+        } finally{
+            conn.release()
         }
     })
 }
