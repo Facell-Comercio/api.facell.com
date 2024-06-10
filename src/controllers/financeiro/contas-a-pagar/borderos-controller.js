@@ -610,12 +610,20 @@ function exportRemessa(req, res) {
       }
 
       //* Consulta das formas de pagamento *//
-      const formasPagamento = new Map();
-
-      const [rowsPagamentoCorrenteItau] = await conn.execute(
-        `
+      // console.time("FORMA DE PAGAMENTO"); // TESTANDO PERFORMANCE
+      const [
+        rowsPagamentoCorrenteItau,
+        rowsPagamentoPoupancaItau,
+        rowsPagamentoCorrenteMesmaTitularidade,
+        rowsPagamentoTEDOutroTitular,
+        rowsPagamentoTEDMesmoTitular,
+        rowsPagamentoPIX,
+      ] = await Promise.all([
+        conn
+          .execute(
+            `
       SELECT
-        tv.id as id_vencimento  
+        tv.id as id_vencimento
       FROM fin_cp_titulos_vencimentos tv
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -626,19 +634,19 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
-      AND forn.cnpj <> f.cnpj 
+      AND forn.cnpj <> f.cnpj
       AND fb.codigo = 341
       AND cb.id_tipo_conta = 1
       AND tv.data_pagamento IS NULL
     `,
-        [id]
-      );
-      formasPagamento.set("PagamentoCorrenteItau", rowsPagamentoCorrenteItau);
-
-      const [rowsPagamentoPoupancaItau] = await conn.execute(
-        `
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
       SELECT
-        tv.id as id_vencimento  
+        tv.id as id_vencimento
       FROM fin_cp_titulos_vencimentos tv
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -649,19 +657,19 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
-      AND forn.cnpj <> f.cnpj 
+      AND forn.cnpj <> f.cnpj
       AND fb.codigo = 341
       AND cb.id_tipo_conta = 2
       AND tv.data_pagamento IS NULL
     `,
-        [id]
-      );
-      formasPagamento.set("PagamentoPoupancaItau", rowsPagamentoPoupancaItau);
-
-      const [rowsPagamentoCorrenteMesmaTitularidade] = await conn.execute(
-        `
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
       SELECT
-        tv.id as id_vencimento  
+        tv.id as id_vencimento
       FROM fin_cp_titulos_vencimentos tv
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -672,22 +680,19 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
-      AND forn.cnpj = f.cnpj 
+      AND forn.cnpj = f.cnpj
       AND fb.codigo = 341
       AND cb.id_tipo_conta = 1
       AND tv.data_pagamento IS NULL
     `,
-        [id]
-      );
-      formasPagamento.set(
-        "PagamentoCorrenteMesmaTitularidade",
-        rowsPagamentoCorrenteMesmaTitularidade
-      );
-
-      const [rowsPagamentoTEDOutroTitular] = await conn.execute(
-        `
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
       SELECT
-        tv.id as id_vencimento  
+        tv.id as id_vencimento
       FROM fin_cp_titulos_vencimentos tv
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -698,21 +703,18 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
-      AND forn.cnpj <> f.cnpj 
+      AND forn.cnpj <> f.cnpj
       AND fb.codigo <> 341
       AND tv.data_pagamento IS NULL
     `,
-        [id]
-      );
-      formasPagamento.set(
-        "PagamentoTEDOutroTitular",
-        rowsPagamentoTEDOutroTitular
-      );
-
-      const [rowsPagamentoTEDMesmoTitular] = await conn.execute(
-        `
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
       SELECT
-        tv.id as id_vencimento  
+        tv.id as id_vencimento
       FROM fin_cp_titulos_vencimentos tv
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -723,21 +725,18 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
-      AND forn.cnpj = f.cnpj 
+      AND forn.cnpj = f.cnpj
       AND fb.codigo <> 341
       AND tv.data_pagamento IS NULL
     `,
-        [id]
-      );
-      formasPagamento.set(
-        "PagamentoTEDMesmoTitular",
-        rowsPagamentoTEDMesmoTitular
-      );
-
-      const [rowsPagamentoPIX] = await conn.execute(
-        `
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
       SELECT
-        tv.id as id_vencimento  
+        tv.id as id_vencimento
       FROM fin_cp_titulos_vencimentos tv
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
@@ -750,10 +749,24 @@ function exportRemessa(req, res) {
       AND t.id_forma_pagamento = 4
       AND tv.data_pagamento IS NULL
     `,
-        [id]
-      );
-      formasPagamento.set("PagamentoPIX", rowsPagamentoPIX);
+            [id]
+          )
+          .then(([rows]) => rows),
+      ]);
 
+      const formasPagamento = new Map(
+        Object.entries({
+          PagamentoCorrenteItau: rowsPagamentoCorrenteItau,
+          PagamentoPoupancaItau: rowsPagamentoPoupancaItau,
+          PagamentoCorrenteMesmaTitularidade:
+            rowsPagamentoCorrenteMesmaTitularidade,
+          PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
+          PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
+          PagamentoPIX: rowsPagamentoPIX,
+        })
+      );
+
+      // console.timeEnd("FORMA DE PAGAMENTO");// TESTANDO PERFORMANCE
       const arquivo = [];
 
       let lote = 0;
@@ -773,16 +786,37 @@ function exportRemessa(req, res) {
         ++lote;
 
         let somatoria_valores = 0;
-
+        let forma_pagamento = 6;
+        switch (key) {
+          case "PagamentoCorrenteItau":
+            forma_pagamento = 1;
+            break;
+          case "PagamentoPoupancaItau":
+            forma_pagamento = 5;
+            break;
+          case "PagamentoCorrenteMesmaTitularidade":
+            forma_pagamento = 6;
+            break;
+          case "PagamentoTEDOutroTitular":
+            forma_pagamento = 41;
+            break;
+          case "rowsPagamentoTEDMesmoTitular":
+            forma_pagamento = 43;
+            break;
+          case "PagamentoPIX":
+            forma_pagamento = 45;
+            break;
+        }
         const headerLote = createHeaderLote({
           ...borderoData,
           lote,
+          forma_pagamento,
         });
         arquivo.push(headerLote);
         qtde_registros++;
         qtde_registros_arquivo++;
 
-        formaPagamento.shift(); //! Retirar isso dps
+        // formaPagamento.shift(); //! Retirar isso dps
         let registroLote = 1;
         for (const pagamento of formaPagamento) {
           const [rowVencimento] = await conn.execute(
@@ -809,16 +843,6 @@ function exportRemessa(req, res) {
 
           //* Dependendo do banco o modelo muda
           let bancoFavorecido = [];
-          if (vencimento.agencia == null) {
-            throw new Error(
-              `O número da agência do vencimento ${vencimento.id} é obrigatório`
-            );
-          }
-          if (vencimento.conta == null) {
-            throw new Error(
-              `O número da conta do vencimento ${vencimento.id} é obrigatório`
-            );
-          }
           if (vencimento.banco === 341) {
             bancoFavorecido.push(
               0,
@@ -844,7 +868,6 @@ function exportRemessa(req, res) {
             lote,
             num_registro_lote: registroLote,
             cod_camara: key === "PagamentoPIX" && 9,
-            // banco_favorecido: bancoFavorecido.join(""),
             vencimento: vencimento.id,
             ident_transferencia: key === "PagamentoPIX" && "04", //^^ Verificar se está correto
             cod_banco_favorecido:

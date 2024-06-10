@@ -88,7 +88,7 @@ module.exports = [
     type: "alphanumeric",
   },
   {
-    field: "doc_empresa", //! é o id do vencimento
+    field: "doc_empresa", //^ É o id do vencimento
     startPos: 74,
     endPos: 93,
     length: 20,
