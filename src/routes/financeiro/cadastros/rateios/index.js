@@ -5,6 +5,7 @@ const {
   getOne,
   insertOne,
   update,
+  deleteOne,
 } = require("../../../../controllers/financeiro/cadastros/rateios-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -43,6 +44,19 @@ router.put(
   async (req, res) => {
     try {
       const result = await update(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteOne(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });

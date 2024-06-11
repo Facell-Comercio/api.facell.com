@@ -160,7 +160,7 @@ function insertOne(req) {
           await conn.execute(
             `INSERT INTO fin_rateio_itens (id_rateio, id_filial, percentual) VALUES(?,?,?)`,
             [newId, id_filial, percentual]
-          );
+          ); //! ORDEM NÃO TEM DEFAULT
         });
       }
 
@@ -180,7 +180,6 @@ function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, active, id_grupo_economico, nome, codigo, manual, itens } =
       req.body;
-
     const conn = await db.getConnection();
     try {
       if (!id) {
@@ -203,24 +202,58 @@ function update(req) {
       }
       await conn.beginTransaction();
 
-      // Deletar os itens anteriores
-      await conn.execute(`DELETE FROM fin_rateio_itens WHERE id_rateio =?`, [
-        id,
-      ]);
       // Update do rateio
       await conn.execute(
         `UPDATE fin_rateio SET id_grupo_economico = ?, nome = ?, codigo = ?, manual =?, active = ? WHERE id =?`,
         [id_grupo_economico, nome, codigo, manual, active, id]
       );
+
+      if (manual) {
+        // Deletar os itens anteriores
+        await conn.execute(`DELETE FROM fin_rateio_itens WHERE id_rateio =?`, [
+          id,
+        ]);
+      }
       // Inserir os itens do rateio
       if (!manual) {
-        itens.forEach(async ({ id_filial, percentual }) => {
-          await conn.execute(
-            `INSERT INTO fin_rateio_itens (id_rateio, id_filial, percentual) VALUES(?,?,?)`,
-            [id, id_filial, percentual]
-          );
-        });
+        for (const item of itens) {
+          if (item.id_item) {
+            await conn.execute(
+              `UPDATE fin_rateio_itens SET id_filial = ?, percentual = ? WHERE id =?`,
+              [item.id_filial, item.percentual, item.id_item]
+            );
+          } else {
+            await conn.execute(
+              `INSERT INTO fin_rateio_itens (id_rateio, id_filial, percentual) VALUES(?,?,?)`,
+              [id, item.id_filial, item.percentual]
+            );
+          }
+        }
       }
+
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      console.error("ERRO_RATEIO_UPDATE", error);
+      await conn.rollback();
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function deleteOne(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    const conn = await db.getConnection();
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+      await conn.beginTransaction();
+
+      await conn.execute(`DELETE FROM fin_rateio_itens WHERE id = ?`, [id]);
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
@@ -239,4 +272,5 @@ module.exports = {
   getOne,
   insertOne,
   update,
+  deleteOne,
 };

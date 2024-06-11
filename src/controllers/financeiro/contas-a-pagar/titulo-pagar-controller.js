@@ -446,6 +446,56 @@ function getOne(req) {
   });
 }
 
+function getPendencias(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const conn = await db.getConnection();
+    try {
+      if (
+        checkUserDepartment(req, "FINANCEIRO") ||
+        checkUserPermission(req, "MASTER")
+      ) {
+        resolve(0);
+        return;
+      }
+
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde
+        FROM (
+          SELECT
+            t.id 
+          FROM fin_cp_titulos t 
+          LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+          LEFT JOIN filiais f ON f.id = t.id_filial 
+          LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+          LEFT JOIN users u ON u.id = t.id_solicitante
+
+          WHERE t.id_tipo_solicitacao = 2
+          AND NOT t.id_status = 2 
+          AND (
+            t.id_status = 4 
+            OR t.data_emissao < DATE_SUB(CURDATE(), INTERVAL 20 DAY)
+          )
+          AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
+          AND t.id_solicitante = '${user.id}'
+        ) AS subconsulta
+        `
+      );
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      resolve(totalVencimentos);
+    } catch (error) {
+      console.error(
+        "ERROR_GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
+        error
+      );
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 // * ok
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
@@ -2336,6 +2386,7 @@ module.exports = {
   getAllCpVencimentosBordero,
   getAllRecorrencias,
   getOne,
+  getPendencias,
   insertOne,
   insertOneRecorrencia,
   insertManyFromGN,

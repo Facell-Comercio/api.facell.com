@@ -70,6 +70,7 @@ module.exports = [
     length: 3,
     type: "numeric",
     required: true,
+    default: new Array(3).fill(0).join(""), //? No caso de PIX é obrigatório passar o banco?
   },
   {
     field: "agencia",
@@ -78,6 +79,7 @@ module.exports = [
     length: 20,
     required: true,
     type: "numeric",
+    default: new Array(20).fill(0).join(""),
   },
   {
     field: "favorecido_nome",

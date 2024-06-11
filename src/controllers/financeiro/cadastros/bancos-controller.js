@@ -24,7 +24,7 @@ function getAll(req) {
 
       where += ` AND (
                 fb.nome LIKE CONCAT('%', ?, '%')  OR
-                fb.codigo LIKE CONCAT('%', ?, '%')
+                fb.codigo = ?
             )`;
     }
 
@@ -37,7 +37,7 @@ function getAll(req) {
         `SELECT count(fb.id) as qtde FROM fin_bancos fb
             WHERE 
               fb.nome LIKE CONCAT('%', ?, '%')  OR
-              fb.codigo LIKE CONCAT('%', ?, '%')
+              fb.codigo = ?
             `,
         [termo, termo]
       );
@@ -115,7 +115,7 @@ function insertOne(req) {
         }
         campos += `${key}`;
         values += `?`;
-        params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
+        params.push(String(rest[key]).toUpperCase()); // Adicionar valor do campo ao array de parâmetros
       });
 
       const query = `INSERT INTO fin_bancos (${campos}) VALUES (${values});`;
@@ -151,7 +151,7 @@ function update(req) {
           updateQuery += ", "; // Adicionar vírgula entre os campos
         }
         updateQuery += `${key} = ? `;
-        params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
+        params.push(String(rest[key]).toUpperCase()); // Adicionar valor do campo ao array de parâmetros
       });
 
       params.push(id);

@@ -18,7 +18,8 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { nome, id_grupo_economico, ativo, id_matriz, termo } = filters || {};
+    const { nome, id_grupo_economico, active, id_matriz, termo } =
+      filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
@@ -43,9 +44,9 @@ function getAll(req) {
       params.push(nome);
     }
 
-    if (ativo) {
-      where += ` AND cc.ativo = ? `;
-      params.push(ativo);
+    if (active) {
+      where += ` AND cc.active = ? `;
+      params.push(active);
     }
     if (id_matriz) {
       where += ` AND gp.id_matriz = ? `;

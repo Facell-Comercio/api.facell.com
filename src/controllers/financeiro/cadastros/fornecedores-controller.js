@@ -114,13 +114,15 @@ function insertOne(req) {
       const params = [];
 
       Object.keys(rest).forEach((key, index) => {
-        if (index > 0) {
-          campos += ", "; // Adicionar vírgula entre os campos
-          values += ", "; // Adicionar vírgula entre os values
+        if (rest[key] !== "" && rest[key] !== undefined) {
+          if (index > 0) {
+            campos += ", "; // Adicionar vírgula entre os campos
+            values += ", "; // Adicionar vírgula entre os values
+          }
+          campos += `${key}`;
+          values += `?`;
+          params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
         }
-        campos += `${key}`;
-        values += `?`;
-        params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
       });
 
       const query = `INSERT INTO fin_fornecedores (${campos}) VALUES (${values});`;
@@ -151,19 +153,24 @@ function update(req) {
       let updateQuery = "UPDATE fin_fornecedores SET ";
 
       // Construir a parte da query para atualização dinâmica
-      Object.keys(rest).forEach((key, index) => {
-        if (index > 0) {
-          updateQuery += ", "; // Adicionar vírgula entre os campos
+      let index = 0;
+      Object.keys(rest).forEach((key) => {
+        if (rest[key] !== "" && rest[key] !== undefined) {
+          if (index > 0) {
+            updateQuery += ", "; // Adicionar vírgula entre os campos
+          }
+          updateQuery += `${key} = ?`;
+          params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
+          index++;
+          console.log(key, rest[key]);
         }
-        updateQuery += `${key} = ?`;
-        params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
       });
 
       params.push(id);
 
       await conn.execute(
         updateQuery +
-          `WHERE id = ?
+          ` WHERE id = ?
             `,
         params
       );

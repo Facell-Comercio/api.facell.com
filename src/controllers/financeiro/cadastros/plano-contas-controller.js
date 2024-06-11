@@ -66,7 +66,7 @@ function getAll(req) {
       params.push(id_grupo_economico);
     }
     if (codigo) {
-      where += ` AND pc.codigo LIKE CONCAT(?,'%') `;
+      where += ` AND pc.codigo = ? `;
       params.push(codigo);
     }
     if (descricao) {

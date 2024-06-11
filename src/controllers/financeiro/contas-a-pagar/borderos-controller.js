@@ -830,7 +830,8 @@ function exportRemessa(req, res) {
             forn.nome as favorecido_nome,
             DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
             tv.valor as valor_pagamento,
-            forn.cnpj as favorecido_cnpj
+            forn.cnpj as favorecido_cnpj,
+            t.id_tipo_chave_pix
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
@@ -874,10 +875,6 @@ function exportRemessa(req, res) {
               key === "PagamentoPIX"
                 ? new Array(3).fill(0).join("")
                 : vencimento.cod_banco_favorecido,
-            agencia:
-              key === "PagamentoPIX"
-                ? new Array(3).fill(0).join("")
-                : bancoFavorecido.join(""),
           });
           arquivo.push(segmentoA);
           qtde_registros++;
