@@ -3,6 +3,7 @@ const { db } = require("../../../../mysql");
 const {
   normalizeCnpjNumber,
   removeSpecialCharactersAndAccents,
+  normalizeNumberOnly,
 } = require("../../../helpers/mask");
 const {
   createHeaderArquivo,
@@ -10,6 +11,7 @@ const {
   createSegmentoA,
   createTrailerLote,
   createTrailerArquivo,
+  createSegmentoB,
 } = require("../remessa/parsers/itau");
 const { normalizeValue } = require("../remessa/parsers/masks");
 
@@ -831,7 +833,8 @@ function exportRemessa(req, res) {
             DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
             tv.valor as valor_pagamento,
             forn.cnpj as favorecido_cnpj,
-            t.id_tipo_chave_pix
+            t.id_tipo_chave_pix,
+            t.chave_pix
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
@@ -882,6 +885,48 @@ function exportRemessa(req, res) {
           somatoria_valores += parseFloat(vencimento.valor_pagamento);
 
           registroLote++;
+
+          let tipo_chave = "00";
+          let chave_pix = vencimento.chave_pix;
+          if (key === "PagamentoPIX") {
+            switch (vencimento.id_tipo_chave_pix) {
+              case 1:
+                // Aleatória
+                tipo_chave = "04";
+                break;
+              case 2:
+                // E-mail
+                tipo_chave = "02";
+                break;
+              case 3:
+                // Celular
+                tipo_chave = "01";
+                chave_pix = "+55" + normalizeNumberOnly(chave_pix);
+                break;
+              case 4:
+                // CPF
+                tipo_chave = "03";
+                chave_pix = normalizeNumberOnly(chave_pix);
+                break;
+              case 5:
+                // CNPJ
+                tipo_chave = "03";
+                chave_pix = normalizeNumberOnly(chave_pix);
+                break;
+            }
+
+            const segmentoB = createSegmentoB({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              tipo_chave,
+              num_inscricao: vencimento.favorecido_cnpj,
+              txid: vencimento.id,
+              chave_pix,
+            });
+            arquivo.push(segmentoB);
+            qtde_registros_arquivo++;
+          }
         }
 
         qtde_registros++;

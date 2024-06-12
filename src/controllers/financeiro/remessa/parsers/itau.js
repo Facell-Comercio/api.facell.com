@@ -76,7 +76,30 @@ function createSegmentoA(params) {
         h.default === undefined
       ) {
         throw new Error(
-          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório!`
+          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento A!`
+        );
+      }
+
+      if (params[h.field]) {
+        return normalizeValue(params[h.field], h.type, h.length, h.format);
+      }
+      return normalizeValue(h.default, h.type, h.length, h.format);
+    })
+    .join("");
+}
+
+function createSegmentoB(params) {
+  const segmentoModel = ITAU.Pagamento.Detail.B;
+
+  return segmentoModel
+    .map((h) => {
+      if (
+        h.required &&
+        params[h.field] === undefined &&
+        h.default === undefined
+      ) {
+        throw new Error(
+          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento B!`
         );
       }
 
@@ -133,6 +156,7 @@ module.exports = {
   createHeaderArquivo,
   createHeaderLote,
   createSegmentoA,
+  createSegmentoB,
   createTrailerLote,
   createTrailerArquivo,
 };
