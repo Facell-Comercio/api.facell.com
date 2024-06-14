@@ -16,7 +16,7 @@
   "nodemonConfig": {
     "ignore": [
       "**/public/**",
-      "**/logs.json"
+      "**/logs/**"
     ]
   },
   "dependencies": {

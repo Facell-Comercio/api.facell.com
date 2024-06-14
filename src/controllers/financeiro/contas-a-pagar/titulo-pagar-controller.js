@@ -13,7 +13,7 @@ const {
   createUploadsPath,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
-const logger = require("../../../../logs/logger");
+const logger = require("../../../../logger");
 require("dotenv").config();
 
 function checkFeriado(date) {
