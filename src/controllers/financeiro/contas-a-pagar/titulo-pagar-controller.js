@@ -824,13 +824,13 @@ function insertOne(req) {
       // * Salvar os novos vencimentos
       for (const vencimento of vencimentos) {
         // * Persistir o vencimento do titulo e obter o id:
-        console.log(
-          newId,
-          startOfDay(vencimento.data_vencimento),
-          startOfDay(vencimento.data_prevista),
-          vencimento.linha_digitavel,
-          vencimento.valor
-        );
+        // console.log(
+        //   newId,
+        //   startOfDay(vencimento.data_vencimento),
+        //   startOfDay(vencimento.data_prevista),
+        //   vencimento.linha_digitavel,
+        //   vencimento.valor
+        // );
         await conn.execute(
           `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, linha_digitavel, valor) VALUES (?,?,?,?,?)`,
           [
@@ -957,11 +957,11 @@ function insertOneRecorrencia(req) {
       const { user } = req;
       const data = req.body;
       const { id, data_vencimento, valor } = data || {};
-      console.log(data);
+      // console.log(data);
 
       // ~ Criação da data do mês seguinte
       const new_data_vencimento = addMonths(data_vencimento, 1);
-      console.log(new_data_vencimento);
+      // console.log(new_data_vencimento);
 
       // ^ Validações
       // Titulo
@@ -1787,7 +1787,7 @@ function update(req) {
       const nova_url_planilha = await moverArquivoTempParaUploads(url_planilha);
       const nova_url_txt = await moverArquivoTempParaUploads(url_txt);
 
-      console.log(id_rateio);
+      // console.log(id_rateio);
       // Persistir  novos dados do Titulo
       await conn.execute(
         `UPDATE fin_cp_titulos 
@@ -2149,7 +2149,6 @@ function changeRecorrencia(req) {
     const { id } = req.params;
     const { data_vencimento, valor } = req.body;
 
-    console.log(req.body);
     const conn = await db.getConnection();
 
     await conn.beginTransaction();

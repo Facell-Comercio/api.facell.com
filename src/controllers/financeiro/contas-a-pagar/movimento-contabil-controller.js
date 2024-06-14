@@ -141,7 +141,7 @@ function downloadMovimentoContabil(req, res) {
           [id_grupo_economico]
         );
         for (const conta_bancaria of contasBancarias) {
-          console.log("Conta bancaria: " + conta_bancaria.nome);
+          // console.log("Conta bancaria: " + conta_bancaria.nome);
           await appendItem(conta_bancaria.id);
         }
       }
@@ -168,7 +168,7 @@ function downloadMovimentoContabil(req, res) {
 
         // * Passar por cada dia gerando uma pasta do dia e gerar os files
         for (const dia of dias) {
-          console.log("DIA:", dia);
+          // console.log("DIA:", dia);
           const objDia = {
             type: "folder",
             folderName: dia.toString().padStart(2, "0"),
@@ -227,7 +227,7 @@ function downloadMovimentoContabil(req, res) {
 
           // * Adiciona os títulos no array do excel e no Objeto de dia
           titulos.forEach((vencimento) => {
-            console.log("VENCIMENTO", vencimento);
+            // console.log("VENCIMENTO", vencimento);
             itemsExcel.push({
               "ID VENCIMENTO": vencimento.id,
               "ID TÍTULO": vencimento.id_titulo,

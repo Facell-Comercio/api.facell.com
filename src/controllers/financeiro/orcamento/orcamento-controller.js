@@ -169,8 +169,6 @@ function findAccountFromParams(req) {
         where += ` AND DATE_FORMAT(fo.ref, '%Y-%m') = DATE_FORMAT(CURRENT_DATE(), '%Y-%m') `;
       }
 
-      console.log(where, params);
-
       const [rowOrcamentoItens] = await conn.execute(
         `
         SELECT 
@@ -280,7 +278,7 @@ function update(req) {
         active,
         id,
       ]);
-      console.log(contas);
+      // console.log(contas);
       if (contas?.length) {
         // * Insert das contas
         for (const conta of contas) {
@@ -291,13 +289,13 @@ function update(req) {
             valor,
             valor_inicial,
           } = conta;
-          console.log(
-            id_conta,
-            id_centro_custo,
-            id_plano_contas,
-            valor,
-            valor_inicial
-          );
+          // console.log(
+          //   id_conta,
+          //   id_centro_custo,
+          //   id_plano_contas,
+          //   valor,
+          //   valor_inicial
+          // );
           if (id_conta) {
             const diferenca = valor - valor_inicial;
 
@@ -350,7 +348,7 @@ function update(req) {
             `,
               [id_centro_custo, id_plano_contas, id]
             );
-            console.log(contaOrcamento);
+            // console.log(contaOrcamento);
             if (!contaOrcamento.length) {
               await conn.execute(
                 `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto) VALUES(?, ?, ?, ?)`,
