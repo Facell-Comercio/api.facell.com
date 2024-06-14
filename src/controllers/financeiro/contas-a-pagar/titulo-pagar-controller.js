@@ -13,6 +13,7 @@ const {
   createUploadsPath,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
+const logger = require("../../../../logs/logger");
 require("dotenv").config();
 
 function checkFeriado(date) {
@@ -137,7 +138,10 @@ function getAll(req) {
     }
     // console.log(where)
     const conn = await db.getConnection();
+    
     try {
+      throw new Error('Testando testando...')
+      
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
         FROM fin_cp_titulos t 
@@ -181,7 +185,16 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_GET_ALL_TITULOS", error);
+
+      console.log(error)
+      logger.error({
+        module: 'FINANCEIRO', 
+        origin: 'TITULOS', 
+        method: 'GET_ALL', 
+        error: {...error}
+      })
+
+      // console.error("ERROR_GET_ALL_TITULOS", error);
       reject(error);
     } finally {
       conn.release();
@@ -295,6 +308,7 @@ function getAllCpVencimentosBordero(req) {
 
     const conn = await db.getConnection();
     try {
+
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (

@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js --",
-    "dev": "nodemon --ignore public  index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -15,7 +15,8 @@
   },
   "nodemonConfig": {
     "ignore": [
-      "**/public/**"
+      "**/public/**",
+      "**/logs.json"
     ]
   },
   "dependencies": {
@@ -37,6 +38,8 @@
     "ofx-js": "^0.2.0",
     "pdfkit": "^0.14.0",
     "pdfkit-table": "^0.1.99",
+    "pino": "^9.2.0",
+    "pino-pretty": "^11.2.1",
     "socket.io": "^4.7.2",
     "socketio": "^1.0.0",
     "uuid": "^9.0.1",
