@@ -18,7 +18,7 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { termo, descricao, id_grupo_economico, id_matriz } = filters || {
+    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap } = filters || {
       termo: null,
     };
 
@@ -61,6 +61,15 @@ function getAll(req) {
     if (id_grupo_economico) {
       where += ` AND f.id_grupo_economico = ?`;
       params.push(id_grupo_economico);
+    }
+    if (tim_cod_sap) {
+      if(tim_cod_sap !== 'all'){
+        where += ` AND f.tim_cod_sap = ?`;
+        params.push(tim_cod_sap);
+      }else{
+        where += ` AND NOT f.tim_cod_sap IS NULL`;
+      }
+      
     }
     if (id_matriz && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;

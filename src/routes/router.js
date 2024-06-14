@@ -7,10 +7,12 @@ const uploadRouter = require("./upload-router");
 const financeiroRouter = require("./financeiro/financeiro-router");
 const grupoEconomico = require("./grupo-economico-router");
 const filial = require("./filial-router");
-const banco = require("./banco-router");
 const user = require("./user-router");
 const departamento = require("./departamento-router");
 const permissao = require("./permissao-router");
+
+const datasys = require("./datasys");
+const tim = require("./tim");
 const authMiddleware = require("../middlewares/auth-middleware");
 
 // const datasysRouter = require('./datasys/datasys')
@@ -28,11 +30,13 @@ router.use("/", authMiddleware);
 router.use("/upload", uploadRouter);
 router.use("/financeiro", financeiroRouter);
 router.use("/grupo-economico", grupoEconomico);
-router.use("/banco", banco);
 router.use("/filial", filial);
 router.use("/user", user);
 router.use("/departamento", departamento);
 router.use("/permissao", permissao);
+
+router.use("/datasys", datasys);
+router.use("/tim", tim);
 
 // app.use('/datasys', datasysRouter)
 // app.use('/comissao-tim', timRouter)

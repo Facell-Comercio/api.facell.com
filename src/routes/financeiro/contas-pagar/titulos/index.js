@@ -15,6 +15,7 @@ const {
   changeRecorrencia,
   exportDatasys,
   getAllCpVencimentosBordero,
+  getOneByTimParams,
   getPendencias,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
@@ -70,6 +71,15 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/by-tim", async (req, res) => {
+  try {
+    const result = await getOneByTimParams(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 router.get("/vencimentos-bordero", async (req, res) => {
   try {
     const result = await getAllCpVencimentosBordero(req);
@@ -82,6 +92,15 @@ router.get("/vencimentos-bordero", async (req, res) => {
 router.get("/recorrencias", async (req, res) => {
   try {
     const result = await getAllRecorrencias(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/pendencias", async (req, res) => {
+  try {
+    const result = await getPendencias(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

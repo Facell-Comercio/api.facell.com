@@ -134,7 +134,7 @@ function getOne(req) {
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
