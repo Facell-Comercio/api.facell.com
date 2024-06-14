@@ -162,7 +162,6 @@ function update(req) {
           updateQuery += `${key} = ?`;
           params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
           index++;
-          console.log(key, rest[key]);
         }
       });
 
@@ -177,7 +176,7 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_FORNECEDORES_UPDATE", error);
+      le.error("ERRO_FORNECEDORES_UPDATE", error);
       await conn.rollback();
       reject(error);
     } finally {

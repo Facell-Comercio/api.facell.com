@@ -230,7 +230,7 @@ function getVencimentosAPagar(req) {
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
 
         ${where}
-        AND t.id_status = 3
+        AND (t.id_status = 3 OR t.id_status = 4)
         AND tb.id IS NULL
         `,
         params
@@ -254,7 +254,7 @@ function getVencimentosAPagar(req) {
 
             ${where}
             AND tb.id IS NULL
-            AND t.id_status = 3
+            AND (t.id_status = 3 OR t.id_status = 4)
             ORDER BY 
               tv.data_prevista DESC 
             LIMIT ? OFFSET ?
@@ -361,7 +361,7 @@ function getVencimentosEmBordero(req) {
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
 
         ${where}
-        AND t.id_status = 3
+        AND tv.data_pagamento IS NULL
         AND tb.id IS NOT NULL
         `,
         params
@@ -385,7 +385,7 @@ function getVencimentosEmBordero(req) {
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
 
             ${where}
-            AND t.id_status = 3
+            AND tv.data_pagamento IS NULL
             AND tb.id IS NOT NULL
             ORDER BY 
                 tv.data_prevista DESC 

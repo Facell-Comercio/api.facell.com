@@ -71,7 +71,7 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      const [rowPlanoContas] = await conn.execute(
+      const [rowDepartamentos] = await conn.execute(
         `
             SELECT *
             FROM departamentos
@@ -79,11 +79,38 @@ function getOne(req) {
             `,
         [id]
       );
-      const planoContas = rowPlanoContas && rowPlanoContas[0];
-      resolve(planoContas);
+      const departamentos = rowDepartamentos && rowDepartamentos[0];
+      resolve(departamentos);
       return;
     } catch (error) {
       console.error("ERRO_GET_ONE_DEPARTAMENTO", error);
+      reject(error);
+      return;
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function getUserDepartamentos(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const conn = await db.getConnection();
+    try {
+      const [rowDepartamentos] = await conn.execute(
+        `
+            SELECT d.id, d.nome
+            FROM users_departamentos ud
+            LEFT JOIN departamentos d ON d.id = ud.id_departamento
+            WHERE ud.id_user = ?
+            `,
+        [user.id]
+      );
+      resolve(rowDepartamentos);
+      return;
+    } catch (error) {
+      console.error("ERRO_GET_USER_DEPARTAMENTO", error);
       reject(error);
       return;
     } finally {
@@ -157,6 +184,7 @@ function insertOne(req) {
 module.exports = {
   getAll,
   getOne,
+  getUserDepartamentos,
   update,
   insertOne,
 };

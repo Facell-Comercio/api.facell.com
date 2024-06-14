@@ -23,9 +23,6 @@ function getAllSolicitacoesNegadas(req) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const params = [];
-    // where += `
-    // AND t.id_status = 3
-    //   AND tb.id_vencimento IS NULL `;
 
     const conn = await db.getConnection();
     try {
@@ -103,9 +100,6 @@ function getAllNotasFiscaisPendentes(req) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const params = [];
-    // where += `
-    // AND t.id_status = 3
-    //   AND tb.id_vencimento IS NULL `;
 
     const conn = await db.getConnection();
     try {
@@ -191,9 +185,6 @@ function getAllRecorrenciasPendentes(req) {
       where += ` AND r.id_user = '${user.id}' `;
     }
     const params = [];
-    // where += `
-    // AND t.id_status = 3
-    //   AND tb.id_vencimento IS NULL `;
 
     const conn = await db.getConnection();
     try {

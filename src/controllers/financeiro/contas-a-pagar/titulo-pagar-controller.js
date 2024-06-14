@@ -20,6 +20,9 @@ require("dotenv").config();
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
+    const departamentosGestor = user.departamentos
+      .filter((departamento) => departamento.gestor)
+      .map((departamento) => departamento.id);
 
     const { pagination, filters } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
@@ -32,12 +35,15 @@ function getAll(req) {
 
     // Filtros
     var where = ` WHERE 1=1 `;
-    // Somente o Financeiro/Master podem ver todos
+    //* Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
       !checkUserPermission(req, "MASTER")
     ) {
-      where += ` AND t.id_solicitante = '${user.id}' `;
+      // where += ` AND t.id_solicitante = '${user.id}'`;
+      where += ` AND (t.id_solicitante = '${
+        user.id
+      }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
     }
     const {
       id,
@@ -93,37 +99,36 @@ function getAll(req) {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
-    // console.log(where)
     const conn = await db.getConnection();
     try {
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
-        FROM fin_cp_titulos t 
-        LEFT JOIN filiais f ON f.id = t.id_filial 
-        INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-        ${where}
-        `,
+      FROM fin_cp_titulos t 
+      LEFT JOIN filiais f ON f.id = t.id_filial 
+      INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+      ${where}
+      `,
         params
       );
       const totalTitulos = (rowsTitulos && rowsTitulos[0]["total"]) || 0;
       const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       var query = `
-            SELECT DISTINCT 
-                t.id, s.status, t.created_at, t.descricao, t.valor,
-                f.nome as filial, f.id_matriz,
-                forn.nome as fornecedor, u.nome as solicitante
-            FROM fin_cp_titulos t 
-            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
-            LEFT JOIN filiais f ON f.id = t.id_filial 
-            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-            LEFT JOIN users u ON u.id = t.id_solicitante
+          SELECT DISTINCT 
+              t.id, s.status, t.created_at, t.descricao, t.valor,
+              f.nome as filial, f.id_matriz,
+              forn.nome as fornecedor, u.nome as solicitante
+          FROM fin_cp_titulos t 
+          LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+          LEFT JOIN filiais f ON f.id = t.id_filial 
+          LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+          INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+          LEFT JOIN users u ON u.id = t.id_solicitante
 
-            ${where}
+          ${where}
 
-            ORDER BY 
-                t.created_at DESC 
-            ${limit}`;
+          ORDER BY 
+              t.created_at DESC 
+          ${limit}`;
       if (limit) {
         params.push(pageSize);
         params.push(offset);
@@ -227,8 +232,8 @@ function getAllCpVencimentosBordero(req) {
     }
 
     where += ` 
-    AND t.id_status = 3 
-      AND tb.id_vencimento IS NULL `;
+    AND (t.id_status = 3 OR t.id_status = 4) 
+    AND tb.id_vencimento IS NULL `;
 
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
@@ -387,6 +392,7 @@ function getOne(req) {
                 fb.codigo as codigo_banco,
                 fo.nome as nome_fornecedor, 
                 fo.cnpj as cnpj_fornecedor,
+                t.id_departamento,
                 COALESCE(fr.manual, TRUE) as rateio_manual
 
             FROM fin_cp_titulos t 
@@ -474,7 +480,7 @@ function getPendencias(req) {
           WHERE t.id_tipo_solicitacao = 2
           AND NOT t.id_status = 2 
           AND (
-            t.id_status = 4 
+            t.id_status = 4 OR t.id_status = 5 
             OR t.data_emissao < DATE_SUB(CURDATE(), INTERVAL 20 DAY)
           )
           AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
@@ -526,6 +532,7 @@ function insertOne(req) {
         // Geral
         id_tipo_solicitacao,
         id_filial,
+        id_departamento,
         id_grupo_economico,
         id_matriz,
 
@@ -556,6 +563,9 @@ function insertOne(req) {
       // Titulo
       if (!id_filial) {
         throw new Error("Campo id_filial não informado!");
+      }
+      if (!id_departamento) {
+        throw new Error("Campo id_departamento não informado!");
       }
       if (!id_grupo_economico) {
         throw new Error("Campo id_grupo_economico não informado!");
@@ -735,6 +745,7 @@ function insertOne(req) {
 
           id_tipo_solicitacao,
           id_filial,
+          id_departamento,
           
           data_emissao,
           num_doc,
@@ -751,7 +762,7 @@ function insertOne(req) {
           url_txt
         )
 
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `,
         [
           user.id,
@@ -772,6 +783,7 @@ function insertOne(req) {
 
           id_tipo_solicitacao,
           id_filial,
+          id_departamento,
 
           startOfDay(data_emissao),
           num_doc,
@@ -1416,6 +1428,7 @@ function update(req) {
       const {
         id,
         id_filial,
+        id_departamento,
         id_grupo_economico,
 
         id_fornecedor,
@@ -1468,6 +1481,9 @@ function update(req) {
       }
       if (!id_filial) {
         throw new Error("Campo id_filial não informado!");
+      }
+      if (!id_departamento) {
+        throw new Error("Campo id_departamento não informado!");
       }
       if (!id_grupo_economico) {
         throw new Error("Campo id_grupo_economico não informado!");
@@ -1771,6 +1787,7 @@ function update(req) {
       const nova_url_planilha = await moverArquivoTempParaUploads(url_planilha);
       const nova_url_txt = await moverArquivoTempParaUploads(url_txt);
 
+      console.log(id_rateio);
       // Persistir  novos dados do Titulo
       await conn.execute(
         `UPDATE fin_cp_titulos 
@@ -1792,6 +1809,7 @@ function update(req) {
 
         id_tipo_solicitacao = ?,
         id_filial = ?,
+        id_departamento = ?,
         
         data_emissao = ?,
         num_doc = ?,
@@ -1829,13 +1847,14 @@ function update(req) {
 
           id_tipo_solicitacao,
           id_filial,
+          id_departamento,
 
           startOfDay(data_emissao),
           num_doc || null,
           valor,
           descricao,
 
-          id_rateio,
+          id_rateio || null,
 
           nova_url_nota_fiscal || null,
           nova_url_xml || null,
@@ -1954,7 +1973,8 @@ function changeStatusTitulo(req) {
       { id: "1", status: "Solicitado" },
       { id: "2", status: "Negado" },
       { id: "3", status: "Aprovado" },
-      { id: "4", status: "Pago" },
+      { id: "4", status: "Pago Parcial" },
+      { id: "5", status: "Pago" },
     ];
 
     const conn = await db.getConnection();
@@ -1979,9 +1999,10 @@ function changeStatusTitulo(req) {
       const titulo = rowTitulo && rowTitulo[0];
 
       // Rejeitar caso id_status = '4', ou caso um vencimento já tenha sido pago:
-      if (titulo.id_status == "4") {
+      if (titulo.id_status == "4" || titulo.id_status == "5") {
+        const status = titulo.id_status == "4" ? "pago parcial" : "pago";
         throw new Error(
-          "Alteração rejeitada pois o título já consta como pago!"
+          `Alteração rejeitada pois o título já consta como ${status}!`
         );
       }
       const [vencimentosPagos] = await conn.execute(
@@ -2027,7 +2048,11 @@ function changeStatusTitulo(req) {
       }
 
       // !: Caso Diferente de Aprovado e Pago - Remover de Borderô
-      if (id_novo_status != "3" && id_novo_status != "4") {
+      if (
+        id_novo_status != "3" &&
+        id_novo_status != "4" &&
+        id_novo_status != "5"
+      ) {
         await conn.execute(
           `DELETE FROM fin_cp_titulos_borderos WHERE id_vencimento IN( 
           SELECT tv.id FROM fin_cp_titulos_vencimentos tv WHERE tv.id_titulo = ?)`,
@@ -2050,7 +2075,13 @@ function changeStatusTitulo(req) {
         historico += textoMotivo;
       }
       if (id_novo_status == "3") {
-        historico = `APROVADO POR: ${author} `;
+        historico = `APROVADO POR: ${author}.`;
+      }
+      if (id_novo_status == "4") {
+        historico = `PAGO PARCIAL POR: ${author}.`;
+      }
+      if (id_novo_status == "5") {
+        historico = `PAGO POR: ${author}.`;
       }
 
       // ^ Gerar histórico no título

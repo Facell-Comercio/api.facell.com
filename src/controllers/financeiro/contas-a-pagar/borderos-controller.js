@@ -186,7 +186,7 @@ function getOne(req) {
     const { id } = req.params;
     const conn = await db.getConnection();
     try {
-      const [rowPlanoContas] = await conn.execute(
+      const [rowBorderos] = await conn.execute(
         `
             SELECT 
               b.id, b.data_pagamento, b.id_conta_bancaria, 
@@ -209,8 +209,8 @@ function getOne(req) {
               tv.id as id_vencimento,
               tv.id_titulo, 
               t.id_status, 
-              SUM(tv.valor) as valor_total, 
-              SUM(tv.valor_pago) as valor_pago, 
+              tv.valor as valor_total, 
+              tv.valor_pago as valor_pago, 
               t.descricao, 
               t.num_doc,
               tv.data_prevista as previsao, 
@@ -241,10 +241,10 @@ function getOne(req) {
             `,
         [id]
       );
-      const planoContas = rowPlanoContas && rowPlanoContas[0];
+      const bordero = rowBorderos && rowBorderos[0];
 
       const objResponse = {
-        ...planoContas,
+        ...bordero,
         vencimentos: rowTitulos,
       };
       resolve(objResponse);
