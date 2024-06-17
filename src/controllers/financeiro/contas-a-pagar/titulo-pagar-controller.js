@@ -218,15 +218,14 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.log(error);
+
       logger.error({
         module: "FINANCEIRO",
-        origin: "TITULOS",
+        origin: "TITULOS A PAGAR",
         method: "GET_ALL",
-        error: { ...error },
+        data: { message: error.message, stack: error.stack, name: error.name },
       });
 
-      // console.error("ERROR_GET_ALL_TITULOS", error);
       reject(error);
     } finally {
       conn.release();
@@ -394,7 +393,14 @@ function getAllCpVencimentosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_GET_CP_VENCIMENTOS_BORDERO", error);
+      
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_ALL_VENCIMENTOS_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
       reject(error);
     } finally {
       conn.release();
@@ -449,7 +455,14 @@ function getAllRecorrencias(req) {
       );
       resolve({ rows: recorrencias });
     } catch (error) {
-      console.error("ERRO RECORRENCIAS", error);
+
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_ALL_RECORRENCIAS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
       reject(error);
     } finally {
       conn.release();
@@ -525,7 +538,13 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.error("ERROR_GET_ONE_TITULO_PAGAR", error);
+
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -618,6 +637,12 @@ function getOneByTimParams(req) {
       resolve(objResponse);
       return;
     } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_ONE_BY_TIM_PARAMS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -665,10 +690,13 @@ function getPendencias(req) {
       const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
       resolve(totalVencimentos);
     } catch (error) {
-      console.error(
-        "ERROR_GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
-        error
-      );
+
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_PENDENCIAS_NOTAS_FISCAIS_TITULOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -1113,7 +1141,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERROR_INSERT_ONE_TITULO_PAGAR", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "INSERT_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -1171,7 +1204,12 @@ function insertOneRecorrencia(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERROR_INSERT_ONE_RECORRÊNCIA_PGTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "INSERT_ONE_RECORRENCIA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -1332,7 +1370,12 @@ function insertOneByGN(req) {
       await conn.commit();
       resolve({ id: id_titulo });
     } catch (error) {
-      console.log("ERROR_INSERT_ONE_TITULO_PAGAR_BY_GN", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "INSERT_ONE_BY_GN",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -1832,7 +1875,12 @@ function update(req) {
       await conn.commit();
       resolve();
     } catch (error) {
-      console.error("ERROR_TITULO_PAGAR_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -1878,7 +1926,12 @@ function updateFileTitulo(req) {
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
-      console.log("ERROR_UPDATE_FILE_TITULO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "UPDATE_FILE_TITULO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
       return;
@@ -2021,7 +2074,12 @@ function changeStatusTitulo(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_CHANGE_STATUS_TITULO_PAGAR", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "CHANGE_STATUS_TITULO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -2064,7 +2122,13 @@ function changeFieldTitulos(req) {
 
       resolve(result);
     } catch (error) {
-      console.error("ERROR_CHANGE_FIELD_TITULOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "CHANGE_FIELD_TITULOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
       reject(error);
     }
   });
@@ -2094,11 +2158,17 @@ function changeRecorrencia(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
-      console.error("ERROR_CHANGE_RECORRENCIAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "UPDATE_RECORRENCIA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -2155,7 +2225,13 @@ function downloadAnexos(req, res) {
       res.send({ zip, filename });
       resolve();
     } catch (error) {
-      console.error("ERRO_DOWNLOAD_ANEXOS_TITULOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "DOWNLOAD_ANEXOS_TITULO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
       reject(error);
     } finally {
       conn.release();
@@ -2300,7 +2376,12 @@ function exportDatasys(req) {
 
       resolve(datasys);
     } catch (error) {
-      console.error("ERRO EXPORT DATASYS TITULOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "EXPORT_DATASYS_TITULOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -2328,11 +2409,16 @@ function deleteRecorrencia(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
-      console.error("ERROR_DELETE_RECORRENCIAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "DELETE_RECORRENCIA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
