@@ -155,7 +155,7 @@ module.exports = [
     endPos: 157,
     length: 6,
     required: true,
-    type: "hour",
+    type: "time",
   },
 
   {

@@ -12,6 +12,9 @@ const {
   createTrailerLote,
   createTrailerArquivo,
   createSegmentoB,
+  createSegmentoJ,
+  createSegmentoJ52Pix,
+  createSegmentoJ52,
 } = require("../remessa/parsers/itau");
 const { normalizeValue } = require("../remessa/parsers/masks");
 
@@ -620,6 +623,9 @@ function exportRemessa(req, res) {
         rowsPagamentoTEDOutroTitular,
         rowsPagamentoTEDMesmoTitular,
         rowsPagamentoPIX,
+        rowsPagamentoBoletoItau,
+        rowsPagamentoBoletoOutroBancoParaItau,
+        rowsPagamentoPIXQRCode,
       ] = await Promise.all([
         conn
           .execute(
@@ -754,6 +760,68 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+        conn
+          .execute(
+            `
+      SELECT
+        tv.id as id_vencimento
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 1
+      AND fb.codigo = 341
+      AND tv.data_pagamento IS NULL
+    `,
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
+      SELECT
+        tv.id as id_vencimento
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 1
+      AND fb.codigo <> 341
+      AND tv.data_pagamento IS NULL
+    `,
+            [id]
+          )
+          .then(([rows]) => rows),
+        conn
+          .execute(
+            `
+      SELECT
+        tv.id as id_vencimento
+      FROM fin_cp_titulos_vencimentos tv
+      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+      LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+      LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+      LEFT JOIN filiais f ON f.id = t.id_filial
+      LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      WHERE tb.id_bordero = ?
+      AND t.id_forma_pagamento = 10
+      AND tv.data_pagamento IS NULL
+    `,
+            [id]
+          )
+          .then(([rows]) => rows),
       ]);
 
       const formasPagamento = new Map(
@@ -765,6 +833,10 @@ function exportRemessa(req, res) {
           PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
           PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
           PagamentoPIX: rowsPagamentoPIX,
+          PagamentoBoletoItau: rowsPagamentoBoletoItau,
+          PagamentoBoletoOutroBancoParaItau:
+            rowsPagamentoBoletoOutroBancoParaItau,
+          PagamentoPIXQRCode: rowsPagamentoPIXQRCode,
         })
       );
 
@@ -772,22 +844,22 @@ function exportRemessa(req, res) {
       const arquivo = [];
 
       let lote = 0;
-      let qtde_registros = 0;
       let qtde_registros_arquivo = 0;
       const dataCriacao = new Date();
       const headerArquivo = createHeaderArquivo({
         ...borderoData,
         arquivo_data_geracao: formatDate(dataCriacao, "ddMMyyyy"),
-        arquivo_hora_geracao: formatDate(dataCriacao, "hhmmss"),
+        arquivo_hora_geracao: formatDate(dataCriacao, "HHmmss"),
       });
       arquivo.push(headerArquivo);
       qtde_registros_arquivo++;
 
       for (const [key, formaPagamento] of formasPagamento) {
         if (!formaPagamento.length) continue;
+        let qtde_registros = 0;
+        let somatoria_valores = 0;
         ++lote;
 
-        let somatoria_valores = 0;
         let forma_pagamento = 6;
         switch (key) {
           case "PagamentoCorrenteItau":
@@ -799,22 +871,48 @@ function exportRemessa(req, res) {
           case "PagamentoCorrenteMesmaTitularidade":
             forma_pagamento = 6;
             break;
+          case "PagamentoBoletoItau":
+            forma_pagamento = 30;
+            break;
+          case "PagamentoBoletoOutroBancoParaItau":
+            forma_pagamento = 31;
+            break;
           case "PagamentoTEDOutroTitular":
             forma_pagamento = 41;
             break;
-          case "rowsPagamentoTEDMesmoTitular":
+          case "PagamentoTEDMesmoTitular":
             forma_pagamento = 43;
             break;
           case "PagamentoPIX":
             forma_pagamento = 45;
             break;
+          case "PagamentoPIXQRCode":
+            forma_pagamento = 47;
+            break;
         }
-        const headerLote = createHeaderLote({
-          ...borderoData,
-          lote,
-          forma_pagamento,
-        });
-        arquivo.push(headerLote);
+
+        //* Dependendo do tipo de pagamento o layout do lote muda
+        if (
+          key !== "PagamentoBoletoItau" &&
+          key !== "PagamentoBoletoOutroBancoParaItau" &&
+          key !== "PagamentoPIXQRCode"
+        ) {
+          const headerLote = createHeaderLote({
+            ...borderoData,
+            lote,
+            forma_pagamento,
+          });
+          arquivo.push(headerLote);
+        } else {
+          const headerLote = createHeaderLote({
+            ...borderoData,
+            lote,
+            forma_pagamento,
+            versao_layout: "030",
+          });
+          arquivo.push(headerLote);
+        }
+
         qtde_registros++;
         qtde_registros_arquivo++;
 
@@ -831,10 +929,12 @@ function exportRemessa(req, res) {
             forn.conta,
             forn.nome as favorecido_nome,
             DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
+            DATE_FORMAT(tv.data_vencimento, '%d/%m/%Y') as data_vencimento,
             tv.valor as valor_pagamento,
             forn.cnpj as favorecido_cnpj,
             t.id_tipo_chave_pix,
-            t.chave_pix
+            t.chave_pix,
+            tv.linha_digitavel
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
@@ -866,22 +966,76 @@ function exportRemessa(req, res) {
               normalizeValue(vencimento.dv_agencia, "alphanumeric", 1)
             );
           }
-          //* Quando um pagamento é do tipo PIX Transferência o código câmara é 009 *//
-          const segmentoA = createSegmentoA({
-            ...vencimento,
-            lote,
-            num_registro_lote: registroLote,
-            cod_camara: key === "PagamentoPIX" && 9,
-            vencimento: vencimento.id,
-            ident_transferencia: key === "PagamentoPIX" && "04", //^^ Verificar se está correto
-            cod_banco_favorecido:
-              key === "PagamentoPIX"
-                ? new Array(3).fill(0).join("")
-                : vencimento.cod_banco_favorecido,
-          });
-          arquivo.push(segmentoA);
-          qtde_registros++;
-          qtde_registros_arquivo++;
+          //* O segmento A só é gerado se o tipo de pagamento não é boleto ou pix qr code
+          if (
+            key !== "PagamentoBoletoItau" &&
+            key !== "PagamentoBoletoOutroBancoParaItau" &&
+            key !== "PagamentoPIXQRCode"
+          ) {
+            const segmentoA = createSegmentoA({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              //* Quando um pagamento é do tipo PIX Transferência o código câmara é 009
+              cod_camara: key === "PagamentoPIX" && 9,
+              vencimento: vencimento.id,
+              ident_transferencia: key === "PagamentoPIX" && "04", //^^ Verificar se está correto
+              cod_banco_favorecido:
+                key === "PagamentoPIX"
+                  ? new Array(3).fill(0).join("")
+                  : vencimento.cod_banco_favorecido,
+            });
+            arquivo.push(segmentoA);
+            qtde_registros++;
+            qtde_registros_arquivo++;
+          } else if (key === "PagamentoPIXQRCode") {
+            //* Pagamento PIX QR Code
+            const segmentoJ = createSegmentoJ({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              valor_titulo: vencimento.valor_titulo,
+              n_doc: vencimento.id,
+            });
+            const segmentoJ52Pix = createSegmentoJ52Pix({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              num_inscricao_sacado: borderoData.cnpj_empresa,
+              nome_sacado: borderoData.empresa_nome,
+              num_inscricao_cedente: vencimento.favorecido_cnpj,
+              nome_cedente: vencimento.favorecido_nome,
+            });
+            arquivo.push(segmentoJ);
+            arquivo.push(segmentoJ52Pix);
+            qtde_registros += 2;
+            qtde_registros_arquivo += 2;
+          } else {
+            //* Pagamento Boleto
+            //todo Adicionar os valores de sacado e cedente
+            const segmentoJ = createSegmentoJ({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              valor_titulo: vencimento.valor_pagamento,
+              n_doc: vencimento.doc_empresa,
+              cod_barras: vencimento.linha_digitavel,
+            });
+            const segmentoJ52 = createSegmentoJ52({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              num_inscricao_sacado: borderoData.cnpj_empresa,
+              nome_sacado: borderoData.empresa_nome,
+              num_inscricao_cedente: vencimento.favorecido_cnpj,
+              nome_cedente: vencimento.favorecido_nome,
+            });
+            arquivo.push(segmentoJ);
+            arquivo.push(segmentoJ52);
+            qtde_registros += 2;
+            qtde_registros_arquivo += 2;
+          }
+
           somatoria_valores += parseFloat(vencimento.valor_pagamento);
 
           registroLote++;

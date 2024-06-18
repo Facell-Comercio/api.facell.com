@@ -16,6 +16,8 @@ const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const {
   normalizeFirstAndLastName,
   normalizeCurrency,
+  normalizeNumberOnly,
+  normalizeCodigoBarras,
 } = require("../../../helpers/mask");
 const {
   moverArquivoTempParaUploads,
@@ -24,6 +26,7 @@ const {
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
 const logger = require("../../../../logger");
+const { checkCodigoBarras } = require("../../../helpers/chekers");
 require("dotenv").config();
 
 function checkFeriado(date) {
@@ -1005,13 +1008,26 @@ function insertOne(req) {
         //   vencimento.linha_digitavel,
         //   vencimento.valor
         // );
+        //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
+        const linha_digitavel = !!vencimento.linha_digitavel
+          ? normalizeNumberOnly(vencimento.linha_digitavel)
+          : null;
+        if (
+          !!vencimento.linha_digitavel &&
+          !checkCodigoBarras(linha_digitavel)
+        ) {
+          throw new Error(`Linha Digitável inválida: ${linha_digitavel}`);
+        }
+
         await conn.execute(
           `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, linha_digitavel, valor) VALUES (?,?,?,?,?)`,
           [
             newId,
             startOfDay(vencimento.data_vencimento),
             startOfDay(vencimento.data_prevista),
-            vencimento.linha_digitavel,
+            linha_digitavel === null || linha_digitavel.length === 44
+              ? linha_digitavel
+              : normalizeCodigoBarras(linha_digitavel),
             vencimento.valor,
           ]
         );
@@ -1689,6 +1705,16 @@ function update(req) {
           }
 
           // * Persistir o vencimento
+          //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
+          const linha_digitavel = !!vencimento.linha_digitavel
+            ? normalizeNumberOnly(vencimento.linha_digitavel)
+            : null;
+          if (
+            !!vencimento.linha_digitavel &&
+            !checkCodigoBarras(linha_digitavel)
+          ) {
+            throw new Error(`Linha Digitável inválida: ${linha_digitavel}`);
+          }
           await conn.execute(
             `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, linha_digitavel) VALUES (?,?,?,?,?)`,
             [
@@ -1696,7 +1722,9 @@ function update(req) {
               formatDate(vencimento.data_vencimento, "yyyy-MM-dd"),
               formatDate(vencimento.data_prevista, "yyyy-MM-dd"),
               valorVencimento,
-              vencimento.linha_digitavel || null,
+              linha_digitavel === null || linha_digitavel.length === 44
+                ? linha_digitavel
+                : normalizeCodigoBarras(linha_digitavel),
             ]
           );
         }

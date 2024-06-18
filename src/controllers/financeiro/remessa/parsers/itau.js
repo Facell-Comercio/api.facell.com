@@ -6,6 +6,7 @@ const {
 
 function createHeaderArquivo(params) {
   const headerModel = ITAU.ArquivoHeader;
+
   return headerModel
     .map((h) => {
       if (
@@ -36,7 +37,6 @@ function createHeaderArquivo(params) {
 
 function createHeaderLote(params) {
   const headerModel = ITAU.Pagamento.LoteHeader;
-
   return headerModel
     .map((h) => {
       if (
@@ -67,7 +67,6 @@ function createHeaderLote(params) {
 
 function createSegmentoA(params) {
   const segmentoModel = ITAU.Pagamento.Detail.A;
-
   return segmentoModel
     .map((h) => {
       if (
@@ -81,6 +80,8 @@ function createSegmentoA(params) {
       }
 
       if (params[h.field]) {
+        // console.log("A ", params[h.field], h.type, h.length, h.format);
+
         return normalizeValue(params[h.field], h.type, h.length, h.format);
       }
       return normalizeValue(h.default, h.type, h.length, h.format);
@@ -100,6 +101,75 @@ function createSegmentoB(params) {
       ) {
         throw new Error(
           `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento B!`
+        );
+      }
+
+      if (params[h.field]) {
+        // console.log("B ", params[h.field], h.type, h.length, h.format);
+        return normalizeValue(params[h.field], h.type, h.length, h.format);
+      }
+      return normalizeValue(h.default, h.type, h.length, h.format);
+    })
+    .join("");
+}
+
+function createSegmentoJ(params) {
+  const segmentoModel = ITAU.Pagamento.Detail.J;
+  return segmentoModel
+    .map((h) => {
+      if (
+        h.required &&
+        params[h.field] === undefined &&
+        h.default === undefined
+      ) {
+        throw new Error(
+          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento J!`
+        );
+      }
+
+      if (params[h.field]) {
+        return normalizeValue(params[h.field], h.type, h.length, h.format);
+      }
+      return normalizeValue(h.default, h.type, h.length, h.format);
+    })
+    .join("");
+}
+
+function createSegmentoJ52(params) {
+  const segmentoModel = ITAU.Pagamento.Detail["J-52"];
+
+  return segmentoModel
+    .map((h) => {
+      if (
+        h.required &&
+        params[h.field] === undefined &&
+        h.default === undefined
+      ) {
+        throw new Error(
+          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento J-52!`
+        );
+      }
+
+      if (params[h.field]) {
+        return normalizeValue(params[h.field], h.type, h.length, h.format);
+      }
+      return normalizeValue(h.default, h.type, h.length, h.format);
+    })
+    .join("");
+}
+
+function createSegmentoJ52Pix(params) {
+  const segmentoModel = ITAU.Pagamento.Detail["J-52-PIX"];
+
+  return segmentoModel
+    .map((h) => {
+      if (
+        h.required &&
+        params[h.field] === undefined &&
+        h.default === undefined
+      ) {
+        throw new Error(
+          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento J-52-PIX!`
         );
       }
 
@@ -157,6 +227,9 @@ module.exports = {
   createHeaderLote,
   createSegmentoA,
   createSegmentoB,
+  createSegmentoJ,
+  createSegmentoJ52,
+  createSegmentoJ52Pix,
   createTrailerLote,
   createTrailerArquivo,
 };

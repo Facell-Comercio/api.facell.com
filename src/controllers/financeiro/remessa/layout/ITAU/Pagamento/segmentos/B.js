@@ -1,4 +1,3 @@
-// todo - mapear
 module.exports = [
   {
     field: "banco",
