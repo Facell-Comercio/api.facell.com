@@ -109,6 +109,25 @@ function removeSpecialCharactersAndAccents(str) {
   return trimmedStr;
 }
 
+function normalizeCodigoBarras(text) {
+  const parte1 = text.substring(0, 4);
+  const parte3 = text.substring(4, 9);
+  const parte4 = text.substring(10, 20);
+  const parte5 = text.substring(21, 31);
+  const parte2 = text.substring(32, 47);
+
+  return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
+}
+
+function normalizeURLChaveEnderecamentoPIX(qr) {
+  if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
+    throw new Error("Chave PIX não identificada");
+  }
+  const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
+  const caracteres = parseInt(etapa1[1].substring(2, 4)) + 4;
+  return etapa1[1].substring(4, caracteres);
+}
+
 module.exports = {
   normalizeNumberOnly,
   normalizePhoneNumber,
@@ -120,4 +139,6 @@ module.exports = {
   normalizeCurrency,
   normalizeFirstAndLastName,
   removeSpecialCharactersAndAccents,
+  normalizeCodigoBarras,
+  normalizeURLChaveEnderecamentoPIX,
 };

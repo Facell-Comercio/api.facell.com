@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -72,7 +73,12 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_EQUIPAMENTOS_CIELO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EQUIPAMENTOS CIELO",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -97,7 +103,12 @@ function getOne(req) {
       resolve(fornecedor);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_EQUIPAMENTOS_CIELO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EQUIPAMENTOS CIELO",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -137,7 +148,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_RATEIOS_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EQUIPAMENTOS CIELO",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -179,7 +195,12 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_RATEIOS_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EQUIPAMENTOS CIELO",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {

@@ -3,6 +3,7 @@ const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const { lerOFX, formatarDataTransacao } = require("../../../helpers/lerOfx");
 const { createFilePathFromUrl } = require("../../files-controller");
+const logger = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -112,7 +113,12 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_EXTRATOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     }
   });
@@ -150,7 +156,12 @@ function getAllTransacaoPadrao(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_TRANSACAO_PADRAO_EXTRATOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "GET_ALL_TRANSACAO_PADRAO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     }
   });
@@ -217,7 +228,12 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_EXTRATOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     }
@@ -305,7 +321,12 @@ function importarExtrato(req) {
       // });
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_EXTRATO_IMPORT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "IMPORT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     }
@@ -337,7 +358,12 @@ function insertOneTransacaoPadrao(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_INSERT_ONE_TRANSACAO_PADRAO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "INSERT_ONE_TRANSACAO_PADRAO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -375,7 +401,12 @@ function updateTransacaoPadrao(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_UPDATE_TRANSACAO_PADRAO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "UPDATE_TRANSACAO_PADRAO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -403,7 +434,12 @@ function deleteTransacaoPadrao(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_DELETE_TRANSACAO_PADRAO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "DELETE_TRANSACAO_PADRAO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -466,7 +502,12 @@ async function exportBorderos(req) {
 
       resolve(titulosBordero);
     } catch (error) {
-      console.error("ERRO_EXPORT_BORDERO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "EXPORT_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     }
   });

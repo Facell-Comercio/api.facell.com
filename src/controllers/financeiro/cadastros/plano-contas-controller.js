@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
@@ -126,7 +127,16 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_PLANO_CONTAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PLANO DE CONTAS",
+        method: "GET_ALL",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -153,7 +163,16 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_PLANO_CONTAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PLANO DE CONTAS",
+        method: "GET_ONE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
       return;
     } finally {
@@ -198,7 +217,16 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_PLANO_CONTAS_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PLANO DE CONTAS",
+        method: "INSERT",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -238,7 +266,16 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_PLANO_CONTAS_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PLANO DE CONTAS",
+        method: "UPDATE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {

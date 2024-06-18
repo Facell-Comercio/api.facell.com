@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -65,7 +66,16 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_RATEIOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "RATEIOS",
+        method: "GET_ALL",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -110,7 +120,16 @@ function getOne(req) {
       resolve({ ...rateios, itens: rowRateioItens });
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_RATEIOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "RATEIOS",
+        method: "GET_ONE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
       return;
     } finally {
@@ -167,7 +186,16 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_RATEIO_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "RATEIOS",
+        method: "INSERT",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -234,7 +262,16 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_RATEIO_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "RATEIOS",
+        method: "UPDATE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -258,7 +295,16 @@ function deleteOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_RATEIO_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "RATEIOS",
+        method: "DELETE_ONE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {

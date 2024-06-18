@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
@@ -100,7 +101,12 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_CENTRO_CUSTOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CENTROS DE CUSTO",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -126,7 +132,12 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_CENTRO_CUSTOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CENTROS DE CUSTO",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -170,7 +181,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_CENTRO_CUSTO_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CENTROS DE CUSTO",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -210,7 +226,12 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_CENTRO_CUSTO_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CENTROS DE CUSTO",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {

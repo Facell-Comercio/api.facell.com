@@ -2,6 +2,7 @@ const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { normalizeCurrency } = require("../../../helpers/mask");
+const logger = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -60,7 +61,12 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_ORCAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       await conn.release();
@@ -130,7 +136,12 @@ function getOne(req) {
       resolve({ ...orcamento, contas: rowOrcamentoItens });
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_ORCAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -199,7 +210,12 @@ function findAccountFromParams(req) {
       resolve(contaOrcamento);
       return;
     } catch (error) {
-      console.error("ERROR_FIND_ACCOUNT_FROM_PARAMS_ORCAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "FIND_ACCOUNT_FROM_PARAMS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -247,7 +263,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_ORCAMENTO_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -369,7 +390,12 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_ORCAMENTO_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -433,7 +459,12 @@ function deleteItemBudget(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_DELETE_ITEM_BUDGET", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "DELETE_ITEM_BUDGET",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -557,7 +588,12 @@ function getMyBudgets(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_MY_BUDGETS_ORCAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "GET_MY_BUDGETS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       await conn.release();
@@ -600,7 +636,12 @@ function getMyBudget(req) {
       const orcamento = rowOrcamento && rowOrcamento[0];
       resolve(orcamento);
     } catch (error) {
-      console.error("ERRO_GET_MY_BUDGET_ORCAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "GET_MY_BUDGET",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -756,7 +797,12 @@ function transfer(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_TRANSFER_BUDGET", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "TRANSFER_BUDGET",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -830,7 +876,12 @@ function getIds(req) {
       }
       resolve({ returnedIds, erros });
     } catch (error) {
-      console.error("ERRO_ORCAMENTO_GET_IDS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "GET_IDS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -861,7 +912,12 @@ function getLogs(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_LOGS_ORCAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "ORÇAMENTOS",
+        method: "GET_LOGS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       await conn.release();
@@ -898,6 +954,7 @@ function faker() {
       // await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
+      console.log("ERRO_FAKER_ORÇAMENTOS", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -918,5 +975,5 @@ module.exports = {
   transfer,
   getIds,
   getLogs,
-  faker,
+  // faker,
 };

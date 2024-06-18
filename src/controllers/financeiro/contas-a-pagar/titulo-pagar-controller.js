@@ -16,6 +16,8 @@ const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const {
   normalizeFirstAndLastName,
   normalizeCurrency,
+  normalizeNumberOnly,
+  normalizeCodigoBarras,
 } = require("../../../helpers/mask");
 const {
   moverArquivoTempParaUploads,
@@ -24,6 +26,7 @@ const {
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
 const logger = require("../../../../logger");
+const { checkCodigoBarras } = require("../../../helpers/chekers");
 require("dotenv").config();
 
 function checkFeriado(date) {
@@ -173,7 +176,7 @@ function getAll(req) {
     const conn = await db.getConnection();
 
     try {
-      throw new Error("Testando testando...");
+      // throw new Error("Testando testando...");
 
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
@@ -218,14 +221,12 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-
       reject(error);
     } finally {
       conn.release();
@@ -393,7 +394,6 @@ function getAllCpVencimentosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
@@ -455,14 +455,12 @@ function getAllRecorrencias(req) {
       );
       resolve({ rows: recorrencias });
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
         method: "GET_ALL_RECORRENCIAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-
       reject(error);
     } finally {
       conn.release();
@@ -538,7 +536,6 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
@@ -690,7 +687,6 @@ function getPendencias(req) {
       const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
       resolve(totalVencimentos);
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
@@ -1033,13 +1029,26 @@ function insertOne(req) {
         //   vencimento.linha_digitavel,
         //   vencimento.valor
         // );
+        //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
+        const linha_digitavel = !!vencimento.linha_digitavel
+          ? normalizeNumberOnly(vencimento.linha_digitavel)
+          : null;
+        if (
+          !!vencimento.linha_digitavel &&
+          !checkCodigoBarras(linha_digitavel)
+        ) {
+          throw new Error(`Linha Digitável inválida: ${linha_digitavel}`);
+        }
+
         await conn.execute(
           `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, linha_digitavel, valor) VALUES (?,?,?,?,?)`,
           [
             newId,
             startOfDay(vencimento.data_vencimento),
             startOfDay(vencimento.data_prevista),
-            vencimento.linha_digitavel,
+            linha_digitavel === null || linha_digitavel.length === 44
+              ? linha_digitavel
+              : normalizeCodigoBarras(linha_digitavel),
             vencimento.valor,
           ]
         );
@@ -1732,6 +1741,16 @@ function update(req) {
           }
 
           // * Persistir o vencimento
+          //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
+          const linha_digitavel = !!vencimento.linha_digitavel
+            ? normalizeNumberOnly(vencimento.linha_digitavel)
+            : null;
+          if (
+            !!vencimento.linha_digitavel &&
+            !checkCodigoBarras(linha_digitavel)
+          ) {
+            throw new Error(`Linha Digitável inválida: ${linha_digitavel}`);
+          }
           await conn.execute(
             `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, linha_digitavel) VALUES (?,?,?,?,?)`,
             [
@@ -1739,7 +1758,9 @@ function update(req) {
               formatDate(vencimento.data_vencimento, "yyyy-MM-dd"),
               formatDate(vencimento.data_prevista, "yyyy-MM-dd"),
               valorVencimento,
-              vencimento.linha_digitavel || null,
+              linha_digitavel === null || linha_digitavel.length === 44
+                ? linha_digitavel
+                : normalizeCodigoBarras(linha_digitavel),
             ]
           );
         }

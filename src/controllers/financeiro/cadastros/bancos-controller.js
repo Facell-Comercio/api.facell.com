@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -59,7 +60,12 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_BANCOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BANCOS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -84,7 +90,12 @@ function getOne(req) {
       resolve(fornecedor);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_BANCOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BANCOS",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -124,7 +135,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_EQUIPAMENTOS_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BANCOS",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -166,7 +182,12 @@ function update(req) {
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
-      console.error("ERRO_EQUIPAMENTOS_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BANCOS",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
       return;

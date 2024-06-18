@@ -4,6 +4,7 @@ const { db } = require("../../../../mysql");
 const { createUploadsPath, zipFiles } = require("../../files-controller");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const XLSX = require("xlsx");
+const logger = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -88,7 +89,12 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_MOVIMENTO_CONTABIL_GET_ALL", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "MOVIMENTO CONTÁBIL",
+        method: "MOVIMENTO_CONTABIL_GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -298,8 +304,13 @@ function downloadMovimentoContabil(req, res) {
       await conn.commit();
       resolve();
     } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "MOVIMENTO CONTÁBIL",
+        method: "DOWNLOAD_MOVIMENTO_CONTABIL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
-      console.error("ERRO NO DOWNLOAD MOVIMENTO CONTABIL", error);
       reject(error);
     } finally {
       conn.release();

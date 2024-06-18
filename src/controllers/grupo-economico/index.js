@@ -1,3 +1,4 @@
+const logger = require("../../../logger");
 const { db } = require("../../../mysql");
 const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
@@ -82,7 +83,16 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_GRUPOS_ECONÔMICOS", error);
+      logger.error({
+        module: "ADM",
+        origin: "GRUPO ECONÔMICO",
+        method: "GET_ALL",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -107,7 +117,16 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_GRUPO_ECONOMICO", error);
+      logger.error({
+        module: "ADM",
+        origin: "GRUPO ECONÔMICO",
+        method: "GET_ONE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -159,7 +178,16 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_GRUPO_ECONOMICO_UPDATE", error);
+      logger.error({
+        module: "ADM",
+        origin: "GRUPO ECONÔMICO",
+        method: "UPDATE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -189,7 +217,16 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_GRUPO_ECONOMICO_INSERT", error);
+      logger.error({
+        module: "ADM",
+        origin: "GRUPO ECONÔMICO",
+        method: "INSERT",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {

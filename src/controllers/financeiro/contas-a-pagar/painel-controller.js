@@ -1,6 +1,7 @@
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
+const logger = require("../../../../logger");
 
 function getAllSolicitacoesNegadas(req) {
   return new Promise(async (resolve, reject) => {
@@ -71,7 +72,12 @@ function getAllSolicitacoesNegadas(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_GET_ALL_SOLICITAÇÕES_NEGADAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PAINEL",
+        method: "GET_ALL_SOLICITAÇÕES_NEGADAS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -153,10 +159,12 @@ function getAllNotasFiscaisPendentes(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error(
-        "ERROR_GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
-        error
-      );
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PAINEL",
+        method: "GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -235,7 +243,12 @@ function getAllRecorrenciasPendentes(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.log("ERROR_GET_ALL_RECORRENCIAS_PENDENTES", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "PAINEL",
+        method: "GET_ALL_RECORRENCIAS_PENDENTES",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
