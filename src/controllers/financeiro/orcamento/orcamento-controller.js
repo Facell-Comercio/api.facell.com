@@ -2,7 +2,7 @@ const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { normalizeCurrency } = require("../../../helpers/mask");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -69,7 +69,7 @@ function getAll(req) {
       });
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -272,7 +272,7 @@ function insertOne(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -468,7 +468,7 @@ function deleteItemBudget(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -596,7 +596,7 @@ function getMyBudgets(req) {
       });
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -806,7 +806,7 @@ function transfer(req) {
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -920,7 +920,7 @@ function getLogs(req) {
       });
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

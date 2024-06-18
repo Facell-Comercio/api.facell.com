@@ -25,7 +25,7 @@ const {
   createUploadsPath,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 const { checkCodigoBarras } = require("../../../helpers/chekers");
 require("dotenv").config();
 
@@ -792,8 +792,7 @@ function insertOne(req) {
       // Se forma de pagamento for na conta, então exigir os dados bancários
       if (
         id_forma_pagamento === "2" ||
-        id_forma_pagamento === "5" ||
-        id_forma_pagamento === "8"
+        id_forma_pagamento === "5"
       ) {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
           throw new Error("Preencha corretamente os dádos bancários!");
@@ -1490,8 +1489,7 @@ function update(req) {
       // Se forma de pagamento for na conta, então exigir os dados bancários
       if (
         id_forma_pagamento === "2" ||
-        id_forma_pagamento === "5" ||
-        id_forma_pagamento === "8"
+        id_forma_pagamento === "5"
       ) {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
           throw new Error("Preencha corretamente os dádos bancários!");

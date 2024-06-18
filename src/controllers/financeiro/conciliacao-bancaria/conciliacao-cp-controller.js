@@ -1,6 +1,6 @@
 const { addMonths, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {

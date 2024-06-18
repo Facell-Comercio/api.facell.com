@@ -1,3 +1,4 @@
+const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 
 function getAll(req) {
@@ -58,7 +59,10 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_DEPARTAMENTOS", error);
+      logger.error({
+        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'GER_ALL',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
     } finally {
       conn.release();
@@ -83,7 +87,10 @@ function getOne(req) {
       resolve(departamentos);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_DEPARTAMENTO", error);
+      logger.error({
+        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'GER_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
       return;
     } finally {
@@ -110,7 +117,10 @@ function getUserDepartamentos(req) {
       resolve(rowDepartamentos);
       return;
     } catch (error) {
-      console.error("ERRO_GET_USER_DEPARTAMENTO", error);
+      logger.error({
+        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'GER_USER_DEPARTAMENTOS',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
       return;
     } finally {
@@ -142,7 +152,10 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_DEPARTAMENTO_UPDATE", error);
+      logger.error({
+        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'UPDATE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       await conn.rollback();
       reject(error);
     } finally {
@@ -172,7 +185,10 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_DEPARTAMENTO_INSERT", error);
+      logger.error({
+        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'INSERT_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       await conn.rollback();
       reject(error);
     } finally {

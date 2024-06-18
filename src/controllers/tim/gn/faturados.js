@@ -1,7 +1,8 @@
 const { formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const fs = require('fs/promises')
-const path = require('path')
+const path = require('path');
+const { logger } = require("../../../../logger");
 
 function getAll(req) {
     return new Promise(async (resolve, reject) => {
@@ -84,7 +85,10 @@ function getAll(req) {
             };
             resolve(objResponse);
         } catch (error) {
-            console.log('ERROR_GET_FATURADOS_TIM', error)
+            logger.error({
+                module: 'TIM', origin: 'GN FATURADOS', method: 'GET_ALL',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
             reject(error);
         } finally {
             conn.release();
@@ -106,7 +110,7 @@ async function insertMany(req) {
             }
 
             for (const filial of filiais) {
-                if(!filial?.faturados || !filial?.faturados?.length){ continue ;}
+                if (!filial?.faturados || !filial?.faturados?.length) { continue; }
                 if (!filial.data_inicial || !filial.data_final) {
                     throw new Error('Data Inicial ou Final não informadas!')
                 }
@@ -180,10 +184,13 @@ async function insertMany(req) {
             await conn.commit()
             resolve(true)
         } catch (error) {
-            console.log('ERRO_GN_INSERT_FATURADOS', error)
+            logger.error({
+                module: 'TIM', origin: 'GN FATURADOS', method: 'INSERT_MANY',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
             await conn.rollback()
             reject(error)
-        } finally{
+        } finally {
             conn.release()
         }
     })

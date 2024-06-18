@@ -10,7 +10,7 @@ const {
   zipFiles,
   createUploadsPath,
 } = require("../../files-controller");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 require("dotenv").config();
 
 function getAll(req) {

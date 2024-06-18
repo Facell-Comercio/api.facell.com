@@ -3,7 +3,7 @@ const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const { lerOFX, formatarDataTransacao } = require("../../../helpers/lerOfx");
 const { createFilePathFromUrl } = require("../../files-controller");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {

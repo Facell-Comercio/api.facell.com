@@ -17,7 +17,7 @@ const {
   createSegmentoJ52,
 } = require("../remessa/parsers/itau");
 const { normalizeValue } = require("../remessa/parsers/masks");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {

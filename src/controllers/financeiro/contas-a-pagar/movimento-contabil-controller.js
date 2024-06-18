@@ -4,7 +4,7 @@ const { db } = require("../../../../mysql");
 const { createUploadsPath, zipFiles } = require("../../files-controller");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const XLSX = require("xlsx");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
