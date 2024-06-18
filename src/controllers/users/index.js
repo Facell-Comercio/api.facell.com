@@ -247,7 +247,7 @@ function update(req) {
       console.log("ERRO_USER_UPDATE", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -349,7 +349,7 @@ function insertOne(req) {
       console.log("ERRO_USER_INSERT", error);
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

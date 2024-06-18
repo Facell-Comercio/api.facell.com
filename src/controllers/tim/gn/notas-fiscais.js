@@ -1,3 +1,4 @@
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { insertOneByGN } = require("../../financeiro/contas-a-pagar/titulo-pagar-controller");
 const fs = require('fs/promises')
@@ -79,7 +80,10 @@ function getAll(req) {
             };
             resolve(objResponse);
         } catch (error) {
-            console.log('ERROR_GET_FATURADOS_TIM', error)
+            logger.error({
+                module: 'TIM', origin: 'GN NOTAS FISCAIS', method: 'GET_ALL',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
             reject(error);
         } finally {
             conn.release();
@@ -140,7 +144,10 @@ async function insertMany(req) {
             await conn.commit()
             resolve(true)
         } catch (error) {
-            console.log('ERROR_GN_INSERT_NOTAS_FISCAIS', error)
+            logger.error({
+                module: 'TIM', origin: 'GN NOTAS FISCAIS', method: 'INSERT_MANY',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
             await conn.rollback()
             reject(error)
         } finally {
@@ -192,7 +199,10 @@ async function validarRecebimento(req) {
             }
             resolve(true)
         } catch (error) {
-            console.log('ERROR_VALIDAR_RECEBIMENTO_NOTA_FISCAL_TIM', error)
+            logger.error({
+                module: 'TIM', origin: 'GN NOTAS FISCAIS', method: 'VALIDAÇÃO DATASYS',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
             reject(error)
         } finally {
             conn.release()
@@ -263,7 +273,10 @@ async function lancarFinanceiroEmLote(req) {
             }
             resolve(true)
         } catch (error) {
-            console.log('ERROR_VALIDAR_RECEBIMENTO_NOTA_FISCAL_TIM', error)
+            logger.error({
+                module: 'TIM', origin: 'GN NOTAS FISCAIS', method: 'LANÇAMENTO_FINANCEIRO',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
             reject(error)
         } finally {
             conn.release()

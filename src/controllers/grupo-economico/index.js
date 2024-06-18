@@ -1,4 +1,4 @@
-const logger = require("../../../logger");
+const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
@@ -178,16 +178,15 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
+
       logger.error({
-        module: "ADM",
-        origin: "GRUPO ECONÔMICO",
-        method: "UPDATE",
+        module: "ADM", origin: "GRUPO ECONÔMICO", method: "UPDATE",
         data: {
           message: error.message,
-          stack: error.stack,
-          name: error.name,
+          stack: error.stack, name: error.name
         },
       });
+
       await conn.rollback();
       reject(error);
     } finally {
@@ -221,11 +220,7 @@ function insertOne(req) {
         module: "ADM",
         origin: "GRUPO ECONÔMICO",
         method: "INSERT",
-        data: {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-        },
+        data: { message: error.message, stack: error.stack, name: error.name, },
       });
       await conn.rollback();
       reject(error);

@@ -1,4 +1,4 @@
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 

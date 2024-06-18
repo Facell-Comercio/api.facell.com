@@ -1,7 +1,8 @@
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql")
 
 
-async function findNFfromParams(req) {
+async function findNFbyParams(req) {
     return new Promise(async (resolve, reject) => {
         const conn = await db.getConnection();
         try {
@@ -24,6 +25,10 @@ async function findNFfromParams(req) {
             const nota = result && result[0] || null
             resolve(nota)
         } catch (error) {
+            logger.error({
+                module: 'DATASYS', origin: 'FISCAL', method: 'FIND_BY_PARAMS', 
+                data: {message: error.message, stack: error.stack, name: error.name }
+            })
             reject(error)
         }
         finally{
@@ -36,5 +41,5 @@ async function findNFfromParams(req) {
 
 
 module.exports = {
-    findNFfromParams
+    findNFbyParams
 }

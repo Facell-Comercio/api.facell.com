@@ -1,3 +1,4 @@
+const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
@@ -110,7 +111,10 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_FILIAL", error);
+      logger.error({
+        module: 'ADM', origin: 'FILIAL', method: 'GET_ALL',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
     } finally {
       conn.release();
@@ -135,7 +139,10 @@ function getOne(req) {
       resolve(item);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_FILIAL", error);
+      logger.error({
+        module: 'ADM', origin: 'FILIAL', method: 'GET_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
       return;
     } finally {
@@ -264,7 +271,10 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_FILIAL_UPDATE", error);
+      logger.error({
+        module: 'ADM', origin: 'FILIAL', method: 'UPDATE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       await conn.rollback();
       reject(error);
     } finally {
@@ -403,11 +413,15 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
+      logger.error({
+        module: 'ADM', origin: 'FILIAL', method: 'INSERT_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       console.log("ERRO_FILIAL_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }

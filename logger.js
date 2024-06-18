@@ -30,4 +30,6 @@ const streams = [
 // Cria o logger com os streams configurados
 const logger = pino({}, pino.multistream(streams));
 
-module.exports = logger;
+module.exports = {
+  logger
+};

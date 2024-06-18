@@ -1,3 +1,4 @@
+const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 
 function getAll(req) {
@@ -55,10 +56,13 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_PERMISSAO", error);
+      logger.error({
+        module: 'ADM', origin: 'PERMISSÕES', method: 'GET_ALL',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
@@ -80,48 +84,20 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_PERMISSAO", error);
+      logger.error({
+        module: 'ADM', origin: 'PERMISSÕES', method: 'GET_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
       return;
     } finally {
-      await conn.release();
+      conn.release();
     }
   });
 }
 
-function update(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-    } catch (error) {}
-  });
-}
-
-function remove(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-    } catch (error) {}
-  });
-}
-
-function add(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-    } catch (error) {}
-  });
-}
-
-function toggleActive(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-    } catch (error) {}
-  });
-}
 
 module.exports = {
   getAll,
   getOne,
-  update,
-  remove,
-  add,
-  toggleActive,
 };

@@ -1,7 +1,7 @@
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
-const logger = require("../../../../logger");
+const {logger} = require("../../../../logger");
 
 function getAllSolicitacoesNegadas(req) {
   return new Promise(async (resolve, reject) => {
