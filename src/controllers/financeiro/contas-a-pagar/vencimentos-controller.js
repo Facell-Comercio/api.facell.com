@@ -1,5 +1,3 @@
-const { format, startOfDay, formatDate } = require("date-fns");
-const path = require("path");
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
@@ -12,6 +10,7 @@ const {
   zipFiles,
   createUploadsPath,
 } = require("../../files-controller");
+const logger = require("../../../../logger");
 require("dotenv").config();
 
 function getAll(req) {
@@ -139,7 +138,13 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_GET_ALL_TITULOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "VENCIMENTOS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      console.error("", error);
       reject(error);
     } finally {
       conn.release();
@@ -270,7 +275,12 @@ function getVencimentosAPagar(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_GET_VENCIMENTOS_A_PAGAR", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "VENCIMENTOS",
+        method: "GET_VENCIMENTOS_A_PAGAR",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -402,7 +412,12 @@ function getVencimentosEmBordero(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_GET_VENCIMENTOS_EM_BORDERO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "VENCIMENTOS",
+        method: "GET_VENCIMENTOS_EM_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -536,7 +551,12 @@ function getVencimentosPagos(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERROR_INSERT_ONE_TITULO_PAGAR", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "VENCIMENTOS",
+        method: "GET_VENCIMENTOS_PAGOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -591,7 +611,12 @@ function changeFieldVencimentos(req) {
       await conn.commit();
       resolve(true);
     } catch (error) {
-      console.error("ERROR_CHANGE_FIELD_TITULOS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "VENCIMENTOS",
+        method: "CHANGE_FIELD_VENCIMENTOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {

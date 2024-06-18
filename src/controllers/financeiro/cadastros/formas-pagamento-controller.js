@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -16,7 +17,12 @@ function getAll(req) {
       const [rows] = await conn.execute(query);
       resolve(rows);
     } catch (error) {
-      console.error("ERRO_GET_ALL_FORMAS_PAGAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORMAS DE PAGAMENTO",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -41,7 +47,12 @@ function getOne(req) {
       resolve(formaPagamento);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_FORMAS_PAGAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORMAS DE PAGAMENTO",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -81,7 +92,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_INSERT_ONE_FORMAS_PAGAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORMAS DE PAGAMENTO",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -123,7 +139,12 @@ function update(req) {
       resolve({ message: "Sucesso!" });
       return;
     } catch (error) {
-      console.error("ERRO_UPDATE_FORMAS_PAGAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORMAS DE PAGAMENTO",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
       return;
@@ -149,7 +170,12 @@ function toggleActive(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_TOGGLE_ACTIVE_FORMAS_PAGAMENTO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORMAS DE PAGAMENTO",
+        method: "TOGGLE_ACTIVE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {

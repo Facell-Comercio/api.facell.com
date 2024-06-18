@@ -176,7 +176,7 @@ function getAll(req) {
     const conn = await db.getConnection();
 
     try {
-      throw new Error("Testando testando...");
+      // throw new Error("Testando testando...");
 
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
@@ -221,14 +221,12 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-
       reject(error);
     } finally {
       conn.release();
@@ -396,7 +394,6 @@ function getAllCpVencimentosBordero(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
@@ -458,14 +455,12 @@ function getAllRecorrencias(req) {
       );
       resolve({ rows: recorrencias });
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
         method: "GET_ALL_RECORRENCIAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-
       reject(error);
     } finally {
       conn.release();
@@ -541,7 +536,6 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
@@ -693,7 +687,6 @@ function getPendencias(req) {
       const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
       resolve(totalVencimentos);
     } catch (error) {
-
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",

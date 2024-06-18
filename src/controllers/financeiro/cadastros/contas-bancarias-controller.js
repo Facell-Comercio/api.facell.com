@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
@@ -123,7 +124,12 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_CONTAS_BANCARIAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONTAS BANCÁRIAS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -152,7 +158,12 @@ function getOne(req) {
       resolve(planoContas);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_CONTAS_BANCARIAS", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONTAS BANCÁRIAS",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -196,7 +207,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_CONTAS_BANCARIAS_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONTAS BANCÁRIAS",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -237,7 +253,12 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_CONTAS_BANCARIAS_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONTAS BANCÁRIAS",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {

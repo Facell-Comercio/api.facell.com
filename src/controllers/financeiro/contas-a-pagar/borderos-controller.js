@@ -17,6 +17,7 @@ const {
   createSegmentoJ52,
 } = require("../remessa/parsers/itau");
 const { normalizeValue } = require("../remessa/parsers/masks");
+const logger = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -176,7 +177,13 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_BORDEROS_GET_ALL", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      console.error("", error);
       reject(error);
     } finally {
       conn.release();
@@ -253,7 +260,12 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.error("ERRO_BORDEROS_GET_ONE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -297,7 +309,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_BORDERO_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -367,7 +384,12 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_BORDEROS_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -410,7 +432,12 @@ function deleteVencimento(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_DELETE_TITULO_BORDERO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "DELETE_VENCIMENTO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -446,7 +473,12 @@ function deleteBordero(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_DELETE_BORDERO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "DELETE_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -571,7 +603,12 @@ async function exportBorderos(req) {
 
       resolve(vencimentosBordero);
     } catch (error) {
-      console.error("ERRO_EXPORT_BORDERO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "ERRO_EXPORT_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     }
   });
@@ -816,7 +853,7 @@ function exportRemessa(req, res) {
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
-      AND t.id_forma_pagamento = 10
+      AND t.id_forma_pagamento = 8
       AND tv.data_pagamento IS NULL
     `,
             [id]
@@ -1120,8 +1157,13 @@ function exportRemessa(req, res) {
       await conn.commit();
       resolve();
     } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "EXPORT_REMESSA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
-      console.error("ERRO_EXPORT_REMESSA", error);
       reject(error);
     } finally {
       conn.release();
@@ -1164,7 +1206,16 @@ async function geradorDadosEmpresa() {
             );
           })
           .catch((error) => {
-            console.error("ERRO_CONSULTA_CNPJ_BORDEROS", error);
+            logger.error({
+              module: "FINANCEIRO",
+              origin: "BORDEROS",
+              method: "CONSULTA_CNPJ_BORDEROS",
+              data: {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              },
+            });
             reject(error);
           });
         await new Promise((resolve) => setTimeout(resolve, 20000));
@@ -1174,7 +1225,12 @@ async function geradorDadosEmpresa() {
       await conn.commit();
       resolve();
     } catch (error) {
-      console.error("ERRO_EXPORT_REMESSA", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDEROS",
+        method: "GERADOR_DADOS_EMPRESA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();

@@ -1,5 +1,6 @@
 const { addMonths, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
+const logger = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -152,7 +153,12 @@ function getAll(req) {
       };
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_CONCILIACAO_CP_GET_ALL", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONCILIÇÃO BANCÁRIA CP",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -236,7 +242,12 @@ function getConciliacoes(req) {
 
       resolve(rowsConciliacoes);
     } catch (error) {
-      console.error("ERRO_CONCILIACAO_CP_GET_CONCILIACOES", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONCILIÇÃO BANCÁRIA CP",
+        method: "GET_CONCILIACOES",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -302,7 +313,12 @@ function getOne(req) {
       resolve(objResponse);
       return;
     } catch (error) {
-      console.error("ERRO_CONCILIACAO_CP_GET_ONE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONCILIÇÃO BANCÁRIA CP",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -463,7 +479,12 @@ function insertOne(req) {
 
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_CONCILIACAO_CP_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONCILIÇÃO BANCÁRIA CP",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -593,7 +614,12 @@ function conciliacaoAutomatica(req) {
       await conn.commit();
       resolve(result);
     } catch (error) {
-      console.log("ERRO_CONCILIACAO_CP_AUTOMATICA", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONCILIÇÃO BANCÁRIA CP",
+        method: "AUTOMATICA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -716,7 +742,12 @@ function deleteConciliacao(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_DELETE_BORDERO", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CONCILIÇÃO BANCÁRIA CP",
+        method: "DELETE_CONCILIACAO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -776,6 +807,7 @@ function faker() {
       await conn.rollback();
       resolve({ message: "Sucesso!" });
     } catch (error) {
+      console.log("ERRO NO FAKER DA CONCILIAÇÃO", error);
       await conn.rollback();
       reject(error);
     } finally {
@@ -791,5 +823,5 @@ module.exports = {
   insertOne,
   conciliacaoAutomatica,
   deleteConciliacao,
-  faker,
+  // faker,
 };

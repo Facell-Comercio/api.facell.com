@@ -1,3 +1,4 @@
+const logger = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -63,7 +64,12 @@ function getAll(req) {
 
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_FORNECEDORES", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORNECEDORES",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -89,7 +95,12 @@ function getOne(req) {
       resolve(fornecedor);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_FORNECEDORES", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORNECEDORES",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -131,7 +142,12 @@ function insertOne(req) {
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
-      console.error("ERRO_FORNECEDOR_INSERT", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORNECEDORES",
+        method: "INSERT",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -176,7 +192,12 @@ function update(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      le.error("ERRO_FORNECEDORES_UPDATE", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORNECEDORES",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -195,7 +216,16 @@ function consultaCnpj(req) {
         resolve(data);
       })
       .catch((error) => {
-        console.error("ERRO_CONSULTA_CNPJ_FORNECEDORES", error);
+        logger.error({
+          module: "FINANCEIRO",
+          origin: "FORNECEDORES",
+          method: "CONSULTA_CNPJ",
+          data: {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          },
+        });
         reject(error);
       });
   });
@@ -217,7 +247,16 @@ function toggleActive(req) {
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.error("ERRO_TOGGLE_ACTIVE_FORNECEDORES", error);
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "FORNECEDORES",
+        method: "TOGGLE_ACTIVE",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       await conn.rollback();
       reject(error);
     } finally {
