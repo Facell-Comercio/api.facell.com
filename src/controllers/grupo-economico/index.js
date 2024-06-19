@@ -136,7 +136,7 @@ function getOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, nome, apelido, id_matriz, active } = req.body;
+    const { id, nome, apelido, id_matriz, active, orcamento } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -163,6 +163,10 @@ function update(req) {
         set.push("active = ?");
         params.push(active);
       }
+      if (orcamento !== undefined) {
+        set.push("orcamento = ?");
+        params.push(orcamento);
+      }
       if (id_matriz !== undefined) {
         set.push("id_matriz = ?");
         params.push(id_matriz);
@@ -171,19 +175,21 @@ function update(req) {
       // Atualização de dados
       params.push(id);
       await conn.execute(
-        `UPDATE filiais SET ${set.join(",")} WHERE id = ?`,
+        `UPDATE grupos_economicos SET ${set.join(",")} WHERE id = ?`,
         params
       );
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-
       logger.error({
-        module: "ADM", origin: "GRUPO ECONÔMICO", method: "UPDATE",
+        module: "ADM",
+        origin: "GRUPO ECONÔMICO",
+        method: "UPDATE",
         data: {
           message: error.message,
-          stack: error.stack, name: error.name
+          stack: error.stack,
+          name: error.name,
         },
       });
 
@@ -220,7 +226,7 @@ function insertOne(req) {
         module: "ADM",
         origin: "GRUPO ECONÔMICO",
         method: "INSERT",
-        data: { message: error.message, stack: error.stack, name: error.name, },
+        data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();
       reject(error);

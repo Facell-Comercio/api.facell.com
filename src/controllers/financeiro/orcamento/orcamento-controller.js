@@ -2,7 +2,7 @@ const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { normalizeCurrency } = require("../../../helpers/mask");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -63,7 +63,7 @@ function getAll(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -114,6 +114,9 @@ function getOne(req) {
       const [rowOrcamentoItens] = await conn.execute(
         `
         SELECT 
+          FALSE as checked,   
+          foc.active,
+          foc.active as active_inicial, 
           foc.id as id_conta,
           foc.id_centro_custo, foc.id_plano_contas,
           fcc.nome as centro_custo, 
@@ -138,7 +141,7 @@ function getOne(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "GET_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -225,7 +228,7 @@ function findAccountFromParams(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "FIND_ACCOUNT_FROM_PARAMS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -278,7 +281,7 @@ function insertOne(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "INSERT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -322,6 +325,7 @@ function update(req) {
             id_plano_contas,
             valor,
             valor_inicial,
+            active,
           } = conta;
           // console.log(
           //   id_conta,
@@ -358,9 +362,10 @@ function update(req) {
               `UPDATE fin_orcamento_contas SET 
                       id_centro_custo = ?, 
                       id_plano_contas = ?, 
-                      valor_previsto = valor_previsto + ? 
+                      valor_previsto = valor_previsto + ?,
+                      active = ? 
                     WHERE id = ?`,
-              [id_centro_custo, id_plano_contas, diferenca, id_conta]
+              [id_centro_custo, id_plano_contas, diferenca, active, id_conta]
             );
 
             const { centro_custo, plano_contas } = oldRow && oldRow[0];
@@ -385,15 +390,15 @@ function update(req) {
             // console.log(contaOrcamento);
             if (!contaOrcamento.length) {
               await conn.execute(
-                `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto) VALUES(?, ?, ?, ?)`,
-                [id, id_centro_custo, id_plano_contas, valor]
+                `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, active, valor_previsto) VALUES(?,?,?,?,?)`,
+                [id, id_centro_custo, id_plano_contas, active, valor]
               );
             } else {
               await conn.execute(
                 `
-              UPDATE fin_orcamento_contas SET valor_previsto = ? WHERE id = ?
+              UPDATE fin_orcamento_contas SET active = ?, valor_previsto = ? WHERE id = ?
               `,
-                [valor, contaOrcamento[0].id]
+                [active, valor, contaOrcamento[0].id]
               );
             }
           }
@@ -405,7 +410,7 @@ function update(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "UPDATE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -474,7 +479,7 @@ function deleteItemBudget(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "DELETE_ITEM_BUDGET",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -603,7 +608,7 @@ function getMyBudgets(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "GET_MY_BUDGETS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -651,7 +656,7 @@ function getMyBudget(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "GET_MY_BUDGET",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -812,7 +817,7 @@ function transfer(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "TRANSFER_BUDGET",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -891,7 +896,7 @@ function getIds(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "GET_IDS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -927,7 +932,7 @@ function getLogs(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "ORÇAMENTOS",
+        origin: "ORCAMENTOS",
         method: "GET_LOGS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -967,7 +972,7 @@ function faker() {
       // await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      console.log("ERRO_FAKER_ORÇAMENTOS", error);
+      console.log("ERRO_FAKER_ORCAMENTOS", error);
       await conn.rollback();
       reject(error);
     } finally {
