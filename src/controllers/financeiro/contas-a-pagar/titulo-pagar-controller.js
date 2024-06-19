@@ -25,7 +25,7 @@ const {
   createUploadsPath,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { checkCodigoBarras } = require("../../../helpers/chekers");
 require("dotenv").config();
 
@@ -115,9 +115,8 @@ function getAll(req) {
       !checkUserPermission(req, "MASTER")
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
-      where += ` AND (t.id_solicitante = '${
-        user.id
-      }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
+      where += ` AND (t.id_solicitante = '${user.id
+        }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
     }
     const {
       id,
@@ -157,9 +156,8 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -320,9 +318,8 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -889,13 +886,17 @@ function insertOne(req) {
         item_rateio.percentual = percentualRateio;
       }
 
+      // * Verificar se o Grupo valida orçamento
+      const [rowGrupoEconomico] = await conn.execute(`SELECT orcamento FROM grupos_economicos WHERE id = ?`, [id_grupo_economico])
+      const grupoValidaOrcamento = rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]['orcamento']
+
       // * Obter o Orçamento:
       const [rowOrcamento] = await conn.execute(
-        `SELECT id FROM fin_orcamento WHERE DATE_FORMAT(ref, '%Y-%m') = ? and id_grupo_economico = ?`,
+        `SELECT id, active FROM fin_orcamento WHERE DATE_FORMAT(ref, '%Y-%m') = ? and id_grupo_economico = ?`,
         [format(new Date(), "yyyy-MM"), id_grupo_economico]
       );
 
-      if (!rowOrcamento || rowOrcamento.length === 0) {
+      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
         throw new Error("Orçamento não localizado!");
       }
       if (rowOrcamento.length > 1) {
@@ -903,12 +904,8 @@ function insertOne(req) {
           `${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`
         );
       }
-      const id_orcamento =
-        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
-
-      if (!id_orcamento) {
-        throw new Error("Orçamento não localizado!");
-      }
+      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
+      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // * Persitir os anexos
       const nova_url_nota_fiscal = await moverArquivoTempParaUploads(
@@ -1058,62 +1055,6 @@ function insertOne(req) {
       for (const item_rateio of itens_rateio) {
         // Validar os campos do item rateio:
 
-        // ^ Vamos validar se orçamento possui saldo:
-        // Obter a Conta de Orçamento com o Valor Previsto:
-        const [rowOrcamentoConta] = await conn.execute(
-          `SELECT id, valor_previsto FROM fin_orcamento_contas 
-          WHERE 
-            id_orcamento = ?
-            AND id_centro_custo = ?
-            AND id_plano_contas = ?
-            `,
-          [
-            id_orcamento,
-            item_rateio.id_centro_custo,
-            item_rateio.id_plano_conta,
-          ]
-        );
-
-        if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
-          throw new Error(
-            `Não existe conta no orçamento para ${item_rateio.centro_custo}: ${item_rateio.plano_conta}!`
-          );
-        }
-        const id_orcamento_conta =
-          rowOrcamentoConta &&
-          rowOrcamentoConta[0] &&
-          rowOrcamentoConta[0]["id"];
-
-        let valor_previsto =
-          rowOrcamentoConta &&
-          rowOrcamentoConta[0] &&
-          rowOrcamentoConta[0]["valor_previsto"];
-        valor_previsto = parseFloat(valor_previsto);
-
-        // Obter o Valor Realizado da Conta do Orçamento :
-        const [rowConsumoOrcamento] = await conn.execute(
-          `SELECT sum(valor) as valor 
-          FROM fin_orcamento_consumo 
-          WHERE active = true AND id_orcamento_conta = ?`,
-          [id_orcamento_conta]
-        );
-        let valor_total_consumo =
-          (rowConsumoOrcamento &&
-            rowConsumoOrcamento[0] &&
-            rowConsumoOrcamento[0]["valor"]) ||
-          0;
-        valor_total_consumo = parseFloat(valor_total_consumo);
-
-        // Calcular o saldo da conta do orçamento:
-        const saldo = valor_previsto - valor_total_consumo;
-        if (saldo < item_rateio.valor) {
-          throw new Error(
-            `Saldo insuficiente para ${item_rateio.centro_custo}: ${
-              item_rateio.plano_conta
-            }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
-          );
-        }
-
         // * Persistir Item Rateio
         const [resultInsertItemRateio] = await conn.execute(
           `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, valor, percentual) VALUES (?,?,?,?,?,?)`,
@@ -1127,15 +1068,78 @@ function insertOne(req) {
           ]
         );
 
-        // * Persistir a conta de consumo do orçamento:
-        await conn.execute(
-          `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
-          [
-            id_orcamento_conta,
-            resultInsertItemRateio.insertId,
-            item_rateio.valor,
-          ]
-        );
+        if (orcamentoAtivo) {
+          // ^ Vamos validar se orçamento possui saldo:
+          // Obter a Conta de Orçamento com o Valor Previsto:
+          const [rowOrcamentoConta] = await conn.execute(
+            `SELECT id, valor_previsto, active FROM fin_orcamento_contas 
+          WHERE 
+            id_orcamento = ?
+            AND id_centro_custo = ?
+            AND id_plano_contas = ?
+            `,
+            [
+              id_orcamento,
+              item_rateio.id_centro_custo,
+              item_rateio.id_plano_conta,
+            ]
+          );
+
+          if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
+            throw new Error(
+              `Não existe conta no orçamento para ${item_rateio.centro_custo}: ${item_rateio.plano_conta}!`
+            );
+          }
+
+          const contaOrcamentoAtiva =
+            rowOrcamentoConta &&
+            rowOrcamentoConta[0] &&
+            !!+rowOrcamentoConta[0]["active"];
+
+          const id_orcamento_conta =
+            rowOrcamentoConta &&
+            rowOrcamentoConta[0] &&
+            rowOrcamentoConta[0]["id"];
+
+          let valor_previsto =
+            rowOrcamentoConta &&
+            rowOrcamentoConta[0] &&
+            rowOrcamentoConta[0]["valor_previsto"];
+          valor_previsto = parseFloat(valor_previsto);
+
+          // Obter o Valor Realizado da Conta do Orçamento :
+          const [rowConsumoOrcamento] = await conn.execute(
+            `SELECT sum(valor) as valor 
+          FROM fin_orcamento_consumo 
+          WHERE active = true AND id_orcamento_conta = ?`,
+            [id_orcamento_conta]
+          );
+          let valor_total_consumo =
+            (rowConsumoOrcamento &&
+              rowConsumoOrcamento[0] &&
+              rowConsumoOrcamento[0]["valor"]) ||
+            0;
+          valor_total_consumo = parseFloat(valor_total_consumo);
+
+          // Calcular o saldo da conta do orçamento:
+          const saldo = valor_previsto - valor_total_consumo;
+          if (contaOrcamentoAtiva && (saldo < item_rateio.valor)) {
+            throw new Error(
+              `Saldo insuficiente para ${item_rateio.centro_custo}: ${item_rateio.plano_conta
+              }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
+            );
+          }
+
+          // * Persistir a conta de consumo do orçamento:
+          await conn.execute(
+            `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
+            [
+              id_orcamento_conta,
+              resultInsertItemRateio.insertId,
+              item_rateio.valor,
+            ]
+          );
+        }
       }
 
       // Gerar e Registar historico:
@@ -1557,13 +1561,17 @@ function update(req) {
         [titulo.id]
       );
 
-      // Obter o Orçamento:
+      // * Verificar se o Grupo valida orçamento
+      const [rowGrupoEconomico] = await conn.execute(`SELECT orcamento FROM grupos_economicos WHERE id = ?`, [id_grupo_economico])
+      const grupoValidaOrcamento = rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]['orcamento']
+
+      // * Obter o Orçamento:
       const [rowOrcamento] = await conn.execute(
-        `SELECT id FROM fin_orcamento WHERE DATE_FORMAT(ref, '%Y-%m') = ? and id_grupo_economico = ?`,
+        `SELECT id, active FROM fin_orcamento WHERE DATE_FORMAT(ref, '%Y-%m') = ? and id_grupo_economico = ?`,
         [format(titulo.created_at, "yyyy-MM"), id_grupo_economico]
       );
 
-      if (!rowOrcamento || rowOrcamento.length === 0) {
+      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
         throw new Error("Orçamento não localizado!");
       }
       if (rowOrcamento.length > 1) {
@@ -1571,8 +1579,9 @@ function update(req) {
           `${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`
         );
       }
-      const id_orcamento =
-        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
+
+      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
+      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // ~ Início de Manipulação de Rateio //////////////////////
       // * Validação de orçamento e atualização do rateio
@@ -1628,77 +1637,85 @@ function update(req) {
             [id]
           );
 
-          // ^ Vamos validar se orçamento possui saldo:
-          // Obter a Conta de Orçamento com o Valor Previsto [orçado]:
-          const [rowOrcamentoConta] = await conn.execute(
-            `SELECT id, valor_previsto FROM fin_orcamento_contas 
+          if (orcamentoAtivo) {
+
+            // ^ Vamos validar se orçamento possui saldo:
+            // Obter a Conta de Orçamento com o Valor Previsto [orçado]:
+            const [rowOrcamentoConta] = await conn.execute(
+              `SELECT id, valor_previsto, active FROM fin_orcamento_contas 
           WHERE 
             id_orcamento = ?
             AND id_centro_custo = ?
             AND id_plano_contas = ?
             `,
-            [
-              id_orcamento,
-              item_rateio.id_centro_custo,
-              item_rateio.id_plano_conta,
-            ]
-          );
-
-          if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
-            throw new Error(
-              `Não existe conta no orçamento para o ${item_rateio.centro_custo} + ${item_rateio.plano_conta}!`
+              [
+                id_orcamento,
+                item_rateio.id_centro_custo,
+                item_rateio.id_plano_conta,
+              ]
             );
-          }
-          const id_orcamento_conta =
-            rowOrcamentoConta &&
-            rowOrcamentoConta[0] &&
-            rowOrcamentoConta[0]["id"];
-          let valor_previsto =
-            rowOrcamentoConta &&
-            rowOrcamentoConta[0] &&
-            rowOrcamentoConta[0]["valor_previsto"];
-          valor_previsto = parseFloat(valor_previsto);
 
-          // Obter o Valor Realizado da Conta do Orçamento:
-          const [rowConsumoOrcamento] = await conn.execute(
-            `SELECT sum(valor) as valor 
+            if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
+              throw new Error(
+                `Não existe conta no orçamento para o ${item_rateio.centro_custo} + ${item_rateio.plano_conta}!`
+              );
+            }
+
+            const contaOrcamentoAtiva =
+              rowOrcamentoConta &&
+              rowOrcamentoConta[0] &&
+              !!+rowOrcamentoConta[0]["active"];
+
+            const id_orcamento_conta =
+              rowOrcamentoConta &&
+              rowOrcamentoConta[0] &&
+              rowOrcamentoConta[0]["id"];
+            let valor_previsto =
+              rowOrcamentoConta &&
+              rowOrcamentoConta[0] &&
+              rowOrcamentoConta[0]["valor_previsto"];
+            valor_previsto = parseFloat(valor_previsto);
+
+            // Obter o Valor Realizado da Conta do Orçamento:
+            const [rowConsumoOrcamento] = await conn.execute(
+              `SELECT sum(valor) as valor 
           FROM fin_orcamento_consumo 
           WHERE active = true AND id_orcamento_conta = ?`,
-            [id_orcamento_conta]
-          );
-          let valor_total_consumo =
-            (rowConsumoOrcamento &&
-              rowConsumoOrcamento[0] &&
-              rowConsumoOrcamento[0]["valor"]) ||
-            0;
-          valor_total_consumo = parseFloat(valor_total_consumo);
+              [id_orcamento_conta]
+            );
+            let valor_total_consumo =
+              (rowConsumoOrcamento &&
+                rowConsumoOrcamento[0] &&
+                rowConsumoOrcamento[0]["valor"]) ||
+              0;
+            valor_total_consumo = parseFloat(valor_total_consumo);
 
-          // Calcular o saldo da conta do orçamento:
-          const saldo = valor_previsto - valor_total_consumo;
-          if (saldo < valorRateio) {
-            throw new Error(
-              `Saldo insuficiente para ${item_rateio.centro_custo} + ${
-                item_rateio.plano_conta
-              }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
+            // Calcular o saldo da conta do orçamento:
+            const saldo = valor_previsto - valor_total_consumo;
+            if (contaOrcamentoAtiva && (saldo < valorRateio)) {
+              throw new Error(
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
+                }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
+              );
+            }
+
+            const [result] = await conn.execute(
+              `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
+              [
+                id,
+                item_rateio.id_filial,
+                item_rateio.id_centro_custo,
+                item_rateio.id_plano_conta,
+                item_rateio.percentual,
+                valorRateio,
+              ]
+            );
+            // * Persistir a conta de consumo do orçamento:
+            await conn.execute(
+              `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
+              [id_orcamento_conta, result.insertId, valorRateio]
             );
           }
-
-          const [result] = await conn.execute(
-            `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
-            [
-              id,
-              item_rateio.id_filial,
-              item_rateio.id_centro_custo,
-              item_rateio.id_plano_conta,
-              item_rateio.percentual,
-              valorRateio,
-            ]
-          );
-          // * Persistir a conta de consumo do orçamento:
-          await conn.execute(
-            `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
-            [id_orcamento_conta, result.insertId, valorRateio]
-          );
         }
       }
       // ~ Fim de Manipulação de Rateio //////////////////////
@@ -2221,9 +2238,8 @@ function downloadAnexos(req, res) {
         const ext = path.extname(tituloBanco[type]);
         const titulo = {
           type: "file",
-          fileName: `${
-            tipos_anexos.find((tipo) => tipo.name == type).acronym
-          } - ${id_titulo}${ext}`,
+          fileName: `${tipos_anexos.find((tipo) => tipo.name == type).acronym
+            } - ${id_titulo}${ext}`,
           content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);

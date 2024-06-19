@@ -167,6 +167,14 @@ function findAccountFromParams(req) {
       if (!id_plano_conta) {
         throw new Error("ID GRUPO ECONOMICO não informado!");
       }
+
+      const [rowGrupoEconomico] = await conn.execute(`SELECT id, orcamento FROM grupos_economicos WHERE id = ?`, [id_grupo_economico])
+      const grupoValidaOrcamento = rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]['orcamento']
+
+      if(!grupoValidaOrcamento){
+        resolve({grupoValidaOrcamento: false})
+        return
+      }
       const params = [id_grupo_economico, id_centro_custo, id_plano_conta];
       let where = `
       fo.id_grupo_economico = ?
@@ -183,6 +191,8 @@ function findAccountFromParams(req) {
       const [rowOrcamentoItens] = await conn.execute(
         `
         SELECT 
+          foc.active,
+          fo.active as orcamentoAtivo,
           foc.id as id_conta,
           foc.id_centro_custo, foc.id_plano_contas,
           fcc.nome as centro_custo, 
@@ -207,7 +217,10 @@ function findAccountFromParams(req) {
         );
       }
       const contaOrcamento = rowOrcamentoItens && rowOrcamentoItens[0];
-      resolve(contaOrcamento);
+      resolve({
+        ...contaOrcamento, 
+        grupoValidaOrcamento,
+      });
       return;
     } catch (error) {
       logger.error({

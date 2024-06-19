@@ -52,7 +52,7 @@ module.exports = [
     length: 3,
     required: true,
     type: "numeric",
-    default: 0, //? O movimento é realmente do tipo "inclusão de pagamento?"
+    default: 0,
   },
   {
     field: "cod_camara",
@@ -61,7 +61,7 @@ module.exports = [
     length: 3,
     required: true,
     type: "numeric",
-    default: new Array(3).fill(0).join(""), //? Esse é msm o padrão?
+    default: new Array(3).fill(0).join(""),
   },
   {
     field: "cod_banco_favorecido",
@@ -70,7 +70,7 @@ module.exports = [
     length: 3,
     type: "numeric",
     required: true,
-    default: new Array(3).fill(0).join(""), //? No caso de PIX é obrigatório passar o banco?
+    default: new Array(3).fill(0).join(""),
   },
   {
     field: "agencia",
@@ -95,7 +95,7 @@ module.exports = [
     endPos: 93,
     length: 20,
     required: true,
-    // type: "date",
+    type: "alphanumeric",
   },
   {
     field: "data_pagamento",
