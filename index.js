@@ -33,13 +33,19 @@ app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/temp", express.static(path.join(__dirname, "public", "temp")));
 
 const router = require("./src/routes/router");
+const { logger } = require("./logger");
 app.use(router);
 
 const server = http.createServer(app);
 
 const PORTA = 7000;
 server.listen(PORTA, () => {
-  console.log("Backend Datasys is running... na porta " + PORTA);
+  logger.info({
+    module: "ROOT",
+    origin: "INDEX",
+    method: "LISTEN",
+    data: { message: "Backend Datasys is running... na porta " + PORTA },
+  });
 });
 // const io = socketIo(server, {
 //     cors: {
