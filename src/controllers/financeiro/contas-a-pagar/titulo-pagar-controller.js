@@ -25,7 +25,7 @@ const {
   createUploadsPath,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { checkCodigoBarras } = require("../../../helpers/chekers");
 require("dotenv").config();
 
@@ -502,7 +502,7 @@ function getOne(req) {
 
       const [vencimentos] = await conn.execute(
         `SELECT 
-          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.linha_digitavel 
+          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.cod_barras 
         FROM fin_cp_titulos_vencimentos tv 
         WHERE tv.id_titulo = ? 
         `,
@@ -601,7 +601,7 @@ function getOneByTimParams(req) {
 
       const [vencimentos] = await conn.execute(
         `SELECT 
-          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.linha_digitavel 
+          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.cod_barras 
         FROM fin_cp_titulos_vencimentos tv 
         WHERE tv.id_titulo = ? 
         `,
@@ -790,10 +790,7 @@ function insertOne(req) {
         }
       }
       // Se forma de pagamento for na conta, então exigir os dados bancários
-      if (
-        id_forma_pagamento === "2" ||
-        id_forma_pagamento === "5"
-      ) {
+      if (id_forma_pagamento === "2" || id_forma_pagamento === "5") {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
           throw new Error("Preencha corretamente os dádos bancários!");
         }
@@ -1025,29 +1022,26 @@ function insertOne(req) {
         //   newId,
         //   startOfDay(vencimento.data_vencimento),
         //   startOfDay(vencimento.data_prevista),
-        //   vencimento.linha_digitavel,
+        //   vencimento.cod_barras,
         //   vencimento.valor
         // );
         //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
-        const linha_digitavel = !!vencimento.linha_digitavel
-          ? normalizeNumberOnly(vencimento.linha_digitavel)
+        const cod_barras = !!vencimento.cod_barras
+          ? normalizeNumberOnly(vencimento.cod_barras)
           : null;
-        if (
-          !!vencimento.linha_digitavel &&
-          !checkCodigoBarras(linha_digitavel)
-        ) {
-          throw new Error(`Linha Digitável inválida: ${linha_digitavel}`);
+        if (!!vencimento.cod_barras && !checkCodigoBarras(cod_barras)) {
+          throw new Error(`Linha Digitável inválida: ${cod_barras}`);
         }
 
         await conn.execute(
-          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, linha_digitavel, valor) VALUES (?,?,?,?,?)`,
+          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor) VALUES (?,?,?,?,?)`,
           [
             newId,
             startOfDay(vencimento.data_vencimento),
             startOfDay(vencimento.data_prevista),
-            linha_digitavel === null || linha_digitavel.length === 44
-              ? linha_digitavel
-              : normalizeCodigoBarras(linha_digitavel),
+            cod_barras === null || cod_barras.length === 44
+              ? cod_barras
+              : normalizeCodigoBarras(cod_barras),
             vencimento.valor,
           ]
         );
@@ -1487,10 +1481,7 @@ function update(req) {
         }
       }
       // Se forma de pagamento for na conta, então exigir os dados bancários
-      if (
-        id_forma_pagamento === "2" ||
-        id_forma_pagamento === "5"
-      ) {
+      if (id_forma_pagamento === "2" || id_forma_pagamento === "5") {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
           throw new Error("Preencha corretamente os dádos bancários!");
         }
@@ -1740,25 +1731,22 @@ function update(req) {
 
           // * Persistir o vencimento
           //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
-          const linha_digitavel = !!vencimento.linha_digitavel
-            ? normalizeNumberOnly(vencimento.linha_digitavel)
+          const cod_barras = !!vencimento.cod_barras
+            ? normalizeNumberOnly(vencimento.cod_barras)
             : null;
-          if (
-            !!vencimento.linha_digitavel &&
-            !checkCodigoBarras(linha_digitavel)
-          ) {
-            throw new Error(`Linha Digitável inválida: ${linha_digitavel}`);
+          if (!!vencimento.cod_barras && !checkCodigoBarras(cod_barras)) {
+            throw new Error(`Linha Digitável inválida: ${cod_barras}`);
           }
           await conn.execute(
-            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, linha_digitavel) VALUES (?,?,?,?,?)`,
+            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras) VALUES (?,?,?,?,?)`,
             [
               id,
               formatDate(vencimento.data_vencimento, "yyyy-MM-dd"),
               formatDate(vencimento.data_prevista, "yyyy-MM-dd"),
               valorVencimento,
-              linha_digitavel === null || linha_digitavel.length === 44
-                ? linha_digitavel
-                : normalizeCodigoBarras(linha_digitavel),
+              cod_barras === null || cod_barras.length === 44
+                ? cod_barras
+                : normalizeCodigoBarras(cod_barras),
             ]
           );
         }
@@ -2279,7 +2267,7 @@ function exportDatasys(req) {
           t.data_emissao as emissao, tv.data_vencimento as vencimento,
           tv.valor_pago as valor,
           t.descricao as historico,
-          tv.linha_digitavel as bar_code,
+          tv.cod_barras as bar_code,
           f.cnpj as cnpj_loja,
           fp.forma_pagamento as tipo_documento,
           fo.cnpj as cnpj_fornecedor, fo.nome as nome_fornecedor
