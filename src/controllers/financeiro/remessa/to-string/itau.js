@@ -5,7 +5,7 @@ const {
 } = require("./masks");
 
 function createHeaderArquivo(params) {
-  const headerModel = ITAU.ArquivoHeader;
+  const headerModel = ITAU.arquivoHeader;
 
   return headerModel
     .map((h) => {
@@ -35,8 +35,8 @@ function createHeaderArquivo(params) {
     .join("");
 }
 
-function createHeaderLote(params) {
-  const headerModel = ITAU.Pagamento.LoteHeader;
+function createHeaderLote(params, versao = '040') {
+  const headerModel = ITAU.loteHeader[versao];
   return headerModel
     .map((h) => {
       if (
@@ -66,7 +66,7 @@ function createHeaderLote(params) {
 }
 
 function createSegmentoA(params) {
-  const segmentoModel = ITAU.Pagamento.Detail.A;
+  const segmentoModel = ITAU.detalhe.A;
   return segmentoModel
     .map((h) => {
       if (
@@ -90,7 +90,7 @@ function createSegmentoA(params) {
 }
 
 function createSegmentoB(params) {
-  const segmentoModel = ITAU.Pagamento.Detail.B;
+  const segmentoModel = ITAU.detalhe.B;
 
   return segmentoModel
     .map((h) => {
@@ -114,7 +114,7 @@ function createSegmentoB(params) {
 }
 
 function createSegmentoJ(params) {
-  const segmentoModel = ITAU.Pagamento.Detail.J;
+  const segmentoModel = ITAU.detalhe.J;
   return segmentoModel
     .map((h) => {
       if (
@@ -136,7 +136,7 @@ function createSegmentoJ(params) {
 }
 
 function createSegmentoJ52(params) {
-  const segmentoModel = ITAU.Pagamento.Detail["J-52"];
+  const segmentoModel = ITAU.detalhe["J-52"];
 
   return segmentoModel
     .map((h) => {
@@ -159,7 +159,7 @@ function createSegmentoJ52(params) {
 }
 
 function createSegmentoJ52Pix(params) {
-  const segmentoModel = ITAU.Pagamento.Detail["J-52-PIX"];
+  const segmentoModel = ITAU.detalhe["J-52-PIX"];
 
   return segmentoModel
     .map((h) => {
@@ -182,7 +182,7 @@ function createSegmentoJ52Pix(params) {
 }
 
 function createTrailerLote(params) {
-  const trailerModel = ITAU.Pagamento.LoteTrailing;
+  const trailerModel = ITAU.loteTrailer;
 
   return trailerModel
     .map((h) => {
@@ -202,7 +202,7 @@ function createTrailerLote(params) {
 }
 
 function createTrailerArquivo(params) {
-  const trailerModel = ITAU.ArquivoTrailing;
+  const trailerModel = ITAU.arquivoTrailer;
   return trailerModel
     .map((h) => {
       if (

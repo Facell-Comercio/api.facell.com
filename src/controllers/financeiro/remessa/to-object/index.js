@@ -15,10 +15,10 @@ const remessaToObject = (txt) => {
                 throw new Error(`A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`)
             }
             const layoutArquivoHeader = rules[banco.nome].ArquivoHeader
-            const layoutArquivoTrailing = rules[banco.nome].ArquivoTrailing
+            const layoutArquivoTrailer = rules[banco.nome].ArquivoTrailer
             
             const layoutLoteHeader = rules[banco.nome].Pagamento.LoteHeader
-            const layoutLoteTrailing = rules[banco.nome].Pagamento.LoteTrailing
+            const layoutLoteTrailer = rules[banco.nome].Pagamento.LoteTrailer
 
             const result = {
                 arquivoHeader: {},
@@ -26,10 +26,10 @@ const remessaToObject = (txt) => {
                     {
                         loteHeader: {},
                         detalhes: [],
-                        loteTrailing: {}
+                        loteTrailer: {}
                     }
                 ],
-                arquivoTrailing: {},
+                arquivoTrailer: {},
             }
             const linhas = txt.split('\n')
             let lote = 0;
@@ -42,21 +42,21 @@ const remessaToObject = (txt) => {
                         result.arquivoHeader = transformStringToObject(layoutArquivoHeader, linha)
                     }
                     if(tipo_registro == 9){
-                        result.arquivoTrailing = transformStringToObject(layoutArquivoTrailing, linha)
+                        result.arquivoTrailer = transformStringToObject(layoutArquivoTrailer, linha)
                     }
                     if(tipo_registro == 1){
                         if(lote !== 0){
                             result.lotes.push({
                                 loteHeader: {},
                                 detalhes: [],
-                                loteTrailing: {}
+                                loteTrailer: {}
                             })
                         }
                         isPix = checkIsPixByLoteRemessa(linha)
                         result.lotes[lote].loteHeader = transformStringToObject(layoutLoteHeader, linha)
                     }
                     if(tipo_registro == 5){
-                        result.lotes[lote].loteTrailing = transformStringToObject(layoutLoteTrailing, linha)
+                        result.lotes[lote].loteTrailer = transformStringToObject(layoutLoteTrailer, linha)
                         lote++
                         detalhe = 0
                     }
