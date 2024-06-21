@@ -4,8 +4,8 @@ module.exports = [
         startPos: 1,
         endPos: 3,
         length: 3,
-        required: true,
-        default: 237
+        type: 'numeric',
+        default: 341
     },
     {
         field: "lote",
@@ -70,24 +70,24 @@ module.exports = [
         type: "alphanumeric",
       },
       {
-        field: "tipo_inscricao_cedente",
+        field: "tipo_fornecedor",
         startPos: 62,
         endPos: 62,
         length: 1,
         required: true,
         type: "numeric",
-        default: 2,
+        default: 2, // 0= não definido, 1=CPF, 2=CNPJ
       },
       {
-        field: "inscricao_cedente",
+        field: "cnpj_fornecedor", // inscricao_cedente
         startPos: 63,
         endPos: 77,
         length: 15,
         required: true,
-        type: "alphanumeric",
+        type: "numeric",
       },
       {
-        field: "nome_cedente",
+        field: "nome_fornecedor", // cedente
         startPos: 78,
         endPos: 107,
         length: 30,
@@ -109,6 +109,7 @@ module.exports = [
         length: 15,
         required: true,
         type: "numeric",
+        format: 'float',
       },
       {
         field: "qtde_moeda",
