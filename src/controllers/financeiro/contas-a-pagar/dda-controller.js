@@ -58,7 +58,7 @@ async function getAll(req) {
             const [rowQtdeTotal] = await conn.execute(
                 `SELECT COUNT(dda.id) AS qtde 
                 FROM fin_dda as dda 
-                LEFT JOIN filiais f ON f.cnpj = dda.cnpj_empresa
+                LEFT JOIN filiais f ON f.cnpj = dda.cnpj_filial
                 ${where}
                 
                 `,
@@ -73,7 +73,7 @@ async function getAll(req) {
             const query = `
               SELECT dda.*, f.id as id_filial
               FROM fin_dda as dda
-              LEFT JOIN filiais f ON f.cnpj = dda.cnpj_empresa
+              LEFT JOIN filiais f ON f.cnpj = dda.cnpj_filial
               ${where}
               LIMIT ? OFFSET ?
             `;
@@ -324,13 +324,24 @@ async function vincularDDA(req) {
                 throw new Error('ID do DDA não informado!')
             }
 
+            // ^ Verificar se o Vencimento existe
+            const [rowVencimento] = await conn.execute(`SELECT id FROM fin_cp_titulos_vencimentos WHERE id = ?`, [id_vencimento])
+            if(rowVencimento && !rowVencimento.length){
+                throw new Error(`Vencimento de ID ${id_vencimento} não existe!`)
+            }
+
             //^ Verificar se o registro no DDA já consta vinculado
-            const [rowDDA] = await conn.execute(`SELECT id FROM fin_dda 
-                WHERE   
-                id = ? 
-                AND id_vencimento IS NULL`, [id_dda])
-            if(rowDDA && rowDDA.length > 0){
-                throw new Error(`Registro ${id_dda} do DDA já consta como vinculado, não deu para vincular com o id_vencimento ${id_vencimento}`)
+            const [rowDDA] = await conn.execute(`SELECT id, id_vencimento FROM fin_dda 
+             WHERE   
+                id = ?`, [id_dda])
+
+            if(!rowDDA && !rowDDA.length){
+                throw new Error(`Registro ${id_dda} do DDA não existe!`)
+            }
+            const DDAbanco = rowDDA && rowDDA[0]
+            //^ Se tem ID Vencimento no DDA então já está vinculado:
+            if(DDAbanco.id_vencimento){
+                throw new Error(`Registro ${id_dda} do DDA já consta como vinculado, não deu para vincular com o id_vencimento ${DDAbanco.id_vencimento}`)
             }
 
             // * Vinculação
