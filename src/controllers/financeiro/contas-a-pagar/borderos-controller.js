@@ -5,6 +5,7 @@ const {
   removeSpecialCharactersAndAccents,
   normalizeNumberOnly,
 } = require("../../../helpers/mask");
+
 const {
   createHeaderArquivo,
   createHeaderLote,
@@ -15,8 +16,8 @@ const {
   createSegmentoJ,
   createSegmentoJ52Pix,
   createSegmentoJ52,
-} = require("../remessa/parsers/itau");
-const { normalizeValue } = require("../remessa/parsers/masks");
+} = require("../remessa/to-string/itau");
+const { normalizeValue } = require("../remessa/to-string/masks");
 const {logger} = require("../../../../logger");
 
 function getAll(req) {
@@ -183,7 +184,6 @@ function getAll(req) {
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      console.error("", error);
       reject(error);
     } finally {
       conn.release();

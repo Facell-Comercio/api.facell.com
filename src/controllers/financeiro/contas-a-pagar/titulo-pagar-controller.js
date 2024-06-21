@@ -174,7 +174,6 @@ function getAll(req) {
     const conn = await db.getConnection();
 
     try {
-      // throw new Error("Testando testando...");
 
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
