@@ -67,7 +67,7 @@ module.exports = [
         endPos: 61,
         length: 44,
         required: true,
-        type: "numeric",
+        type: "alphanumeric",
       },
       {
         field: "tipo_inscricao_cedente",
@@ -84,7 +84,7 @@ module.exports = [
         endPos: 77,
         length: 15,
         required: true,
-        type: "numeric",
+        type: "alphanumeric",
       },
       {
         field: "nome_cedente",
@@ -100,7 +100,7 @@ module.exports = [
         endPos: 115,
         length: 8,
         required: true,
-        type: "numeric",
+        type: "date",
       },
       {
         field: "valor",
@@ -180,7 +180,7 @@ module.exports = [
         endPos: 189,
         length: 8,
         required: true,
-        type: "numeric",
+        type: "date",
       },
       {
         field: "juros",
@@ -203,7 +203,7 @@ module.exports = [
         startPos: 206,
         endPos: 213,
         length: 8,
-        type: "numeric",
+        type: "date",
         default: new Array(8).fill(0).join(""),
       },
       {
@@ -235,7 +235,7 @@ module.exports = [
         startPos: 232,
         endPos: 239,
         length: 8,
-        type: "numeric",
+        type: "date",
         default: new Array(8).fill(0).join(""),
       },
       {
