@@ -55,6 +55,7 @@ function formatarCampoRemessa({valor, type, format}){
         let valorFormatado = parseInt(valor.trim())
         return valorFormatado === 0 || !valorFormatado ? null : valorFormatado
     }
+    return valor
 }
 
 module.exports = {

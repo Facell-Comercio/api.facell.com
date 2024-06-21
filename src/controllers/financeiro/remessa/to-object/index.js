@@ -14,18 +14,18 @@ const remessaToObject = (txt) => {
             if(!banco){
                 throw new Error(`A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`)
             }
-            const layoutArquivoHeader = rules[banco.nome].ArquivoHeader
-            const layoutArquivoTrailer = rules[banco.nome].ArquivoTrailer
+            const layoutArquivoHeader = rules[banco.nome].arquivoHeader
+            const layoutArquivoTrailer = rules[banco.nome].arquivoTrailer
             
-            const layoutLoteHeader = rules[banco.nome].Pagamento.LoteHeader
-            const layoutLoteTrailer = rules[banco.nome].Pagamento.LoteTrailer
+            
+            const layoutLoteTrailer = rules[banco.nome].loteTrailer
 
             const result = {
                 arquivoHeader: {},
                 lotes: [
                     {
                         loteHeader: {},
-                        detalhes: [],
+                        detalhe: [],
                         loteTrailer: {}
                     }
                 ],
@@ -38,6 +38,7 @@ const remessaToObject = (txt) => {
             for(const linha of linhas) {
                 if(linha){
                     const tipo_registro = checkTipoRegistroRemessa(linha)
+
                     if(tipo_registro == 0){
                         result.arquivoHeader = transformStringToObject(layoutArquivoHeader, linha)
                     }
@@ -45,10 +46,13 @@ const remessaToObject = (txt) => {
                         result.arquivoTrailer = transformStringToObject(layoutArquivoTrailer, linha)
                     }
                     if(tipo_registro == 1){
+                        const versao = linha.substring(13,16)
+                        const layoutLoteHeader = rules[banco.nome].loteHeader[versao || '040']
+
                         if(lote !== 0){
                             result.lotes.push({
                                 loteHeader: {},
-                                detalhes: [],
+                                detalhe: [],
                                 loteTrailer: {}
                             })
                         }
@@ -62,12 +66,12 @@ const remessaToObject = (txt) => {
                     }
                     if(tipo_registro == 3){
                         const segmento = checkTipoSegmentoDetalhe(linha, isPix)
-                        const layoutDetalhe = rules[banco.nome]['Pagamento']['Detail'][segmento]
+                        const layoutDetalhe = rules[banco.nome]['detalhe'][segmento]
                         if(!layoutDetalhe){
                             continue;
                         }
                         const obj = transformStringToObject(layoutDetalhe, linha)
-                        result.lotes[lote].detalhes.push(obj)
+                        result.lotes[lote].detalhe.push(obj)
                     }
                     
                 }
