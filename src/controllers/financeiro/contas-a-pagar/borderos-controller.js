@@ -218,20 +218,19 @@ function getOne(req) {
             SELECT 
               tv.id as id_vencimento,
               tv.id_titulo, 
-              t.id_status, 
               tv.valor as valor_total, 
               tv.valor_pago as valor_pago, 
               t.descricao, 
               t.num_doc,
               tv.data_prevista as previsao, 
               tv.data_pagamento, 
+              fp.forma_pagamento,
+              tv.obs, tv.status, tv.id_dda, tv.tipo_baixa,
               f.nome as nome_fornecedor, 
               t.data_emissao, 
               tv.data_vencimento,
               c.nome as centro_custo,
-              st.status,
-              b.data_pagamento, 
-              b.id_conta_bancaria, 
+                b.id_conta_bancaria, 
               f.cnpj,
               fi.nome as filial, 
               CASE WHEN (tv.data_pagamento) THEN FALSE ELSE TRUE END as can_remove,
@@ -246,6 +245,7 @@ function getOne(req) {
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
             LEFT JOIN filiais fi ON fi.id = t.id_filial
             LEFT JOIN fin_centros_custo c ON c.id = tr.id_centro_custo
+            LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
             WHERE b.id = ?
             GROUP BY tv.id
             `,
@@ -664,6 +664,7 @@ function exportRemessa(req, res) {
         rowsPagamentoBoletoOutroBancoParaItau,
         rowsPagamentoPIXQRCode,
       ] = await Promise.all([
+        //* Pagamento Corrente Itaú
         conn
           .execute(
             `
@@ -673,10 +674,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
       AND forn.cnpj <> f.cnpj
@@ -687,6 +688,8 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento Poupança Itaú
         conn
           .execute(
             `
@@ -696,10 +699,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
       AND forn.cnpj <> f.cnpj
@@ -710,6 +713,8 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento Corrente Mesma Titularidade
         conn
           .execute(
             `
@@ -719,10 +724,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
       AND forn.cnpj = f.cnpj
@@ -733,6 +738,8 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento TED Outro Titular
         conn
           .execute(
             `
@@ -742,10 +749,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
       AND forn.cnpj <> f.cnpj
@@ -755,6 +762,8 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento TED Mesmo Titular
         conn
           .execute(
             `
@@ -764,10 +773,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 5
       AND forn.cnpj = f.cnpj
@@ -777,6 +786,8 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento PIX
         conn
           .execute(
             `
@@ -786,10 +797,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 4
       AND tv.data_pagamento IS NULL
@@ -797,6 +808,8 @@ function exportRemessa(req, res) {
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento Boleto Itaú
         conn
           .execute(
             `
@@ -806,18 +819,18 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND fb.codigo = 341
+      AND LEFT(tv.cod_barras, 3) = 341
       AND tv.data_pagamento IS NULL
     `,
             [id]
           )
           .then(([rows]) => rows),
+        //* Pagamento Boleto Outro Banco Para Itaú
         conn
           .execute(
             `
@@ -827,18 +840,19 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND fb.codigo <> 341
+      AND LEFT(tv.cod_barras, 3) <> 341
       AND tv.data_pagamento IS NULL
     `,
             [id]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento PIX QR Code
         conn
           .execute(
             `
@@ -848,10 +862,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-      LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 8
       AND tv.data_pagamento IS NULL
@@ -971,7 +985,7 @@ function exportRemessa(req, res) {
             forn.cnpj as favorecido_cnpj,
             t.id_tipo_chave_pix,
             t.chave_pix,
-            tv.linha_digitavel
+            tv.cod_barras
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
@@ -983,19 +997,19 @@ function exportRemessa(req, res) {
           const vencimento = rowVencimento && rowVencimento[0];
 
           //* Dependendo do banco o modelo muda
-          let bancoFavorecido = [];
+          let agencia = [];
           if (vencimento.banco === 341) {
-            bancoFavorecido.push(
+            agencia.push(
               0,
               normalizeValue(vencimento.agencia, "numeric", 4),
               " ",
-              new Array(5).fill("0").join(""),
+              new Array(6).fill(0).join(""),
               normalizeValue(vencimento.conta, "numeric", 6),
               " ",
               normalizeValue(vencimento.dv_agencia, "numeric", 1)
             );
           } else {
-            bancoFavorecido.push(
+            agencia.push(
               normalizeValue(vencimento.agencia, "numeric", 5),
               " ",
               normalizeValue(vencimento.conta, "numeric", 12),
@@ -1016,6 +1030,7 @@ function exportRemessa(req, res) {
               //* Quando um pagamento é do tipo PIX Transferência o código câmara é 009
               cod_camara: key === "PagamentoPIX" && 9,
               vencimento: vencimento.id,
+              agencia: agencia.join(""),
               ident_transferencia: key === "PagamentoPIX" && "04", //^^ Verificar se está correto
               cod_banco_favorecido:
                 key === "PagamentoPIX"
@@ -1056,7 +1071,7 @@ function exportRemessa(req, res) {
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
               n_doc: vencimento.doc_empresa,
-              cod_barras: vencimento.linha_digitavel,
+              cod_barras: vencimento.cod_barras,
             });
             const segmentoJ52 = createSegmentoJ52({
               ...vencimento,

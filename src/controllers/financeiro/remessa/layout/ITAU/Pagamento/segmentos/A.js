@@ -78,7 +78,7 @@ module.exports = [
     endPos: 43,
     length: 20,
     required: true,
-    type: "numeric",
+    type: "alphanumeric",
     default: new Array(20).fill(0).join(""),
   },
   {

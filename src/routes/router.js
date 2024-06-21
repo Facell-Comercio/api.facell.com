@@ -8,6 +8,7 @@ const financeiroRouter = require("./financeiro/financeiro-router");
 const grupoEconomico = require("./grupo-economico-router");
 const filial = require("./filial-router");
 const user = require("./user-router");
+const logs = require("./logs-router");
 const departamento = require("./departamento-router");
 const permissao = require("./permissao-router");
 
@@ -32,6 +33,7 @@ router.use("/financeiro", financeiroRouter);
 router.use("/grupo-economico", grupoEconomico);
 router.use("/filial", filial);
 router.use("/user", user);
+router.use("/logs", logs);
 router.use("/departamento", departamento);
 router.use("/permissao", permissao);
 
