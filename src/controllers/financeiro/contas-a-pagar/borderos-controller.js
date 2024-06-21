@@ -220,7 +220,7 @@ function getOne(req) {
               tv.id_titulo, 
               tv.valor as valor_total, 
               tv.valor_pago as valor_pago, 
-              t.descricao, 
+              t.descricao, t.id_status, 
               t.num_doc,
               tv.data_prevista as previsao, 
               tv.data_pagamento, 
@@ -1049,6 +1049,7 @@ function exportRemessa(req, res) {
               valor_titulo: vencimento.valor_titulo,
               n_doc: vencimento.id,
             });
+            registroLote++;
             const segmentoJ52Pix = createSegmentoJ52Pix({
               ...vencimento,
               lote,
@@ -1073,6 +1074,7 @@ function exportRemessa(req, res) {
               n_doc: vencimento.doc_empresa,
               cod_barras: vencimento.cod_barras,
             });
+            registroLote++;
             const segmentoJ52 = createSegmentoJ52({
               ...vencimento,
               lote,
