@@ -220,8 +220,7 @@ function getOne(req) {
               tv.id_titulo, 
               tv.valor as valor_total, 
               tv.valor_pago as valor_pago, 
-              t.descricao, t.id_status, 
-              t.num_doc,
+              t.descricao, t.id_status, t.num_doc, t.id_forma_pagamento,
               tv.data_prevista as previsao, 
               tv.data_pagamento, 
               fp.forma_pagamento,
@@ -233,6 +232,7 @@ function getOne(req) {
                 b.id_conta_bancaria, 
               f.cnpj,
               fi.nome as filial, 
+              dda.id as id_dda,
               CASE WHEN (tv.data_pagamento) THEN FALSE ELSE TRUE END as can_remove,
               false AS checked
             FROM fin_cp_bordero b
@@ -246,6 +246,7 @@ function getOne(req) {
             LEFT JOIN filiais fi ON fi.id = t.id_filial
             LEFT JOIN fin_centros_custo c ON c.id = tr.id_centro_custo
             LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+            LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
             WHERE b.id = ?
             GROUP BY tv.id
             `,
