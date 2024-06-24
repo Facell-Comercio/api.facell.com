@@ -25,8 +25,8 @@ const streams = [
 // Cria o logger com os streams configurados
 const logger = pino({}, pino.multistream(streams));
 
-cron.schedule("* * * 1 *", () => {
-  const timestamp30Dias = subDays(new Date(), 30).getTime(); // 1 dia atrás
+cron.schedule("* * 1 * *", () => {
+  const timestamp30Dias = subDays(new Date(), 30).getTime(); // 30 dias atrás
 
   const baseDir = process.cwd();
 

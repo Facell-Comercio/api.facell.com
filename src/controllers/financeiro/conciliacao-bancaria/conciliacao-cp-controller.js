@@ -1,6 +1,6 @@
 const { addMonths, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -80,10 +80,9 @@ function getAll(req) {
       LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = t.id
 
       ${whereTitulo}
-      AND (t.id_status = 3 OR t.id_status = 4)
+      AND tv.status = "pago"
       AND NOT b.data_pagamento IS NULL
       AND cbi.id IS NULL
-      AND tv.valor_pago IS NULL
       ORDER BY tv.data_prevista DESC
     `,
         params
@@ -376,97 +375,6 @@ function insertOne(req) {
       }
 
       for (const vencimento of vencimentos) {
-        // ^ Consulta os vencimentos pelo id_titulo para conseguir o id do vencimento
-        // const [rowsVencimentoTitulo] = await conn.execute(
-        //   `
-        //   SELECT
-        //   id
-        //   FROM fin_cp_titulos_vencimentos
-        //   WHERE id_titulo = ?
-        // `,
-        //   [vencimento.id_titulo]
-        // );
-
-        // const vencimentoTitulo =
-        //   rowsVencimentoTitulo && rowsVencimentoTitulo[0];
-        // ^ Atualiza o vencimento com os dados da conciliação
-        const isParcial = vencimento.tipo_baixa === "PARCIAL";
-        await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ?, valor = ? WHERE id = ?`,
-          [
-            new Date(data_pagamento),
-            vencimento.tipo_baixa,
-            vencimento.valor_pago,
-            isParcial ? vencimento.valor_pago : vencimento.valor,
-            vencimento.id_vencimento,
-          ]
-        );
-
-        //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
-        if (
-          vencimento.tipo_baixa === "COM DESCONTO" ||
-          vencimento.tipo_baixa === "COM ACRÉSCIMO"
-        ) {
-          const [itens_rateio] = await conn.execute(
-            `SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?`,
-            [vencimento.id_titulo]
-          );
-          // Aqui obtemos a diferença entre valor pago e valor do vencimento
-          const diferenca =
-            parseFloat(vencimento.valor_pago) - parseFloat(vencimento.valor);
-          // Aqui geramos a diferença que será acrescida ou descontada de cada item rateio:
-          const difAplicada = diferenca / (itens_rateio?.length || 1);
-          // Aplicamos a diferença nos itens
-          await conn.execute(
-            "UPDATE fin_cp_titulos_rateio SET valor = valor + ? WHERE id_titulo = ?",
-            [difAplicada, vencimento.id_titulo]
-          );
-        }
-
-        if (vencimento.tipo_baixa === "PARCIAL") {
-          const valor =
-            parseFloat(vencimento.valor) - parseFloat(vencimento.valor_pago);
-
-          // ^ Baixa parcial -> Cria um novo vencimento
-          await conn.execute(
-            `
-            INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, vencimento_origem) VALUES (?,?,?,?,?)
-          `,
-            [
-              vencimento.id_titulo,
-              new Date(vencimento.data_prevista),
-              new Date(vencimento.data_prevista),
-              valor.toFixed(2),
-              vencimento.id_vencimento,
-            ]
-          );
-        }
-        const [vencimentosNaoPagos] = await conn.execute(
-          `
-          SELECT 
-            tv.id, tb.id_bordero 
-          FROM fin_cp_titulos_vencimentos tv
-          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
-          WHERE tv.id_titulo = ? 
-          AND tv.data_pagamento IS NULL
-        `,
-          [vencimento.id_titulo]
-        );
-
-        if (vencimentosNaoPagos.length === 0) {
-          // ^ Se todos os vencimentos estiverem pagos muda o status do titulo para pago
-          await conn.execute(
-            `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-            [5, vencimento.id_titulo]
-          );
-        } else {
-          // ^ Se houverem vencimentos ainda não pagos no título muda o status do titulo para pago parcial
-          await conn.execute(
-            `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-            [4, vencimento.id_titulo]
-          );
-        }
-
         // ^ Adiciona o título nos itens da conciliação bancária
         await conn.execute(
           `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
@@ -503,8 +411,10 @@ function conciliacaoAutomatica(req) {
       }
       await conn.beginTransaction();
       const result = [];
-      for (let v = 0; v < vencimentos.length; v++) {
+      const vencimentosLength = vencimentos.length;
+      for (let v = 0; v < vencimentosLength; v++) {
         const vencimento = vencimentos[v];
+        console.log(vencimento);
         let obj = {
           "ID TÍTULO": vencimento.id_titulo,
           "DESCRIÇÃO TÍTULO": vencimento.descricao,
@@ -514,7 +424,8 @@ function conciliacaoAutomatica(req) {
         };
 
         let indexTransacaoConciliada = -1;
-        for (let t = 0; t < transacoes.length; t++) {
+        const transacoesLength = transacoes.length;
+        for (let t = 0; t < transacoesLength; t++) {
           const transacao = transacoes[t];
           if (
             formatDate(vencimento.data_pagamento, "dd-MM-yyyy").toString() ==
@@ -537,53 +448,10 @@ function conciliacaoAutomatica(req) {
               [newId, transacao.id, transacao.valor]
             );
 
-            // ^ Consulta os vencimentos pelo id_titulo para conseguir o id do vencimento
-            const [rowsVencimentoTitulo] = await conn.execute(
-              `SELECT id FROM fin_cp_titulos_vencimentos WHERE id_titulo = ?`,
-              [vencimento.id_titulo]
-            );
-            const vencimentoTitulo =
-              rowsVencimentoTitulo && rowsVencimentoTitulo[0];
-            // ^ Atualiza o vencimento com os dados da conciliação
-            await conn.execute(
-              `UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ? WHERE id_titulo = ?`,
-              [
-                new Date(vencimento.data_pagamento),
-                "PADRÃO",
-                vencimento.valor,
-                vencimento.id_titulo,
-              ]
-            );
-            //^ SELECT de titulo com vencimentos pagos
-            const [vencimentosNaoPagos] = await conn.execute(
-              `
-              SELECT
-                tv.id, tb.id_bordero
-              FROM fin_cp_titulos_vencimentos tv
-              LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
-              WHERE tv.id_titulo = ?
-              AND tv.data_pagamento IS NULL
-            `,
-              [vencimento.id_titulo]
-            );
-
-            if (vencimentosNaoPagos.length === 0) {
-              // ^ Se todos os vencimentos estiverem pagos muda o status do titulo para pago
-              await conn.execute(
-                `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-                [5, vencimento.id_titulo]
-              );
-            } else {
-              // ^ Se houverem vencimentos ainda não pagos no título muda o status do titulo para pago parcial
-              await conn.execute(
-                `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-                [4, vencimento.id_titulo]
-              );
-            }
             // ^ Adiciona o título nos itens da conciliação bancária
             await conn.execute(
               `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
-              [newId, vencimentoTitulo.id, vencimento.valor]
+              [newId, vencimento.id_vencimento, vencimento.valor]
             );
 
             obj = {
@@ -651,87 +519,6 @@ function deleteConciliacao(req) {
       );
       if (rowVencimentos.length === 0) {
         throw new Error("Falha ao desfazer a conciliação!");
-      }
-
-      for (const vencimento of rowVencimentos) {
-        //* Verifica se há algum vencimento que tenha sido criado pelo vencimento atual
-        const [rowVencimentosParciais] = await conn.execute(
-          `
-          SELECT id, data_pagamento, tipo_baixa, valor
-          FROM fin_cp_titulos_vencimentos
-          WHERE vencimento_origem = ?
-        `,
-          [vencimento.id]
-        );
-        let valor = +vencimento.valor;
-        for (const vencimentoParcial of rowVencimentosParciais) {
-          if (vencimentoParcial.data_pagamento) {
-            throw new Error(
-              `Não é possível desfazer a conciliação, pois um pagamento parcial foi feito em ${formatDate(
-                vencimentoParcial.data_pagamento,
-                "dd/MM/yyyy"
-              )}. Resolva todos os pagamentos parciais primeiro.`
-            );
-            // throw new Error(
-            //   `Desfazer a conciliação não é permitido, pois um pagamento parcial referente a este vencimento foi realizado em ${formatDate(
-            //     vencimentoParcial.data_pagamento,
-            //     "dd/MM/yyyy"
-            //   )}. Todos os pagamentos parciais devem ser resolvidos antes de desfazer esta conciliação.`
-            // );
-          } else {
-            //* Armazena o valor do vencimento parcial inicial
-            valor += +vencimentoParcial.valor;
-
-            //* Apaga o vencimento criado na operação de pagamento parcial
-            await conn.execute(
-              `
-              DELETE FROM fin_cp_titulos_vencimentos WHERE id = ?
-            `,
-              [vencimentoParcial.id]
-            );
-          }
-        }
-
-        await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET data_pagamento =  ?, tipo_baixa =  ?, valor_pago =  ?, valor = ? WHERE id = ?`,
-          [null, null, null, valor, vencimento.id]
-        );
-      }
-
-      //* Consulta todos os títulos relacionados à conciliação
-      const [rowTitulos] = await conn.execute(
-        `
-        SELECT t.id
-        FROM fin_cp_titulos t
-        WHERE t.id IN
-          (SELECT ftv.id_titulo FROM fin_cp_titulos_vencimentos ftv
-            INNER JOIN fin_conciliacao_bancaria_itens fcbi ON fcbi.id_cp = ftv.id
-          WHERE fcbi.id_conciliacao = ?
-            AND NOT fcbi.id_cp IS NULL)
-      `,
-        [id]
-      );
-
-      for (const titulo of rowTitulos) {
-        //* Itera por cada título e consulta os vencimentos pagos relacionados a ele
-        const [rowVencimentosPagos] = await conn.execute(
-          `SELECT tv.id
-          FROM fin_cp_titulos_vencimentos tv
-          WHERE tv.id_titulo = ?
-          AND tv.data_pagamento`,
-          [titulo.id]
-        );
-
-        //* Se houverem vencimentos pagos no título, muda o status do título para "pago parcial", senão muda para "aprovado"
-        const id_status = rowVencimentosPagos.length > 0 ? 4 : 3;
-        await conn.execute(
-          `
-          UPDATE fin_cp_titulos t
-          SET t.id_status = ?
-          WHERE t.id = ? 
-        `,
-          [id_status, titulo.id]
-        );
       }
 
       //* Deleta a conciliação bancária

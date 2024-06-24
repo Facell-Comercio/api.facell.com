@@ -115,8 +115,9 @@ function getAll(req) {
       !checkUserPermission(req, "MASTER")
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
-      where += ` AND (t.id_solicitante = '${user.id
-        }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
+      where += ` AND (t.id_solicitante = '${
+        user.id
+      }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
     }
     const {
       id,
@@ -156,8 +157,9 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -174,7 +176,6 @@ function getAll(req) {
     const conn = await db.getConnection();
 
     try {
-
       const [rowsTitulos] = await conn.execute(
         `SELECT count(t.id) as total 
         FROM fin_cp_titulos t 
@@ -317,8 +318,9 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -358,10 +360,12 @@ function getAllCpVencimentosBordero(req) {
 
       var query = `
             SELECT DISTINCT 
-                tv.id as id_vencimento, t.id as id_titulo, t.id_status, s.status, tv.data_prevista as previsao, 
-                UPPER(t.descricao) as descricao, tv.valor as valor_total,
+                t.id as id_titulo, t.id_status, UPPER(t.descricao) as descricao,
+                tv.id as id_vencimento, tv.status, tv.data_prevista as previsao, 
+                tv.valor as valor_total, tv.data_vencimento as data_pagamento,
                 f.nome as filial, f.id_matriz,
-                forn.nome as nome_fornecedor, t.num_doc, tv.data_vencimento as data_pagamento
+                forn.nome as nome_fornecedor, t.num_doc, 
+                fp.forma_pagamento
             FROM fin_cp_titulos t 
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
@@ -369,7 +373,7 @@ function getAllCpVencimentosBordero(req) {
             LEFT JOIN users u ON u.id = t.id_solicitante
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
-
+            LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
             ${where}
 
             ORDER BY 
@@ -883,8 +887,14 @@ function insertOne(req) {
       }
 
       // * Verificar se o Grupo valida orçamento
-      const [rowGrupoEconomico] = await conn.execute(`SELECT orcamento FROM grupos_economicos WHERE id = ?`, [id_grupo_economico])
-      const grupoValidaOrcamento = rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]['orcamento']
+      const [rowGrupoEconomico] = await conn.execute(
+        `SELECT orcamento FROM grupos_economicos WHERE id = ?`,
+        [id_grupo_economico]
+      );
+      const grupoValidaOrcamento =
+        rowGrupoEconomico &&
+        rowGrupoEconomico[0] &&
+        !!+rowGrupoEconomico[0]["orcamento"];
 
       // * Obter o Orçamento:
       const [rowOrcamento] = await conn.execute(
@@ -892,7 +902,10 @@ function insertOne(req) {
         [format(new Date(), "yyyy-MM"), id_grupo_economico]
       );
 
-      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
+      if (
+        grupoValidaOrcamento &&
+        (!rowOrcamento || rowOrcamento.length === 0)
+      ) {
         throw new Error("Orçamento não localizado!");
       }
       if (rowOrcamento.length > 1) {
@@ -900,8 +913,10 @@ function insertOne(req) {
           `${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`
         );
       }
-      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
-      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
+      const orcamentoAtivo =
+        rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
+      const id_orcamento =
+        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // * Persitir os anexos
       const nova_url_nota_fiscal = await moverArquivoTempParaUploads(
@@ -1116,9 +1131,10 @@ function insertOne(req) {
 
           // Calcular o saldo da conta do orçamento:
           const saldo = valor_previsto - valor_total_consumo;
-          if (contaOrcamentoAtiva && (saldo < item_rateio.valor)) {
+          if (contaOrcamentoAtiva && saldo < item_rateio.valor) {
             throw new Error(
-              `Saldo insuficiente para ${item_rateio.centro_custo}: ${item_rateio.plano_conta
+              `Saldo insuficiente para ${item_rateio.centro_custo}: ${
+                item_rateio.plano_conta
               }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
             );
           }
@@ -1552,8 +1568,14 @@ function update(req) {
       );
 
       // * Verificar se o Grupo valida orçamento
-      const [rowGrupoEconomico] = await conn.execute(`SELECT orcamento FROM grupos_economicos WHERE id = ?`, [id_grupo_economico])
-      const grupoValidaOrcamento = rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]['orcamento']
+      const [rowGrupoEconomico] = await conn.execute(
+        `SELECT orcamento FROM grupos_economicos WHERE id = ?`,
+        [id_grupo_economico]
+      );
+      const grupoValidaOrcamento =
+        rowGrupoEconomico &&
+        rowGrupoEconomico[0] &&
+        !!+rowGrupoEconomico[0]["orcamento"];
 
       // * Obter o Orçamento:
       const [rowOrcamento] = await conn.execute(
@@ -1561,7 +1583,10 @@ function update(req) {
         [format(titulo.created_at, "yyyy-MM"), id_grupo_economico]
       );
 
-      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
+      if (
+        grupoValidaOrcamento &&
+        (!rowOrcamento || rowOrcamento.length === 0)
+      ) {
         throw new Error("Orçamento não localizado!");
       }
       if (rowOrcamento.length > 1) {
@@ -1570,8 +1595,10 @@ function update(req) {
         );
       }
 
-      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
-      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
+      const orcamentoAtivo =
+        rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
+      const id_orcamento =
+        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // ~ Início de Manipulação de Rateio //////////////////////
       // * Validação de orçamento e atualização do rateio
@@ -1628,7 +1655,6 @@ function update(req) {
           );
 
           if (orcamentoAtivo) {
-
             // ^ Vamos validar se orçamento possui saldo:
             // Obter a Conta de Orçamento com o Valor Previsto [orçado]:
             const [rowOrcamentoConta] = await conn.execute(
@@ -1682,9 +1708,10 @@ function update(req) {
 
             // Calcular o saldo da conta do orçamento:
             const saldo = valor_previsto - valor_total_consumo;
-            if (contaOrcamentoAtiva && (saldo < valorRateio)) {
+            if (contaOrcamentoAtiva && saldo < valorRateio) {
               throw new Error(
-                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${
+                  item_rateio.plano_conta
                 }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
               );
             }
@@ -2225,8 +2252,9 @@ function downloadAnexos(req, res) {
         const ext = path.extname(tituloBanco[type]);
         const titulo = {
           type: "file",
-          fileName: `${tipos_anexos.find((tipo) => tipo.name == type).acronym
-            } - ${id_titulo}${ext}`,
+          fileName: `${
+            tipos_anexos.find((tipo) => tipo.name == type).acronym
+          } - ${id_titulo}${ext}`,
           content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);

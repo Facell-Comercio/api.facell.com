@@ -117,7 +117,7 @@ module.exports = [
     length: 1,
     required: true,
     type: "numeric",
-    default: 0,
+    default: 2,
   },
   {
     field: "num_inscricao_sacador",
