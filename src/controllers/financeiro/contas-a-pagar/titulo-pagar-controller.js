@@ -132,7 +132,7 @@ function getAll(req) {
     } = filters || {};
     const params = [];
     if (id) {
-      where += ` AND t.id LIKE CONCAT(?,'%') `;
+      where += ` AND t.id = ? `;
       params.push(id);
     }
     if (id_status && id_status !== "all") {
