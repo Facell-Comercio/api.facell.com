@@ -7,7 +7,6 @@ const {
   update,
   deleteBordero,
   deleteTitulo,
-  faker,
   deleteConciliacao,
   conciliacaoAutomatica,
   getConciliacoes,
@@ -26,15 +25,6 @@ router.get("/", async (req, res) => {
 router.get("/conciliacoes", async (req, res) => {
   try {
     const result = await getConciliacoes(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.get("/faker", async (req, res) => {
-  try {
-    const result = await faker(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });

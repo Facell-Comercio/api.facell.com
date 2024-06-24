@@ -67,7 +67,7 @@ function getAll(req) {
       const [rowsTitulosConciliar] = await conn.execute(
         `
       SELECT
-          tv.id_titulo, tv.id as id_vencimento, tv.valor, t.descricao, t.num_doc,
+          tv.id_titulo, tv.id as id_vencimento, tv.valor_pago as valor, t.descricao, t.num_doc,
           forn.nome as nome_fornecedor,
           f.nome as filial,
           tv.data_prevista as data_pagamento
@@ -77,7 +77,7 @@ function getAll(req) {
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
-      LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = t.id
+      LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = tv.id
 
       ${whereTitulo}
       AND tv.status = "pago"
@@ -108,7 +108,7 @@ function getAll(req) {
         `
         SELECT
           cbi.id_conciliacao,
-          t.id as id_titulo, tv.valor_pago as valor, t.descricao, t.num_doc,
+          t.id as id_titulo, tv.id as id_vencimento, tv.valor_pago as valor, t.descricao, t.num_doc,
           forn.nome as nome_fornecedor,
           f.nome as filial,
           tv.data_prevista as data_pagamento
@@ -276,7 +276,7 @@ function getOne(req) {
       const [rowVencimentos] = await conn.execute(
         `
           SELECT
-            tv.id as id_vencimento, tv.id_titulo, tv.valor, tv.valor_pago, tv.tipo_baixa,
+            tv.id as id_vencimento, tv.id_titulo, tv.valor_pago, tv.tipo_baixa,
             t.descricao, forn.nome as nome_fornecedor,
             f.nome as filial,
             tv.data_prevista as data_pagamento
@@ -543,66 +543,6 @@ function deleteConciliacao(req) {
   });
 }
 
-function faker() {
-  return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
-    try {
-      await conn.beginTransaction();
-
-      // const [titulos] = await conn.execute(
-      //   `SELECT id, data_vencimento, data_prevista, valor  FROM fin_cp_titulos WHERE id_status = ?`,
-      //   [3]
-      // );
-      // let i = 0;
-      // for (const titulo of titulos) {
-      //   await conn.execute(
-      //     `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor)
-      //       VALUES(?,?,?,?)
-      //     `,
-      //     [
-      //       titulo.id,
-      //       new Date(titulo.data_vencimento),
-      //       new Date(titulo.data_prevista),
-      //       titulo.valor,
-      //     ]
-      //   );
-      //   i++;
-      // }
-
-      const [vencimentos] = await conn.execute(
-        `SELECT id, data_vencimento FROM fin_cp_titulos_vencimentos LIMIT 200 OFFSET 200`
-      );
-      let i = 0;
-      for (const vencimento of vencimentos) {
-        await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET data_vencimento = ?, data_prevista = ? WHERE id = ?`,
-          [
-            addMonths(new Date(vencimento.data_vencimento), 8),
-            addMonths(new Date(vencimento.data_vencimento), 8),
-            vencimento.id,
-          ]
-        );
-        await conn.execute(
-          `INSERT INTO fin_cp_titulos_borderos (id_vencimento, id_bordero)
-              VALUES(?,?)
-            `,
-          [vencimento.id, "5"]
-        );
-        i++;
-      }
-
-      await conn.rollback();
-      resolve({ message: "Sucesso!" });
-    } catch (error) {
-      console.log("ERRO NO FAKER DA CONCILIAÇÃO", error);
-      await conn.rollback();
-      reject(error);
-    } finally {
-      conn.release();
-    }
-  });
-}
-
 module.exports = {
   getAll,
   getConciliacoes,
@@ -610,5 +550,4 @@ module.exports = {
   insertOne,
   conciliacaoAutomatica,
   deleteConciliacao,
-  // faker,
 };
