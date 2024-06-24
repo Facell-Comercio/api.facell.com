@@ -10,7 +10,7 @@ async function getAll(req) {
         const conn = await db.getConnection();
         try {
             const { filters, pagination } = req.query;
-            console.log(req.query)
+            // console.log(req.query)
             const { pageIndex, pageSize } = pagination || {
                 pageIndex: 0,
                 pageSize: 15,
