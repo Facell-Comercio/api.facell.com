@@ -1,9 +1,11 @@
 const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
+const fs = require("fs/promises");
 const {
   normalizeCnpjNumber,
   removeSpecialCharactersAndAccents,
   normalizeNumberOnly,
+  normalizeURLChaveEnderecamentoPIX,
 } = require("../../../helpers/mask");
 
 const {
@@ -19,6 +21,8 @@ const {
 } = require("../remessa/to-string/itau");
 const { normalizeValue } = require("../remessa/to-string/masks");
 const { logger } = require("../../../../logger");
+const { remessaToObject } = require("../remessa/to-object");
+const constants = require("../remessa/layout/ITAU/constants");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -797,6 +801,7 @@ async function exportBorderos(req) {
 function exportRemessa(req, res) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const { isPix } = req.query;
     const conn = await db.getConnection();
 
     try {
@@ -1002,9 +1007,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND LEFT(tv.cod_barras, 3) = 341
+      AND LEFT(dda.cod_barras, 3) = 341
       AND tv.data_pagamento IS NULL
     `,
             [id]
@@ -1023,9 +1029,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND LEFT(tv.cod_barras, 3) <> 341
+      AND LEFT(dda.cod_barras, 3) <> 341
       AND tv.data_pagamento IS NULL
     `,
             [id]
@@ -1055,21 +1062,34 @@ function exportRemessa(req, res) {
           .then(([rows]) => rows),
       ]);
 
-      const formasPagamento = new Map(
-        Object.entries({
-          PagamentoCorrenteItau: rowsPagamentoCorrenteItau,
-          PagamentoPoupancaItau: rowsPagamentoPoupancaItau,
-          PagamentoCorrenteMesmaTitularidade:
-            rowsPagamentoCorrenteMesmaTitularidade,
-          PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
-          PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
-          PagamentoPIX: rowsPagamentoPIX,
-          PagamentoBoletoItau: rowsPagamentoBoletoItau,
-          PagamentoBoletoOutroBancoParaItau:
-            rowsPagamentoBoletoOutroBancoParaItau,
-          PagamentoPIXQRCode: rowsPagamentoPIXQRCode,
-        })
+      let formasPagamento;
+      console.log(
+        rowsPagamentoBoletoItau,
+        rowsPagamentoBoletoOutroBancoParaItau
       );
+
+      if (isPix) {
+        formasPagamento = new Map(
+          Object.entries({
+            PagamentoPIX: rowsPagamentoPIX,
+            PagamentoPIXQRCode: rowsPagamentoPIXQRCode,
+          })
+        );
+      } else {
+        formasPagamento = new Map(
+          Object.entries({
+            PagamentoCorrenteItau: rowsPagamentoCorrenteItau,
+            PagamentoPoupancaItau: rowsPagamentoPoupancaItau,
+            PagamentoCorrenteMesmaTitularidade:
+              rowsPagamentoCorrenteMesmaTitularidade,
+            PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
+            PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
+            PagamentoBoletoItau: rowsPagamentoBoletoItau,
+            PagamentoBoletoOutroBancoParaItau:
+              rowsPagamentoBoletoOutroBancoParaItau,
+          })
+        );
+      }
 
       // console.timeEnd("FORMA DE PAGAMENTO");// TESTANDO PERFORMANCE
       const arquivo = [];
@@ -1153,7 +1173,7 @@ function exportRemessa(req, res) {
           const [rowVencimento] = await conn.execute(
             `
           SELECT
-            tv.id as doc_empresa,  
+            tv.id as id_vencimento,  
             fb.codigo as cod_banco_favorecido,
             forn.agencia,
             forn.dv_agencia,
@@ -1165,11 +1185,13 @@ function exportRemessa(req, res) {
             forn.cnpj as favorecido_cnpj,
             t.id_tipo_chave_pix,
             t.chave_pix,
-            tv.cod_barras
+            tv.qr_code,
+            dda.cod_barras
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
           LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
+          LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
           WHERE tv.id = ?
         `,
             [pagamento.id_vencimento]
@@ -1226,8 +1248,7 @@ function exportRemessa(req, res) {
               ...vencimento,
               lote,
               num_registro_lote: registroLote,
-              valor_titulo: vencimento.valor_titulo,
-              n_doc: vencimento.id,
+              valor_titulo: vencimento.valor_pagamento,
             });
             registroLote++;
             const segmentoJ52Pix = createSegmentoJ52Pix({
@@ -1238,8 +1259,9 @@ function exportRemessa(req, res) {
               nome_sacado: borderoData.empresa_nome,
               num_inscricao_cedente: vencimento.favorecido_cnpj,
               nome_cedente: vencimento.favorecido_nome,
-              num_inscricao_sacador: vencimento.favorecido_cnpj,
-              nome_sacador: vencimento.favorecido_nome,
+              chave_pagamento: normalizeURLChaveEnderecamentoPIX(
+                vencimento.qr_code
+              ),
             });
             arquivo.push(segmentoJ);
             arquivo.push(segmentoJ52Pix);
@@ -1253,7 +1275,6 @@ function exportRemessa(req, res) {
               lote,
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
-              n_doc: vencimento.doc_empresa,
               cod_barras: vencimento.cod_barras,
             });
             registroLote++;
@@ -1344,7 +1365,7 @@ function exportRemessa(req, res) {
       }
 
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
-      const filename = `REMESSA - ${formatDate(
+      const filename = `REMESSA${isPix ? " PIX" : ""} - ${formatDate(
         borderoData.data_pagamento,
         "dd_MM_yyyy"
       )} - ${removeSpecialCharactersAndAccents(
@@ -1363,6 +1384,208 @@ function exportRemessa(req, res) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+async function importRetornoRemessa(req) {
+  return new Promise(async (resolve, reject) => {
+    const conn = await db.getConnection();
+    const CodigosOcorrencias = constants.CodigosOcorrencias;
+    try {
+      await conn.beginTransaction();
+
+      const files = req.files;
+      if (!files || !files.length) {
+        throw new Error("Arquivos não recebidos!");
+      }
+
+      let sequencial_arquivo = 1;
+      const pagamentos = [];
+      for (const file of files) {
+        const filePath = file?.path;
+        try {
+          if (!filePath) {
+            throw new Error("O arquivo não importado corretamente!");
+          }
+
+          // Ler e fazer parse do arquivo
+          const data = await fs.readFile(filePath, "utf8");
+          const objRemessa = await remessaToObject(data);
+          // Passagem pelos lotes
+          const lotes = objRemessa.lotes;
+          if (!lotes || !lotes.length) {
+            throw new Error(
+              "Aquivo vazio ou não foi possível acessar os lotes de boletos..."
+            );
+          }
+          for (const lote of lotes) {
+            // Passagem pelos segmentos G
+            const segmentos = lote.detalhe?.filter(
+              (d) =>
+                d.cod_seg_registro_lote === "A" ||
+                d.cod_seg_registro_lote === "J"
+            );
+            if (!segmentos || !segmentos.length) {
+              continue;
+            }
+            for (const segmento of segmentos) {
+              const id_vencimento = parseInt(segmento.id_vencimento.trim());
+              const ocorrencias =
+                segmento.ocorrencias.trim().match(/.{1,2}/g) || [];
+              const pagamento = {
+                sequencial_arquivo,
+                id_vencimento,
+                ocorrencias: ocorrencias.join(", "),
+                status: "sucesso",
+              };
+              try {
+                const [rowVencimento] = await conn.execute(
+                  `
+                SELECT 
+                  id, id_titulo, status, valor
+                FROM fin_cp_titulos_vencimentos
+                WHERE id = ?
+                `,
+                  [id_vencimento]
+                );
+                const vencimento = rowVencimento && rowVencimento[0];
+
+                //* Verificando a existencia do vencimento
+                if (!vencimento) {
+                  throw new Error(`Vencimento não encontrado no sistema`);
+                }
+
+                //* Verificando se o status do vencimento é pago
+                if (vencimento.status === "pago") {
+                  throw new Error(`Vencimento já constava como pago`);
+                }
+
+                const ocorrenciasErro = ocorrencias.filter(
+                  (e) => e != "00" && e != "BD"
+                );
+                if (ocorrenciasErro.length) {
+                  const erros = ocorrenciasErro.map((erro) => {
+                    return CodigosOcorrencias[erro];
+                  });
+                  await conn.execute(
+                    `
+                    UPDATE fin_cp_titulos_vencimentos SET status = "erro", obs = ? WHERE id = ?
+                    `,
+                    [erros.join(", "), id_vencimento]
+                  );
+
+                  if (ocorrenciasErro.length > 1) {
+                    throw new Error(`${erros.join("\n")}`);
+                  } else {
+                    throw new Error(`${erros.join("\n")}`);
+                  }
+                }
+                if (ocorrencias[0] === "BD") {
+                  await conn.execute(
+                    `
+                    UPDATE fin_cp_titulos_vencimentos SET status = "programado" WHERE id = ?
+                    `,
+                    [id_vencimento]
+                  );
+                  pagamento.status = "programado";
+                }
+                if (ocorrencias[0] == "00") {
+                  const valorPago =
+                    segmento.valor_real_efetivacao_pgto ||
+                    segmento.valor_pagamento;
+                  const dataPagamento =
+                    segmento.data_real_efetivacao_pgto ||
+                    segmento.data_pagamento;
+                  await conn.execute(
+                    `
+                      UPDATE fin_cp_titulos_vencimentos SET status = "pago", valor = ?, tipo_baixa = "PADRÃO", data_pagamento = ?, obs="PAGAMENTO REALIZADO NO RETORNO DA REMESSA" WHERE id = ?
+                      `,
+                    [valorPago, dataPagamento, id_vencimento]
+                  );
+                  const [vencimentosNaoPagos] = await conn.execute(
+                    `
+                        SELECT 
+                          tv.id 
+                        FROM fin_cp_titulos_vencimentos tv
+                        WHERE tv.id_titulo = ? 
+                        AND tv.data_pagamento IS NULL
+                      `,
+                    [vencimento.id_titulo]
+                  );
+
+                  if (vencimentosNaoPagos.length === 0) {
+                    // ^ Se todos os vencimentos estiverem pagos muda o status do titulo para pago
+                    await conn.execute(
+                      `UPDATE fin_cp_titulos SET id_status = 5 WHERE id = ?`,
+                      [vencimento.id_titulo]
+                    );
+                  }
+                  if (vencimentosNaoPagos.length > 0) {
+                    // ^ Se houverem vencimentos ainda não pagos no título muda o status do titulo para pago parcial
+                    await conn.execute(
+                      `UPDATE fin_cp_titulos SET id_status = 4 WHERE id = ?`,
+                      [vencimento.id_titulo]
+                    );
+                  }
+                }
+              } catch (error) {
+                pagamento.status = "error";
+                pagamento.obs = error.message;
+              } finally {
+                pagamentos.push(pagamento);
+              }
+            }
+          }
+        } catch (error) {
+          pagamentos.push({
+            sequencial_arquivo,
+            status: "error",
+            obs: error.message,
+          });
+          logger.error({
+            module: "FINANCEIRO",
+            origin: "BORDERO",
+            method: "IMPORT RETORNO REMESSA",
+            data: {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            },
+          });
+        } finally {
+          sequencial_arquivo++;
+          try {
+            await fs.unlink(filePath);
+          } catch (unlinkErr) {
+            logger.error({
+              module: "FINANCEIRO",
+              origin: "BORDERO",
+              method: "UNLINK IMPORT RETORNO REMESSA",
+              data: {
+                message: unlinkErr.message,
+                stack: unlinkErr.stack,
+                name: unlinkErr.name,
+              },
+            });
+          }
+        }
+      }
+
+      await conn.commit();
+      // resolve({ qtdeImportada })
+      resolve(pagamentos);
+    } catch (error) {
+      await conn.rollback();
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDERO",
+        method: "IMPORTAR RETORNO DE REMESSA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -1447,5 +1670,6 @@ module.exports = {
   transferBordero,
   exportBorderos,
   exportRemessa,
+  importRetornoRemessa,
   geradorDadosEmpresa,
 };

@@ -113,17 +113,18 @@ function removeSpecialCharactersAndAccents(str) {
  * Transforma linha digitável em Código de Barras
  * */ 
 function normalizeCodigoBarras(text) {
-  if(!text) return null;
-  let textFormat = String(text)
-  textFormat = textFormat.trim()
-  if(textFormat.length !== 47){
-    th
+  if (!text) return null;
+  let textoLimpo = String(text)
+    .trim()
+    .replace(/[\s.-]/g, "");
+  if (textoLimpo.length !== 47) {
+    return null;
   }
-  const parte1 = textFormat.substring(0, 4);
-  const parte3 = textFormat.substring(4, 9);
-  const parte4 = textFormat.substring(10, 20);
-  const parte5 = textFormat.substring(21, 31);
-  const parte2 = textFormat.substring(32, 47);
+  const parte1 = textoLimpo.substring(0, 4);
+  const parte3 = textoLimpo.substring(4, 9);
+  const parte4 = textoLimpo.substring(10, 20);
+  const parte5 = textoLimpo.substring(21, 31);
+  const parte2 = textoLimpo.substring(32, 47);
 
   return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
 }
@@ -131,7 +132,8 @@ function normalizeCodigoBarras(text) {
 /** 
  * Função que extrai URL / Chave de endereçamento do PIX Copia e Cola
  * */ 
-function normalizeURLChaveEnderecamentoPIX(qr) {
+function normalizeURLChaveEnderecamentoPIX(qr_code) {
+  const qr = qr_code.trim();
   if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
     throw new Error("Chave PIX não identificada");
   }
