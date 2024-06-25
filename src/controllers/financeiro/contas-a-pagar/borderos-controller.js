@@ -228,7 +228,7 @@ function getOne(req) {
               tv.data_prevista as previsao, 
               tv.data_pagamento, 
               fp.forma_pagamento,
-              tv.obs, tv.status, tv.id_dda, tv.tipo_baixa,
+              tv.obs, tv.status, tv.tipo_baixa,
               f.nome as nome_fornecedor, 
               t.data_emissao, 
               tv.data_vencimento,
