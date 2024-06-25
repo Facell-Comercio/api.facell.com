@@ -109,16 +109,28 @@ function removeSpecialCharactersAndAccents(str) {
   return trimmedStr;
 }
 
+/** 
+ * Transforma linha digitável em Código de Barras
+ * */ 
 function normalizeCodigoBarras(text) {
-  const parte1 = text.substring(0, 4);
-  const parte3 = text.substring(4, 9);
-  const parte4 = text.substring(10, 20);
-  const parte5 = text.substring(21, 31);
-  const parte2 = text.substring(32, 47);
+  if(!text) return null;
+  let textFormat = String(text)
+  textFormat = textFormat.trim()
+  if(textFormat.length !== 47){
+    th
+  }
+  const parte1 = textFormat.substring(0, 4);
+  const parte3 = textFormat.substring(4, 9);
+  const parte4 = textFormat.substring(10, 20);
+  const parte5 = textFormat.substring(21, 31);
+  const parte2 = textFormat.substring(32, 47);
 
   return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
 }
 
+/** 
+ * Função que extrai URL / Chave de endereçamento do PIX Copia e Cola
+ * */ 
 function normalizeURLChaveEnderecamentoPIX(qr) {
   if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
     throw new Error("Chave PIX não identificada");

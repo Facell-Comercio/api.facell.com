@@ -115,9 +115,8 @@ function getAll(req) {
       !checkUserPermission(req, "MASTER")
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
-      where += ` AND (t.id_solicitante = '${
-        user.id
-      }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
+      where += ` AND (t.id_solicitante = '${user.id
+        }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
     }
     const {
       id,
@@ -157,9 +156,8 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -318,9 +316,8 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -502,7 +499,7 @@ function getOne(req) {
 
       const [vencimentos] = await conn.execute(
         `SELECT 
-          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.cod_barras 
+          tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.cod_barras, tv.qr_code 
         FROM fin_cp_titulos_vencimentos tv 
         WHERE tv.id_titulo = ? 
         `,
@@ -1029,31 +1026,29 @@ function insertOne(req) {
       // * Salvar os novos vencimentos
       for (const vencimento of vencimentos) {
         // * Persistir o vencimento do titulo e obter o id:
-        // console.log(
-        //   newId,
-        //   startOfDay(vencimento.data_vencimento),
-        //   startOfDay(vencimento.data_prevista),
-        //   vencimento.cod_barras,
-        //   vencimento.valor
-        // );
-        //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
+
+        // Código de Barras
         const cod_barras = !!vencimento.cod_barras
-          ? normalizeNumberOnly(vencimento.cod_barras)
+          ? normalizeCodigoBarras(vencimento.cod_barras)
           : null;
-        if (!!vencimento.cod_barras && !checkCodigoBarras(cod_barras)) {
+        if (!!cod_barras && !checkCodigoBarras(cod_barras)) {
           throw new Error(`Linha Digitável inválida: ${cod_barras}`);
+        }
+        // PIX QR Code
+        const qr_code = vencimento.qr_code || null
+        if (id_forma_pagamento == '8' && !qr_code) {
+          throw new Error('Preencha o PIX Copia e Cola!')
         }
 
         await conn.execute(
-          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor) VALUES (?,?,?,?,?)`,
+          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor, qr_code) VALUES (?,?,?,?,?,?)`,
           [
             newId,
             startOfDay(vencimento.data_vencimento),
             startOfDay(vencimento.data_prevista),
-            cod_barras === null || cod_barras.length === 44
-              ? cod_barras
-              : normalizeCodigoBarras(cod_barras),
+            cod_barras,
             vencimento.valor,
+            qr_code
           ]
         );
       }
@@ -1133,8 +1128,7 @@ function insertOne(req) {
           const saldo = valor_previsto - valor_total_consumo;
           if (contaOrcamentoAtiva && saldo < item_rateio.valor) {
             throw new Error(
-              `Saldo insuficiente para ${item_rateio.centro_custo}: ${
-                item_rateio.plano_conta
+              `Saldo insuficiente para ${item_rateio.centro_custo}: ${item_rateio.plano_conta
               }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
             );
           }
@@ -1710,8 +1704,7 @@ function update(req) {
             const saldo = valor_previsto - valor_total_consumo;
             if (contaOrcamentoAtiva && saldo < valorRateio) {
               throw new Error(
-                `Saldo insuficiente para ${item_rateio.centro_custo} + ${
-                  item_rateio.plano_conta
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
                 }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
               );
             }
@@ -1773,23 +1766,28 @@ function update(req) {
           }
 
           // * Persistir o vencimento
-          //! VERIFICAR SE A NORMALIZAÇÃO FUNCIONOU
+          // Código de Barras
           const cod_barras = !!vencimento.cod_barras
-            ? normalizeNumberOnly(vencimento.cod_barras)
+            ? normalizeCodigoBarras(vencimento.cod_barras)
             : null;
-          if (!!vencimento.cod_barras && !checkCodigoBarras(cod_barras)) {
+          if (id_forma_pagamento == '1' && !!vencimento.cod_barras && !checkCodigoBarras(cod_barras)) {
             throw new Error(`Linha Digitável inválida: ${cod_barras}`);
           }
+          // PIX QR Code
+          const qr_code = vencimento.qr_code || null;
+          if (id_forma_pagamento == '8' && !qr_code) {
+            throw new Error('Preencha o PIX Copia e Cola!')
+          }
+
           await conn.execute(
-            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras) VALUES (?,?,?,?,?)`,
+            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code) VALUES (?,?,?,?,?,?)`,
             [
               id,
               formatDate(vencimento.data_vencimento, "yyyy-MM-dd"),
               formatDate(vencimento.data_prevista, "yyyy-MM-dd"),
               valorVencimento,
-              cod_barras === null || cod_barras.length === 44
-                ? cod_barras
-                : normalizeCodigoBarras(cod_barras),
+              cod_barras,
+              qr_code
             ]
           );
         }
@@ -2252,9 +2250,8 @@ function downloadAnexos(req, res) {
         const ext = path.extname(tituloBanco[type]);
         const titulo = {
           type: "file",
-          fileName: `${
-            tipos_anexos.find((tipo) => tipo.name == type).acronym
-          } - ${id_titulo}${ext}`,
+          fileName: `${tipos_anexos.find((tipo) => tipo.name == type).acronym
+            } - ${id_titulo}${ext}`,
           content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);
