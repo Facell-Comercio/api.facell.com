@@ -414,7 +414,7 @@ function conciliacaoAutomatica(req) {
       const vencimentosLength = vencimentos.length;
       for (let v = 0; v < vencimentosLength; v++) {
         const vencimento = vencimentos[v];
-        console.log(vencimento);
+        // console.log(vencimento);
         let obj = {
           "ID TÍTULO": vencimento.id_titulo,
           "DESCRIÇÃO TÍTULO": vencimento.descricao,

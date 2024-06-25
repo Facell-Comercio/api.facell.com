@@ -4,6 +4,7 @@ const {
   urlContemTemp,
   moverArquivoTempParaUploads,
 } = require("../files-controller");
+const { logger } = require("../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -61,7 +62,10 @@ function getAll(req) {
       // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
-      console.error("ERRO_GET_ALL_USERS", error);
+      logger.error({
+        module: 'ADM', origin: 'USERS', method: 'GET_ALL',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
     } finally {
       conn.release();
@@ -136,7 +140,10 @@ function getOne(req) {
       resolve(objUser);
       return;
     } catch (error) {
-      console.error("ERRO_GET_ONE_USERS", error);
+      logger.error({
+        module: 'ADM', origin: 'USERS', method: 'GET_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
       return;
     } finally {
@@ -244,7 +251,10 @@ function update(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       await conn.rollback();
-      console.log("ERRO_USER_UPDATE", error);
+      logger.error({
+        module: 'ADM', origin: 'USERS', method: 'UPDATE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
     } finally {
       conn.release();
@@ -346,7 +356,10 @@ function insertOne(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       await conn.rollback();
-      console.log("ERRO_USER_INSERT", error);
+      logger.error({
+        module: 'ADM', origin: 'USERS', method: 'INSERT_ONE',
+        data: { message: error.message, stack: error.stack, name: error.name }
+      })
       reject(error);
     } finally {
       conn.release();

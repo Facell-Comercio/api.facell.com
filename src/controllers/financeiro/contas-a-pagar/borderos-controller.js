@@ -1063,10 +1063,10 @@ function exportRemessa(req, res) {
       ]);
 
       let formasPagamento;
-      console.log(
-        rowsPagamentoBoletoItau,
-        rowsPagamentoBoletoOutroBancoParaItau
-      );
+      // console.log(
+      //   rowsPagamentoBoletoItau,
+      //   rowsPagamentoBoletoOutroBancoParaItau
+      // );
 
       if (isPix) {
         formasPagamento = new Map(
@@ -1641,7 +1641,7 @@ async function geradorDadosEmpresa() {
             reject(error);
           });
         await new Promise((resolve) => setTimeout(resolve, 20000));
-        console.log("20 seconds have passed!");
+        // console.log("20 seconds have passed!");
       }
 
       await conn.commit();

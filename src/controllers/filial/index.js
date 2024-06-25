@@ -417,7 +417,6 @@ function insertOne(req) {
         module: 'ADM', origin: 'FILIAL', method: 'INSERT_ONE',
         data: { message: error.message, stack: error.stack, name: error.name }
       })
-      console.log("ERRO_FILIAL_INSERT", error);
       await conn.rollback();
       reject(error);
     } finally {

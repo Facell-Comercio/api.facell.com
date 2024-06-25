@@ -8,26 +8,12 @@ const {
   getMyBudget,
   transfer,
   getMyBudgets,
-  faker,
   getIds,
   getLogs,
   deleteItemBudget,
   findAccountFromParams,
 } = require("../../../controllers/financeiro/orcamento/orcamento-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
-
-// router.get(
-//   "/faker",
-//   // checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-//   async (req, res) => {
-//     try {
-//       const result = await faker();
-//       res.status(200).json(result);
-//     } catch (error) {
-//       res.status(500).json({ message: error.message });
-//     }
-//   }
-// );
 
 router.post("/get-ids", async (req, res) => {
   try {

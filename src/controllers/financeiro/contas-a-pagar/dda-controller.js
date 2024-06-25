@@ -357,7 +357,7 @@ async function vincularDDA(req) {
                 throw new Error(`Registro ${id_dda} do DDA não existe!`)
             }
             const DDAbanco = rowDDA && rowDDA[0]
-            console.log({DDAbanco})
+            // console.log({DDAbanco})
             //^ Se tem ID Vencimento no DDA então já está vinculado:
             if(DDAbanco.id_vencimento){
                 throw new Error(`Registro ${id_dda} do DDA já consta como vinculado, não deu para vincular com o id_vencimento ${DDAbanco.id_vencimento}`)
@@ -367,6 +367,10 @@ async function vincularDDA(req) {
             await conn.execute(`UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`, [id_vencimento, id_dda])
             resolve(true)
         } catch (error) {
+            logger.error({
+                module: 'FINANCEIRO', origin: 'DDA', method: 'VINCULAR_DDA',
+                data: {message: error.message, stack: error.stack, name: error.name}
+            })
             reject(error)
         }finally{
             conn.release()

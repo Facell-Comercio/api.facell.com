@@ -28,8 +28,8 @@ function getAll() {
                 date: formattedDate,
               });
             } catch (err) {
-              console.log(line);
-              console.log(JSON.parse(line));
+              // console.log(line);
+              // console.log(JSON.parse(line));
               console.error("ERRO_JSON_PARSE", err);
               reject(err);
             }

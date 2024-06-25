@@ -943,44 +943,6 @@ function getLogs(req) {
   });
 }
 
-function faker() {
-  return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
-    try {
-      await conn.beginTransaction();
-
-      const [centrosDeCusto] = await conn.execute(
-        `SELECT id FROM fin_centros_custo WHERE id_grupo_economico = ?`,
-        [1]
-      );
-      const [planoDeContas] = await conn.execute(
-        `SELECT id FROM fin_plano_contas WHERE tipo = ? AND id_grupo_economico = ?`,
-        ["Despesa", 1]
-      );
-      for (const centro_custo of centrosDeCusto) {
-        for (const conta of planoDeContas) {
-          await conn.execute(
-            `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto)
-            VALUES(?,?,?,?)
-          `,
-            [5, centro_custo.id, conta.id, Math.random() * 1000]
-          );
-        }
-      }
-
-      await conn.rollback();
-      // await conn.commit();
-      resolve({ message: "Sucesso!" });
-    } catch (error) {
-      console.log("ERRO_FAKER_ORCAMENTOS", error);
-      await conn.rollback();
-      reject(error);
-    } finally {
-      conn.release();
-    }
-  });
-}
-
 module.exports = {
   getAll,
   getOne,
@@ -993,5 +955,4 @@ module.exports = {
   transfer,
   getIds,
   getLogs,
-  // faker,
 };

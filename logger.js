@@ -44,17 +44,17 @@ cron.schedule("* * 1 * *", () => {
         try {
           const parsedLine = JSON.parse(line);
           // Adiciona ao array apenas as linhas válidas
-          console.log(
-            parsedLine.time >= timestamp,
-            formatDate(parsedLine.time, "dd/MM/yyyy hh:mm"),
-            formatDate(timestamp, "dd/MM/yyyy hh:mm")
-          );
+          // console.log(
+          //   parsedLine.time >= timestamp,
+          //   formatDate(parsedLine.time, "dd/MM/yyyy hh:mm"),
+          //   formatDate(timestamp, "dd/MM/yyyy hh:mm")
+          // );
           if (parsedLine.time >= timestamp) {
             lines.push(line);
           }
         } catch (err) {
           // Linha não é um JSON válido, ignore
-          console.error(`Erro ao processar linha: ${err.message}`);
+          // console.error(`Erro ao processar linha: ${err.message}`);
         }
       });
 

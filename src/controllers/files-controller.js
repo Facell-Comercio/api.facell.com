@@ -2,6 +2,7 @@ const { unlink } = require("fs/promises");
 const path = require("path");
 const fs = require("fs");
 const JSZip = require("jszip");
+const { logger } = require("../../logger");
 require("dotenv").config();
 
 async function deleteFile(filePath) {
@@ -98,7 +99,10 @@ function zipFiles({ items }) {
           reject("ERROR_ZIP_FILES", error);
         });
     } catch (error) {
-      console.log("ERROR_ZIP_FILES", error);
+      logger.error({
+        module: 'ROOT', origin: 'FILES', method: 'ZIP_FILES',
+        data: { message: error.message, stack: error.stack, name: error.name}
+      })
       reject(error);
       return;
     }
@@ -130,9 +134,15 @@ async function clearTempFolder() {
         });
       });
     });
-    console.log("CLEAR_TEMP: LIMPEZA REALIZADA!");
+    logger.info({
+      module: 'ROOT', origin: 'FILES', method: 'CLEAR_TEMP_FOLDER',
+      data: { message:  'Limpeza realizada'}
+    })
   } catch (error) {
-    console.log("ERROR_CLEAR_TEMP:", error);
+    logger.error({
+      module: 'ROOT', origin: 'FILES', method: 'CLEAR_TEMP_FOLDER',
+      data: { message: error.message, stack: error.stack, name: error.name}
+    })
   }
 }
 
