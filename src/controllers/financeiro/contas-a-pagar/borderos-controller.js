@@ -4,6 +4,7 @@ const {
   normalizeCnpjNumber,
   removeSpecialCharactersAndAccents,
   normalizeNumberOnly,
+  normalizeURLChaveEnderecamentoPIX,
 } = require("../../../helpers/mask");
 
 const {
@@ -797,6 +798,7 @@ async function exportBorderos(req) {
 function exportRemessa(req, res) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const { isPix } = req.query;
     const conn = await db.getConnection();
 
     try {
@@ -1002,9 +1004,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND LEFT(tv.cod_barras, 3) = 341
+      AND dda.cod_banco = 341
       AND tv.data_pagamento IS NULL
     `,
             [id]
@@ -1023,9 +1026,10 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
       LEFT JOIN filiais f ON f.id = t.id_filial
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+      LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND LEFT(tv.cod_barras, 3) <> 341
+      AND dda.cod_banco <> 341
       AND tv.data_pagamento IS NULL
     `,
             [id]
@@ -1055,21 +1059,34 @@ function exportRemessa(req, res) {
           .then(([rows]) => rows),
       ]);
 
-      const formasPagamento = new Map(
-        Object.entries({
-          PagamentoCorrenteItau: rowsPagamentoCorrenteItau,
-          PagamentoPoupancaItau: rowsPagamentoPoupancaItau,
-          PagamentoCorrenteMesmaTitularidade:
-            rowsPagamentoCorrenteMesmaTitularidade,
-          PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
-          PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
-          PagamentoPIX: rowsPagamentoPIX,
-          PagamentoBoletoItau: rowsPagamentoBoletoItau,
-          PagamentoBoletoOutroBancoParaItau:
-            rowsPagamentoBoletoOutroBancoParaItau,
-          PagamentoPIXQRCode: rowsPagamentoPIXQRCode,
-        })
+      let formasPagamento;
+      console.log(
+        rowsPagamentoBoletoItau,
+        rowsPagamentoBoletoOutroBancoParaItau
       );
+
+      if (isPix) {
+        formasPagamento = new Map(
+          Object.entries({
+            PagamentoPIX: rowsPagamentoPIX,
+            PagamentoPIXQRCode: rowsPagamentoPIXQRCode,
+          })
+        );
+      } else {
+        formasPagamento = new Map(
+          Object.entries({
+            PagamentoCorrenteItau: rowsPagamentoCorrenteItau,
+            PagamentoPoupancaItau: rowsPagamentoPoupancaItau,
+            PagamentoCorrenteMesmaTitularidade:
+              rowsPagamentoCorrenteMesmaTitularidade,
+            PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
+            PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
+            PagamentoBoletoItau: rowsPagamentoBoletoItau,
+            PagamentoBoletoOutroBancoParaItau:
+              rowsPagamentoBoletoOutroBancoParaItau,
+          })
+        );
+      }
 
       // console.timeEnd("FORMA DE PAGAMENTO");// TESTANDO PERFORMANCE
       const arquivo = [];
@@ -1165,11 +1182,13 @@ function exportRemessa(req, res) {
             forn.cnpj as favorecido_cnpj,
             t.id_tipo_chave_pix,
             t.chave_pix,
-            tv.cod_barras
+            tv.qr_code,
+            dda.cod_barras
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
           LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
           LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
+          LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
           WHERE tv.id = ?
         `,
             [pagamento.id_vencimento]
@@ -1226,8 +1245,8 @@ function exportRemessa(req, res) {
               ...vencimento,
               lote,
               num_registro_lote: registroLote,
-              valor_titulo: vencimento.valor_titulo,
-              n_doc: vencimento.id,
+              valor_titulo: vencimento.valor_pagamento,
+              n_doc: vencimento.doc_empresa,
             });
             registroLote++;
             const segmentoJ52Pix = createSegmentoJ52Pix({
@@ -1238,8 +1257,9 @@ function exportRemessa(req, res) {
               nome_sacado: borderoData.empresa_nome,
               num_inscricao_cedente: vencimento.favorecido_cnpj,
               nome_cedente: vencimento.favorecido_nome,
-              num_inscricao_sacador: vencimento.favorecido_cnpj,
-              nome_sacador: vencimento.favorecido_nome,
+              chave_pagamento: normalizeURLChaveEnderecamentoPIX(
+                vencimento.qr_code
+              ),
             });
             arquivo.push(segmentoJ);
             arquivo.push(segmentoJ52Pix);
@@ -1344,7 +1364,7 @@ function exportRemessa(req, res) {
       }
 
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
-      const filename = `REMESSA - ${formatDate(
+      const filename = `REMESSA${isPix ? " PIX" : ""} - ${formatDate(
         borderoData.data_pagamento,
         "dd_MM_yyyy"
       )} - ${removeSpecialCharactersAndAccents(

@@ -110,16 +110,24 @@ function removeSpecialCharactersAndAccents(str) {
 }
 
 function normalizeCodigoBarras(text) {
-  const parte1 = text.substring(0, 4);
-  const parte3 = text.substring(4, 9);
-  const parte4 = text.substring(10, 20);
-  const parte5 = text.substring(21, 31);
-  const parte2 = text.substring(32, 47);
+  if (!text) return null;
+  let textoLimpo = String(text)
+    .trim()
+    .replace(/[\s.-]/g, "");
+  if (textoLimpo.length !== 47) {
+    return null;
+  }
+  const parte1 = textoLimpo.substring(0, 4);
+  const parte3 = textoLimpo.substring(4, 9);
+  const parte4 = textoLimpo.substring(10, 20);
+  const parte5 = textoLimpo.substring(21, 31);
+  const parte2 = textoLimpo.substring(32, 47);
 
   return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
 }
 
-function normalizeURLChaveEnderecamentoPIX(qr) {
+function normalizeURLChaveEnderecamentoPIX(qr_code) {
+  const qr = qr_code.trim();
   if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
     throw new Error("Chave PIX não identificada");
   }

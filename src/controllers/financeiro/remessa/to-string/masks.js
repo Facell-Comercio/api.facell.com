@@ -6,10 +6,12 @@ function removeSpecialCharactersAndAccents(text) {
 }
 
 function normalizeCodigoBarras(text) {
-  if(!text) return null;
-  let textoLimpo = String(text).trim().replace(/[\s.-]/g, '');
-  if(textoLimpo.length !== 47){
-    return null
+  if (!text) return null;
+  let textoLimpo = String(text)
+    .trim()
+    .replace(/[\s.-]/g, "");
+  if (textoLimpo.length !== 47) {
+    return null;
   }
   const parte1 = textoLimpo.substring(0, 4);
   const parte3 = textoLimpo.substring(4, 9);
@@ -20,7 +22,8 @@ function normalizeCodigoBarras(text) {
   return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
 }
 
-function checkLinhaDigitavel(text) {
+function checkLinhaDigitavel(textLinha) {
+  const text = textLinha.trim();
   const dv = text.charAt(4);
   const linhaCheck = `${text.substring(0, 4)}${text.substring(5, 47)}`;
 
@@ -47,7 +50,7 @@ function normalizeValue(value, type, maxLength, format) {
   } else if (type === "date") {
     return String(value).replaceAll("/", "").padStart(maxLength, "0");
   } else {
-    return removeSpecialCharactersAndAccents(String(value || "").toUpperCase())
+    return removeSpecialCharactersAndAccents(String(value || ""))
       .padEnd(maxLength, " ")
       .slice(0, maxLength);
   }

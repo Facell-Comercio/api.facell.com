@@ -83,6 +83,7 @@ module.exports = [
     type: "numeric",
     format: "float",
   },
+  //^ Por enquanto verificar sem o uso de descontos e acréscimos
   {
     field: "descontos",
     startPos: 115,
