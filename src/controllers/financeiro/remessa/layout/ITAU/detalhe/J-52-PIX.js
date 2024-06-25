@@ -115,6 +115,7 @@ module.exports = [
     length: 77,
     required: true,
     type: "alphanumeric",
+    format: "any",
   },
   {
     field: "txid",

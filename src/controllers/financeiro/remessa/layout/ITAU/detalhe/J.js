@@ -130,7 +130,7 @@ module.exports = [
     default: new Array(15).fill(0).join(""),
   },
   {
-    field: "n_doc",
+    field: "id_vencimento", //* num_doc
     startPos: 183,
     endPos: 202,
     length: 20,
@@ -154,7 +154,7 @@ module.exports = [
     default: new Array(15).fill(" ").join(""),
   },
   {
-    field: "codigos_ocorrencias",
+    field: "ocorrencias",
     startPos: 231,
     endPos: 240,
     length: 10,

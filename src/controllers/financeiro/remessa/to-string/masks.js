@@ -49,6 +49,10 @@ function normalizeValue(value, type, maxLength, format) {
     return String(value || 0).padStart(maxLength, "0");
   } else if (type === "date") {
     return String(value).replaceAll("/", "").padStart(maxLength, "0");
+  } else if (format === "any") {
+    return String(value || "")
+      .padEnd(maxLength, " ")
+      .slice(0, maxLength);
   } else {
     return removeSpecialCharactersAndAccents(String(value || ""))
       .padEnd(maxLength, " ")

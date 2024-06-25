@@ -90,7 +90,7 @@ module.exports = [
     type: "alphanumeric",
   },
   {
-    field: "doc_empresa", //^ É o id do vencimento
+    field: "id_vencimento", //* doc_empresa
     startPos: 74,
     endPos: 93,
     length: 20,
@@ -173,7 +173,7 @@ module.exports = [
     endPos: 162,
     length: 8,
     required: false,
-    type: "numeric",
+    type: "date",
     default: new Array(8).fill(0).join(""),
   },
   {
@@ -247,7 +247,7 @@ module.exports = [
     default: "0", //? Como funciona um aviso?
   },
   {
-    field: "codigos_ocorrencias",
+    field: "ocorrencias",
     startPos: 231,
     endPos: 240,
     length: 10,
