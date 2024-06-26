@@ -159,8 +159,9 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -314,11 +315,11 @@ function getAllCpVencimentosBordero(req) {
     }
 
     if (dda !== undefined) {
-      if (dda == 'true') {
-        where += ` AND dda.id IS NOT NULL `
+      if (dda == "true") {
+        where += ` AND dda.id IS NOT NULL `;
       }
-      if (dda == 'false') {
-        where += ` AND dda.id IS NULL `
+      if (dda == "false") {
+        where += ` AND dda.id IS NULL `;
       }
     }
 
@@ -329,8 +330,9 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -695,6 +697,9 @@ function getPendencias(req) {
         ) AS subconsulta
         `
       );
+      //^ Retirado do WHERE
+      // t.id_status = 4 OR t.id_status = 5
+      //       OR
       const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
       resolve(totalVencimentos);
     } catch (error) {
@@ -1049,9 +1054,9 @@ function insertOne(req) {
           throw new Error(`Linha Digitável inválida: ${cod_barras}`);
         }
         // PIX QR Code
-        const qr_code = vencimento.qr_code || null
-        if (id_forma_pagamento == '8' && !qr_code) {
-          throw new Error('Preencha o PIX Copia e Cola!')
+        const qr_code = vencimento.qr_code || null;
+        if (id_forma_pagamento == "8" && !qr_code) {
+          throw new Error("Preencha o PIX Copia e Cola!");
         }
 
         await conn.execute(
@@ -1062,7 +1067,7 @@ function insertOne(req) {
             startOfDay(vencimento.data_prevista),
             cod_barras,
             vencimento.valor,
-            qr_code
+            qr_code,
           ]
         );
       }
@@ -1142,7 +1147,8 @@ function insertOne(req) {
           const saldo = valor_previsto - valor_total_consumo;
           if (contaOrcamentoAtiva && saldo < item_rateio.valor) {
             throw new Error(
-              `Saldo insuficiente para ${item_rateio.centro_custo}: ${item_rateio.plano_conta
+              `Saldo insuficiente para ${item_rateio.centro_custo}: ${
+                item_rateio.plano_conta
               }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
             );
           }
@@ -1718,7 +1724,8 @@ function update(req) {
             const saldo = valor_previsto - valor_total_consumo;
             if (contaOrcamentoAtiva && saldo < valorRateio) {
               throw new Error(
-                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${
+                  item_rateio.plano_conta
                 }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
               );
             }
@@ -1784,13 +1791,17 @@ function update(req) {
           const cod_barras = !!vencimento.cod_barras
             ? normalizeCodigoBarras(vencimento.cod_barras)
             : null;
-          if (id_forma_pagamento == '1' && !!vencimento.cod_barras && !checkCodigoBarras(cod_barras)) {
+          if (
+            id_forma_pagamento == "1" &&
+            !!vencimento.cod_barras &&
+            !checkCodigoBarras(cod_barras)
+          ) {
             throw new Error(`Linha Digitável inválida: ${cod_barras}`);
           }
           // PIX QR Code
           const qr_code = vencimento.qr_code || null;
-          if (id_forma_pagamento == '8' && !qr_code) {
-            throw new Error('Preencha o PIX Copia e Cola!')
+          if (id_forma_pagamento == "8" && !qr_code) {
+            throw new Error("Preencha o PIX Copia e Cola!");
           }
 
           await conn.execute(
@@ -1801,7 +1812,7 @@ function update(req) {
               formatDate(vencimento.data_prevista, "yyyy-MM-dd"),
               valorVencimento,
               cod_barras,
-              qr_code
+              qr_code,
             ]
           );
         }
@@ -2269,8 +2280,9 @@ function downloadAnexos(req, res) {
         const ext = path.extname(tituloBanco[type]);
         const titulo = {
           type: "file",
-          fileName: `${tipos_anexos.find((tipo) => tipo.name == type).acronym
-            } - ${id_titulo}${ext}`,
+          fileName: `${
+            tipos_anexos.find((tipo) => tipo.name == type).acronym
+          } - ${id_titulo}${ext}`,
           content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);
