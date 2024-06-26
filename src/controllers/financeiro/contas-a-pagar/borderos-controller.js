@@ -184,7 +184,7 @@ function getAll(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -267,7 +267,7 @@ function getOne(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "GET_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -405,7 +405,7 @@ function insertOne(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "INSERT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -568,7 +568,7 @@ function update(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "UPDATE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -613,7 +613,7 @@ function deleteVencimento(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "DELETE_VENCIMENTO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -628,7 +628,6 @@ function deleteVencimento(req) {
 function deleteBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const vencimentos = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -637,10 +636,14 @@ function deleteBordero(req) {
       }
 
       await conn.beginTransaction();
+      const [vencimentos] = await conn.execute(`SELECT id, status FROM fin_cp_titulos_vencimentos tv 
+        INNER JOIN fin_cp_titulo_bordero tb ON tb.id_vencimento = tv.id
+        WHERE tb.id`, [id])
+
       for (const vencimento of vencimentos) {
-        if (vencimento.id_status === 4 || !vencimento.can_remove) {
+        if (vencimento.status == 'pago' || vencimento.status == 'programado') {
           throw new Error(
-            "Não é possível deletar um borderô com vencimentos pagos!"
+            "Não é possível deletar o borderô pois possui vencimento(s) pagos ou programados para pagamento!"
           );
         }
       }
@@ -654,7 +657,7 @@ function deleteBordero(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "DELETE_BORDERO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -721,7 +724,7 @@ function transferBordero(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "TRANSFER_BORDERO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -789,7 +792,7 @@ async function exportBorderos(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "ERRO_EXPORT_BORDERO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -1379,7 +1382,7 @@ function exportRemessa(req, res) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "EXPORT_REMESSA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -1630,7 +1633,7 @@ async function geradorDadosEmpresa() {
           .catch((error) => {
             logger.error({
               module: "FINANCEIRO",
-              origin: "BORDEROS",
+              origin: "BORDERO",
               method: "CONSULTA_CNPJ_BORDEROS",
               data: {
                 message: error.message,
@@ -1649,7 +1652,7 @@ async function geradorDadosEmpresa() {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDEROS",
+        origin: "BORDERO",
         method: "GERADOR_DADOS_EMPRESA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

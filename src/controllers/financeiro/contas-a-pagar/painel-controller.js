@@ -123,6 +123,7 @@ function getAllNotasFiscaisPendentes(req) {
           ${where}
           AND t.id_tipo_solicitacao = 2
           AND NOT t.id_status = 2 
+          AND NOT t.id_status = 0 
           AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
         ) AS subconsulta
         `
@@ -143,6 +144,7 @@ function getAllNotasFiscaisPendentes(req) {
             ${where}
             AND t.id_tipo_solicitacao = 2
             AND NOT t.id_status = 2 
+            AND NOT t.id_status = 0 
             AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
 
             ORDER BY 

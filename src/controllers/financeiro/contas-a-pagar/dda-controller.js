@@ -83,9 +83,13 @@ async function getAll(req) {
             params.push(offset);
 
             const query = `
-              SELECT dda.*, f.id as id_filial
+              SELECT 
+                dda.*, 
+                tv.status as status_vencimento,
+                f.id as id_filial
               FROM fin_dda as dda
               LEFT JOIN filiais f ON f.cnpj = dda.cnpj_filial
+              LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = dda.id_vencimento
               ${where}
               LIMIT ? OFFSET ?
             `;
@@ -314,7 +318,8 @@ async function limparDDA() {
     return new Promise(async (resolve, reject) => {
         const conn = await db.getConnection()
         try {
-            await conn.execute(`DELETE FROM fin_dda WHERE id_vencimento IS NULL`)
+            // * Apaga todos os boletos do DDA que não estejam vinculados a Vencimentos e que sejam +30 dias inferior à data atual
+            await conn.execute(`DELETE FROM fin_dda WHERE id_vencimento IS NULL and data_emissao < DATE_SUB(NOW(), INTERVAL 30 DAY)`)
             resolve(true)
         } catch (error) {
             reject(error)
@@ -378,6 +383,48 @@ async function vincularDDA(req) {
     })
 }
 
+async function desvincularDDA(req) {
+    return new Promise(async (resolve, reject) => {
+        const conn = await db.getConnection()
+        try {
+            const { id_dda } = req.body
+            if(!id_dda){
+                throw new Error('ID do DDA não informado!')
+            }
+
+            // ^ Obter o DDA
+            const [rowDDA] = await conn.execute(`SELECT id, id_vencimento FROM fin_dda 
+             WHERE   
+                id = ?`, [id_dda])
+
+            if(!rowDDA && !rowDDA.length){
+                throw new Error(`Registro ${id_dda} do DDA não existe!`)
+            }
+            const DDAbanco = rowDDA && rowDDA[0]
+            if(DDAbanco.id_vencimento){
+                //^ Obter o Vencimento:
+                const [rowVencimento] = await conn.execute(`SELECT id, status FROM fin_cp_titulos_vencimentos WHERE id = ?`,[DDAbanco.id_vencimento])
+                const vencimento = rowVencimento && rowVencimento[0]
+                if(vencimento && (vencimento.status == 'pago' || vencimento.status == 'programado')){
+                    throw new Error(`Vencimento ${vencimento.id} do já consta como pago ou já foi programado para pagamento!`)
+                }
+                
+                // * Desvinculação
+                await conn.execute(`UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`, [null, id_dda])
+            }
+            resolve(true)
+        } catch (error) {
+            logger.error({
+                module: 'FINANCEIRO', origin: 'DDA', method: 'DESVINCULAR_DDA',
+                data: {message: error.message, stack: error.stack, name: error.name}
+            })
+            reject(error)
+        }finally{
+            conn.release()
+        }
+    })
+}
+
 module.exports = {
     getAll,
     importDDA,
@@ -385,4 +432,5 @@ module.exports = {
     limparDDA,
     autoVincularDDA,
     vincularDDA,
+    desvincularDDA,
 }
