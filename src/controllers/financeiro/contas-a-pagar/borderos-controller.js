@@ -238,6 +238,7 @@ function getOne(req) {
               fi.nome as filial, 
               dda.id as id_dda,
               CASE WHEN (tv.data_pagamento) THEN FALSE ELSE TRUE END as can_remove,
+              tb.remessa,
               false AS checked
             FROM fin_cp_bordero b
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
@@ -330,6 +331,15 @@ function insertOne(req) {
             vencimento.id_vencimento,
           ]
         );
+        //* Realiza a atualização manual do status de remessa
+        await conn.execute(
+          `
+          UPDATE fin_cp_titulos_borderos
+          SET remessa = ?
+          WHERE id_vencimento = ?
+        `,
+          [!!vencimento.remessa, vencimento.id_vencimento]
+        );
 
         //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
         if (
@@ -372,6 +382,7 @@ function insertOne(req) {
             ]
           );
         }
+
         const [vencimentosNaoPagos] = await conn.execute(
           `
             SELECT 
@@ -492,6 +503,15 @@ function update(req) {
             pago ? "PAGAMENTO REALIZADO MANUALMENTE" : null,
             vencimento.id_vencimento,
           ]
+        );
+        //* Realiza a atualização manual do status de remessa
+        await conn.execute(
+          `
+          UPDATE fin_cp_titulos_borderos
+          SET remessa = ?
+          WHERE id_vencimento = ?
+        `,
+          [vencimento.remessa, vencimento.id_vencimento]
         );
 
         //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
@@ -636,12 +656,15 @@ function deleteBordero(req) {
       }
 
       await conn.beginTransaction();
-      const [vencimentos] = await conn.execute(`SELECT id, status FROM fin_cp_titulos_vencimentos tv 
+      const [vencimentos] = await conn.execute(
+        `SELECT id, status FROM fin_cp_titulos_vencimentos tv 
         INNER JOIN fin_cp_titulo_bordero tb ON tb.id_vencimento = tv.id
-        WHERE tb.id`, [id])
+        WHERE tb.id`,
+        [id]
+      );
 
       for (const vencimento of vencimentos) {
-        if (vencimento.status == 'pago' || vencimento.status == 'programado') {
+        if (vencimento.status == "pago" || vencimento.status == "programado") {
           throw new Error(
             "Não é possível deletar o borderô pois possui vencimento(s) pagos ou programados para pagamento!"
           );
@@ -872,6 +895,7 @@ function exportRemessa(req, res) {
       AND fb.codigo = 341
       AND cb.id_tipo_conta = 1
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -897,6 +921,7 @@ function exportRemessa(req, res) {
       AND fb.codigo = 341
       AND cb.id_tipo_conta = 2
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -922,6 +947,7 @@ function exportRemessa(req, res) {
       AND fb.codigo = 341
       AND cb.id_tipo_conta = 1
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -946,6 +972,7 @@ function exportRemessa(req, res) {
       AND forn.cnpj <> f.cnpj
       AND fb.codigo <> 341
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -970,6 +997,7 @@ function exportRemessa(req, res) {
       AND forn.cnpj = f.cnpj
       AND fb.codigo <> 341
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -992,6 +1020,7 @@ function exportRemessa(req, res) {
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 4
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -1013,8 +1042,9 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND LEFT(dda.cod_barras, 3) = 341
+      AND (LEFT(dda.cod_barras, 3) = 341 OR LEFT(tv.cod_barras, 3) = 341)
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -1035,8 +1065,9 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND LEFT(dda.cod_barras, 3) <> 341
+      AND (LEFT(dda.cod_barras, 3) <> 341 OR LEFT(tv.cod_barras, 3) <> 341)
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -1059,6 +1090,7 @@ function exportRemessa(req, res) {
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 8
       AND tv.data_pagamento IS NULL
+      AND (tv.status = "erro" OR tv.status = "pendente")
     `,
             [id]
           )
@@ -1188,7 +1220,7 @@ function exportRemessa(req, res) {
             forn.cnpj as favorecido_cnpj,
             t.id_tipo_chave_pix,
             t.chave_pix,
-            tv.qr_code,
+            tv.qr_code, tv.cod_barras as cod_barras_tv
             dda.cod_barras
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
@@ -1278,7 +1310,7 @@ function exportRemessa(req, res) {
               lote,
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
-              cod_barras: vencimento.cod_barras,
+              cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
             });
             registroLote++;
             const segmentoJ52 = createSegmentoJ52({
@@ -1341,8 +1373,19 @@ function exportRemessa(req, res) {
             arquivo.push(segmentoB);
             qtde_registros_arquivo++;
           }
-        }
 
+          //* Marcando vencimento como já incluso em uma remessa
+          await conn.execute(
+            `
+            UPDATE fin_cp_titulos_borderos
+            SET remessa = ?
+            WHERE id_vencimento = ?
+          `,
+            [true, vencimento.id_vencimento]
+          );
+          console.log(true, vencimento.id_vencimento);
+        }
+        //sdfjaslfa
         qtde_registros++;
         qtde_registros_arquivo++;
         const trailerLote = createTrailerLote({
@@ -1377,7 +1420,9 @@ function exportRemessa(req, res) {
       res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);
-      await conn.commit();
+      await conn.rollback();
+
+      // await conn.commit();
       resolve();
     } catch (error) {
       logger.error({
@@ -1474,6 +1519,18 @@ async function importRetornoRemessa(req) {
                   const erros = ocorrenciasErro.map((erro) => {
                     return CodigosOcorrencias[erro];
                   });
+
+                  //* Inicando que o vencimento pode ser incluso na remessa novamente
+                  await conn.execute(
+                    `
+                    UPDATE fin_cp_titulos_borderos
+                    SET remessa = ?
+                    WHERE id_vencimento = ?
+                  `,
+                    [false, id_vencimento]
+                  );
+
+                  //* Atualizando dados informativos sobre o vencimento
                   await conn.execute(
                     `
                     UPDATE fin_cp_titulos_vencimentos SET status = "erro", obs = ? WHERE id = ?
@@ -1505,9 +1562,9 @@ async function importRetornoRemessa(req) {
                     segmento.data_pagamento;
                   await conn.execute(
                     `
-                      UPDATE fin_cp_titulos_vencimentos SET status = "pago", valor = ?, tipo_baixa = "PADRÃO", data_pagamento = ?, obs="PAGAMENTO REALIZADO NO RETORNO DA REMESSA" WHERE id = ?
+                      UPDATE fin_cp_titulos_vencimentos SET status = "pago", valor = ?, valor_pago = ?, tipo_baixa = "PADRÃO", data_pagamento = ?, obs="PAGAMENTO REALIZADO NO RETORNO DA REMESSA" WHERE id = ?
                       `,
-                    [valorPago, dataPagamento, id_vencimento]
+                    [valorPago, valorPago, dataPagamento, id_vencimento]
                   );
                   const [vencimentosNaoPagos] = await conn.execute(
                     `

@@ -63,9 +63,11 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'USERS', method: 'GET_ALL',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "USERS",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -76,6 +78,7 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+    const id_user = req.user.id;
     const conn = await db.getConnection();
     try {
       const [rowUser] = await conn.execute(
@@ -84,7 +87,7 @@ function getOne(req) {
             FROM users u
             WHERE u.id = ?
             `,
-        [id]
+        [id !== "user" ? id : id_user]
       );
 
       const user = rowUser && rowUser[0];
@@ -96,7 +99,7 @@ function getOne(req) {
             INNER JOIN permissoes p ON p.id = up.id_permissao
             WHERE up.id_user = ?
             `,
-        [id]
+        [id !== "user" ? id : id_user]
       );
 
       const [departamentos] = await conn.execute(
@@ -106,7 +109,7 @@ function getOne(req) {
             INNER JOIN departamentos d ON d.id = ud.id_departamento
             WHERE ud.id_user = ?
             `,
-        [id]
+        [id !== "user" ? id : id_user]
       );
 
       const [filiais] = await conn.execute(
@@ -116,7 +119,7 @@ function getOne(req) {
             INNER JOIN filiais f ON f.id = uf.id_filial
             WHERE uf.id_user = ?
             `,
-        [id]
+        [id !== "user" ? id : id_user]
       );
 
       const [centros_custo] = await conn.execute(
@@ -126,7 +129,7 @@ function getOne(req) {
             INNER JOIN fin_centros_custo fcc ON fcc.id = ucc.id_centro_custo
             WHERE ucc.id_user = ?
             `,
-        [id]
+        [id !== "user" ? id : id_user]
       );
 
       const objUser = {
@@ -141,9 +144,11 @@ function getOne(req) {
       return;
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'USERS', method: 'GET_ONE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "USERS",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -252,9 +257,11 @@ function update(req) {
     } catch (error) {
       await conn.rollback();
       logger.error({
-        module: 'ADM', origin: 'USERS', method: 'UPDATE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "USERS",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -357,9 +364,11 @@ function insertOne(req) {
     } catch (error) {
       await conn.rollback();
       logger.error({
-        module: 'ADM', origin: 'USERS', method: 'INSERT_ONE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "USERS",
+        method: "INSERT_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
