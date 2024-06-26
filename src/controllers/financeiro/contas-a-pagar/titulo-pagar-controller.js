@@ -127,6 +127,7 @@ function getAll(req) {
       range_data,
       descricao,
       id_matriz,
+      arquivados,
       nome_fornecedor,
       nome_user,
     } = filters || {};
@@ -136,7 +137,7 @@ function getAll(req) {
       params.push(id);
     }
     if (id_status && id_status !== "all") {
-      where += ` AND t.id_status LIKE CONCAT(?,'%') `;
+      where += ` AND t.id_status = ?`;
       params.push(id_status);
     }
     if (descricao) {
@@ -146,6 +147,9 @@ function getAll(req) {
     if (id_matriz) {
       where += ` AND f.id_matriz = ? `;
       params.push(id_matriz);
+    }
+    if (!arquivados) {
+      where += ` AND t.id_status != 0`;
     }
 
     if (tipo_data && range_data) {
@@ -265,6 +269,7 @@ function getAllCpVencimentosBordero(req) {
       id_matriz,
       id_filial,
       id_conta_bancaria,
+      dda,
       termo,
     } = filters || {};
 
@@ -311,6 +316,15 @@ function getAllCpVencimentosBordero(req) {
       params.push(fornecedor);
     }
 
+    if (dda !== undefined) {
+      if (dda == "true") {
+        where += ` AND dda.id IS NOT NULL `;
+      }
+      if (dda == "false") {
+        where += ` AND dda.id IS NULL `;
+      }
+    }
+
     where += ` 
     AND (t.id_status = 3 OR t.id_status = 4) 
     AND tb.id_vencimento IS NULL `;
@@ -350,6 +364,7 @@ function getAllCpVencimentosBordero(req) {
             LEFT JOIN users u ON u.id = t.id_solicitante
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
 
           ${where}
         ) AS subconsulta
@@ -374,6 +389,8 @@ function getAllCpVencimentosBordero(req) {
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
             LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+            LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+            
             ${where}
 
             ORDER BY 
@@ -675,7 +692,8 @@ function getPendencias(req) {
 
           WHERE t.id_tipo_solicitacao = 2
           AND NOT t.id_status = 2 
-          AND t.data_emissao < DATE_SUB(CURDATE(), INTERVAL 20 DAY)
+          AND NOT t.id_status = 0 
+          AND t.data_emissao < DATE_SUB(CURDATE(), INTERVAL 30 DAY)
           AND (t.url_nota_fiscal IS NULL OR t.url_nota_fiscal = "")
           AND t.id_solicitante = '${user.id}'
         ) AS subconsulta
@@ -2006,6 +2024,7 @@ function changeStatusTitulo(req) {
     // console.log("REQ.BODY", req.body);
 
     const tipos_status = [
+      { id: "0", status: "Arquivado" },
       { id: "1", status: "Solicitado" },
       { id: "2", status: "Negado" },
       { id: "3", status: "Aprovado" },
@@ -2102,6 +2121,10 @@ function changeStatusTitulo(req) {
         ? ` MOTIVO: ${conn.escape(motivo)?.toUpperCase()} `
         : "";
 
+      if (id_novo_status == "0") {
+        historico = `ARQUIVADO POR: ${author}.`;
+        historico += textoMotivo;
+      }
       if (id_novo_status == "1") {
         historico = `RETORNADO PARA SOLICITADO POR: ${author}.`;
         historico += textoMotivo;
