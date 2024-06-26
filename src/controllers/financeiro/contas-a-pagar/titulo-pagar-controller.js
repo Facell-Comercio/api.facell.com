@@ -115,8 +115,7 @@ function getAll(req) {
       !checkUserPermission(req, "MASTER")
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
-      where += ` AND (t.id_solicitante = '${user.id
-        }' OR  t.id_departamento IN (${departamentosGestor.join(",")}))`;
+      where += ` AND (t.id_solicitante = '${user.id}' OR  t.id_departamento IN (${departamentosGestor.join(",")})) `;
     }
     const {
       id,
@@ -148,7 +147,7 @@ function getAll(req) {
       params.push(id_matriz);
     }
     if (!arquivados) {
-      where += ` AND t.id_status != 0`
+      where += ` AND t.id_status != '0' `
     }
 
     if (tipo_data && range_data) {

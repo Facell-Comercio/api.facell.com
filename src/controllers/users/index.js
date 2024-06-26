@@ -80,7 +80,7 @@ function getOne(req) {
     try {
       const [rowUser] = await conn.execute(
         `
-            SELECT u.*, '***' as senha
+            SELECT u.*, '***' as senha, '***' as senha_temporaria
             FROM users u
             WHERE u.id = ?
             `,
@@ -111,20 +111,24 @@ function getOne(req) {
 
       const [filiais] = await conn.execute(
         `
-            SELECT uf.*, f.nome
+            SELECT uf.*, f.nome, g.nome as grupo_economico
             FROM users_filiais uf
             INNER JOIN filiais f ON f.id = uf.id_filial
+            INNER JOIN grupos_economicos g ON g.id = f.id_grupo_economico
             WHERE uf.id_user = ?
+            ORDER BY g.id, f.id
             `,
         [id]
       );
 
       const [centros_custo] = await conn.execute(
         `
-            SELECT ucc.*, fcc.nome
+            SELECT ucc.*, fcc.nome, g.nome as grupo_economico
             FROM users_centros_custo ucc
             INNER JOIN fin_centros_custo fcc ON fcc.id = ucc.id_centro_custo
+            INNER JOIN grupos_economicos g ON g.id = fcc.id_grupo_economico
             WHERE ucc.id_user = ?
+            ORDER BY g.id, fcc.id
             `,
         [id]
       );

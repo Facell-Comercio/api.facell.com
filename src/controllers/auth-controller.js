@@ -61,10 +61,13 @@ async function login(req){
             user.senha = '';
             // Filiais de acesso
             const [filiais] = await db.execute(`
-            SELECT f.id, f.nome, uf.gestor 
+            SELECT f.id, f.nome, uf.gestor, g.nome as grupo_economico 
             FROM users_filiais uf
             INNER JOIN filiais f ON f.id = uf.id_filial
-            WHERE uf.id_user = ?`, [user.id])
+            INNER JOIN grupos_economicos g ON g.id = f.id_grupo_economico
+            WHERE uf.id_user = ?
+            ORDER BY g.id, f.id
+            `, [user.id])
             user.filiais = filiais
 
             // Departamentos de acesso
@@ -72,15 +75,20 @@ async function login(req){
             SELECT  d.id, d.nome, ud.gestor 
             FROM users_departamentos ud
             INNER JOIN  departamentos d ON d.id = ud.id_departamento
-            WHERE ud.id_user = ?`, [user.id])
+            WHERE ud.id_user = ?
+            ORDER BY d.id
+            `, [user.id])
             user.departamentos = departamentos
 
             // Centros de custo de acesso
             const [centros_custo] = await db.execute(`
-            SELECT  fcc.id, fcc.nome, ucc.gestor 
+            SELECT  fcc.id, fcc.nome, ucc.gestor, g.nome as grupo_economico 
             FROM users_centros_custo ucc
             INNER JOIN  fin_centros_custo fcc ON fcc.id = ucc.id_centro_custo
-            WHERE ucc.id_user = ?`, [user.id])
+            INNER JOIN grupos_economicos g ON g.id = fcc.id_grupo_economico
+            WHERE ucc.id_user = ?
+            ORDER BY g.id, fcc.id
+            `, [user.id])
             user.centros_custo = centros_custo
 
             // Permissoes
