@@ -10,8 +10,9 @@ const { formatDate } = require("date-fns/format");
 
 //^ Talvez na primeira vez que for rodar no servidor dê erro, já que não existe o diretório logs
 // Cria streams para salvar logs nos arquivos
+const pathLogs = path.join(__dirname, "logs", "info.log")
 const fileStream = fs.createWriteStream(
-  path.join(__dirname, "logs", "info.log"),
+  pathLogs,
   { flags: "a", encoding: "utf8" }
 );
 const prettyStream = pretty(); // Para logar no terminal com formato bonito
@@ -44,11 +45,6 @@ cron.schedule("* * 1 * *", () => {
         try {
           const parsedLine = JSON.parse(line);
           // Adiciona ao array apenas as linhas válidas
-          // console.log(
-          //   parsedLine.time >= timestamp,
-          //   formatDate(parsedLine.time, "dd/MM/yyyy hh:mm"),
-          //   formatDate(timestamp, "dd/MM/yyyy hh:mm")
-          // );
           if (parsedLine.time >= timestamp) {
             lines.push(line);
           }
@@ -87,7 +83,7 @@ cron.schedule("* * 1 * *", () => {
         module: "ROOT",
         origin: "LOGGER",
         method: "RESET_LOGS",
-        message: "Logs resetados com sucesso.",
+        data: { message: 'LOGS RESETADOS' },
       });
     })
     .catch((error) => {
@@ -95,11 +91,28 @@ cron.schedule("* * 1 * *", () => {
         module: "ROOT",
         origin: "LOGGER",
         method: "RESET_LOGS",
-        message: `Erro ao resetar logs: ${error.message}`,
+        data: { message: error.message, stack: error.stack, name: error.name },
       });
     });
 });
 
+const clearLogs = () => {
+  return new Promise(async (resolve, reject) => {
+      fs.truncate(pathLogs, 0, (error) => {
+        if (error) {
+          logger.error({
+            module: 'ROOT', origin: 'LOGS', method: 'CLEAR_LOGS',
+            data: { message: error.message, stack: error.stack, name: error.name }
+          })
+          reject(error)
+          return;
+        }
+        resolve({ message: 'Sucesso!' })
+      });
+  })
+}
+
 module.exports = {
   logger,
+  clearLogs
 };
