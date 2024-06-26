@@ -228,7 +228,7 @@ function getOne(req) {
               tv.data_prevista as previsao, 
               tv.data_pagamento, 
               fp.forma_pagamento,
-              tv.obs, tv.status, tv.id_dda, tv.tipo_baixa,
+              tv.obs, tv.status, tv.tipo_baixa,
               f.nome as nome_fornecedor, 
               t.data_emissao, 
               tv.data_vencimento,
@@ -1361,7 +1361,7 @@ function exportRemessa(req, res) {
 
       //* Verificação da quantidade de lotes
       if (arquivo.length < 3) {
-        throw new Error("Não há lotes gerados");
+        throw new Error("Não há lotes no arquivo importado  ");
       }
 
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");

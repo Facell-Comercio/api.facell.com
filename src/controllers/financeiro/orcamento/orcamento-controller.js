@@ -171,12 +171,18 @@ function findAccountFromParams(req) {
         throw new Error("ID GRUPO ECONOMICO não informado!");
       }
 
-      const [rowGrupoEconomico] = await conn.execute(`SELECT id, orcamento FROM grupos_economicos WHERE id = ?`, [id_grupo_economico])
-      const grupoValidaOrcamento = rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]['orcamento']
+      const [rowGrupoEconomico] = await conn.execute(
+        `SELECT id, orcamento FROM grupos_economicos WHERE id = ?`,
+        [id_grupo_economico]
+      );
+      const grupoValidaOrcamento =
+        rowGrupoEconomico &&
+        rowGrupoEconomico[0] &&
+        !!+rowGrupoEconomico[0]["orcamento"];
 
-      if(!grupoValidaOrcamento){
-        resolve({grupoValidaOrcamento: false})
-        return
+      if (!grupoValidaOrcamento) {
+        resolve({ grupoValidaOrcamento: false });
+        return;
       }
       const params = [id_grupo_economico, id_centro_custo, id_plano_conta];
       let where = `
@@ -221,7 +227,7 @@ function findAccountFromParams(req) {
       }
       const contaOrcamento = rowOrcamentoItens && rowOrcamentoItens[0];
       resolve({
-        ...contaOrcamento, 
+        ...contaOrcamento,
         grupoValidaOrcamento,
       });
       return;
@@ -256,7 +262,7 @@ function insertOne(req) {
       }
 
       await conn.beginTransaction();
-
+      console.log(req.body);
       // * Update do rateio
       const [result] = await conn.execute(
         `INSERT INTO fin_orcamento (id_grupo_economico, ref, active) VALUES (?,?,?)`,
@@ -269,13 +275,20 @@ function insertOne(req) {
       }
 
       // * Inserir as contas
-      contas.forEach(async ({ id_centro_custo, id_plano_contas, valor }) => {
+      for (const conta of contas) {
         await conn.execute(
-          `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto) VALUES(?,?,?,?)`,
-          [newId, id_centro_custo, id_plano_contas, valor]
+          `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto, active) VALUES(?,?,?,?,?)`,
+          [
+            newId,
+            conta.id_centro_custo,
+            conta.id_plano_contas,
+            conta.valor,
+            conta.active,
+          ]
         );
-      });
+      }
 
+      // await conn.rollback();
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
