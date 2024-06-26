@@ -87,7 +87,7 @@ function getOne(req) {
             FROM users u
             WHERE u.id = ?
             `,
-        [id !== "user" ? id : id_user]
+        [!!id ? id : id_user]
       );
 
       const user = rowUser && rowUser[0];
