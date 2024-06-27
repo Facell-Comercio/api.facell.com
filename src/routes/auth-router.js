@@ -1,20 +1,10 @@
 const router = require("express").Router();
 const {
-  register,
   login,
   updateSenha,
   recuperarSenha,
 } = require("../controllers/auth-controller");
 const authMiddleware = require("../middlewares/auth-middleware");
-
-router.post("/register", async (req, res) => {
-  try {
-    await register(req);
-    res.status(200).json({ message: "Sucesso!" });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
 
 router.put("/alterar-senha", async (req, res) => {
   try {

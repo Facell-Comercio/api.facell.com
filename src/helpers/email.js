@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const nodemailer = require("nodemailer");
+const { logger } = require("../../logger");
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST, // Servidor SMTP da KingHost
   port: 465, // Porta SMTP (587 é uma porta comum)
@@ -23,7 +24,10 @@ function enviarEmail({ assunto, destinatarios, corpo, anexo }) {
     // Enviar o e-mail
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.log(error.response);
+        logger.error({
+          module: 'ROOT', origin: 'EMAIL', method: 'ENVIA_EMAIL',
+          data: { message: error.message, stack: error.stack, name: error.name }
+        })
         reject("Erro ao tentar enviar o email");
         return false;
       }

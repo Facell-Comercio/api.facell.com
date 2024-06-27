@@ -4,6 +4,7 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const socketIo = require("socket.io");
+const { logger } = require("./logger");
 
 require("./mysql");
 
@@ -32,8 +33,12 @@ app.use("/", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/temp", express.static(path.join(__dirname, "public", "temp")));
 
+logger.info({
+  module: 'ROOT', origin: 'INDEX', method: 'DIRNAME',
+  data: {message: __dirname}
+})
+
 const router = require("./src/routes/router");
-const { logger } = require("./logger");
 app.use(router);
 
 const server = http.createServer(app);

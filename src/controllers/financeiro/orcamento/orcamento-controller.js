@@ -262,7 +262,7 @@ function insertOne(req) {
       }
 
       await conn.beginTransaction();
-      console.log(req.body);
+
       // * Update do rateio
       const [result] = await conn.execute(
         `INSERT INTO fin_orcamento (id_grupo_economico, ref, active) VALUES (?,?,?)`,

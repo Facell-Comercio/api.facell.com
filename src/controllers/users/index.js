@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require("uuid");
 const {
   urlContemTemp,
   moverArquivoTempParaUploads,
+  replaceFileUrl,
 } = require("../files-controller");
 const { logger } = require("../../../logger");
 
@@ -196,10 +197,16 @@ function update(req) {
       // Verificar se a imagem é temporária
       const isImgTemp = urlContemTemp(img_url);
 
+      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [id])
+      const user = rowUser && rowUser[0]
+      if(!user){
+        throw new Error('Usuário não localizado!')
+      }
+
       var newImgUrl = img_url;
       if (isImgTemp) {
-        // Persistir imagem
-        const urlImgPersistida = await moverArquivoTempParaUploads(img_url);
+        // Substituir imagem
+        const urlImgPersistida = await replaceFileUrl({oldFileUrl: user.img_url, newFileUrl: img_url});
         newImgUrl = urlImgPersistida;
       }
 

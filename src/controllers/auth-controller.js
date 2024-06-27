@@ -6,50 +6,50 @@ const { logger } = require("../../logger");
 const { enviarEmail } = require("../helpers/email");
 require("dotenv");
 
-async function register(req) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const {
-        email,
-        senha,
-        confirmaSenha,
-        nome,
-        id_perfil,
-        id_grupo_economico,
-        img_url,
-      } = req.body;
-      if (!email) {
-        throw new Error("Preencha o email!");
-      }
+// async function register(req) {
+//   return new Promise(async (resolve, reject) => {
+//     try {
+//       const {
+//         email,
+//         senha,
+//         confirmaSenha,
+//         nome,
+//         id_perfil,
+//         id_grupo_economico,
+//         img_url,
+//       } = req.body;
+//       if (!email) {
+//         throw new Error("Preencha o email!");
+//       }
 
-      if (!senha) {
-        throw new Error("Preencha a senha!");
-      }
+//       if (!senha) {
+//         throw new Error("Preencha a senha!");
+//       }
 
-      if (senha !== confirmaSenha) {
-        throw new Error("Senha e confirmação não conferem!");
-      }
-      const [rowUser] = await db.execute(
-        "SELECT senha FROM users WHERE email = ?",
-        [email]
-      );
-      if (rowUser.length !== 0) {
-        throw new Error("Não é possível utilizar este email!");
-      }
+//       if (senha !== confirmaSenha) {
+//         throw new Error("Senha e confirmação não conferem!");
+//       }
+//       const [rowUser] = await db.execute(
+//         "SELECT senha FROM users WHERE email = ?",
+//         [email]
+//       );
+//       if (rowUser.length !== 0) {
+//         throw new Error("Não é possível utilizar este email!");
+//       }
 
-      const senhaCriptografada = await bcrypt.hash(senha, 10);
+//       const senhaCriptografada = await bcrypt.hash(senha, 10);
 
-      await db.execute(
-        "INSERT INTO users (email, senha, id_perfil, id_grupo_economico, nome) VALUES (?, ?, ?, ?, ?)",
-        [email, senhaCriptografada, id_perfil, id_grupo_economico, nome]
-      );
+//       await db.execute(
+//         "INSERT INTO users (email, senha, id_perfil, id_grupo_economico, nome) VALUES (?, ?, ?, ?, ?)",
+//         [email, senhaCriptografada, id_perfil, id_grupo_economico, nome]
+//       );
 
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
+//       resolve();
+//     } catch (error) {
+//       reject(error);
+//     }
+//   });
+// }
 
 async function updateSenha(req) {
   return new Promise(async (resolve, reject) => {
@@ -175,16 +175,6 @@ async function login(req) {
       // console.log(token, user)
       resolve({ token, user });
     } catch (error) {
-      logger.error({
-        module: "ROOT",
-        origin: "AUTH",
-        method: "LOGIN",
-        data: {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-        },
-      });
       reject(error);
     }
   });
@@ -237,7 +227,6 @@ async function recuperarSenha(req) {
 }
 
 module.exports = {
-  register,
   updateSenha,
   login,
   recuperarSenha,
