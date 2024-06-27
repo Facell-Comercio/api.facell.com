@@ -180,7 +180,9 @@ function urlContemTemp(url) {
   return url.includes("/temp/");
 }
 
-// Função para mover um arquivo da pasta temp para a pasta uploads
+/**
+ * Move um arquivo que esteja na pasta Temp para a pasta Uploads
+ * */ 
 function moverArquivoTempParaUploads(url) {
   return new Promise((resolve, reject) => {
     if (!url) {
@@ -223,6 +225,28 @@ function moverArquivoTempParaUploads(url) {
   });
 }
 
+/**
+ * Sustitui um arquivo anterior por um novo
+ * @returns {Promise<String|null>}
+ * Basta passar a antiga URL que o arquivo será excluído
+ * E passar a nova URL (provavelmente /temp ), será persistido em uploads
+ * */  
+function replaceFileUrl({oldFileUrl, newFileUrl}){
+  return new Promise(async(resolve, reject)=>{
+    try {
+      await deleteFile(oldFileUrl)
+    } catch (error) {
+      logger.error({
+        module: 'ROOT', origin: 'FILES', method: 'REPLACE_FILE_URL:DELETE_OLD_FILE',
+        data: {message: error.message, stack: error.stack, name: error.name}
+      })
+    }finally{
+      const url = await moverArquivoTempParaUploads(newFileUrl)
+      resolve(url)
+    }
+  })
+}
+
 function createFilePathFromUrl(url) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -260,4 +284,5 @@ module.exports = {
   createFilePathFromUrl,
   createUploadsPath,
   zipFiles,
+  replaceFileUrl,
 };
