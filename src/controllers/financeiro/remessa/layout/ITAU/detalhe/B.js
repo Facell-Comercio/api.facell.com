@@ -58,7 +58,7 @@ module.exports = [
     default: " ",
   },
   {
-    field: "empresa_inscricao",
+    field: "favorecido_tipo_insc",
     startPos: 18,
     endPos: 18,
     length: 1,

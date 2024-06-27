@@ -79,7 +79,6 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const id_user = req.user.id;
     const conn = await db.getConnection();
     try {
       const [rowUser] = await conn.execute(
@@ -88,7 +87,7 @@ function getOne(req) {
             FROM users u
             WHERE u.id = ?
             `,
-        [!!id ? id : id_user]
+        [id]
       );
 
       const user = rowUser && rowUser[0];
@@ -100,7 +99,7 @@ function getOne(req) {
             INNER JOIN permissoes p ON p.id = up.id_permissao
             WHERE up.id_user = ?
             `,
-        [id !== "user" ? id : id_user]
+        [id]
       );
 
       const [departamentos] = await conn.execute(
@@ -110,7 +109,7 @@ function getOne(req) {
             INNER JOIN departamentos d ON d.id = ud.id_departamento
             WHERE ud.id_user = ?
             `,
-        [id !== "user" ? id : id_user]
+        [id]
       );
 
       const [filiais] = await conn.execute(
@@ -122,7 +121,7 @@ function getOne(req) {
             WHERE uf.id_user = ?
             ORDER BY g.id, f.id
             `,
-        [id !== "user" ? id : id_user]
+        [id]
       );
 
       const [centros_custo] = await conn.execute(
@@ -134,7 +133,7 @@ function getOne(req) {
             WHERE ucc.id_user = ?
             ORDER BY g.id, fcc.id
             `,
-        [id !== "user" ? id : id_user]
+        [id]
       );
 
       const objUser = {
@@ -197,16 +196,21 @@ function update(req) {
       // Verificar se a imagem é temporária
       const isImgTemp = urlContemTemp(img_url);
 
-      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [id])
-      const user = rowUser && rowUser[0]
-      if(!user){
-        throw new Error('Usuário não localizado!')
+      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
+        id,
+      ]);
+      const user = rowUser && rowUser[0];
+      if (!user) {
+        throw new Error("Usuário não localizado!");
       }
 
       var newImgUrl = img_url;
       if (isImgTemp) {
         // Substituir imagem
-        const urlImgPersistida = await replaceFileUrl({oldFileUrl: user.img_url, newFileUrl: img_url});
+        const urlImgPersistida = await replaceFileUrl({
+          oldFileUrl: user.img_url,
+          newFileUrl: img_url,
+        });
         newImgUrl = urlImgPersistida;
       }
 
@@ -284,27 +288,45 @@ function updateImg(req) {
   return new Promise(async (resolve, reject) => {
     const { img_url } = req.body;
     const { id } = req.params;
-    const id_user = req.user.id;
+    console.log(req.body, req.params);
 
     const conn = await db.getConnection();
     try {
       if (!img_url) {
         throw new Error("Imagem não enviada!");
       }
-      // Já que deu certo inserir o usuário, vamos importar a imagem dele...
+      if (!id) {
+        throw new Error("ID do usuário não informado!");
+      }
+      await conn.beginTransaction();
+
       // Verificar se a imagem é temporária
       const isImgTemp = urlContemTemp(img_url);
+
+      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
+        id,
+      ]);
+      const user = rowUser && rowUser[0];
+      if (!user) {
+        throw new Error("Usuário não localizado!");
+      }
+
       let newImgUrl = img_url;
       if (isImgTemp) {
-        // Persistir imagem
-        const urlImgPersistida = await moverArquivoTempParaUploads(img_url);
+        // Substituir imagem
+        const urlImgPersistida = await replaceFileUrl({
+          oldFileUrl: user.img_url,
+          newFileUrl: img_url,
+        });
         newImgUrl = urlImgPersistida;
       }
+
+      // Atualização de dados do usuário
       await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
         newImgUrl,
-        id !== "user" ? id : id_user,
+        id,
       ]);
-
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
