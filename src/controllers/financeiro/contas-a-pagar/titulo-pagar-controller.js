@@ -96,7 +96,6 @@ function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     const departamentosGestor = user.departamentos
-      .filter((departamento) => departamento.gestor)
       .map((departamento) => departamento.id);
 
     const { pagination, filters } = req.query || {};
@@ -155,6 +154,17 @@ function getAll(req) {
       where += ` AND t.id_status != 0 `
     }
 
+    if(nome_fornecedor){
+      where += ` AND (forn.razao LIKE CONCAT('%', ?, '%') OR  forn.nome LIKE CONCAT('%', ?, '%')) `;
+      params.push(nome_fornecedor)
+      params.push(nome_fornecedor)
+    }
+
+    if(nome_user){
+      where += ` AND u.nome LIKE CONCAT('%', ?, '%') `;
+      params.push(nome_user)
+    }
+
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
 
@@ -187,6 +197,8 @@ function getAll(req) {
         FROM fin_cp_titulos t 
         LEFT JOIN filiais f ON f.id = t.id_filial 
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        LEFT JOIN users u ON u.id = t.id_solicitante
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         ${where}
         `,
         params
