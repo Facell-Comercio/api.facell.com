@@ -95,7 +95,7 @@ function calcularDataPrevisaoPagamento(data_venc) {
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const departamentosGestor = user.departamentos
+    const departamentosUser = user.departamentos
       .map((departamento) => departamento.id);
 
     const { pagination, filters } = req.query || {};
@@ -115,8 +115,8 @@ function getAll(req) {
       !checkUserPermission(req, "MASTER")
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
-      if (departamentosGestor?.length > 0) {
-        where += ` AND (t.id_solicitante = '${user.id}' OR  t.id_departamento IN (${departamentosGestor.join(",")})) `;
+      if (departamentosUser?.length > 0) {
+        where += ` AND (t.id_solicitante = '${user.id}' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
       } else {
         where += ` AND t.id_solicitante = '${user.id}' `;
       }
@@ -154,13 +154,13 @@ function getAll(req) {
       where += ` AND t.id_status != 0 `
     }
 
-    if(nome_fornecedor){
+    if (nome_fornecedor) {
       where += ` AND (forn.razao LIKE CONCAT('%', ?, '%') OR  forn.nome LIKE CONCAT('%', ?, '%')) `;
       params.push(nome_fornecedor)
       params.push(nome_fornecedor)
     }
 
-    if(nome_user){
+    if (nome_user) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%') `;
       params.push(nome_user)
     }
@@ -441,7 +441,11 @@ function getAllCpVencimentosBordero(req) {
 // * ok
 function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
+    const { user } = req;
     const conn = await db.getConnection();
+    const departamentosUser = user.departamentos
+      .map((departamento) => departamento.id);
+
     try {
       const { user } = req;
       const { filters } = req.query || {};
@@ -456,7 +460,11 @@ function getAllRecorrencias(req) {
         !checkUserPermission(req, "MASTER") &&
         !checkUserDepartment(req, "FINANCEIRO")
       ) {
-        where += ` AND r.id_user = '${user.id}' `;
+        if (departamentosUser?.length > 0) {
+          where += ` AND (r.id_user = '${user.id}' OR t.id_departamento IN (${departamentosUser.join(",")})) `;
+        } else {
+          where += ` AND r.id_user = '${user.id}' `;
+        }
       }
 
       where += ` AND YEAR(r.data_vencimento) = ?
@@ -1980,7 +1988,7 @@ function updateFileTitulo(req) {
     const conn = await db.getConnection();
 
     try {
-      console.log({fileUrl})
+      console.log({ fileUrl })
       await conn.beginTransaction();
 
       if (!id) {
@@ -2002,10 +2010,10 @@ function updateFileTitulo(req) {
           "Envie um campo válido; url_xml, url_nota_fiscal, url_boleto, url_contrato, url_planilha, url_txt"
         );
       }
-      
-      const [rowTitulo] = await conn.execute(`SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`,[id])
+
+      const [rowTitulo] = await conn.execute(`SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`, [id])
       const titulo = rowTitulo && rowTitulo[0]
-      if(!titulo){
+      if (!titulo) {
         throw new Error('Solicitação não existe no sistema...')
       }
       const newUrl = await replaceFileUrl({
