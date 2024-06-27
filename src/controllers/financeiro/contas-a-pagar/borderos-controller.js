@@ -855,6 +855,9 @@ function exportRemessa(req, res) {
       );
       const borderoData = rowsBordero && rowsBordero[0];
 
+      //* Verifica se é CPF ou CNPJ
+      const empresa_tipo_insc = borderoData.cnpj_empresa.length === 11 ? 1 : 2;
+
       //* Verificação de permissão de geração de remessa~
       if (+borderoData.codigo_bancario !== 341) {
         throw new Error(
@@ -1134,6 +1137,7 @@ function exportRemessa(req, res) {
       const dataCriacao = new Date();
       const headerArquivo = createHeaderArquivo({
         ...borderoData,
+        empresa_tipo_insc,
         arquivo_data_geracao: formatDate(dataCriacao, "ddMMyyyy"),
         arquivo_hora_geracao: formatDate(dataCriacao, "HHmmss"),
       });
@@ -1185,6 +1189,7 @@ function exportRemessa(req, res) {
         ) {
           const headerLote = createHeaderLote({
             ...borderoData,
+            empresa_tipo_insc,
             lote,
             forma_pagamento,
           });
@@ -1213,11 +1218,11 @@ function exportRemessa(req, res) {
             forn.agencia,
             forn.dv_agencia,
             forn.conta,
-            forn.nome as favorecido_nome,
+            forn.favorecido as favorecido_nome,
             DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
             DATE_FORMAT(tv.data_vencimento, '%d/%m/%Y') as data_vencimento,
             tv.valor as valor_pagamento,
-            forn.cnpj as favorecido_cnpj,
+            forn.cnpj_favorecido as favorecido_cnpj,
             t.id_tipo_chave_pix,
             t.chave_pix,
             tv.qr_code, tv.cod_barras as cod_barras_tv
@@ -1232,6 +1237,10 @@ function exportRemessa(req, res) {
             [pagamento.id_vencimento]
           );
           const vencimento = rowVencimento && rowVencimento[0];
+
+          //* Verifica se é cpf ou cnpj
+          const favorecido_tipo_insc =
+            vencimento.favorecido_cnpj.length === 11 ? 1 : 2;
 
           //* Dependendo do banco o modelo muda
           let agencia = [];
@@ -1290,8 +1299,10 @@ function exportRemessa(req, res) {
               ...vencimento,
               lote,
               num_registro_lote: registroLote,
+              inscricao_sacado: empresa_tipo_insc,
               num_inscricao_sacado: borderoData.cnpj_empresa,
               nome_sacado: borderoData.empresa_nome,
+              inscricao_cedente: favorecido_tipo_insc,
               num_inscricao_cedente: vencimento.favorecido_cnpj,
               nome_cedente: vencimento.favorecido_nome,
               chave_pagamento: normalizeURLChaveEnderecamentoPIX(
@@ -1317,8 +1328,10 @@ function exportRemessa(req, res) {
               ...vencimento,
               lote,
               num_registro_lote: registroLote,
+              inscricao_sacado: empresa_tipo_insc,
               num_inscricao_sacado: borderoData.cnpj_empresa,
               nome_sacado: borderoData.empresa_nome,
+              inscricao_cedente: favorecido_tipo_insc,
               num_inscricao_cedente: vencimento.favorecido_cnpj,
               nome_cedente: vencimento.favorecido_nome,
             });
@@ -1366,6 +1379,7 @@ function exportRemessa(req, res) {
               lote,
               num_registro_lote: registroLote,
               tipo_chave,
+              favorecido_tipo_insc,
               num_inscricao: vencimento.favorecido_cnpj,
               txid: vencimento.id,
               chave_pix,

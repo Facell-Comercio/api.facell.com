@@ -41,7 +41,7 @@ module.exports = [
     default: "080", //^ No modelo é 081 mas no manual o exemplo 080 (VERIFICAR)
   },
   {
-    field: "empresa_inscricao_tipo",
+    field: "empresa_tipo_insc",
     startPos: 18,
     endPos: 18,
     length: 1,
