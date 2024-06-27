@@ -95,8 +95,9 @@ function calcularDataPrevisaoPagamento(data_venc) {
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const departamentosGestor = user.departamentos
-      .map((departamento) => departamento.id);
+    const departamentosGestor = user.departamentos.map(
+      (departamento) => departamento.id
+    );
 
     const { pagination, filters } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
@@ -116,7 +117,9 @@ function getAll(req) {
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
       if (departamentosGestor?.length > 0) {
-        where += ` AND (t.id_solicitante = '${user.id}' OR  t.id_departamento IN (${departamentosGestor.join(",")})) `;
+        where += ` AND (t.id_solicitante = '${
+          user.id
+        }' OR  t.id_departamento IN (${departamentosGestor.join(",")})) `;
       } else {
         where += ` AND t.id_solicitante = '${user.id}' `;
       }
@@ -124,6 +127,7 @@ function getAll(req) {
     const {
       id,
       id_grupo_economico,
+      id_forma_pagamento,
       id_status,
       tipo_data,
       range_data,
@@ -142,6 +146,10 @@ function getAll(req) {
       where += ` AND t.id_status = ?`;
       params.push(id_status);
     }
+    if (id_forma_pagamento) {
+      where += ` AND t.id_forma_pagamento = ? `;
+      params.push(id_forma_pagamento);
+    }
     if (descricao) {
       where += ` AND t.descricao LIKE CONCAT('%',?,'%') `;
       params.push(descricao);
@@ -151,18 +159,18 @@ function getAll(req) {
       params.push(id_matriz);
     }
     if (!arquivados) {
-      where += ` AND t.id_status != 0 `
+      where += ` AND t.id_status != 0 `;
     }
 
-    if(nome_fornecedor){
+    if (nome_fornecedor) {
       where += ` AND (forn.razao LIKE CONCAT('%', ?, '%') OR  forn.nome LIKE CONCAT('%', ?, '%')) `;
-      params.push(nome_fornecedor)
-      params.push(nome_fornecedor)
+      params.push(nome_fornecedor);
+      params.push(nome_fornecedor);
     }
 
-    if(nome_user){
+    if (nome_user) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%') `;
-      params.push(nome_user)
+      params.push(nome_user);
     }
 
     if (tipo_data && range_data) {
@@ -174,8 +182,9 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -199,6 +208,7 @@ function getAll(req) {
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
         LEFT JOIN users u ON u.id = t.id_solicitante
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
         ${where}
         `,
         params
@@ -209,13 +219,15 @@ function getAll(req) {
             SELECT DISTINCT 
                 t.id, s.status, t.created_at, t.descricao, t.valor,
                 f.nome as filial, f.id_matriz,
-                forn.nome as fornecedor, u.nome as solicitante
+                forn.nome as fornecedor, u.nome as solicitante,
+                fp.forma_pagamento
             FROM fin_cp_titulos t 
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN users u ON u.id = t.id_solicitante
+            LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
 
           ${where}
 
@@ -308,6 +320,7 @@ function getAllCpVencimentosBordero(req) {
       where += ` AND tv.id = ? `;
       params.push(id_vencimento);
     }
+
     if (id_titulo) {
       where += ` AND tv.id_titulo = ? `;
       params.push(id_titulo);
@@ -346,8 +359,9 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -1162,7 +1176,8 @@ function insertOne(req) {
           const saldo = valor_previsto - valor_total_consumo;
           if (contaOrcamentoAtiva && saldo < item_rateio.valor) {
             throw new Error(
-              `Saldo insuficiente para ${item_rateio.centro_custo}: ${item_rateio.plano_conta
+              `Saldo insuficiente para ${item_rateio.centro_custo}: ${
+                item_rateio.plano_conta
               }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
             );
           }
@@ -1738,7 +1753,8 @@ function update(req) {
             const saldo = valor_previsto - valor_total_consumo;
             if (contaOrcamentoAtiva && saldo < valorRateio) {
               throw new Error(
-                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${
+                  item_rateio.plano_conta
                 }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
               );
             }
@@ -1834,12 +1850,30 @@ function update(req) {
 
       // Persitir os anexos
 
-      const nova_url_nota_fiscal = await replaceFileUrl({ oldFileUrl: titulo.url_nota_fiscal, newFileUrl: url_nota_fiscal });
-      const nova_url_xml = await replaceFileUrl({ oldFileUrl: titulo.url_xml, newFileUrl: url_xml });
-      const nova_url_boleto = await replaceFileUrl({ oldFileUrl: titulo.url_boleto, newFileUrl: url_boleto });
-      const nova_url_contrato = await replaceFileUrl({ oldFileUrl: titulo.url_contrato, newFileUrl: url_contrato });
-      const nova_url_planilha = await replaceFileUrl({ oldFileUrl: titulo.url_planilha, newFileUrl: url_planilha });
-      const nova_url_txt = await replaceFileUrl({ oldFileUrl: titulo.url_txt, newFileUrl: url_txt });
+      const nova_url_nota_fiscal = await replaceFileUrl({
+        oldFileUrl: titulo.url_nota_fiscal,
+        newFileUrl: url_nota_fiscal,
+      });
+      const nova_url_xml = await replaceFileUrl({
+        oldFileUrl: titulo.url_xml,
+        newFileUrl: url_xml,
+      });
+      const nova_url_boleto = await replaceFileUrl({
+        oldFileUrl: titulo.url_boleto,
+        newFileUrl: url_boleto,
+      });
+      const nova_url_contrato = await replaceFileUrl({
+        oldFileUrl: titulo.url_contrato,
+        newFileUrl: url_contrato,
+      });
+      const nova_url_planilha = await replaceFileUrl({
+        oldFileUrl: titulo.url_planilha,
+        newFileUrl: url_planilha,
+      });
+      const nova_url_txt = await replaceFileUrl({
+        oldFileUrl: titulo.url_txt,
+        newFileUrl: url_txt,
+      });
 
       // console.log(id_rateio);
       // Persistir  novos dados do Titulo
@@ -1980,7 +2014,7 @@ function updateFileTitulo(req) {
     const conn = await db.getConnection();
 
     try {
-      console.log({fileUrl})
+      console.log({ fileUrl });
       await conn.beginTransaction();
 
       if (!id) {
@@ -2002,16 +2036,19 @@ function updateFileTitulo(req) {
           "Envie um campo válido; url_xml, url_nota_fiscal, url_boleto, url_contrato, url_planilha, url_txt"
         );
       }
-      
-      const [rowTitulo] = await conn.execute(`SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`,[id])
-      const titulo = rowTitulo && rowTitulo[0]
-      if(!titulo){
-        throw new Error('Solicitação não existe no sistema...')
+
+      const [rowTitulo] = await conn.execute(
+        `SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`,
+        [id]
+      );
+      const titulo = rowTitulo && rowTitulo[0];
+      if (!titulo) {
+        throw new Error("Solicitação não existe no sistema...");
       }
       const newUrl = await replaceFileUrl({
         oldFileUrl: titulo[campo],
-        newFileUrl: fileUrl
-      })
+        newFileUrl: fileUrl,
+      });
 
       await conn.execute(
         `UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `,
@@ -2303,8 +2340,9 @@ function downloadAnexos(req, res) {
         const ext = path.extname(tituloBanco[type]);
         const titulo = {
           type: "file",
-          fileName: `${tipos_anexos.find((tipo) => tipo.name == type).acronym
-            } - ${id_titulo}${ext}`,
+          fileName: `${
+            tipos_anexos.find((tipo) => tipo.name == type).acronym
+          } - ${id_titulo}${ext}`,
           content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);
