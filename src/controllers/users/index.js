@@ -273,6 +273,46 @@ function update(req) {
   });
 }
 
+function updateImg(req) {
+  return new Promise(async (resolve, reject) => {
+    const { img_url } = req.body;
+    const { id } = req.params;
+    const id_user = req.user.id;
+
+    const conn = await db.getConnection();
+    try {
+      if (!img_url) {
+        throw new Error("Imagem não enviada!");
+      }
+      // Já que deu certo inserir o usuário, vamos importar a imagem dele...
+      // Verificar se a imagem é temporária
+      const isImgTemp = urlContemTemp(img_url);
+      let newImgUrl = img_url;
+      if (isImgTemp) {
+        // Persistir imagem
+        const urlImgPersistida = await moverArquivoTempParaUploads(img_url);
+        newImgUrl = urlImgPersistida;
+      }
+      await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
+        newImgUrl,
+        id !== "user" ? id : id_user,
+      ]);
+
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      logger.error({
+        module: "ADM",
+        origin: "USERS",
+        method: "UPDATE_IMG",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const {
@@ -384,5 +424,6 @@ module.exports = {
   getAll,
   getOne,
   update,
+  updateImg,
   insertOne,
 };
