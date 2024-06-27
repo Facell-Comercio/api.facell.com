@@ -10,6 +10,10 @@ async function deleteFile(filePath) {
     await unlink(filePath);
     return true;
   } catch (error) {
+    logger.error({
+      module: 'ROOT', origin: 'FILES', method: 'DELETE_FILE',
+      data: { message: error.message, stack: error.stack, name: error.name}
+    })
     return false;
   }
 }
@@ -126,9 +130,12 @@ async function clearTempFolder() {
       arquivos.forEach((arquivo) => {
         const caminhoArquivo = path.join(pathTemp, arquivo);
 
-        fs.unlink(caminhoArquivo, (err) => {
-          if (err) {
-            console.error("Erro ao excluir o arquivo:", err);
+        fs.unlink(caminhoArquivo, (error) => {
+          if (error) {
+            logger.error({
+              module: 'ROOT', origin: 'FILES', method: 'CLEAR_TEMP_FOLDER_DELETE_FILE',
+              data: { message: error.message, stack: error.stack, name: error.name}
+            })
             return;
           }
         });
@@ -155,8 +162,12 @@ function moveFile(origem, destino) {
     }
 
     // Mover o arquivo
-    fs.rename(origem, destino, (err) => {
-      if (err) {
+    fs.rename(origem, destino, (error) => {
+      if (error) {
+        logger.error({
+          module: 'ROOT', origin: 'FILES', method: 'MOVE_FILE',
+          data: { message: error.message, stack: error.stack, name: error.name}
+        })
         reject(err); // Rejeitar a Promise se houver um erro
         return;
       }
@@ -195,8 +206,12 @@ function moverArquivoTempParaUploads(url) {
       if (fs.existsSync(destino)) {
         resolve(novaUrl);
       }
-      fs.rename(origem, destino, (err) => {
-        if (err) {
+      fs.rename(origem, destino, (error) => {
+        if (error) {
+          logger.error({
+            module: 'ROOT', origin: 'FILES', method: 'MOVER_TEMP_PARA_UPLOADS',
+            data: { message: error.message, stack: error.stack, name: error.name}
+          })
           resolve("");
         } else {
           resolve(novaUrl);
@@ -227,6 +242,10 @@ function createFilePathFromUrl(url) {
 
       resolve(newPath);
     } catch (error) {
+      logger.error({
+        module: 'ROOT', origin: 'FILES', method: 'CREATE_FILE_PATH_FROM_URL',
+        data: { message: error.message, stack: error.stack, name: error.name}
+      })
       reject(error);
     }
   });
