@@ -23,6 +23,7 @@ const {
   moverArquivoTempParaUploads,
   zipFiles,
   createUploadsPath,
+  replaceFileUrl,
 } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
 const { logger } = require("../../../../logger");
@@ -115,9 +116,9 @@ function getAll(req) {
       !checkUserPermission(req, "MASTER")
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
-      if(departamentosGestor?.length > 0){
+      if (departamentosGestor?.length > 0) {
         where += ` AND (t.id_solicitante = '${user.id}' OR  t.id_departamento IN (${departamentosGestor.join(",")})) `;
-      }else{
+      } else {
         where += ` AND t.id_solicitante = '${user.id}' `;
       }
     }
@@ -163,9 +164,8 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -334,9 +334,8 @@ function getAllCpVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -1151,8 +1150,7 @@ function insertOne(req) {
           const saldo = valor_previsto - valor_total_consumo;
           if (contaOrcamentoAtiva && saldo < item_rateio.valor) {
             throw new Error(
-              `Saldo insuficiente para ${item_rateio.centro_custo}: ${
-                item_rateio.plano_conta
+              `Saldo insuficiente para ${item_rateio.centro_custo}: ${item_rateio.plano_conta
               }. Necessário ${normalizeCurrency(item_rateio.valor - saldo)}`
             );
           }
@@ -1728,8 +1726,7 @@ function update(req) {
             const saldo = valor_previsto - valor_total_consumo;
             if (contaOrcamentoAtiva && saldo < valorRateio) {
               throw new Error(
-                `Saldo insuficiente para ${item_rateio.centro_custo} + ${
-                  item_rateio.plano_conta
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
                 }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
               );
             }
@@ -1824,14 +1821,13 @@ function update(req) {
       //~ Fim de manipulação de vencimentos //////////////////////
 
       // Persitir os anexos
-      const nova_url_nota_fiscal = await moverArquivoTempParaUploads(
-        url_nota_fiscal
-      );
-      const nova_url_xml = await moverArquivoTempParaUploads(url_xml);
-      const nova_url_boleto = await moverArquivoTempParaUploads(url_boleto);
-      const nova_url_contrato = await moverArquivoTempParaUploads(url_contrato);
-      const nova_url_planilha = await moverArquivoTempParaUploads(url_planilha);
-      const nova_url_txt = await moverArquivoTempParaUploads(url_txt);
+
+      const nova_url_nota_fiscal = await replaceFileUrl({ oldFileUrl: titulo.url_nota_fiscal, newFileUrl: url_nota_fiscal });
+      const nova_url_xml = await replaceFileUrl({ oldFileUrl: titulo.url_xml, newFileUrl: url_xml });
+      const nova_url_boleto = await replaceFileUrl({ oldFileUrl: titulo.url_boleto, newFileUrl: url_boleto });
+      const nova_url_contrato = await replaceFileUrl({ oldFileUrl: titulo.url_contrato, newFileUrl: url_contrato });
+      const nova_url_planilha = await replaceFileUrl({ oldFileUrl: titulo.url_planilha, newFileUrl: url_planilha });
+      const nova_url_txt = await replaceFileUrl({ oldFileUrl: titulo.url_txt, newFileUrl: url_txt });
 
       // console.log(id_rateio);
       // Persistir  novos dados do Titulo
@@ -1972,6 +1968,7 @@ function updateFileTitulo(req) {
     const conn = await db.getConnection();
 
     try {
+      console.log({fileUrl})
       await conn.beginTransaction();
 
       if (!id) {
@@ -1993,14 +1990,24 @@ function updateFileTitulo(req) {
           "Envie um campo válido; url_xml, url_nota_fiscal, url_boleto, url_contrato, url_planilha, url_txt"
         );
       }
+      
+      const [rowTitulo] = await conn.execute(`SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`,[id])
+      const titulo = rowTitulo && rowTitulo[0]
+      if(!titulo){
+        throw new Error('Solicitação não existe no sistema...')
+      }
+      const newUrl = await replaceFileUrl({
+        oldFileUrl: titulo[campo],
+        newFileUrl: fileUrl
+      })
 
       await conn.execute(
         `UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `,
-        [fileUrl, id]
+        [newUrl, id]
       );
 
       await conn.commit();
-      resolve({ message: "Sucesso!" });
+      resolve({ fileUrl: newUrl });
       return;
     } catch (error) {
       logger.error({
@@ -2284,9 +2291,8 @@ function downloadAnexos(req, res) {
         const ext = path.extname(tituloBanco[type]);
         const titulo = {
           type: "file",
-          fileName: `${
-            tipos_anexos.find((tipo) => tipo.name == type).acronym
-          } - ${id_titulo}${ext}`,
+          fileName: `${tipos_anexos.find((tipo) => tipo.name == type).acronym
+            } - ${id_titulo}${ext}`,
           content: createUploadsPath(tituloBanco[type]),
         };
         titulos.push(titulo);
