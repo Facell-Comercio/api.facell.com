@@ -168,13 +168,11 @@ function getAll(req) {
     }
 
     if (nome_fornecedor) {
-    if (nome_fornecedor) {
       where += ` AND (forn.razao LIKE CONCAT('%', ?, '%') OR  forn.nome LIKE CONCAT('%', ?, '%')) `;
       params.push(nome_fornecedor);
       params.push(nome_fornecedor);
     }
 
-    if (nome_user) {
     if (nome_user) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%') `;
       params.push(nome_user);
