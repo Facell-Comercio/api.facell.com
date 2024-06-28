@@ -8,6 +8,8 @@ const {
   isSaturday,
   isSunday,
   subDays,
+  isWednesday,
+  isFriday,
 } = require("date-fns");
 const path = require("path");
 const { db } = require("../../../../mysql");
@@ -49,13 +51,15 @@ function checkFeriado(date) {
 }
 
 function calcularDataPrevisaoPagamento(data_venc) {
-  let dataVencimento = startOfDay(data_venc); // Inicia com o próximo dia
+  const dataVencimento = startOfDay(data_venc); // Inicia com o próximo dia
 
   const dataAtual = startOfDay(new Date());
   let dataMinima = addDays(dataAtual, 2);
 
   while (
-    (!isMonday(dataMinima) && !isThursday(dataMinima)) ||
+    (!isMonday(dataMinima) &&
+      !isWednesday(dataMinima) &&
+      !isFriday(dataMinima)) ||
     checkFeriado(dataMinima)
   ) {
     dataMinima = addDays(dataMinima, 1); // Avança para o próximo dia até encontrar uma segunda ou quinta-feira que não seja feriado
@@ -68,7 +72,9 @@ function calcularDataPrevisaoPagamento(data_venc) {
     //então vou buscar a partir da data atual + 1 a próxima data de pagamento
     while (
       dataPagamento < dataMinima ||
-      (!isMonday(dataPagamento) && !isThursday(dataPagamento)) ||
+      (!isMonday(dataPagamento) &&
+        !isWednesday(dataPagamento) &&
+        !isFriday(dataPagamento)) ||
       checkFeriado(dataPagamento)
     ) {
       dataPagamento = addDays(dataPagamento, 1); // Avança para o próximo dia até encontrar uma segunda ou quinta-feira que não seja feriado
@@ -82,7 +88,9 @@ function calcularDataPrevisaoPagamento(data_venc) {
       dataPagamento = addDays(dataPagamento, 1);
     }
     while (
-      (!isMonday(dataPagamento) && !isThursday(dataPagamento)) ||
+      (!isMonday(dataPagamento) &&
+        !isWednesday(dataPagamento) &&
+        !isFriday(dataPagamento)) ||
       checkFeriado(dataPagamento)
     ) {
       dataPagamento = subDays(dataPagamento, 1); // Avança para o próximo dia até encontrar uma segunda ou quinta-feira que não seja feriado
@@ -146,7 +154,7 @@ function getAll(req) {
       where += ` AND t.id_status = ?`;
       params.push(id_status);
     }
-    if (id_forma_pagamento) {
+    if (id_forma_pagamento && id_status !== "all") {
       where += ` AND t.id_forma_pagamento = ? `;
       params.push(id_forma_pagamento);
     }

@@ -10,7 +10,7 @@ const {
   zipFiles,
   createUploadsPath,
 } = require("../../files-controller");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 require("dotenv").config();
 
 function getAll(req) {
@@ -581,16 +581,17 @@ function changeFieldVencimentos(req) {
       for (const id of ids) {
         const [rowTitulo] = await conn.execute(
           `SELECT 
-            t.id,t.id_status 
+            t.id,t.id_status, tv.status
           FROM fin_cp_titulos_vencimentos tv
           INNER JOIN fin_cp_titulos t ON t.id = tv.id_titulo
           WHERE tv.id = ? `,
           [id]
         );
         const titulo = rowTitulo && rowTitulo[0];
-        if (titulo.id_status == "4") {
+        console.log(titulo);
+        if (titulo.status === "pago" || titulo.status === "programado") {
           throw new Error(
-            `Alteração rejeitada pois o título ${id} já consta como pago!`
+            `Alteração rejeitada pois o vencimento ${id} já consta pago!`
           );
         }
         // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
