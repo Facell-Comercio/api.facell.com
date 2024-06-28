@@ -1,4 +1,4 @@
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
@@ -49,6 +49,7 @@ function getAll(req) {
       active,
       termo,
       id_matriz,
+      onlyChildren, //Os planos de contas pais/mães não devem aparecer
     } = filters || {};
     var where = ` WHERE 1=1 `;
     const params = [];
@@ -85,6 +86,9 @@ function getAll(req) {
     if (active) {
       where += ` AND pc.active = ? `;
       params.push(active);
+    }
+    if (onlyChildren) {
+      where += ` AND pc.codigo LIKE '%.%' `;
     }
 
     const offset = pageIndex * pageSize;
