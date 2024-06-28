@@ -589,9 +589,11 @@ function changeFieldVencimentos(req) {
         );
         const titulo = rowTitulo && rowTitulo[0];
         console.log(titulo);
-        if (titulo.status === "pago" || titulo.status === "programado") {
+        if (titulo.id_status >= 4) {
           throw new Error(
-            `Alteração rejeitada pois o vencimento ${id} já consta pago!`
+            `Alteração rejeitada pois o título ${titulo.id} já consta como ${
+              titulo.id_status === 4 ? "pago parcial" : "pago"
+            }!`
           );
         }
         // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
