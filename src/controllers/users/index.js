@@ -375,14 +375,14 @@ function insertOne(req) {
         throw new Error("Email não enviado!");
       }
       await conn.beginTransaction();
-
-      const newId = uuidv4();
+      const id_publico = uuidv4()
+      
       // Atualização de dados do usuário
-      await conn.execute(
-        "INSERT INTO users (id, nome, email, active) VALUES (?,?,?,?)",
-        [newId, nome, email, active]
+      const [result] = await conn.execute(
+        "INSERT INTO users (id_publico, nome, email, active) VALUES (?,?,?,?)",
+        [id_publico, nome, email, active]
       );
-
+      const newId = result.insertId;
       // Já que deu certo inserir o usuário, vamos importar a imagem dele...
       // Verificar se a imagem é temporária
       const isImgTemp = urlContemTemp(img_url);

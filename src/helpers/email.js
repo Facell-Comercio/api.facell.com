@@ -15,7 +15,7 @@ const transporter = nodemailer.createTransport({
 function enviarEmail({ assunto, destinatarios, corpo, anexo }) {
   return new Promise(async (resolve, reject) => {
     const mailOptions = {
-      from: "sistema@lojasfacell.com",
+      from: process.env.EMAIL_USERNAME,
       to: destinatarios.join(", "),
       subject: assunto,
       text: corpo,

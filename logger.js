@@ -26,75 +26,75 @@ const streams = [
 // Cria o logger com os streams configurados
 const logger = pino({}, pino.multistream(streams));
 
-cron.schedule("* * 1 * *", () => {
-  const timestamp30Dias = subDays(new Date(), 30).getTime(); // 30 dias atrás
+// cron.schedule("* * 1 * *", () => {
+//   const timestamp30Dias = subDays(new Date(), 30).getTime(); // 30 dias atrás
 
-  const baseDir = process.cwd();
+//   const baseDir = process.cwd();
 
-  function resetFileLines(filePath, timestamp) {
-    return new Promise((resolve, reject) => {
-      const lines = [];
+//   function resetFileLines(filePath, timestamp) {
+//     return new Promise((resolve, reject) => {
+//       const lines = [];
 
-      const readStream = fs.createReadStream(filePath, { encoding: "utf8" });
-      const rl = readline.createInterface({
-        input: readStream,
-        terminal: false,
-      });
+//       const readStream = fs.createReadStream(filePath, { encoding: "utf8" });
+//       const rl = readline.createInterface({
+//         input: readStream,
+//         terminal: false,
+//       });
 
-      rl.on("line", (line) => {
-        try {
-          const parsedLine = JSON.parse(line);
-          // Adiciona ao array apenas as linhas válidas
-          if (parsedLine.time >= timestamp) {
-            lines.push(line);
-          }
-        } catch (err) {
-          // Linha não é um JSON válido, ignore
-          // console.error(`Erro ao processar linha: ${err.message}`);
-        }
-      });
+//       rl.on("line", (line) => {
+//         try {
+//           const parsedLine = JSON.parse(line);
+//           // Adiciona ao array apenas as linhas válidas
+//           if (parsedLine.time >= timestamp) {
+//             lines.push(line);
+//           }
+//         } catch (err) {
+//           // Linha não é um JSON válido, ignore
+//           // console.error(`Erro ao processar linha: ${err.message}`);
+//         }
+//       });
 
-      rl.on("close", () => {
-        // Fecha o stream de leitura
-        readStream.close();
+//       rl.on("close", () => {
+//         // Fecha o stream de leitura
+//         readStream.close();
 
-        // Reescreve o arquivo com as linhas filtradas
-        fs.writeFile(filePath, lines.join("\n"), (err) => {
-          if (err) {
-            return reject(err);
-          }
-          resolve();
-        });
-      });
+//         // Reescreve o arquivo com as linhas filtradas
+//         fs.writeFile(filePath, lines.join("\n"), (err) => {
+//           if (err) {
+//             return reject(err);
+//           }
+//           resolve();
+//         });
+//       });
 
-      rl.on("error", (err) => {
-        reject(err);
-      });
+//       rl.on("error", (err) => {
+//         reject(err);
+//       });
 
-      readStream.on("error", (err) => {
-        reject(err);
-      });
-    });
-  }
+//       readStream.on("error", (err) => {
+//         reject(err);
+//       });
+//     });
+//   }
 
-  resetFileLines(path.join(baseDir, "logs", "info.log"), timestamp30Dias)
-    .then(() => {
-      logger.info({
-        module: "ROOT",
-        origin: "LOGGER",
-        method: "RESET_LOGS",
-        data: { message: 'LOGS RESETADOS' },
-      });
-    })
-    .catch((error) => {
-      logger.error({
-        module: "ROOT",
-        origin: "LOGGER",
-        method: "RESET_LOGS",
-        data: { message: error.message, stack: error.stack, name: error.name },
-      });
-    });
-});
+//   resetFileLines(path.join(baseDir, "logs", "info.log"), timestamp30Dias)
+//     .then(() => {
+//       logger.info({
+//         module: "ROOT",
+//         origin: "LOGGER",
+//         method: "RESET_LOGS",
+//         data: { message: 'LOGS RESETADOS' },
+//       });
+//     })
+//     .catch((error) => {
+//       logger.error({
+//         module: "ROOT",
+//         origin: "LOGGER",
+//         method: "RESET_LOGS",
+//         data: { message: error.message, stack: error.stack, name: error.name },
+//       });
+//     });
+// });
 
 const clearLogs = () => {
   return new Promise(async (resolve, reject) => {

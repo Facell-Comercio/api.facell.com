@@ -1,4 +1,4 @@
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -21,32 +21,33 @@ function getAll(req) {
 
     var where = ` WHERE 1=1 `;
     if (termo) {
-      params.push(termo);
-      params.push(termo);
-      params.push(termo);
+      const termoCnpj = termo.trim().replace(/[^a-zA-Z0-9 ]/g, '')
 
       where += ` AND (
                 ff.nome LIKE CONCAT('%', ?, '%')  OR
                 ff.razao LIKE CONCAT('%', ?, '%')  OR
-                ff.cnpj LIKE CONCAT('%', ?, '%')
+                ff.cnpj = ?
             )`;
+      params.push(termo.trim());
+      params.push(termo.trim());
+      params.push(termoCnpj);
     }
 
     const offset = pageIndex * pageSize;
-    params.push(pageSize);
-    params.push(offset);
+
     const conn = await db.getConnection();
     try {
+
       const [rowTotal] = await conn.execute(
         `SELECT count(ff.id) as qtde FROM fin_fornecedores ff
-            WHERE 
-                ff.nome LIKE CONCAT('%', ?, '%')  OR
-                ff.razao LIKE CONCAT('%', ?, '%')  OR
-                ff.cnpj LIKE CONCAT('%', ?, '%')
+            ${where}
             `,
-        [termo, termo, termo]
+        params
       );
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
+
+      params.push(pageSize);
+      params.push(offset);
 
       var query = `
             SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.active FROM fin_fornecedores ff
@@ -111,7 +112,32 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { id, cnpj,
+      nome,
+      razao,
+      cep,
+      logradouro,
+      numero,
+      complemento,
+      bairro,
+      municipio,
+      uf,
+      email,
+      telefone,
+      id_forma_pagamento,
+      id_tipo_chave_pix,
+      chave_pix,
+      id_banco,
+      agencia,
+      dv_agencia,
+      id_tipo_conta,
+      conta,
+      dv_conta,
+      cnpj_favorecido,
+      favorecido,
+      active
+    } = req.body;
+
     const conn = await db.getConnection();
     try {
       if (id) {
@@ -120,25 +146,60 @@ function insertOne(req) {
         );
       }
       await conn.beginTransaction();
-      let campos = "";
-      let values = "";
-      const params = [];
 
-      Object.keys(rest).forEach((key, index) => {
-        if (rest[key] !== "" && rest[key] !== undefined) {
-          if (index > 0) {
-            campos += ", "; // Adicionar vírgula entre os campos
-            values += ", "; // Adicionar vírgula entre os values
-          }
-          campos += `${key}`;
-          values += `?`;
-          params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
-        }
-      });
+      await conn.execute(`INSERT INTO fin_fornecedores (
+        cnpj,
+        nome,
+        razao,
+        cep,
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        municipio, 
+        uf, 
+        email,
+        telefone, 
+        id_forma_pagamento, 
+        id_tipo_chave_pix, 
+        chave_pix, 
+        id_banco, 
+        agencia, 
+        dv_agencia, 
+        id_tipo_conta, 
+        conta, 
+        dv_conta, 
+        cnpj_favorecido, 
+        favorecido, 
+        active
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);`,
+        [
+          cnpj,
+          nome,
+          razao,
+          cep,
+          logradouro,
+          numero,
+          complemento,
+          bairro,
+          municipio,
+          uf,
+          email,
+          telefone,
+          id_forma_pagamento || null,
+          id_tipo_chave_pix || null,
+          chave_pix,
+          id_banco || null,
+          agencia,
+          dv_agencia,
+          id_tipo_conta || null,
+          conta,
+          dv_conta,
+          cnpj_favorecido,
+          favorecido,
+          active
+        ]);
 
-      const query = `INSERT INTO fin_fornecedores (${campos}) VALUES (${values});`;
-
-      await conn.execute(query, params);
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
@@ -158,38 +219,79 @@ function insertOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { id,
+      cnpj, nome, razao, cep,
+      logradouro, numero, complemento, bairro,
+      municipio, uf, email, telefone, id_forma_pagamento,
+      id_tipo_chave_pix, chave_pix, id_banco, agencia, dv_agencia,
+      id_tipo_conta, conta, dv_conta, cnpj_favorecido, favorecido,
+      active
+    } = req.body;
+
     const conn = await db.getConnection();
+    
     try {
       if (!id) {
         throw new Error("ID não informado!");
       }
-      await conn.beginTransaction();
-      const params = [];
-      let updateQuery = "UPDATE fin_fornecedores SET ";
 
-      // Construir a parte da query para atualização dinâmica
-      let index = 0;
-      Object.keys(rest).forEach((key) => {
-        if (rest[key] !== "" && rest[key] !== undefined) {
-          if (index > 0) {
-            updateQuery += ", "; // Adicionar vírgula entre os campos
-          }
-          updateQuery += `${key} = ?`;
-          params.push(rest[key]); // Adicionar valor do campo ao array de parâmetros
-          index++;
-        }
-      });
+      await conn.execute(`UPDATE fin_fornecedores SET 
+        cnpj = ?,
+        nome = ?,
+        razao = ?,
+        cep = ?,
+        logradouro = ?,
+        numero = ?,
+        complemento = ?,
+        bairro = ?,
+        municipio = ?, 
+        uf = ?, 
+        email = ?,
+        telefone = ?, 
+        id_forma_pagamento = ?, 
+        id_tipo_chave_pix = ?, 
+        chave_pix = ?, 
+        id_banco = ?, 
+        agencia = ?, 
+        dv_agencia = ?, 
+        id_tipo_conta = ?, 
+        conta = ?, 
+        dv_conta = ?, 
+        cnpj_favorecido = ?, 
+        favorecido = ?, 
+        active = ?
 
-      params.push(id);
+        WHERE id = ?`,
 
-      await conn.execute(
-        updateQuery +
-          ` WHERE id = ?
-            `,
-        params
-      );
-      await conn.commit();
+      [
+        cnpj,
+        nome,
+        razao,
+        cep,
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        municipio,
+        uf,
+        email,
+        telefone,
+        id_forma_pagamento || null,
+        id_tipo_chave_pix || null,
+        chave_pix,
+        id_banco || null,
+        agencia,
+        dv_agencia,
+        id_tipo_conta || null,
+        conta,
+        dv_conta,
+        cnpj_favorecido,
+        favorecido,
+        active,
+        id
+      ])
+
+
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
@@ -198,7 +300,7 @@ function update(req) {
         method: "UPDATE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      await conn.rollback();
+
       reject(error);
     } finally {
       conn.release();
