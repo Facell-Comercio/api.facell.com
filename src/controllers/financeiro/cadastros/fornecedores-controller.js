@@ -1,4 +1,4 @@
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -21,32 +21,33 @@ function getAll(req) {
 
     var where = ` WHERE 1=1 `;
     if (termo) {
-      params.push(termo);
-      params.push(termo);
-      params.push(termo);
+      const termoCnpj = termo.trim().replace(/[^a-zA-Z0-9 ]/g, '')
 
       where += ` AND (
                 ff.nome LIKE CONCAT('%', ?, '%')  OR
                 ff.razao LIKE CONCAT('%', ?, '%')  OR
-                ff.cnpj LIKE CONCAT('%', ?, '%')
+                ff.cnpj = ?
             )`;
+      params.push(termo.trim());
+      params.push(termo.trim());
+      params.push(termoCnpj);
     }
 
     const offset = pageIndex * pageSize;
-    params.push(pageSize);
-    params.push(offset);
+
     const conn = await db.getConnection();
     try {
+
       const [rowTotal] = await conn.execute(
         `SELECT count(ff.id) as qtde FROM fin_fornecedores ff
-            WHERE 
-                ff.nome LIKE CONCAT('%', ?, '%')  OR
-                ff.razao LIKE CONCAT('%', ?, '%')  OR
-                ff.cnpj LIKE CONCAT('%', ?, '%')
+            ${where}
             `,
-        [termo, termo, termo]
+        params
       );
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
+
+      params.push(pageSize);
+      params.push(offset);
 
       var query = `
             SELECT ff.id, ff.nome, ff.cnpj, ff.razao, ff.active FROM fin_fornecedores ff
@@ -185,7 +186,7 @@ function update(req) {
 
       await conn.execute(
         updateQuery +
-          ` WHERE id = ?
+        ` WHERE id = ?
             `,
         params
       );

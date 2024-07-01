@@ -33,11 +33,6 @@ app.use("/", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/temp", express.static(path.join(__dirname, "public", "temp")));
 
-logger.info({
-  module: 'ROOT', origin: 'INDEX', method: 'DIRNAME',
-  data: {message: __dirname}
-})
-
 const router = require("./src/routes/router");
 app.use(router);
 
