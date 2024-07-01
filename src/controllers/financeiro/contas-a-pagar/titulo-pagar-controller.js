@@ -103,8 +103,9 @@ function calcularDataPrevisaoPagamento(data_venc) {
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const departamentosUser = user.departamentos
-      .map((departamento) => departamento.id);
+    const departamentosUser = user.departamentos.map(
+      (departamento) => departamento.id
+    );
 
     const { pagination, filters } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
@@ -124,7 +125,9 @@ function getAll(req) {
     ) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
       if (departamentosUser?.length > 0) {
-        where += ` AND (t.id_solicitante = '${user.id}' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
+        where += ` AND (t.id_solicitante = '${
+          user.id
+        }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
       } else {
         where += ` AND t.id_solicitante = '${user.id}' `;
       }
@@ -141,6 +144,7 @@ function getAll(req) {
       arquivados,
       nome_fornecedor,
       nome_user,
+      filial,
     } = filters || {};
     const params = [];
     if (id) {
@@ -202,6 +206,10 @@ function getAll(req) {
     if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
+    }
+    if (filial) {
+      where += ` AND f.nome LIKE CONCAT("%", ?,"%")`;
+      params.push(filial);
     }
     const conn = await db.getConnection();
 
@@ -462,8 +470,9 @@ function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     const conn = await db.getConnection();
-    const departamentosUser = user.departamentos
-      .map((departamento) => departamento.id);
+    const departamentosUser = user.departamentos.map(
+      (departamento) => departamento.id
+    );
 
     try {
       const { user } = req;
@@ -480,7 +489,9 @@ function getAllRecorrencias(req) {
         !checkUserDepartment(req, "FINANCEIRO")
       ) {
         if (departamentosUser?.length > 0) {
-          where += ` AND (r.id_user = '${user.id}' OR t.id_departamento IN (${departamentosUser.join(",")})) `;
+          where += ` AND (r.id_user = '${
+            user.id
+          }' OR t.id_departamento IN (${departamentosUser.join(",")})) `;
         } else {
           where += ` AND r.id_user = '${user.id}' `;
         }
@@ -2027,7 +2038,7 @@ function updateFileTitulo(req) {
     const conn = await db.getConnection();
 
     try {
-      console.log({fileUrl})
+      console.log({ fileUrl });
       await conn.beginTransaction();
 
       if (!id) {
@@ -2050,10 +2061,13 @@ function updateFileTitulo(req) {
         );
       }
 
-      const [rowTitulo] = await conn.execute(`SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`, [id])
-      const titulo = rowTitulo && rowTitulo[0]
+      const [rowTitulo] = await conn.execute(
+        `SELECT ${campo} FROM fin_cp_titulos WHERE id = ?`,
+        [id]
+      );
+      const titulo = rowTitulo && rowTitulo[0];
       if (!titulo) {
-        throw new Error('Solicitação não existe no sistema...')
+        throw new Error("Solicitação não existe no sistema...");
       }
       const newUrl = await replaceFileUrl({
         oldFileUrl: titulo[campo],

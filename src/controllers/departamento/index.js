@@ -60,9 +60,11 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'GER_ALL',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "DEPARTAMENTOS",
+        method: "GER_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -88,9 +90,11 @@ function getOne(req) {
       return;
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'GER_ONE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "DEPARTAMENTOS",
+        method: "GER_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -104,13 +108,16 @@ function getUserDepartamentos(req) {
     const { user } = req;
 
     const conn = await db.getConnection();
+    const where = checkUserAuthorization("FINANCEIRO", "OR", "MASTER")
+      ? ""
+      : "WHERE ud.id_user = ?";
     try {
       const [rowDepartamentos] = await conn.execute(
         `
             SELECT d.id, d.nome
             FROM users_departamentos ud
             LEFT JOIN departamentos d ON d.id = ud.id_departamento
-            WHERE ud.id_user = ?
+            ${where}
             `,
         [user.id]
       );
@@ -118,9 +125,11 @@ function getUserDepartamentos(req) {
       return;
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'GER_USER_DEPARTAMENTOS',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "DEPARTAMENTOS",
+        method: "GER_USER_DEPARTAMENTOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -153,9 +162,11 @@ function update(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'UPDATE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "DEPARTAMENTOS",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -186,9 +197,11 @@ function insertOne(req) {
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'DEPARTAMENTOS', method: 'INSERT_ONE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "DEPARTAMENTOS",
+        method: "INSERT_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
