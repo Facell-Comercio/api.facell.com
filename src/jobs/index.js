@@ -1,6 +1,6 @@
 const { logger } = require('../../logger')
 
-require('./processos/clearTempFolder')
+require('./processos/files')
 
 function iniciarJobs(){
     logger.info({
