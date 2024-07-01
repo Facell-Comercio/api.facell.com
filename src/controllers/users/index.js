@@ -379,7 +379,7 @@ function insertOne(req) {
       
       // Atualização de dados do usuário
       const [result] = await conn.execute(
-        "INSERT INTO users (nome, email, active) VALUES (?,?,?,?)",
+        "INSERT INTO users (nome, email, active) VALUES (?,?,?)",
         [nome, email, active]
       );
       const newId = result.insertId;
