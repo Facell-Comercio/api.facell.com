@@ -27,6 +27,7 @@ const {
   exportRemessa,
   geradorDadosEmpresa,
   importRetornoRemessa,
+  reverseManualPayment,
 } = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -123,6 +124,19 @@ router.put(
   async (req, res) => {
     try {
       const result = await update(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.put(
+  "/reverse-manual-payment/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await reverseManualPayment(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
