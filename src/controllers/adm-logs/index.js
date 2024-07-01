@@ -57,7 +57,8 @@ function getAll() {
         });
       }
 
-      const result = readFileLines(path.join(baseDir, "logs", "info.log"));
+      const result =
+        readFileLines(path.join(baseDir, "logs", "info.log")) || [];
 
       resolve(result);
     } catch (error) {

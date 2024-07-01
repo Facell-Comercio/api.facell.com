@@ -470,7 +470,7 @@ function update(req) {
       }
       const data_pagamento_anterior = bordero.data_pagamento;
 
-      //* Apenas atualiza a data de pagamento do bordero e a data prevista dos vencimentos se não houverem vencimentos pagos
+      //* Apenas atualizar o bordero e data prevista dos vencimentos se não houverem vencimentos pagos
       if (vencimentosPagos.length === 0) {
         // Update do bordero
         await conn.execute(
@@ -1050,7 +1050,7 @@ function exportRemessa(req, res) {
       AND t.id_forma_pagamento = 5
       AND forn.cnpj <> f.cnpj
       AND fb.codigo = 341
-      AND cb.id_tipo_conta = 1
+      AND forn.id_tipo_conta = 1
       AND tv.data_pagamento IS NULL
       AND (tv.status = "erro" OR tv.status = "pendente")
     `,
@@ -1076,7 +1076,7 @@ function exportRemessa(req, res) {
       AND t.id_forma_pagamento = 5
       AND forn.cnpj <> f.cnpj
       AND fb.codigo = 341
-      AND cb.id_tipo_conta = 2
+      AND forn.id_tipo_conta = 2
       AND tv.data_pagamento IS NULL
       AND (tv.status = "erro" OR tv.status = "pendente")
     `,
@@ -1102,7 +1102,7 @@ function exportRemessa(req, res) {
       AND t.id_forma_pagamento = 5
       AND forn.cnpj = f.cnpj
       AND fb.codigo = 341
-      AND cb.id_tipo_conta = 1
+      AND forn.id_tipo_conta = 1
       AND tv.data_pagamento IS NULL
       AND (tv.status = "erro" OR tv.status = "pendente")
     `,
