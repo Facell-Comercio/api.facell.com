@@ -238,6 +238,7 @@ function getOne(req) {
               fi.nome as filial, 
               dda.id as id_dda,
               CASE WHEN (tv.data_pagamento) THEN FALSE ELSE TRUE END as can_remove,
+              CASE WHEN (tv.data_pagamento IS NOT NULL AND tb.remessa = 0 AND cbi.id_cp IS NULL) THEN TRUE ELSE FALSE END as can_modify,
               tb.remessa,
               false AS checked
             FROM fin_cp_bordero b
@@ -252,6 +253,7 @@ function getOne(req) {
             LEFT JOIN fin_centros_custo c ON c.id = tr.id_centro_custo
             LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
             LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+            LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = tv.id
             WHERE b.id = ?
             GROUP BY tv.id
             `,
@@ -511,7 +513,7 @@ function update(req) {
           SET remessa = ?
           WHERE id_vencimento = ?
         `,
-          [vencimento.remessa, vencimento.id_vencimento]
+          [!!vencimento.remessa, vencimento.id_vencimento]
         );
 
         //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
@@ -584,12 +586,148 @@ function update(req) {
       }
 
       await conn.commit();
+      // await conn.rollback();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
         origin: "BORDERO",
         method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      await conn.rollback();
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function reverseManualPayment(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    const conn = await db.getConnection();
+    try {
+      if (!id) {
+        throw new Error("ID não informado!");
+      }
+
+      await conn.beginTransaction();
+
+      const [rowVencimento] = await conn.execute(
+        `
+          SELECT tipo_baixa, data_pagamento, id_titulo, valor as valor_vencimento FROM fin_cp_titulos_vencimentos WHERE id = ?
+        `,
+        [id]
+      );
+      const { tipo_baixa, data_pagamento, id_titulo, valor_vencimento } =
+        rowVencimento && rowVencimento[0];
+      if (!rowVencimento.length) {
+        throw new Error("Vencimento não existente!");
+      }
+      if (!data_pagamento) {
+        throw new Error("Vencimento não pago!");
+      }
+
+      if (tipo_baixa !== "PARCIAL") {
+        await conn.execute(
+          `
+          UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ?, status = ?, obs = ? WHERE id = ?
+        `,
+          [null, null, null, "pendente", null, id]
+        );
+      } else {
+        async function verificarVencimentosParciais(vencimentoId) {
+          let valor = parseFloat(valor_vencimento);
+          const [rowVencimentosParciais] = await conn.execute(
+            `
+            SELECT id, data_pagamento, tipo_baixa, valor
+            FROM fin_cp_titulos_vencimentos 
+            WHERE vencimento_origem = ? 
+            `,
+            [vencimentoId]
+          );
+
+          const vencimentoParcial =
+            rowVencimentosParciais && rowVencimentosParciais[0];
+
+          const [rowVencimentoOrigemParciais] = await conn.execute(
+            `
+            SELECT data_pagamento
+            FROM fin_cp_titulos_vencimentos 
+            WHERE id = ?
+            AND data_pagamento IS NOT NULL
+            `,
+            [vencimentoParcial.id]
+          );
+
+          if (rowVencimentoOrigemParciais.length > 0) {
+            throw new Error(
+              `Não é possível desfazer o pagamento, pois um pagamento parcial foi feito em ${formatDate(
+                rowVencimentoOrigemParciais[0].data_pagamento,
+                "dd/MM/yyyy"
+              )}. Resolva todos os pagamentos parciais primeiro.`
+            );
+          }
+
+          // console.log(rowVencimentosParciais);
+          valor += parseFloat(vencimentoParcial.valor);
+
+          await conn.execute(
+            `
+            DELETE FROM fin_cp_titulos_vencimentos WHERE id = ?
+            `,
+            [vencimentoParcial.id]
+          );
+
+          return valor;
+        }
+
+        const valorTotal = await verificarVencimentosParciais(id);
+        // console.log(`Valor total acumulado: ${valorTotal}`);
+
+        await conn.execute(
+          `
+          UPDATE fin_cp_titulos_vencimentos SET data_pagamento = ?, tipo_baixa = ?, valor_pago = ?, valor = ?, status = ?, obs = ? WHERE id = ?
+        `,
+          [null, null, null, valorTotal, "pendente", null, id]
+        );
+      }
+
+      const [vencimentosPagos] = await conn.execute(
+        `
+            SELECT 
+              tv.id, tb.id_bordero 
+            FROM fin_cp_titulos_vencimentos tv
+            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            WHERE tv.id_titulo = ? 
+            AND NOT tv.data_pagamento IS NULL
+          `,
+        [id_titulo]
+      );
+
+      if (vencimentosPagos.length === 0) {
+        // ^ Se não houverem vencimentos pagos muda o status do título para "aprovado"
+        await conn.execute(
+          `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
+          [3, id_titulo]
+        );
+      }
+      if (vencimentosPagos.length > 1) {
+        // ^ Se ainda houverem vencimentos pagos no título muda o status do titulo para pago parcial
+        await conn.execute(
+          `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
+          [4, id_titulo]
+        );
+      }
+      await conn.commit();
+      // await conn.rollback();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDERO",
+        method: "REVERSE_MANUAL_PAYMENT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();
@@ -1397,7 +1535,7 @@ function exportRemessa(req, res) {
           `,
             [true, vencimento.id_vencimento]
           );
-          console.log(true, vencimento.id_vencimento);
+          // console.log(true, vencimento.id_vencimento);
         }
         //sdfjaslfa
         qtde_registros++;
@@ -1739,6 +1877,7 @@ module.exports = {
   getOne,
   insertOne,
   update,
+  reverseManualPayment,
   deleteVencimento,
   deleteBordero,
   transferBordero,
