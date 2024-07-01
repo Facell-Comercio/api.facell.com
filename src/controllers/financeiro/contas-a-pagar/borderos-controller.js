@@ -452,31 +452,47 @@ function update(req) {
         [id]
       );
       const bordero = rowBordero && rowBordero[0];
+
+      const [rowVencimentosPagos] = await conn.execute(
+        `
+        SELECT tv.id FROM fin_cp_titulos_borderos tb
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+        WHERE tb.id_bordero = ? 
+        AND tv.data_pagamento IS NOT NULL
+        OR NOT tb.remessa`,
+        [id]
+      );
+
+      const vencimentosPagos = rowVencimentosPagos && rowVencimentosPagos[0];
+
       if (!bordero) {
         throw new Error("Borderô inexistente!");
       }
       const data_pagamento_anterior = bordero.data_pagamento;
 
-      // Update do bordero
-      await conn.execute(
-        `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
-        [startOfDay(data_pagamento), id_conta_bancaria, id]
-      );
-
-      if (
-        startOfDay(data_pagamento).toISOString() !=
-        startOfDay(data_pagamento_anterior).toISOString()
-      ) {
-        // Update titulos do bordero igualando a data_prevista à data_pagamento do bordero
+      //* Apenas atualiza a data de pagamento do bordero e a data prevista dos vencimentos se não houverem vencimentos pagos
+      if (vencimentosPagos.length === 0) {
+        // Update do bordero
         await conn.execute(
-          `
+          `UPDATE fin_cp_bordero SET data_pagamento = ?, id_conta_bancaria = ? WHERE id =?`,
+          [startOfDay(data_pagamento), id_conta_bancaria, id]
+        );
+
+        if (
+          startOfDay(data_pagamento).toISOString() !=
+          startOfDay(data_pagamento_anterior).toISOString()
+        ) {
+          // Update titulos do bordero igualando a data_prevista à data_pagamento do bordero
+          await conn.execute(
+            `
         UPDATE fin_cp_titulos_vencimentos 
         SET data_prevista = ? 
         WHERE id IN (
           SELECT id_vencimento FROM fin_cp_titulos_borderos WHERE id_bordero = ?
         )`,
-          [startOfDay(data_pagamento), id]
-        );
+            [startOfDay(data_pagamento), id]
+          );
+        }
       }
 
       // Inserir os itens do bordero
