@@ -375,12 +375,12 @@ function insertOne(req) {
         throw new Error("Email não enviado!");
       }
       await conn.beginTransaction();
-
+      const id_publico = uuidv4()
       
       // Atualização de dados do usuário
       const [result] = await conn.execute(
-        "INSERT INTO users (nome, email, active) VALUES (?,?,?)",
-        [nome, email, active]
+        "INSERT INTO users (id_publico, nome, email, active) VALUES (?,?,?,?)",
+        [id_publico, nome, email, active]
       );
       const newId = result.insertId;
       // Já que deu certo inserir o usuário, vamos importar a imagem dele...
