@@ -1,5 +1,7 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
+const { checkUserDepartment } = require("../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -108,19 +110,26 @@ function getUserDepartamentos(req) {
     const { user } = req;
 
     const conn = await db.getConnection();
-    const where = checkUserAuthorization("FINANCEIRO", "OR", "MASTER")
-      ? ""
-      : "WHERE ud.id_user = ?";
+    var where = ` WHERE 1=1 `;
+    //^ Somente o Financeiro/Master podem ver todos
+    if (
+      !checkUserDepartment(req, "FINANCEIRO") &&
+      !checkUserPermission(req, "MASTER")
+    ) {
+      where += ` AND ud.id_user = '${user.id}' `;
+    }
+    console.log(where);
+
     try {
       const [rowDepartamentos] = await conn.execute(
         `
             SELECT d.id, d.nome
-            FROM users_departamentos ud
-            LEFT JOIN departamentos d ON d.id = ud.id_departamento
+            FROM departamentos d
+            LEFT JOIN users_departamentos ud ON d.id = ud.id_departamento
             ${where}
-            `,
-        [user.id]
+            `
       );
+      console.log(rowDepartamentos);
       resolve(rowDepartamentos);
       return;
     } catch (error) {
