@@ -89,7 +89,6 @@ function getOne(req) {
       );
       const departamentos = rowDepartamentos && rowDepartamentos[0];
       resolve(departamentos);
-      return;
     } catch (error) {
       logger.error({
         module: "ADM",
@@ -98,7 +97,6 @@ function getOne(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
     } finally {
       conn.release();
     }
@@ -118,7 +116,6 @@ function getUserDepartamentos(req) {
     ) {
       where += ` AND ud.id_user = '${user.id}' `;
     }
-    console.log(where);
 
     try {
       const [rowDepartamentos] = await conn.execute(
@@ -129,9 +126,7 @@ function getUserDepartamentos(req) {
             ${where}
             `
       );
-      console.log(rowDepartamentos);
       resolve(rowDepartamentos);
-      return;
     } catch (error) {
       logger.error({
         module: "ADM",
@@ -140,7 +135,6 @@ function getUserDepartamentos(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
     } finally {
       conn.release();
     }
