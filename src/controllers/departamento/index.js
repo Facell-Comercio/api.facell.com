@@ -108,7 +108,7 @@ function getUserDepartamentos(req) {
     const { user } = req;
 
     const conn = await db.getConnection();
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE 1=1 AND ud.id IS NOT NULL `;
     //^ Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -120,7 +120,7 @@ function getUserDepartamentos(req) {
     try {
       const [rowDepartamentos] = await conn.execute(
         `
-            SELECT d.id, d.nome
+            SELECT DISTINCT d.id, d.nome
             FROM departamentos d
             LEFT JOIN users_departamentos ud ON d.id = ud.id_departamento
             ${where}
