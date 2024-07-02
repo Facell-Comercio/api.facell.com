@@ -459,11 +459,12 @@ function update(req) {
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
         WHERE tb.id_bordero = ? 
         AND tv.data_pagamento IS NOT NULL
-        OR NOT tb.remessa`,
+        OR tb.remessa`,
         [id]
       );
 
-      const vencimentosPagos = rowVencimentosPagos && rowVencimentosPagos[0];
+      const vencimentosPagos =
+        (rowVencimentosPagos && rowVencimentosPagos[0]) || [];
 
       if (!bordero) {
         throw new Error("Borderô inexistente!");
