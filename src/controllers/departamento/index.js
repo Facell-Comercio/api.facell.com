@@ -118,7 +118,6 @@ function getUserDepartamentos(req) {
     ) {
       where += ` AND ud.id_user = '${user.id}' `;
     }
-    console.log(where);
 
     try {
       const [rowDepartamentos] = await conn.execute(
@@ -129,7 +128,6 @@ function getUserDepartamentos(req) {
             ${where}
             `
       );
-      console.log(rowDepartamentos);
       resolve(rowDepartamentos);
       return;
     } catch (error) {

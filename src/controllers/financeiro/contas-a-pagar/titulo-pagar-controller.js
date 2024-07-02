@@ -1033,10 +1033,12 @@ function insertOne(req) {
           url_boleto,
           url_contrato,
           url_planilha,
-          url_txt
+          url_txt,
+
+          id_status
         )
 
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `,
         [
           user.id,
@@ -1072,6 +1074,8 @@ function insertOne(req) {
           nova_url_contrato || null,
           nova_url_planilha || null,
           nova_url_txt || null,
+
+          checkUserDepartment(req, "FINANCEIRO") ? 3 : 1,
         ]
       );
 
