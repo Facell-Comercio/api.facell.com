@@ -1,4 +1,4 @@
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
 function getAll(req) {
@@ -106,7 +106,7 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { id, nome_fornecedor, ...rest } = req.body;
     const conn = await db.getConnection();
     try {
       if (id) {
@@ -151,7 +151,7 @@ function insertOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, ...rest } = req.body;
+    const { id, nome_fornecedor, ...rest } = req.body;
     const conn = await db.getConnection();
     try {
       if (!id) {
