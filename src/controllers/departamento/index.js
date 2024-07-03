@@ -89,7 +89,6 @@ function getOne(req) {
       );
       const departamentos = rowDepartamentos && rowDepartamentos[0];
       resolve(departamentos);
-      return;
     } catch (error) {
       logger.error({
         module: "ADM",
@@ -98,7 +97,6 @@ function getOne(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
     } finally {
       conn.release();
     }
@@ -110,7 +108,7 @@ function getUserDepartamentos(req) {
     const { user } = req;
 
     const conn = await db.getConnection();
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE 1=1 AND ud.id IS NOT NULL `;
     //^ Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -122,14 +120,13 @@ function getUserDepartamentos(req) {
     try {
       const [rowDepartamentos] = await conn.execute(
         `
-            SELECT d.id, d.nome
+            SELECT DISTINCT d.id, d.nome
             FROM departamentos d
             LEFT JOIN users_departamentos ud ON d.id = ud.id_departamento
             ${where}
             `
       );
       resolve(rowDepartamentos);
-      return;
     } catch (error) {
       logger.error({
         module: "ADM",
@@ -138,7 +135,6 @@ function getUserDepartamentos(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
     } finally {
       conn.release();
     }

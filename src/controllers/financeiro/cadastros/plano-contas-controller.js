@@ -87,9 +87,6 @@ function getAll(req) {
       where += ` AND pc.active = ? `;
       params.push(active);
     }
-    if (onlyChildren) {
-      where += ` AND pc.codigo LIKE '%.%' `;
-    }
 
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();
