@@ -183,7 +183,7 @@ function getAll(req) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%') `;
       params.push(nome_user);
     }
-    if(num_doc){
+    if (num_doc) {
       where += ` AND t.num_doc LIKE CONCAT('%', ?, '%') `;
       params.push(String(num_doc).trim());
     }
@@ -864,10 +864,10 @@ function insertOne(req) {
           );
         }
       }
-      // Se forma de pagamento for na conta, então exigir os dados bancários
-      if (id_forma_pagamento === "2" || id_forma_pagamento === "5") {
+      // Se forma de pagamento for transferência, então exigir os dados bancários
+      if (id_forma_pagamento === "5") {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
-          throw new Error("Preencha corretamente os dádos bancários!");
+          throw new Error("Preencha corretamente os dados bancários!");
         }
       }
 
@@ -1576,10 +1576,10 @@ function update(req) {
           );
         }
       }
-      // Se forma de pagamento for na conta, então exigir os dados bancários
-      if (id_forma_pagamento === "2" || id_forma_pagamento === "5") {
+      // Se forma de pagamento for transferência, então exigir os dados bancários
+      if (id_forma_pagamento === "5") {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
-          throw new Error("Preencha corretamente os dádos bancários!");
+          throw new Error("Preencha corretamente os dados bancários!");
         }
       }
 
@@ -2632,15 +2632,15 @@ function importSolicitacaoLote(req) {
               );
             }
           }
-          // Se forma de pagamento for na conta, então exigir os dados bancários
-          if (id_forma_pagamento == "2" || id_forma_pagamento == "5") {
+          // Se forma de pagamento for transferência, então exigir os dados bancários
+          if (id_forma_pagamento === "5") {
             if (
               !fornecedor.id_banco ||
               !fornecedor.id_tipo_conta ||
               !fornecedor.agencia ||
               !fornecedor.conta
             ) {
-              throw new Error("Preencha corretamente os dádos bancários!");
+              throw new Error("Preencha corretamente os dados bancários!");
             }
           }
           // Código de Barras
