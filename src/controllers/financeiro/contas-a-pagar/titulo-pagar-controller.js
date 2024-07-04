@@ -145,6 +145,7 @@ function getAll(req) {
       nome_fornecedor,
       nome_user,
       filial,
+      num_doc,
     } = filters || {};
     const params = [];
     if (id) {
@@ -180,6 +181,10 @@ function getAll(req) {
     if (nome_user) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%') `;
       params.push(nome_user);
+    }
+    if(num_doc){
+      where += ` AND t.num_doc LIKE CONCAT('%', ?, '%') `;
+      params.push(String(num_doc).trim());
     }
 
     if (tipo_data && range_data) {
@@ -230,7 +235,7 @@ function getAll(req) {
       const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       var query = `
             SELECT DISTINCT 
-                t.id, s.status, t.created_at, t.descricao, t.valor,
+                t.id, s.status, t.created_at, t.num_doc, t.descricao, t.valor,
                 f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor, u.nome as solicitante,
                 fp.forma_pagamento
