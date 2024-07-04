@@ -1679,7 +1679,7 @@ function update(req) {
       // ~ Início de Manipulação de Rateio //////////////////////
       // * Validação de orçamento e atualização do rateio
       if (update_rateio) {
-        if (!id_orcamento) {
+        if (!id_orcamento && grupoValidaOrcamento) {
           throw new Error("Orçamento não localizado!");
         }
 
