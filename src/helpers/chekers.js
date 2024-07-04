@@ -1,4 +1,5 @@
 function checkCodigoBarras(text) {
+
   const dv = text.charAt(4);
   const linhaCheck = `${text.substring(0, 4)}${text.substring(5, 47)}`;
   // console.log(text.substring(0, 4));
@@ -16,7 +17,8 @@ function checkCodigoBarras(text) {
     somaDigitos += parseInt(arrayCheck[i]) * parseInt(arrayCalculo[i]);
   }
   const modulo = somaDigitos % 11;
-  const digitoVerificador = 11 - modulo;
+  let digitoVerificador = 11 - modulo;
+  digitoVerificador = (digitoVerificador == 11 || digitoVerificador == 10 || digitoVerificador == 0) ? 1 : digitoVerificador;
   // console.log(somaDigitos, modulo, digitoVerificador, dv);
   return digitoVerificador === parseInt(dv);
 }
