@@ -10,6 +10,7 @@ const {
   deleteConciliacao,
   conciliacaoAutomatica,
   getConciliacoes,
+  conciliacaoTarifas,
 } = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
 const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
 
@@ -57,6 +58,19 @@ router.post(
   async (req, res) => {
     try {
       const result = await conciliacaoAutomatica(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/tarifas",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await conciliacaoTarifas(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });

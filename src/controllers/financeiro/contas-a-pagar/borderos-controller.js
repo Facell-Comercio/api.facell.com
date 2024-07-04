@@ -942,6 +942,7 @@ async function exportBorderos(req) {
             PAGAMENTO: titulo.data_pagamento
               ? normalizeDate(titulo.data_pagamento)
               : "",
+            PREVISÃO: normalizeDate(titulo.previsao) || "",
             EMISSÃO: titulo.data_emissao
               ? normalizeDate(titulo.data_emissao)
               : "",
@@ -960,7 +961,6 @@ async function exportBorderos(req) {
 
             "CONTA BANCÁRIA": response.conta_bancaria || "",
             BANCO: response.banco || "",
-            PREVISÃO: normalizeDate(titulo.previsao) || "",
             STATUS: titulo.status || "",
           });
         });
