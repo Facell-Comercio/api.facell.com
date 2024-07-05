@@ -1051,7 +1051,7 @@ function exportRemessa(req, res) {
       AND t.id_forma_pagamento = 5
       AND forn.cnpj <> f.cnpj
       AND fb.codigo = 341
-      AND forn.id_tipo_conta = 1
+      AND (forn.id_tipo_conta = 1 OR forn.id_tipo_conta IS NULL)
       AND tv.data_pagamento IS NULL
       AND (tv.status = "erro" OR tv.status = "pendente")
     `,
@@ -1103,7 +1103,7 @@ function exportRemessa(req, res) {
       AND t.id_forma_pagamento = 5
       AND forn.cnpj = f.cnpj
       AND fb.codigo = 341
-      AND forn.id_tipo_conta = 1
+      AND (forn.id_tipo_conta = 1 OR forn.id_tipo_conta IS NULL)
       AND tv.data_pagamento IS NULL
       AND (tv.status = "erro" OR tv.status = "pendente")
     `,
@@ -1200,7 +1200,7 @@ function exportRemessa(req, res) {
       LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
       WHERE tb.id_bordero = ?
       AND t.id_forma_pagamento = 1
-      AND (LEFT(dda.cod_barras, 3) = 341 OR LEFT(tv.cod_barras, 3) = 341)
+      AND (LEFT(COALESCE(dda.cod_barras, ''), 3) = 341 OR LEFT(COALESCE(tv.cod_barras, ''), 3) = 341)
       AND tv.data_pagamento IS NULL
       AND (tv.status = "erro" OR tv.status = "pendente")
     `,
@@ -1256,10 +1256,6 @@ function exportRemessa(req, res) {
       ]);
 
       let formasPagamento;
-      // console.log(
-      //   rowsPagamentoBoletoItau,
-      //   rowsPagamentoBoletoOutroBancoParaItau
-      // );
 
       if (isPix) {
         formasPagamento = new Map(
@@ -1380,7 +1376,7 @@ function exportRemessa(req, res) {
             forn.cnpj_favorecido as favorecido_cnpj,
             t.id_tipo_chave_pix,
             t.chave_pix,
-            tv.qr_code, tv.cod_barras as cod_barras_tv
+            tv.qr_code, tv.cod_barras as cod_barras_tv,
             dda.cod_barras
           FROM fin_cp_titulos t
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
@@ -1576,7 +1572,9 @@ function exportRemessa(req, res) {
 
       //* Verificação da quantidade de lotes
       if (arquivo.length < 3) {
-        throw new Error("Não há lotes no arquivo importado  ");
+        throw new Error(
+          "Erro ao criar a remessa. O arquivo resultante está vazio"
+        );
       }
 
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
