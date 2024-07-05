@@ -17,6 +17,7 @@ const {
   getAllCpVencimentosBordero,
   getOneByTimParams,
   getPendencias,
+  importSolicitacaoLote,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
 router.get("/export-datasys", async (req, res) => {
@@ -146,6 +147,15 @@ router.get("/:id", async (req, res) => {
 router.post("/criar-recorrencia", async (req, res) => {
   try {
     const result = await insertOneRecorrencia(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.post("/solicitacao-lote", async (req, res) => {
+  try {
+    const result = await importSolicitacaoLote(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

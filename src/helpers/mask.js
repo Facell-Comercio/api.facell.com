@@ -109,9 +109,9 @@ function removeSpecialCharactersAndAccents(str) {
   return trimmedStr;
 }
 
-/** 
+/**
  * Transforma linha digitável em Código de Barras
- * */ 
+ * */
 function normalizeCodigoBarras(text) {
   if (!text) return null;
   let textoLimpo = String(text)
@@ -129,9 +129,9 @@ function normalizeCodigoBarras(text) {
   return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
 }
 
-/** 
+/**
  * Função que extrai URL / Chave de endereçamento do PIX Copia e Cola
- * */ 
+ * */
 function normalizeURLChaveEnderecamentoPIX(qr_code) {
   const qr = qr_code.trim();
   if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
@@ -140,6 +140,13 @@ function normalizeURLChaveEnderecamentoPIX(qr_code) {
   const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
   const caracteres = parseInt(etapa1[1].substring(2, 4)) + 4;
   return etapa1[1].substring(4, caracteres);
+}
+
+function excelDateToJSDate(serial) {
+  // Ponto de início (1900 ou 1904)
+  const baseDate = new Date(1900, 0, 1); // 1 de janeiro de 1900
+  const days = serial - 2; // Ajuste para o bug do Excel que considera 1900 como ano bissexto
+  return new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 module.exports = {
@@ -155,4 +162,5 @@ module.exports = {
   removeSpecialCharactersAndAccents,
   normalizeCodigoBarras,
   normalizeURLChaveEnderecamentoPIX,
+  excelDateToJSDate,
 };
