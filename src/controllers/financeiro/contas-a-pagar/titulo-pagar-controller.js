@@ -118,7 +118,7 @@ function getAll(req) {
     // console.log(pageIndex, pageSize, offset)
 
     // Filtros
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE t.id_forma_pagamento <> 6 `;
     //* Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&

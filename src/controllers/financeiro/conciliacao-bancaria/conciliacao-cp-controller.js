@@ -545,7 +545,7 @@ function conciliacaoTarifas(req) {
       //* Query para conseguir alguns dados
       const [rowDadosSolicitacao] = await conn.execute(
         `
-        SELECT cb.id_filial, cb.id_banco, fb.id_fornecedor, f.nome as filial, forn.nome as fornecedor 
+        SELECT cb.id_filial, cb.id_banco, fb.id_fornecedor, f.id_grupo_economico, f.nome as filial, forn.nome as fornecedor 
         FROM fin_contas_bancarias cb
         LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
         LEFT JOIN filiais f ON f.id = cb.id_filial
@@ -557,156 +557,191 @@ function conciliacaoTarifas(req) {
       const dadosSolicitacao = rowDadosSolicitacao && rowDadosSolicitacao[0];
 
       for (const tarifa of tarifas) {
-        const [rowTarifasDuplicadas] = await conn.execute(
-          `
-          SELECT id 
-          FROM fin_cp_titulos
-          WHERE id_filial = ?
-          AND descricao = ?
-          AND valor = ?
-          AND data_emissao = ?
-          `,
-          [
-            dadosSolicitacao.id_filial,
-            tarifa.descricao,
-            tarifa.valor,
-            new Date(tarifa.data_transacao),
-          ]
-        );
-        //* Verifica a existência da tarifa nas solicitações
-        if (rowTarifasDuplicadas.length > 0) {
-          throw new Error(
-            `A tarifa de id transação ${tarifa.id_transacao} já foi lançada em solicitações`
-          );
-        }
-
-        //* Criação da solicitação
-        const [resultInsertTitulo] = await conn.execute(
-          `
-          INSERT INTO fin_cp_titulos
-          (id_status, data_emissao, valor, id_fornecedor, id_filial, id_solicitante, id_tipo_solicitacao, id_banco, id_departamento, id_forma_pagamento, num_doc, descricao)
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-          [
-            5, //id_status
-            new Date(tarifa.data_transacao), //data_emissao
-            tarifa.valor, //valor
-            dadosSolicitacao.id_fornecedor, // id_fornecedor
-            dadosSolicitacao.id_filial, // id_filial
-            req.user.id, //id_solicitante
-            3, //id_tipo_solicitacao
-            dadosSolicitacao.id_banco, // id_banco
-            4, //id_departamento
-            2, //id_forma_pagamento
-            tarifa.doc, // num_doc
-            tarifa.descricao, // descricao
-          ]
-        );
-        const idTitulo = resultInsertTitulo.insertId;
-
-        //* Criação do histórico
-        const historico = `PAGO POR: ${normalizeFirstAndLastName(
-          user.nome
-        )}. AUTOMATICAMENTE POR LANÇAMENTO DE TARIFAS\n`;
-        await conn.execute(
-          `INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
-          [idTitulo, historico]
-        );
-
-        //* Criação do vencimento
-        const [resultInsertVencimento] = await conn.execute(
-          `
-          INSERT INTO fin_cp_titulos_vencimentos
-          (id_titulo, data_vencimento, data_prevista, data_pagamento, valor, valor_pago, tipo_baixa, status, obs)
-          VALUES (?,?,?,?,?,?,?,?,?)
-          `,
-          [
-            idTitulo, // id_titulo
-            new Date(tarifa.data_transacao), // data_vencimento
-            new Date(tarifa.data_transacao), // data_prevista
-            new Date(tarifa.data_transacao), // data_pagamento
-            tarifa.valor, // valor
-            tarifa.valor, // valor_pago
-            "PADRÃO", // tipo_baixa
-            "pago", // status
-            "PAGO AUTOMATICAMENTE PELA CONCILIAÇÃO", // obs
-          ]
-        );
-        const idVencimento = resultInsertVencimento.insertId;
-
-        //* Criação do item rateio
-        await conn.execute(
-          `
-          INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, valor, percentual)
-          VALUES (?,?,?,?,?,?)`,
-          [
-            idTitulo,
-            dadosSolicitacao.id_filial, // id_filial
-            //!id_centro_custo
-            //!id_plano_contas
-            tarifa.valor,
-            1.0,
-          ]
-        );
-
-        //* Adiciona o vencimento a um borderô existente ou novo
-        if (bordero && bordero.id) {
-          await conn.execute(
+        try {
+          const [rowTarifasDuplicadas] = await conn.execute(
             `
-            INSERT INTO fin_cp_titulos_borderos (id_bordero, id_vencimento)
-            VALUES (?,?)`,
-            [bordero.id, idVencimento]
-          );
-        } else {
-          const [resultInsertBordero] = await conn.execute(
-            `
-            INSERT INTO fin_cp_bordero (id_conta_bancaria, data_prevista) VALUES (?,?)
+            SELECT id 
+            FROM fin_cp_titulos
+            WHERE id_filial = ?
+            AND descricao = ?
+            AND valor = ?
+            AND data_emissao = ?
             `,
-            [id_conta_bancaria, new Date(data_transacao)]
+            [
+              dadosSolicitacao.id_filial,
+              tarifa.descricao,
+              tarifa.valor,
+              new Date(tarifa.data_transacao),
+            ]
           );
-          const idBordero = resultInsertBordero.insertId;
+          //* Verifica a existência da tarifa nas solicitações
+          if (rowTarifasDuplicadas.length > 0) {
+            throw new Error(
+              `A tarifa de id transação ${tarifa.id_transacao} já foi lançada em solicitações`
+            );
+          }
+
+          //* Coleta o plano de contas e o centro de custo da tarifa
+          const [rowDadosTarifaPadrao] = await conn.execute(
+            `
+            SELECT id_centro_custo, id_plano_contas FROM fin_tarifas_padrao WHERE descricao = ? AND id_grupo_economico = ?
+            `,
+            [tarifa.descricao, dadosSolicitacao.id_grupo_economico]
+          );
+          if (rowDadosTarifaPadrao.length > 1) {
+            throw new Error(
+              `Aparentemente essa é uma tarifa duplicada, isso não era para ocorrer, contate o time de desenvolvimento`
+            );
+          }
+          const dadosTarifaPadrao =
+            rowDadosTarifaPadrao && rowDadosTarifaPadrao[0];
+          if (!dadosTarifaPadrao) {
+            throw new Error(
+              `A tarifa não foi encontrada no cadastro de tarifas padrão`
+            );
+          }
+
+          //* Criação da solicitação
+          const [resultInsertTitulo] = await conn.execute(
+            `
+            INSERT INTO fin_cp_titulos
+            (id_status, data_emissao, valor, id_fornecedor, id_filial, id_solicitante, id_tipo_solicitacao, id_banco, id_departamento, id_forma_pagamento, num_doc, descricao)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+              5, //id_status
+              new Date(tarifa.data_transacao), //data_emissao
+              tarifa.valor, //valor
+              dadosSolicitacao.id_fornecedor, // id_fornecedor
+              dadosSolicitacao.id_filial, // id_filial
+              req.user.id, //id_solicitante
+              3, //id_tipo_solicitacao
+              dadosSolicitacao.id_banco, // id_banco
+              4, //id_departamento
+              2, //id_forma_pagamento
+              tarifa.doc, // num_doc
+              tarifa.descricao, // descricao
+            ]
+          );
+          const idTitulo = resultInsertTitulo.insertId;
+
+          //* Criação do histórico
+          const historico = `PAGO POR: ${normalizeFirstAndLastName(
+            req.user.nome
+          )}. AUTOMATICAMENTE POR LANÇAMENTO DE TARIFAS\n`;
+          await conn.execute(
+            `INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
+            [idTitulo, historico]
+          );
+
+          //* Criação do vencimento
+          const [resultInsertVencimento] = await conn.execute(
+            `
+            INSERT INTO fin_cp_titulos_vencimentos
+            (id_titulo, data_vencimento, data_prevista, data_pagamento, valor, valor_pago, tipo_baixa, status, obs)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            `,
+            [
+              idTitulo, // id_titulo
+              new Date(tarifa.data_transacao), // data_vencimento
+              new Date(tarifa.data_transacao), // data_prevista
+              new Date(tarifa.data_transacao), // data_pagamento
+              tarifa.valor, // valor
+              tarifa.valor, // valor_pago
+              "PADRÃO", // tipo_baixa
+              "pago", // status
+              "PAGO AUTOMATICAMENTE PELA CONCILIAÇÃO", // obs
+            ]
+          );
+          const idVencimento = resultInsertVencimento.insertId;
+
+          //* Criação do item rateio
           await conn.execute(
             `
-            INSERT INTO fin_cp_titulos_borderos (id_bordero, id_vencimento)
-            VALUES (?,?)`,
-            [idBordero, idVencimento]
+            INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, valor, percentual)
+            VALUES (?,?,?,?,?,?)`,
+            [
+              idTitulo, //id_titulo
+              dadosSolicitacao.id_filial, // id_filial
+              dadosTarifaPadrao.id_centro_custo, //id_centro_custo
+              dadosTarifaPadrao.id_plano_contas, //id_plano_contas
+              tarifa.valor, //valor
+              1.0, //percentual
+            ]
           );
+
+          //* Adiciona o vencimento a um borderô existente ou novo
+          if (bordero && bordero.id) {
+            await conn.execute(
+              `
+              INSERT INTO fin_cp_titulos_borderos (id_bordero, id_vencimento)
+              VALUES (?,?)`,
+              [bordero.id, idVencimento]
+            );
+          } else {
+            const [resultInsertBordero] = await conn.execute(
+              `
+              INSERT INTO fin_cp_bordero (id_conta_bancaria, data_prevista) VALUES (?,?)
+              `,
+              [id_conta_bancaria, new Date(data_transacao)]
+            );
+            const idBordero = resultInsertBordero.insertId;
+            await conn.execute(
+              `
+              INSERT INTO fin_cp_titulos_borderos (id_bordero, id_vencimento)
+              VALUES (?,?)`,
+              [idBordero, idVencimento]
+            );
+          }
+
+          //* Conciliação automática
+          const [resultConciliacao] = await conn.execute(
+            `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
+            [req.user.id, "AUTOMATICA", id_conta_bancaria]
+          );
+          const newIdConciliacao = resultConciliacao.insertId;
+          if (!newIdConciliacao) {
+            throw new Error("Falha ao inserir a conciliação!");
+          }
+
+          //* Adiciona a conciliação da tarifa (transaçao)
+          await conn.execute(
+            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_extrato, valor) VALUES (?, ?, ?);`,
+            [newIdConciliacao, tarifa.id, tarifa.valor]
+          );
+
+          //* Adiciona o vencimento nos itens da conciliação bancária
+          await conn.execute(
+            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
+            [newIdConciliacao, idVencimento, tarifa.valor]
+          );
+          result.push({
+            "ID TÍTULO": idTitulo,
+            FORNECEDOR: dadosSolicitacao.fornecedor,
+            FILIAL: dadosSolicitacao.filial,
+            "DATA PAGAMENTO": formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
+            "VALOR PAGO": tarifa.valor,
+            "ID TRANSAÇÃO": tarifa.id_transacao,
+            DESCRIÇÃO: tarifa.descricao,
+            DOC: tarifa.doc,
+            CONCILIADO: "SIM",
+          });
+        } catch (e) {
+          result.push({
+            "ID TÍTULO": "-",
+            FORNECEDOR: "-",
+            FILIAL: "-",
+            "DATA PAGAMENTO": "-",
+            "VALOR PAGO": "-",
+            "ID TRANSAÇÃO": "-",
+            DESCRIÇÃO: "-",
+            DOC: "-",
+            CONCILIADO: "NÃO",
+            ERROR: e.message,
+          });
         }
-
-        //* Conciliação automática
-        const [resultConciliacao] = await conn.execute(
-          `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
-          [req.user.id, "AUTOMATICA", id_conta_bancaria]
-        );
-        const newIdConciliacao = resultConciliacao.insertId;
-        if (!newIdConciliacao) {
-          throw new Error("Falha ao inserir a conciliação!");
-        }
-
-        //* Adiciona a conciliação da tarifa (transaçao)
-        await conn.execute(
-          `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_extrato, valor) VALUES (?, ?, ?);`,
-          [newIdConciliacao, tarifa.id, tarifa.valor]
-        );
-
-        //* Adiciona o vencimento nos itens da conciliação bancária
-        await conn.execute(
-          `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
-          [newIdConciliacao, idVencimento, tarifa.valor]
-        );
-        result.push({
-          "ID TÍTULO": idTitulo,
-          FORNECEDOR: dadosSolicitacao.fornecedor,
-          FILIAL: dadosSolicitacao.filial,
-          "DATA PAGAMENTO": formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
-          "VALOR PAGO": tarifa.valor,
-          "ID TRANSAÇÃO": tarifa.id_transacao,
-          DESCRIÇÃO: tarifa.descricao,
-          DOC: tarifa.doc,
-          CONCILIADO: "SIM",
-        });
       }
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
+      // await conn.rollback();
       resolve(result);
     } catch (error) {
       logger.error({
