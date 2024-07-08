@@ -715,28 +715,25 @@ function conciliacaoTarifas(req) {
             [newIdConciliacao, idVencimento, tarifa.valor]
           );
           result.push({
-            "ID TÍTULO": idTitulo,
-            FORNECEDOR: dadosSolicitacao.fornecedor,
-            FILIAL: dadosSolicitacao.filial,
-            "DATA PAGAMENTO": formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
-            "VALOR PAGO": tarifa.valor,
-            "ID TRANSAÇÃO": tarifa.id_transacao,
-            DESCRIÇÃO: tarifa.descricao,
-            DOC: tarifa.doc,
-            CONCILIADO: "SIM",
+            id_titulo: idTitulo,
+            fornecedor: dadosSolicitacao.fornecedor,
+            filia: dadosSolicitacao.filial,
+            data_pagamento: formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
+            valor: tarifa.valor,
+            id_transacao: tarifa.id_transacao,
+            descricao: tarifa.descricao,
+            doc: tarifa.doc,
+            conciliado: true,
           });
         } catch (e) {
           result.push({
-            "ID TÍTULO": "-",
-            FORNECEDOR: "-",
-            FILIAL: "-",
-            "DATA PAGAMENTO": "-",
-            "VALOR PAGO": "-",
-            "ID TRANSAÇÃO": "-",
-            DESCRIÇÃO: "-",
-            DOC: "-",
-            CONCILIADO: "NÃO",
-            ERROR: e.message,
+            data_pagamento: formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
+            valor: tarifa.valor,
+            id_transacao: tarifa.id_transacao,
+            descricao: tarifa.descricao,
+            doc: tarifa.doc,
+            conciliado: false,
+            error: e.message,
           });
         }
       }
