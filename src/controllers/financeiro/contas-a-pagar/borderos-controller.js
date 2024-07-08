@@ -1390,6 +1390,11 @@ function exportRemessa(req, res) {
           const vencimento = rowVencimento && rowVencimento[0];
 
           //* Verifica se é cpf ou cnpj
+          if (vencimento.favorecido_cnpj) {
+            throw new Error(
+              `O fornecedor ${vencimento.favorecido_nome} não tem o cnpj do favorecido`
+            );
+          }
           const favorecido_tipo_insc =
             vencimento.favorecido_cnpj.length === 11 ? 1 : 2;
 
