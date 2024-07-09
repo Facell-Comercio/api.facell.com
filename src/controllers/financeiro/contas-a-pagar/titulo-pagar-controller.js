@@ -157,7 +157,7 @@ function getAll(req) {
       where += ` AND t.id_status = ?`;
       params.push(id_status);
     }
-    if (id_forma_pagamento && id_status !== "all") {
+    if (id_forma_pagamento && id_forma_pagamento !== "all") {
       where += ` AND t.id_forma_pagamento = ? `;
       params.push(id_forma_pagamento);
     }
