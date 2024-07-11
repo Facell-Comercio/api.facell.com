@@ -1,4 +1,6 @@
 const router = require("express").Router();
+const path = require("path");
+const multer = require('multer');
 
 const {
   getAll,
@@ -11,6 +13,11 @@ const {
   updateTransacaoPadrao,
 } = require("../../../controllers/financeiro/extratos-bancarios/extratos-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware.js");
+
+const { deleteFile } = require("../../../controllers/files-controller");
+const { localTempStorage } = require("../../../libs/multer.js");
+
+const upload = multer({ storage: localTempStorage });
 
 // * Transação Padrão
 router.get("/transacao-padrao", async (req, res) => {
@@ -71,6 +78,7 @@ router.get("/:id", async (req, res) => {
 
 router.post(
   "/importar-extrato",
+  upload.single("file"),
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   
   async (req, res) => {

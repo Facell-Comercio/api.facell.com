@@ -1,3 +1,4 @@
+const path = require('path')
 const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
@@ -243,13 +244,14 @@ function getOne(req) {
 function importarExtrato(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const { id_conta_bancaria, url_extrato } = req.body;
+    const { id_conta_bancaria } = req.body;
+    console.log(req.body);
     const conn = await db.getConnection();
     try {
       if (!id_conta_bancaria) {
         throw new Error("Conta bancária não selecionada!");
       }
-      if (!url_extrato) {
+      if (!req.file.path) {
         throw new Error("Extrato não enviado!");
       }
       await conn.beginTransaction();
@@ -260,7 +262,7 @@ function importarExtrato(req) {
       );
       const contaBancaria = rowContaBancaria && rowContaBancaria[0];
 
-      const filePath = await createFilePathFromUrl(url_extrato);
+      const filePath = path.join(process.cwd(), req.file.path);
       const ofxParsed = await lerOFX(filePath);
       const ofx_conta =
         ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKACCTFROM;
