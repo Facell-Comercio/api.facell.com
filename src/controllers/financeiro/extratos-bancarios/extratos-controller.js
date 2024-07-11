@@ -324,13 +324,13 @@ function importarExtrato(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "EXTRATOS BANCÁRIOS",
-        method: "IMPORT",
+        module: "FINANCEIRO", origin: "EXTRATOS BANCÁRIOS", method: "IMPORT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();
       reject(error);
+    } finally{
+      conn.release()
     }
   });
 }
