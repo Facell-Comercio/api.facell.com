@@ -1,31 +1,12 @@
 const router = require("express").Router();
-const path = require("path");
 const multer = require("multer");
 
-const { createId: cuid } = require("@paralleldrive/cuid2");
 const { deleteFile } = require("../controllers/files-controller");
+const { localUploadsStorage, localTempStorage } = require("../libs/multer");
 require("dotenv").config();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${file.originalname.split(".")[0].substring(0, 30)}_${cuid()}${path.extname(file.originalname)}`);
-  },
-});
-
-const tempStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/temp/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${file.originalname.split(".")[0].substring(0, 30)}_${cuid()}${path.extname(file.originalname)}`);
-  },
-});
-
-const upload = multer({ storage });
-const preUpload = multer({ storage: tempStorage });
+const upload = multer({ storage: localUploadsStorage });
+const preUpload = multer({ storage: localTempStorage });
 
 router.post("/", upload.single("file"), (req, res) => {
   try {

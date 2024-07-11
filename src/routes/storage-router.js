@@ -1,21 +1,10 @@
-const router = require("express").Router();
-const path = require("path");
-const multer = require("multer");
-
-const { createId: cuid } = require("@paralleldrive/cuid2");
-const { uploadFile, deleteFile, preUploadFile, createGoogleDriveUrl, downloadFile, extractGoogleDriveId } = require("../controllers/storage-controller");
 require("dotenv").config();
+const router = require("express").Router();
+const multer = require("multer");
+const { uploadFile, deleteFile, preUploadFile, createGoogleDriveUrl, downloadFile, extractGoogleDriveId } = require("../controllers/storage-controller");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/temp/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, `${file.originalname.split(".")[0].substring(0, 30)}_${cuid()}${path.extname(file.originalname)}`);
-  },
-});
-
-const upload = multer({ storage });
+const { localTempStorage } = require("../libs/multer");
+const upload = multer({ storage: localTempStorage });
 
 // * OK
 router.post("/", upload.single("file"), async (req, res) => {

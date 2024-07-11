@@ -245,7 +245,7 @@ function importarExtrato(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     const { id_conta_bancaria } = req.body;
-    console.log(req.body);
+
     const conn = await db.getConnection();
     try {
       if (!id_conta_bancaria) {
@@ -315,12 +315,6 @@ function importarExtrato(req) {
       }
 
       await conn.commit();
-      // resolve({
-      //   ofx_correto,
-      //   conta_bancaria: contaBancaria,
-      //   ofx_conta,
-      //   ofx_transactions,
-      // });
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
