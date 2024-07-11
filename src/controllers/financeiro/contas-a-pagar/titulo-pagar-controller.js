@@ -192,7 +192,7 @@ function getAll(req) {
       const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento" || tipo_data == "data_pagamento"
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
