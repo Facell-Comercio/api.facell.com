@@ -3,7 +3,7 @@ const path = require("path");
 const multer = require("multer");
 
 const { createId: cuid } = require("@paralleldrive/cuid2");
-const { uploadFile, deleteFile, preUploadFile, createGoogleDriveUrl, downloadFile } = require("../controllers/storage-controller");
+const { uploadFile, deleteFile, preUploadFile, createGoogleDriveUrl, downloadFile, extractGoogleDriveId } = require("../controllers/storage-controller");
 require("dotenv").config();
 
 const storage = multer.diskStorage({
@@ -20,8 +20,8 @@ const upload = multer({ storage });
 // * OK
 router.post("/", upload.single("file"), async (req, res) => {
   try {
-    const { fileId } = await uploadFile(req)
-    res.status(200).json({ fileUrl: createGoogleDriveUrl(fileId) });
+    const { fileUrl } = await uploadFile(req)
+    res.status(200).json({ fileUrl });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -30,8 +30,8 @@ router.post("/", upload.single("file"), async (req, res) => {
 // * OK
 router.post("/pre-upload", upload.single("file"), async (req, res) => {
   try {
-    const {fileId} = await preUploadFile(req) 
-    res.status(200).json({ fileUrl: createGoogleDriveUrl(fileId) });
+    const { fileUrl } = await preUploadFile(req) 
+    res.status(200).json({ fileUrl });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -54,27 +54,29 @@ router.put("/", upload.single("file"), async (req, res) => {
     if (!oldFileId) {
       throw new Error("Você precisa enviar o ID do arquivo a ser substituído.");
     }
-    const { fileId } = await uploadFile(req)
+    const { fileUrl } = await uploadFile(req)
     try {
       await deleteFile(oldFileId);
     } catch (error) {}
 
-    res.status(200).json({ message: "Sucesso!", fileUrl: createGoogleDriveUrl(fileId) });
+    res.status(200).json({ message: "Sucesso!", fileUrl });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
 // * OK
-router.delete("/:fileId", async (req, res) => {
+router.delete("/", async (req, res) => {
   try {
-    const {fileId} = req.params;
-    if(!fileId){
+    const {fileUrl} = req.query;
+    if(!fileUrl){
       throw new Error('ID do arquivo não recebido!')
     }
-    await deleteFile({fileId});
+    const fileId = extractGoogleDriveId(fileUrl)
+    await deleteFile(fileId);
     res.status(200).json({ message: "Sucesso!" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "Houve um erro ao tentar o arquivo. Ou o arquivo pode já ter sido excluído.",
     });

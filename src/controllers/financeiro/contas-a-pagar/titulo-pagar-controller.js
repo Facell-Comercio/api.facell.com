@@ -31,6 +31,7 @@ const {
 const { addMonths } = require("date-fns/addMonths");
 const { logger } = require("../../../../logger");
 const { checkCodigoBarras } = require("../../../helpers/chekers");
+const { extractGoogleDriveId, deleteFile } = require("../../storage-controller");
 require("dotenv").config();
 
 function checkFeriado(date) {
@@ -2083,18 +2084,23 @@ function updateFileTitulo(req) {
       if (!titulo) {
         throw new Error("Solicitação não existe no sistema...");
       }
-      const newUrl = await replaceFileUrl({
-        oldFileUrl: titulo[campo],
-        newFileUrl: fileUrl,
-      });
+      
+      const newFileUrl =  fileUrl
+      const oldFileUrl = titulo[campo]
+      if(newFileUrl != oldFileUrl){
+          await deleteFile(oldFileUrl)
+      }
+      if(newFileUrl){
+        await conn.execute(`DELETE FROM temp_files WHERE id =?`, [extractGoogleDriveId(newFileUrl)])
+      }
 
       await conn.execute(
         `UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `,
-        [newUrl, id]
+        [newFileUrl, id]
       );
 
       await conn.commit();
-      resolve({ fileUrl: newUrl });
+      resolve({ fileUrl: newFileUrl });
       return;
     } catch (error) {
       logger.error({

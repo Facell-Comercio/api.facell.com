@@ -6,6 +6,7 @@ const {
   replaceFileUrl,
 } = require("../files-controller");
 const { logger } = require("../../../logger");
+const { deleteFile, extractGoogleDriveId } = require("../storage-controller");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -193,9 +194,6 @@ function update(req) {
       }
       await conn.beginTransaction();
 
-      // Verificar se a imagem é temporária
-      const isImgTemp = urlContemTemp(img_url);
-
       const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
         id,
       ]);
@@ -204,15 +202,17 @@ function update(req) {
         throw new Error("Usuário não localizado!");
       }
 
-      var newImgUrl = img_url;
-      if (isImgTemp) {
-        // Substituir imagem
-        const urlImgPersistida = await replaceFileUrl({
-          oldFileUrl: user.img_url,
-          newFileUrl: img_url,
-        });
-        newImgUrl = urlImgPersistida;
+      const newImgUrl = img_url;
+      const oldFileUrl = user.img_url
+
+      if (oldFileUrl && newImgUrl != oldFileUrl) {
+        // A nova imagem é diferente da imagem que já existia, então vamos excluir a antiga;
+        try {
+          await deleteFile(oldFileUrl)
+        } catch (error) {}
       }
+      const fileId = extractGoogleDriveId(img_url)
+      await conn.execute(`DELETE FROM temp_files WHERE id = ?`, [fileId])
 
       // Atualização de dados do usuário
       await conn.execute(
@@ -300,9 +300,6 @@ function updateImg(req) {
       }
       await conn.beginTransaction();
 
-      // Verificar se a imagem é temporária
-      const isImgTemp = urlContemTemp(img_url);
-
       const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
         id,
       ]);
@@ -312,13 +309,15 @@ function updateImg(req) {
       }
 
       let newImgUrl = img_url;
-      if (isImgTemp) {
-        // Substituir imagem
-        const urlImgPersistida = await replaceFileUrl({
-          oldFileUrl: user.img_url,
-          newFileUrl: img_url,
-        });
-        newImgUrl = urlImgPersistida;
+      if(newImgUrl){
+        // Removemos da lista de arquivos temporários para não ser excluída:
+        await conn.execute(`DELETE FROM temp_files WHERE id = ?`, [extractGoogleDriveId(newImgUrl)])
+      }
+
+      const oldImgUrl = user.img_url
+      if (oldImgUrl) {
+        // Excluimos a imagem antiga
+        deleteFile(oldImgUrl) 
       }
 
       // Atualização de dados do usuário
