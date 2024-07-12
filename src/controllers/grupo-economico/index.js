@@ -100,6 +100,68 @@ function getAll(req) {
   });
 }
 
+function getAllMatriz(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+    const isMaster = checkUserPermission(req, "MASTER");
+
+    const grupos_economicos_habilitados = [];
+
+    user?.filiais?.forEach((f) => {
+      grupos_economicos_habilitados.push(f.id);
+    });
+
+    let where = ` WHERE 1=1 `;
+
+    if (!isMaster) {
+      if (
+        !grupos_economicos_habilitados ||
+        grupos_economicos_habilitados.length === 0
+      ) {
+        resolve({
+          rows: [],
+          pageCount: 0,
+          rowCount: 0,
+        });
+        return;
+      }
+      where += `AND f.id IN(${grupos_economicos_habilitados.join(",")}) `;
+    }
+
+    const conn = await db.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        `
+        SELECT 
+          f.id_matriz as id, 
+          CASE WHEN f.id_matriz = 18 THEN f.nome ELSE ge.nome END as nome  
+        FROM filiais f
+        LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
+        ${where}
+        GROUP BY f.id_matriz`
+      );
+      const objResponse = {
+        rows: rows,
+      };
+      resolve(objResponse);
+    } catch (error) {
+      logger.error({
+        module: "ADM",
+        origin: "GRUPO ECONÔMICO",
+        method: "GET_ALL_MATRIZ",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
@@ -238,6 +300,7 @@ function insertOne(req) {
 
 module.exports = {
   getAll,
+  getAllMatriz,
   getOne,
   update,
   insertOne,

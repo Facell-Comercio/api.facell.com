@@ -21,6 +21,7 @@ const {
   normalizeNumberOnly,
   normalizeCodigoBarras,
   excelDateToJSDate,
+  normalizeDate,
 } = require("../../../helpers/mask");
 const {
   moverArquivoTempParaUploads,
@@ -118,7 +119,7 @@ function getAll(req) {
     // console.log(pageIndex, pageSize, offset)
 
     // Filtros
-    var where = ` WHERE t.id_forma_pagamento <> 6 `;
+    var where = ` WHERE 1=1 `;
     //* Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -157,7 +158,7 @@ function getAll(req) {
       where += ` AND t.id_status = ?`;
       params.push(id_status);
     }
-    if (id_forma_pagamento && id_status !== "all") {
+    if (id_forma_pagamento && id_forma_pagamento !== "all") {
       where += ` AND t.id_forma_pagamento = ? `;
       params.push(id_forma_pagamento);
     }
@@ -409,7 +410,7 @@ function getAllCpVencimentosBordero(req) {
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
             LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
 
           ${where}
@@ -433,7 +434,7 @@ function getAllCpVencimentosBordero(req) {
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
             LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
             LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
             
@@ -450,6 +451,307 @@ function getAllCpVencimentosBordero(req) {
 
       const objResponse = {
         rows: vencimentos,
+        pageCount: Math.ceil(totalVencimentos / pageSize),
+        rowCount: totalVencimentos,
+      };
+      // console.log('Fetched Titulos', titulos.length)
+      // console.log(objResponse)
+      resolve(objResponse);
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_ALL_VENCIMENTOS_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function getAllCpItemsBordero(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const { pagination, filters } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
+
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+    // console.log(pageIndex, pageSize, offset)
+
+    // Filtros
+    let where = ` WHERE 1=1 `;
+    let whereFatura = ` WHERE 1=1 `;
+    // Somente o Financeiro/Master podem ver todos
+    if (
+      !checkUserDepartment(req, "FINANCEIRO") &&
+      !checkUserPermission(req, "MASTER")
+    ) {
+      where += ` AND t.id_solicitante = '${user.id}' `;
+    }
+    const {
+      id_vencimento,
+      id_titulo,
+      tipo_data,
+      fornecedor,
+      range_data,
+      descricao,
+      id_matriz,
+      id_filial,
+      dda,
+    } = filters || {};
+
+    const params = [];
+
+    //* Início - Filtros Vencimentos
+    if (id_vencimento) {
+      where += ` AND tv.id = ? `;
+      params.push(id_vencimento);
+    }
+
+    if (id_titulo) {
+      where += ` AND tv.id_titulo = ? `;
+      params.push(id_titulo);
+    }
+
+    if (descricao) {
+      where += ` AND t.descricao LIKE CONCAT('%',?,'%')  `;
+      params.push(descricao);
+    }
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
+    }
+    if (id_filial) {
+      where += ` AND f.id = ? `;
+      params.push(id_filial);
+    }
+    if (fornecedor) {
+      where += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
+      params.push(fornecedor);
+    }
+
+    if (dda !== undefined) {
+      if (dda == "true") {
+        where += ` AND dda.id IS NOT NULL `;
+      }
+      if (dda == "false") {
+        where += ` AND dda.id IS NULL `;
+      }
+    }
+
+    where += ` 
+    AND (t.id_status = 3 OR t.id_status = 4) 
+    AND tb.id_vencimento IS NULL `;
+
+    if (tipo_data && range_data) {
+      const { from: data_de, to: data_ate } = range_data;
+      if (data_de && data_ate) {
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
+      } else {
+        if (data_de) {
+          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
+        }
+        if (data_ate) {
+          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+        }
+      }
+    }
+    //* Fim - Filtros Vencimentos
+
+    //* Início - Filtros Faturas
+    if (id_vencimento) {
+      whereFatura += ` AND ccf.id = ? `;
+      params.push(id_vencimento);
+    }
+
+    if (id_titulo) {
+      whereFatura += ` AND ccf.id_titulo = ? `;
+      params.push(id_titulo);
+    }
+
+    if (descricao) {
+      whereFatura += ` AND fcc.descricao LIKE CONCAT('%',?,'%')  `;
+      params.push(descricao);
+    }
+    if (id_matriz) {
+      whereFatura += ` AND fcc.id_matriz = ? `;
+      params.push(id_matriz);
+    }
+    if (id_filial) {
+      whereFatura += ` AND f.id = ? `;
+      params.push(id_filial);
+    }
+    if (fornecedor) {
+      whereFatura += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
+      params.push(fornecedor);
+    }
+
+    if (dda !== undefined) {
+      if (dda == "true") {
+        whereFatura += ` AND dda.id IS NOT NULL `;
+      }
+      if (dda == "false") {
+        whereFatura += ` AND dda.id IS NULL `;
+      }
+    }
+
+    whereFatura += `
+    AND tb.id_fatura IS NULL `;
+
+    if (tipo_data && range_data) {
+      const { from: data_de, to: data_ate } = range_data;
+      if (data_de && data_ate) {
+        whereFatura += ` AND ccf.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
+      } else {
+        if (data_de) {
+          whereFatura += ` AND ccf.${tipo_data} >= '${data_de.split("T")[0]}' `;
+        }
+        if (data_ate) {
+          whereFatura += ` AND ccf.${tipo_data} <= '${
+            data_ate.split("T")[0]
+          }' `;
+        }
+      }
+    }
+    //* Fim - Filtros Faturas
+
+    const conn = await db.getConnection();
+    try {
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde
+        FROM (
+        SELECT DISTINCT 
+          t.id as id_titulo, 
+          tv.id as id_vencimento,
+          tv.status, 
+          tv.data_prevista as previsao, 
+          t.id_status, 
+          UPPER(t.descricao) as descricao,
+          tv.valor as valor_total, 
+          tv.data_vencimento as data_pagamento,
+          f.nome as filial, 
+          f.id_matriz,
+          forn.nome as nome_fornecedor, 
+          t.num_doc, 
+          fp.forma_pagamento
+        FROM fin_cp_titulos t 
+        LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+        LEFT JOIN filiais f ON f.id = t.id_filial 
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN users u ON u.id = t.id_solicitante
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+        LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+        ${where}
+
+        UNION ALL
+
+        SELECT DISTINCT 
+          ccf.id as id_titulo, 
+          ccf.id as id_vencimento, 
+          ccf.status, 
+          ccf.data_prevista as previsao,
+          NULL as id_status, 
+          UPPER(fcc.descricao) as descricao,
+          ccf.valor as valor_total, 
+          ccf.data_vencimento as data_pagamento,
+          f.nome as filial, 
+          fcc.id_matriz,
+          forn.nome as nome_fornecedor,
+          "-" as num_doc,  
+          6 as forma_pagamento
+        FROM fin_cartoes_corporativos_faturas ccf
+        LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
+        LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
+        LEFT JOIN filiais f ON f.id = fcc.id_matriz
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = ccf.id
+
+        ${whereFatura} 
+        AND ccf.closed
+        ) AS subconsulta
+        `,
+        params
+      );
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+
+      params.push(pageSize);
+      params.push(offset);
+
+      const [rows] = await conn.execute(
+        `
+        SELECT * FROM (
+        SELECT DISTINCT 
+          t.id as id_titulo, 
+          tv.id as id_vencimento,
+          tv.status, 
+          tv.data_prevista as previsao, 
+          t.id_status, 
+          UPPER(t.descricao) as descricao,
+          tv.valor as valor_total, 
+          tv.data_vencimento as data_pagamento,
+          f.nome as filial, 
+          f.id_matriz,
+          forn.nome as nome_fornecedor, 
+          t.num_doc, 
+          fp.forma_pagamento,
+          t.id_forma_pagamento
+        FROM fin_cp_titulos t 
+        LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+        LEFT JOIN filiais f ON f.id = t.id_filial 
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN users u ON u.id = t.id_solicitante
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+        LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+        ${where}
+
+        UNION ALL
+
+        SELECT DISTINCT 
+          ccf.id as id_titulo, 
+          ccf.id as id_vencimento, 
+          ccf.status, 
+          ccf.data_prevista as previsao,
+          NULL as id_status, 
+          UPPER(fcc.descricao) as descricao,
+          ccf.valor as valor_total, 
+          ccf.data_vencimento as data_pagamento,
+          f.nome as filial, 
+          fcc.id_matriz,
+          forn.nome as nome_fornecedor,
+          "-" as num_doc,  
+          "Cartão" as forma_pagamento,
+          6 as id_forma_pagamento
+        FROM fin_cartoes_corporativos_faturas ccf
+        LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
+        LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
+        LEFT JOIN filiais f ON f.id = fcc.id_matriz
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura  = ccf.id
+
+        ${whereFatura} 
+        AND ccf.closed = 1
+        ) AS combined_results
+
+        LIMIT ? OFFSET ?
+        `,
+        params
+      );
+
+      const objResponse = {
+        rows,
         pageCount: Math.ceil(totalVencimentos / pageSize),
         rowCount: totalVencimentos,
       };
@@ -551,25 +853,28 @@ function getOne(req) {
     try {
       const [rowTitulo] = await conn.execute(
         `
-        SELECT t.*, st.status,
-                f.nome as filial,
-                f.id_grupo_economico,
-                f.id_matriz,
-                fb.nome as banco,
-                fb.codigo as codigo_banco,
-                fo.nome as nome_fornecedor, 
-                fo.cnpj as cnpj_fornecedor,
-                t.id_departamento,
-                COALESCE(fr.manual, TRUE) as rateio_manual
-
-            FROM fin_cp_titulos t 
-            INNER JOIN fin_cp_status st ON st.id = t.id_status
-            LEFT JOIN fin_bancos fb ON fb.id = t.id_banco
-            LEFT JOIN filiais f ON f.id = t.id_filial
-            LEFT JOIN 
-                fin_fornecedores fo ON fo.id = t.id_fornecedor
-            LEFT JOIN fin_rateio fr ON fr.id = t.id_rateio
-            WHERE t.id = ?
+        SELECT 
+          t.*, st.status,
+          fcc.dia_vencimento as dia_vencimento_cartao,
+          fcc.dia_corte as dia_corte_cartao,
+          f.nome as filial,
+          f.id_grupo_economico,
+          f.id_matriz,
+          fb.nome as banco,
+          fb.codigo as codigo_banco,
+          fo.nome as nome_fornecedor, 
+          fo.cnpj as cnpj_fornecedor,
+          t.id_departamento,
+          COALESCE(fr.manual, TRUE) as rateio_manual
+        FROM fin_cp_titulos t 
+        INNER JOIN fin_cp_status st ON st.id = t.id_status
+        LEFT JOIN fin_bancos fb ON fb.id = t.id_banco
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN 
+            fin_fornecedores fo ON fo.id = t.id_fornecedor
+        LEFT JOIN fin_rateio fr ON fr.id = t.id_rateio
+        LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = t.id_cartao
+        WHERE t.id = ?
             `,
         [id]
       );
@@ -793,6 +1098,7 @@ function insertOne(req) {
         cnpj_favorecido,
         id_tipo_chave_pix,
         chave_pix,
+        id_cartao,
 
         id_banco,
 
@@ -868,6 +1174,11 @@ function insertOne(req) {
       if (id_forma_pagamento === "5") {
         if (!id_banco || !id_tipo_conta || !agencia || !conta) {
           throw new Error("Preencha corretamente os dados bancários!");
+        }
+      }
+      if (id_forma_pagamento === "6") {
+        if (!id_cartao) {
+          throw new Error("Defina qual o cartão do pagamento!");
         }
       }
 
@@ -1022,6 +1333,7 @@ function insertOne(req) {
 
           id_tipo_chave_pix,
           chave_pix,
+          id_cartao,
 
           id_tipo_solicitacao,
           id_filial,
@@ -1044,7 +1356,7 @@ function insertOne(req) {
           id_status
         )
 
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         `,
         [
           user.id,
@@ -1062,6 +1374,7 @@ function insertOne(req) {
 
           id_tipo_chave_pix || null,
           chave_pix || null,
+          id_cartao || null,
 
           id_tipo_solicitacao,
           id_filial,
@@ -1091,7 +1404,7 @@ function insertOne(req) {
       // * Atualizar recorrência
       if (id_recorrencia) {
         await conn.execute(
-          `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id =?`,
+          `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id = ?`,
           [id_recorrencia]
         );
         await conn.execute(
@@ -1109,21 +1422,94 @@ function insertOne(req) {
       for (const vencimento of vencimentos) {
         // * Persistir o vencimento do titulo e obter o id:
 
-        // Código de Barras
+        //* Código de Barras
         const cod_barras = !!vencimento.cod_barras
           ? normalizeCodigoBarras(vencimento.cod_barras)
           : null;
         if (!!cod_barras && !checkCodigoBarras(cod_barras)) {
           throw new Error(`Linha Digitável inválida: ${cod_barras}`);
         }
-        // PIX QR Code
+
+        //* PIX QR Code
         const qr_code = vencimento.qr_code || null;
         if (id_forma_pagamento == "8" && !qr_code) {
           throw new Error("Preencha o PIX Copia e Cola!");
         }
 
+        //* Início - Lógica de Cartões /////////////////
+        let id_fatura_cartao = null;
+        if (id_forma_pagamento == "6") {
+          //* Consulta alguns dados do cartão e data de vencimento
+          const [rowCartoes] = await conn.execute(
+            `SELECT dia_vencimento, dia_corte FROM fin_cartoes_corporativos WHERE id = ?`,
+            [id_cartao]
+          );
+          const cartao = rowCartoes && rowCartoes[0];
+          if (!cartao) {
+            throw new Error("Cartão corporativo não encontrado!");
+          }
+          if (
+            parseInt(cartao.dia_vencimento) !==
+            new Date(vencimento.data_vencimento).getDate()
+          ) {
+            throw new Error("Dia de Vencimento inválido!");
+          }
+          //* Consulta alguns dados da fatura
+          const [rowFaturas] = await conn.execute(
+            `
+            SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
+            WHERE id_cartao = ? AND data_vencimento = ?
+      `,
+            [id_cartao, startOfDay(vencimento.data_vencimento)]
+          );
+          const fatura = rowFaturas && rowFaturas[0];
+
+          //* Caso exista uma fatura -> Atualiza o valor
+          if (fatura) {
+            //* Verifica se a fatura está fechada
+            if (fatura.closed) {
+              throw new Error(
+                `A fatura de data vencimento ${normalizeDate(
+                  startOfDay(vencimento.data_vencimento)
+                )} já está fechada!`
+              );
+            }
+            const valor =
+              parseFloat(fatura.valor) + parseFloat(vencimento.valor);
+            await conn.execute(
+              `
+            UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
+          `,
+              [valor, fatura.id]
+            );
+            id_fatura_cartao = fatura.id;
+          }
+
+          //* Caso não exista uma fatura -> Cria uma nova
+          if (!fatura) {
+            const [result] = await conn.execute(
+              `
+            INSERT INTO fin_cartoes_corporativos_faturas
+            (id_cartao, data_vencimento, data_prevista, valor)
+            VALUES (?,?,?,?)
+          `,
+              [
+                id_cartao,
+                startOfDay(vencimento.data_vencimento),
+                startOfDay(vencimento.data_prevista),
+                vencimentos[0].valor,
+              ]
+            );
+            if (!result.insertId) {
+              throw new Error("Falha ao inserir fatura!");
+            }
+            id_fatura_cartao = result.insertId;
+          }
+        }
+        //* Fim - Lógica de Cartões /////////////////
+
         await conn.execute(
-          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor, qr_code) VALUES (?,?,?,?,?,?)`,
+          `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor, qr_code, id_fatura_cartao) VALUES (?,?,?,?,?,?,?)`,
           [
             newId,
             startOfDay(vencimento.data_vencimento),
@@ -1131,6 +1517,7 @@ function insertOne(req) {
             cod_barras,
             vencimento.valor,
             qr_code,
+            id_fatura_cartao,
           ]
         );
       }
@@ -1504,6 +1891,7 @@ function update(req) {
         cnpj_favorecido,
         id_tipo_chave_pix,
         chave_pix,
+        id_cartao,
 
         id_banco,
 
@@ -1582,6 +1970,12 @@ function update(req) {
           throw new Error("Preencha corretamente os dados bancários!");
         }
       }
+      // Se forma de pagamento for cartão, exigir o cartão
+      if (id_forma_pagamento === "6") {
+        if (!id_cartao) {
+          throw new Error("Defina qual o cartão do pagamento!");
+        }
+      }
 
       // Se tipo solicitação for Com nota, exigir anexos
       if (id_tipo_solicitacao === "1") {
@@ -1625,7 +2019,7 @@ function update(req) {
 
       // ^ Vamos verificar se algum vencimento está em bordero, se estiver, vamos impedir a alteração:
       const [vencimentosEmBordero] = await conn.execute(
-        `SELECT tb.id FROM fin_cp_titulos_borderos tb 
+        `SELECT tb.id FROM fin_cp_bordero_itens tb 
         INNER JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento 
         WHERE tv.id_titulo = ?`,
         [id]
@@ -1822,6 +2216,7 @@ function update(req) {
           [id]
         );
 
+        // * Salvar os novos vencimentos
         // Passamos por cada vencimento novo, validando campos e inserindo no banco
         for (const vencimento of vencimentos) {
           // ^ Validar se vencimento possui todos os campos obrigatórios
@@ -1867,8 +2262,80 @@ function update(req) {
             throw new Error("Preencha o PIX Copia e Cola!");
           }
 
+          //* Início - Lógica de Cartões /////////////////
+          let id_fatura_cartao = null;
+          if (id_forma_pagamento == "6") {
+            //* Consulta alguns dados do cartão e data de vencimento
+            const [rowCartoes] = await conn.execute(
+              `SELECT dia_vencimento, dia_corte FROM fin_cartoes_corporativos WHERE id = ?`,
+              [id_cartao]
+            );
+            const cartao = rowCartoes && rowCartoes[0];
+            if (!cartao) {
+              throw new Error("Cartão corporativo não encontrado!");
+            }
+            if (
+              parseInt(cartao.dia_vencimento) !==
+              new Date(vencimento.data_vencimento).getDate()
+            ) {
+              throw new Error("Dia de Vencimento inválido!");
+            }
+            //* Consulta alguns dados da fatura
+            const [rowFaturas] = await conn.execute(
+              `
+            SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
+            WHERE id_cartao = ? AND data_vencimento = ?
+      `,
+              [id_cartao, startOfDay(vencimento.data_vencimento)]
+            );
+            const fatura = rowFaturas && rowFaturas[0];
+
+            //* Caso exista uma fatura -> Atualiza o valor
+            if (fatura) {
+              //* Verifica se a fatura está fechada
+              if (fatura.closed) {
+                throw new Error(
+                  `A fatura de data vencimento ${normalizeDate(
+                    startOfDay(vencimento.data_vencimento)
+                  )} já está fechada!`
+                );
+              }
+              const valor =
+                parseFloat(fatura.valor) + parseFloat(vencimento.valor);
+              await conn.execute(
+                `
+            UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
+          `,
+                [valor, fatura.id]
+              );
+              id_fatura_cartao = fatura.id;
+            }
+
+            //* Caso não exista uma fatura -> Cria uma nova
+            if (!fatura) {
+              const [result] = await conn.execute(
+                `
+            INSERT INTO fin_cartoes_corporativos_faturas
+            (id_cartao, data_vencimento, data_prevista, valor)
+            VALUES (?,?,?,?)
+          `,
+                [
+                  id_cartao,
+                  startOfDay(vencimento.data_vencimento),
+                  startOfDay(vencimento.data_prevista),
+                  vencimentos[0].valor,
+                ]
+              );
+              if (!result.insertId) {
+                throw new Error("Falha ao inserir fatura!");
+              }
+              id_fatura_cartao = result.insertId;
+            }
+          }
+          //* Fim - Lógica de Cartões /////////////////
+
           await conn.execute(
-            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code) VALUES (?,?,?,?,?,?)`,
+            `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code, id_fatura_cartao) VALUES (?,?,?,?,?,?,?)`,
             [
               id,
               formatDate(vencimento.data_vencimento, "yyyy-MM-dd"),
@@ -1876,6 +2343,7 @@ function update(req) {
               valorVencimento,
               cod_barras,
               qr_code,
+              id_fatura_cartao,
             ]
           );
         }
@@ -1928,6 +2396,7 @@ function update(req) {
 
         id_tipo_chave_pix = ?,
         chave_pix = ?,
+        id_cartao = ?,
 
         id_tipo_solicitacao = ?,
         id_filial = ?,
@@ -1966,6 +2435,7 @@ function update(req) {
 
           id_tipo_chave_pix || null,
           chave_pix || null,
+          id_forma_pagamento === "6" ? id_cartao : null,
 
           id_tipo_solicitacao,
           id_filial,
@@ -2201,7 +2671,7 @@ function changeStatusTitulo(req) {
         id_novo_status != "5"
       ) {
         await conn.execute(
-          `DELETE FROM fin_cp_titulos_borderos WHERE id_vencimento IN( 
+          `DELETE FROM fin_cp_bordero_itens WHERE id_vencimento IN( 
           SELECT tv.id FROM fin_cp_titulos_vencimentos tv WHERE tv.id_titulo = ?)`,
           [id_titulo]
         );
@@ -2462,7 +2932,7 @@ function exportDatasys(req) {
           LEFT JOIN fin_centros_custo cc ON cc.id = tr.id_centro_custo 
           LEFT JOIN fin_plano_contas pc ON pc.id = tr.id_plano_conta
           LEFT JOIN filiais f ON f.id = tr.id_filial 
-          LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+          LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
           LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
           LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
           WHERE tv.id = ?
@@ -2990,6 +3460,7 @@ function deleteRecorrencia(req) {
 module.exports = {
   getAll,
   getAllCpVencimentosBordero,
+  getAllCpItemsBordero,
   getAllRecorrencias,
   getOne,
   getOneByTimParams,

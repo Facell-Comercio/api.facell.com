@@ -4,7 +4,7 @@ const { db } = require("../../../../mysql");
 const { createUploadsPath, zipFiles } = require("../../files-controller");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const XLSX = require("xlsx");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -203,7 +203,7 @@ function downloadMovimentoContabil(req, res) {
             FROM fin_cp_titulos as t
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo  = t.id 
             LEFT JOIN filiais as f ON f.id = t.id_filial
-            LEFT JOIN fin_cp_titulos_borderos as tb ON tv.id_titulo = t.id
+            LEFT JOIN fin_cp_bordero_itens as tb ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
             LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria

@@ -11,9 +11,11 @@ async function deleteFile(filePath) {
     return true;
   } catch (error) {
     logger.error({
-      module: 'ROOT', origin: 'FILES', method: 'DELETE_FILE',
-      data: { message: error.message, stack: error.stack, name: error.name}
-    })
+      module: "ROOT",
+      origin: "FILES",
+      method: "DELETE_FILE",
+      data: { message: error.message, stack: error.stack, name: error.name },
+    });
     return false;
   }
 }
@@ -104,9 +106,11 @@ function zipFiles({ items }) {
         });
     } catch (error) {
       logger.error({
-        module: 'ROOT', origin: 'FILES', method: 'ZIP_FILES',
-        data: { message: error.message, stack: error.stack, name: error.name}
-      })
+        module: "ROOT",
+        origin: "FILES",
+        method: "ZIP_FILES",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     }
@@ -133,23 +137,33 @@ async function clearTempFolder() {
         fs.unlink(caminhoArquivo, (error) => {
           if (error) {
             logger.error({
-              module: 'ROOT', origin: 'FILES', method: 'CLEAR_TEMP_FOLDER_DELETE_FILE',
-              data: { message: error.message, stack: error.stack, name: error.name}
-            })
+              module: "ROOT",
+              origin: "FILES",
+              method: "CLEAR_TEMP_FOLDER_DELETE_FILE",
+              data: {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              },
+            });
             return;
           }
         });
       });
     });
     logger.info({
-      module: 'ROOT', origin: 'FILES', method: 'CLEAR_TEMP_FOLDER',
-      data: { message:  'Limpeza realizada'}
-    })
+      module: "ROOT",
+      origin: "FILES",
+      method: "CLEAR_TEMP_FOLDER",
+      data: { message: "Limpeza realizada" },
+    });
   } catch (error) {
     logger.error({
-      module: 'ROOT', origin: 'FILES', method: 'CLEAR_TEMP_FOLDER',
-      data: { message: error.message, stack: error.stack, name: error.name}
-    })
+      module: "ROOT",
+      origin: "FILES",
+      method: "CLEAR_TEMP_FOLDER",
+      data: { message: error.message, stack: error.stack, name: error.name },
+    });
   }
 }
 
@@ -165,9 +179,15 @@ function moveFile(origem, destino) {
     fs.rename(origem, destino, (error) => {
       if (error) {
         logger.error({
-          module: 'ROOT', origin: 'FILES', method: 'MOVE_FILE',
-          data: { message: error.message, stack: error.stack, name: error.name}
-        })
+          module: "ROOT",
+          origin: "FILES",
+          method: "MOVE_FILE",
+          data: {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          },
+        });
         reject(err); // Rejeitar a Promise se houver um erro
         return;
       }
@@ -182,7 +202,7 @@ function urlContemTemp(url) {
 
 /**
  * Move um arquivo que esteja na pasta Temp para a pasta Uploads
- * */ 
+ * */
 function moverArquivoTempParaUploads(url) {
   return new Promise((resolve, reject) => {
     if (!url) {
@@ -211,9 +231,15 @@ function moverArquivoTempParaUploads(url) {
       fs.rename(origem, destino, (error) => {
         if (error) {
           logger.error({
-            module: 'ROOT', origin: 'FILES', method: 'MOVER_TEMP_PARA_UPLOADS',
-            data: { message: error.message, stack: error.stack, name: error.name}
-          })
+            module: "ROOT",
+            origin: "FILES",
+            method: "MOVER_TEMP_PARA_UPLOADS",
+            data: {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            },
+          });
           resolve("");
         } else {
           resolve(novaUrl);
@@ -230,21 +256,23 @@ function moverArquivoTempParaUploads(url) {
  * @returns {Promise<String|null>}
  * Basta passar a antiga URL que o arquivo será excluído
  * E passar a nova URL (provavelmente /temp ), será persistido em uploads
- * */  
-function replaceFileUrl({oldFileUrl, newFileUrl}){
-  return new Promise(async(resolve, reject)=>{
+ * */
+function replaceFileUrl({ oldFileUrl, newFileUrl }) {
+  return new Promise(async (resolve, reject) => {
     try {
-      await deleteFile(oldFileUrl)
+      await deleteFile(oldFileUrl);
     } catch (error) {
       logger.error({
-        module: 'ROOT', origin: 'FILES', method: 'REPLACE_FILE_URL:DELETE_OLD_FILE',
-        data: {message: error.message, stack: error.stack, name: error.name}
-      })
-    }finally{
-      const url = await moverArquivoTempParaUploads(newFileUrl)
-      resolve(url)
+        module: "ROOT",
+        origin: "FILES",
+        method: "REPLACE_FILE_URL:DELETE_OLD_FILE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+    } finally {
+      const url = await moverArquivoTempParaUploads(newFileUrl);
+      resolve(url);
     }
-  })
+  });
 }
 
 function createFilePathFromUrl(url) {
@@ -267,9 +295,11 @@ function createFilePathFromUrl(url) {
       resolve(newPath);
     } catch (error) {
       logger.error({
-        module: 'ROOT', origin: 'FILES', method: 'CREATE_FILE_PATH_FROM_URL',
-        data: { message: error.message, stack: error.stack, name: error.name}
-      })
+        module: "ROOT",
+        origin: "FILES",
+        method: "CREATE_FILE_PATH_FROM_URL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     }
   });

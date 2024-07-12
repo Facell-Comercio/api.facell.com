@@ -18,6 +18,7 @@ const {
   getOneByTimParams,
   getPendencias,
   importSolicitacaoLote,
+  getAllCpItemsBordero,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
 router.get("/export-datasys", async (req, res) => {
@@ -83,7 +84,7 @@ router.get("/by-tim", async (req, res) => {
 
 router.get("/vencimentos-bordero", async (req, res) => {
   try {
-    const result = await getAllCpVencimentosBordero(req);
+    const result = await getAllCpItemsBordero(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

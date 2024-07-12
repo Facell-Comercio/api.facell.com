@@ -77,7 +77,7 @@ function getAll(req) {
       LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
       LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
       LEFT JOIN filiais f ON f.id = t.id_filial
-      LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+      LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
       LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
       LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = tv.id
 
@@ -119,7 +119,7 @@ function getAll(req) {
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = tv.id
-        LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
         LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
 
         ${whereTituloConciliado}
@@ -673,7 +673,7 @@ function conciliacaoTarifas(req) {
           if (bordero && bordero.id) {
             await conn.execute(
               `
-              INSERT INTO fin_cp_titulos_borderos (id_bordero, id_vencimento)
+              INSERT INTO fin_cp_bordero_itens (id_bordero, id_vencimento)
               VALUES (?,?)`,
               [bordero.id, idVencimento]
             );
@@ -687,7 +687,7 @@ function conciliacaoTarifas(req) {
             const idBordero = resultInsertBordero.insertId;
             await conn.execute(
               `
-              INSERT INTO fin_cp_titulos_borderos (id_bordero, id_vencimento)
+              INSERT INTO fin_cp_bordero_itens (id_bordero, id_vencimento)
               VALUES (?,?)`,
               [idBordero, idVencimento]
             );

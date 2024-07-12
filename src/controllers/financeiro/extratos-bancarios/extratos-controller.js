@@ -3,7 +3,7 @@ const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const { lerOFX, formatarDataTransacao } = require("../../../helpers/lerOfx");
 const { createFilePathFromUrl } = require("../../files-controller");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -177,7 +177,7 @@ function getOne(req) {
               b.id, b.data_pagamento, b.id_conta_bancaria, 
               cb.descricao as conta_bancaria, f.id_matriz, fb.nome as banco
             FROM fin_extratos_bancarios b
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
             LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
@@ -208,7 +208,7 @@ function getOne(req) {
               fi.nome as filial, 
               false AS checked
             FROM fin_extratos_bancarios b
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_bordero = b.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_bordero = b.id
             LEFT JOIN fin_cp_titulos t ON t.id = tb.id_titulo
             LEFT JOIN fin_cp_status st ON st.id = t.id_status
             LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor

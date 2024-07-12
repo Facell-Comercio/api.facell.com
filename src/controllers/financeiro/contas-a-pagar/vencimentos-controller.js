@@ -165,7 +165,7 @@ function getVencimentosAPagar(req) {
     const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     // Filtros
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -232,7 +232,7 @@ function getVencimentosAPagar(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
 
         ${where}
         AND (t.id_status = 3 OR t.id_status = 4)
@@ -255,7 +255,7 @@ function getVencimentosAPagar(req) {
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
 
             ${where}
             AND tb.id IS NULL
@@ -301,7 +301,7 @@ function getVencimentosEmBordero(req) {
     const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     // Filtros
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -368,7 +368,7 @@ function getVencimentosEmBordero(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
 
         ${where}
         AND tv.data_pagamento IS NULL
@@ -380,8 +380,13 @@ function getVencimentosEmBordero(req) {
         (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
       const valorTotalVencimentos =
         (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
-      var query = `
-            SELECT 
+
+      params.push(pageSize);
+      params.push(offset);
+
+      const [vencimentos] = await conn.execute(
+        `
+        SELECT 
                 tv.id_titulo, tv.data_vencimento, tv.data_prevista, tv.valor,
                 t.descricao, t.num_doc,
                 f.nome as filial, f.id_matriz,
@@ -392,18 +397,17 @@ function getVencimentosEmBordero(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
 
             ${where}
             AND tv.data_pagamento IS NULL
             AND tb.id IS NOT NULL
             ORDER BY 
                 tv.data_prevista DESC 
-            LIMIT ? OFFSET ?
-            `;
-      params.push(pageSize);
-      params.push(offset);
-      const [vencimentos] = await conn.execute(query, params);
+            LIMIT ? OFFSET ?`,
+        params
+      );
+
       const objResponse = {
         rows: vencimentos,
         pageCount: Math.ceil(totalVencimentos / pageSize),
@@ -438,7 +442,7 @@ function getVencimentosPagos(req) {
     const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     // Filtros
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -505,7 +509,7 @@ function getVencimentosPagos(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
 
         ${where}
         AND tb.id IS NOT NULL
@@ -531,7 +535,7 @@ function getVencimentosPagos(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_titulos_borderos tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
 
             ${where}
             AND tb.id IS NOT NULL
@@ -598,7 +602,7 @@ function changeFieldVencimentos(req) {
         }
         // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
         const [rowBordero] = await conn.execute(
-          `SELECT id FROM fin_cp_titulos_borderos WHERE id_vencimento = ?`,
+          `SELECT id FROM fin_cp_bordero_itens WHERE id_vencimento = ?`,
           [id]
         );
         const bordero = rowBordero && rowBordero[0];
