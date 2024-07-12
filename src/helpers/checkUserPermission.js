@@ -8,7 +8,7 @@ const checkUserPermission = (req, permission) => {
     return false;
   }
   if (tipo === "number") {
-    const index = user.permissoes.findIndex((perm) => perm.id === permission);
+    const index = user.permissoes.findIndex((perm) => perm.id_permissao === permission);
     return index >= 0;
   }
   if (tipo === "string") {

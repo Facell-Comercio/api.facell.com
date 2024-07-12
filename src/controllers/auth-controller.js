@@ -7,51 +7,6 @@ const { enviarEmail } = require("../helpers/email");
 const { getOne } = require("./users");
 require("dotenv");
 
-// async function register(req) {
-//   return new Promise(async (resolve, reject) => {
-//     try {
-//       const {
-//         email,
-//         senha,
-//         confirmaSenha,
-//         nome,
-//         id_perfil,
-//         id_grupo_economico,
-//         img_url,
-//       } = req.body;
-//       if (!email) {
-//         throw new Error("Preencha o email!");
-//       }
-
-//       if (!senha) {
-//         throw new Error("Preencha a senha!");
-//       }
-
-//       if (senha !== confirmaSenha) {
-//         throw new Error("Senha e confirmação não conferem!");
-//       }
-//       const [rowUser] = await db.execute(
-//         "SELECT senha FROM users WHERE email = ?",
-//         [email]
-//       );
-//       if (rowUser.length !== 0) {
-//         throw new Error("Não é possível utilizar este email!");
-//       }
-
-//       const senhaCriptografada = await bcrypt.hash(senha, 10);
-
-//       await db.execute(
-//         "INSERT INTO users (email, senha, id_perfil, id_grupo_economico, nome) VALUES (?, ?, ?, ?, ?)",
-//         [email, senhaCriptografada, id_perfil, id_grupo_economico, nome]
-//       );
-
-//       resolve();
-//     } catch (error) {
-//       reject(error);
-//     }
-//   });
-// }
-
 async function updateSenha(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();

@@ -10,7 +10,7 @@ function getAll(req) {
     const centros_custo_habilitados = [];
 
     user?.centros_custo?.forEach((ucc) => {
-      centros_custo_habilitados.push(ucc.id);
+      centros_custo_habilitados.push(ucc.id_centro_custo);
     });
 
     // Filtros

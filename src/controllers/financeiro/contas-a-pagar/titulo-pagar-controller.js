@@ -478,7 +478,7 @@ function getAllRecorrencias(req) {
     const { user } = req;
     const conn = await db.getConnection();
     const departamentosUser = user.departamentos.map(
-      (departamento) => departamento.id
+      (departamento) => departamento.id_departamento
     );
 
     try {
@@ -2855,7 +2855,7 @@ function importSolicitacaoLote(req) {
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
-              req.user.departamentos[0].id,
+              req.user.departamentos[0].id_departamento,
               id_status,
               id_tipo_solicitacao,
               fornecedor.id,

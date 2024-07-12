@@ -10,7 +10,7 @@ function getAll(req) {
     const grupos_economicos_habilitados = [];
 
     user?.filiais?.forEach((f) => {
-      grupos_economicos_habilitados.push(f.id);
+      grupos_economicos_habilitados.push(f.id_filial);
     });
 
     const { filters, pagination } = req.query;

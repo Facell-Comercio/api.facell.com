@@ -120,7 +120,6 @@ function getOne(req) {
             `,
         [id]
       );
-
       const [centros_custo] = await conn.execute(
         `
             SELECT ucc.*, fcc.nome, g.nome as grupo_economico
