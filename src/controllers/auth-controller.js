@@ -54,7 +54,7 @@ async function login(req) {
       }
 
       const [rowUserBanco] = await db.execute(
-        `SELECT u.id, u.email, u.senha, u.senha_temporaria FROM users u WHERE email = ?`,
+        `SELECT u.id, u.email, u.senha, u.senha_temporaria FROM users u WHERE active = 1 AND email = ?`,
         [email]
       );
       const userBanco = rowUserBanco && rowUserBanco[0];
