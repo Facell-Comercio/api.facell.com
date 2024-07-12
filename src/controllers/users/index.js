@@ -19,10 +19,15 @@ function getAll(req) {
     // Filtros
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || { pageIndex: 0, pageSize: 5 };
-    const { termo } = filters || { termo: null };
+    const { termo, inactives } = filters || { };
 
     var where = ` WHERE 1=1 `;
     const params = [];
+
+    if(inactives != 'true' && (!inactives || parseInt(inactives) != 1)){
+      where += ` AND u.active = 1 `
+      params.push()
+    }
 
     if (termo) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%')`;
