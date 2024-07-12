@@ -51,17 +51,13 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await conn.execute(query, params);
 
-      // console.log('Fetched users', users.length)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
       logger.error({
@@ -144,7 +140,6 @@ function getOne(req) {
         filiais,
         centros_custo,
       };
-      // console.log(objUser)
       resolve(objUser);
       return;
     } catch (error) {
@@ -179,7 +174,6 @@ function update(req) {
       permissoes,
       updatePermissoes,
     } = req.body;
-    // console.log(req.body)
 
     const conn = await db.getConnection();
     try {
@@ -288,7 +282,6 @@ function updateImg(req) {
   return new Promise(async (resolve, reject) => {
     const { img_url } = req.body;
     const { id } = req.params;
-    console.log(req.body, req.params);
 
     const conn = await db.getConnection();
     try {
@@ -358,7 +351,6 @@ function insertOne(req) {
       permissoes,
       updatePermissoes,
     } = req.body;
-    // console.log(req.body)
 
     const conn = await db.getConnection();
     try {

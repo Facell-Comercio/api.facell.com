@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { logger } = require("../../logger");
 const { enviarEmail } = require("../helpers/email");
+const { getOne } = require("./users");
 require("dotenv");
 
 // async function register(req) {
@@ -97,87 +98,55 @@ async function login(req) {
         throw new Error("Preencha a senha!");
       }
 
-      const [rowUser] = await db.execute(
-        `SELECT u.* FROM users u WHERE email = ?`,
+      const [rowUserBanco] = await db.execute(
+        `SELECT u.id, u.email, u.senha, u.senha_temporaria FROM users u WHERE email = ?`,
         [email]
       );
-      const user = rowUser && rowUser[0];
+      const userBanco = rowUserBanco && rowUserBanco[0];
 
-      if (!user) {
+      if (!userBanco) {
         throw new Error("Usuário ou senha inválidos!");
       }
 
-      const matchPass = await bcrypt.compare(senha, user.senha);
-      const matchPassSenhaTemporaria = senha === user.senha_temporaria;
+      const matchPass = await bcrypt.compare(senha, userBanco.senha);
+      const matchPassSenhaTemporaria = senha === userBanco.senha_temporaria;
 
       if (!matchPass && !matchPassSenhaTemporaria) {
         throw new Error("Usuário ou senha inválidos!");
       }
-
+      const user = await getOne({params: {id: userBanco.id}})
       user.senha = "";
-      // Filiais de acesso
-      const [filiais] = await db.execute(
-        `
-            SELECT f.id, f.nome, uf.gestor, g.nome as grupo_economico 
-            FROM users_filiais uf
-            INNER JOIN filiais f ON f.id = uf.id_filial
-            INNER JOIN grupos_economicos g ON g.id = f.id_grupo_economico
-            WHERE uf.id_user = ?
-            ORDER BY g.id, f.id
-            `, [user.id])
-            user.filiais = filiais
 
-      // Departamentos de acesso
-      const [departamentos] = await db.execute(
-        `
-            SELECT  d.id, d.nome, ud.gestor 
-            FROM users_departamentos ud
-            INNER JOIN  departamentos d ON d.id = ud.id_departamento
-            WHERE ud.id_user = ?
-            ORDER BY d.id
-            `,
-        [user.id]
-      );
-      user.departamentos = departamentos;
+      const token = await gerarToken({user})
 
-            // Centros de custo de acesso
-            const [centros_custo] = await db.execute(`
-            SELECT  fcc.id, fcc.nome, ucc.gestor, g.nome as grupo_economico 
-            FROM users_centros_custo ucc
-            INNER JOIN  fin_centros_custo fcc ON fcc.id = ucc.id_centro_custo
-            INNER JOIN grupos_economicos g ON g.id = fcc.id_grupo_economico
-            WHERE ucc.id_user = ?
-            ORDER BY g.id, fcc.id
-            `,
-        [user.id]
-      );
-      user.centros_custo = centros_custo;
-
-      // Permissoes
-      const [permissoes] = await db.execute(
-        `
-            SELECT p.id, p.nome 
-            FROM users_permissoes up
-            INNER JOIN permissoes p ON p.id = up.id_permissao
-            WHERE up.id_user = ?`,
-        [user.id]
-      );
-      user.permissoes = permissoes;
-
-      const token = jwt.sign(
-        {
-          user: user,
-          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, //token válido por 7 dias
-        },
-        process.env.SECRET
-      );
-
-      // console.log(token, user)
       resolve({ token, user });
     } catch (error) {
+      logger.error({
+        module: "ROOT", origin: "AUTH", method: "LOGIN",
+        data: { message: error.message, stack: error.stack, name: error.name, },
+      });
       reject(error);
     }
   });
+}
+
+async function gerarToken({user}){
+  try {
+    const token = jwt.sign(
+      {
+        user: user,
+        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, //token válido por 7 dias
+      },
+      process.env.SECRET
+    );
+      return token
+  } catch (error) {
+    logger.error({
+      module: "ROOT", origin: "AUTH", method: "GERAR_TOKEN",
+      data: { message: error.message, stack: error.stack, name: error.name, },
+    });
+     return null
+  }
 }
 
 async function recuperarSenha(req) {
@@ -220,14 +189,32 @@ async function recuperarSenha(req) {
         },
       });
     } finally {
-      resolve();
       conn.release();
+      resolve();
     }
   });
+}
+
+function validarToken(req){
+  return new Promise(async(resolve, reject)=>{
+    try {
+
+      const user = await getOne({params: {id: req.user.id}})
+      const token = await gerarToken({user})
+      resolve(token)
+    } catch (error) {
+      reject(error)
+      logger.error({
+        module: "ROOT", origin: "AUTH", method: "VALIDAR_TOKEN",
+        data: { message: error.message, stack: error.stack, name: error.name, },
+      });
+    }
+  })
 }
 
 module.exports = {
   updateSenha,
   login,
   recuperarSenha,
+  validarToken,
 };
