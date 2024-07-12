@@ -4,7 +4,7 @@ const { db } = require("../../../../mysql");
 const { createUploadsPath, zipFiles } = require("../../files-controller");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
 const XLSX = require("xlsx");
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -106,7 +106,6 @@ function downloadMovimentoContabil(req, res) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
-      // ! Alterar o caminho para definição da conta bancária de borderô para extrato bancário
       // ^ id_grupo_economico - id_conta_bancaria - mes - ano
       const { id_grupo_economico, id_conta_bancaria, mes, ano } =
         req.query.filters || {};
@@ -119,74 +118,25 @@ function downloadMovimentoContabil(req, res) {
       if (!ano) {
         throw new Error("Ano não informado");
       }
+      const grupo_economico = req.query.filters.grupo_economico || ''
+      const conta_bancaria = req.query.filters.conta_bancaria || ''
 
-      await conn.beginTransaction();
+      let itemsExcel = []
+      const anoMes = formatDate(new Date(ano, parseInt(mes) -1, 1), 'yyyy-MM')
 
-      function gerarArrayDeDias(ano, mes) {
-        const ultimoDia = endOfMonth(
-          new Date(ano, parseInt(mes) - 1, 1)
-        ).getDate();
-        const diasArray = new Array(ultimoDia)
-          .fill(0)
-          .map((_, index) => index + 1);
-        return diasArray;
+      let where = ` AND DATE_FORMAT(tv.data_pagamento, '%Y-%m') = ? 
+        AND ge.id = ?
+        `
+      const params = [anoMes, id_grupo_economico]
+
+      if(id_conta_bancaria){
+        where += ` AND cb.id = ?`
+        params.push(id_conta_bancaria)
       }
 
-      const dias = gerarArrayDeDias(ano, mes);
-      const items = [];
-
-      if (id_conta_bancaria) {
-        await appendItem(id_conta_bancaria);
-      } else {
-        const [contasBancarias] = await conn.execute(
-          `
-            SELECT cb.id FROM fin_contas_bancarias cb
-            LEFT JOIN filiais f ON f.id = cb.id_filial 
-            WHERE f.id_grupo_economico = ?
-        `,
-          [id_grupo_economico]
-        );
-        for (const conta_bancaria of contasBancarias) {
-          // console.log("Conta bancaria: " + conta_bancaria.nome);
-          await appendItem(conta_bancaria.id);
-        }
-      }
-
-      async function appendItem(idContaBancaria) {
-        // * Obter os dados da conta bancária
-        const [rowContaBancaria] = await conn.execute(
-          `
-            SELECT descricao FROM fin_contas_bancarias WHERE id = ?
-        `,
-          [idContaBancaria]
-        );
-        const contaBancaria = rowContaBancaria && rowContaBancaria[0];
-
-        // *  Gerar objeto que representa a pasta na conta bancaria no zip
-        const objConta = {
-          type: "folder",
-          folderName: `Relatório Contábil ${mes}-${ano} ${contaBancaria.descricao}`,
-          items: [],
-        };
-
-        // * Array que recebe todos os titulos da conta_bancaria no período definido
-        const itemsExcel = [];
-
-        // * Passar por cada dia gerando uma pasta do dia e gerar os files
-        for (const dia of dias) {
-          // console.log("DIA:", dia);
-          const objDia = {
-            type: "folder",
-            folderName: dia.toString().padStart(2, "0"),
-            items: [],
-          };
-          const params = [
-            idContaBancaria,
-            formatDate(new Date(ano, parseInt(mes) - 1, dia), "yyyy-MM-dd"),
-            4,
-          ];
-          const [titulos] = await conn.execute(
-            `
+      // * Passar por cada dia gerando uma pasta do dia e gerar os files
+      const [titulos] = await conn.execute(
+        `
             SELECT 
                 tv.id,
                 tv.id_titulo, 
@@ -203,105 +153,55 @@ function downloadMovimentoContabil(req, res) {
             FROM fin_cp_titulos as t
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo  = t.id 
             LEFT JOIN filiais as f ON f.id = t.id_filial
+            LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
             LEFT JOIN fin_cp_titulos_borderos as tb ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
             LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
             WHERE 
-            cb.id = ?
-            AND DATE(tv.data_pagamento) = ?
-            AND t.id_status = ?
+              t.id_status > 3
+              ${where}
             GROUP BY t.id
         `,
-            params
-          );
+        params
+      );
 
-          if (!titulos || titulos.length == 0) {
-            continue;
-          }
-          const tipos_anexos = [
-            { name: "url_boleto", acronym: "BO", zipName: "Boletos.zip" },
-            {
-              name: "url_nota_fiscal",
-              acronym: "NF",
-              zipName: "NotasFiscais.zip",
-            },
-            { name: "url_contrato", acronym: "CT", zipName: "Contratos.zip" },
-            { name: "url_txt", acronym: "TX", zipName: "Textos.zip" },
-            { name: "url_planilha", acronym: "PL", zipName: "Planilhas.zip" },
-          ];
+      // * Adiciona os títulos no array do excel e no Objeto de dia
+      itemsExcel = titulos.map((vencimento) => ({
+        "ID VENCIMENTO": vencimento.id,
+        "ID TÍTULO": vencimento.id_titulo,
+        "CPF/CNPJ": normalizeCnpjNumber(vencimento.cnpj || ""),
+        "NOME FORNECEDOR": vencimento.nome_fornecedor || "",
+        FILIAL: vencimento.filial || "",
+        "CNPJ FILIAL": vencimento.cnpj_filial || "",
+        DESCRIÇÃO: vencimento.descricao || "",
+        "Nº DOC": vencimento.num_doc || "",
+        "VALOR TÍTULO": parseFloat(vencimento.valor) || "",
+        "DT PAG": vencimento.data_pagamento || "",
+        BANCO: vencimento.banco || "",
+        'NOTA FISCAL': vencimento.url_nota_fiscal,
+        'BOLETO': vencimento.url_boleto,
+        'XML NF': vencimento.url_xml,
+        'CONTRATO': vencimento.url_contrato,
+        'PLANILHA': vencimento.url_planilha,
+        'TXT': vencimento.url_txt
+      }));
 
-          // * Adiciona os títulos no array do excel e no Objeto de dia
-          titulos.forEach((vencimento) => {
-            // console.log("VENCIMENTO", vencimento);
-            itemsExcel.push({
-              "ID VENCIMENTO": vencimento.id,
-              "ID TÍTULO": vencimento.id_titulo,
-              "CPF/CNPJ": normalizeCnpjNumber(vencimento.cnpj || ""),
-              "NOME FORNECEDOR": vencimento.nome_fornecedor || "",
-              FILIAL: vencimento.filial || "",
-              "CNPJ FILIAL": vencimento.cnpj_filial || "",
-              DESCRIÇÃO: vencimento.descricao || "",
-              "Nº DOC": vencimento.num_doc || "",
-              "VALOR TÍTULO": vencimento.valor || "",
-              "DT PAG": vencimento.data_pagamento || "",
-              BANCO: vencimento.banco || "",
-            });
-
-            tipos_anexos.forEach((tipo) => {
-              const url = vencimento[tipo.name];
-              if (url) {
-                const ext = path.extname(url);
-                objDia.items.push({
-                  type: "file",
-                  fileName: `${tipo.acronym} ${vencimento.id}${ext}`,
-                  content: createUploadsPath(url),
-                });
-              }
-            });
-          });
-
-          // * Adicionar os titulos na pasta do dia
-          objConta.items.push({ ...objDia });
-        }
-
-        // * Cria a matriz bidimensional com o cabeçalho como primeira linha
-        if (itemsExcel.length > 1) {
-          const cabecalhos = Object.keys(itemsExcel[0]);
-          const matrizBidimensional = [cabecalhos];
-          itemsExcel.forEach((item) => {
-            const valores = cabecalhos.map((cabecalho) => item[cabecalho]);
-            matrizBidimensional.push(valores);
-          });
-
-          // * Geração do buffer da planilha excel
-          const workbook = XLSX.utils.book_new();
-          const worksheet = XLSX.utils.aoa_to_sheet(matrizBidimensional);
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
-          const excelBuffer = XLSX.write(workbook, {
-            type: "buffer",
-            bookType: "xlsx",
-          });
-
-          // * Inserção do buffer da planilha no zip
-          objConta.items.push({
-            type: "buffer",
-            fileName: `RELATÓRIO DE PAGAMENTO ${mes}-${ano} ${contaBancaria.descricao.toUpperCase()}.xlsx`,
-            content: excelBuffer,
-          });
-        }
-        // * Adicionar cada pasta referente às contas bancárias
-        items.push(objConta);
+      // * Cria a matriz bidimensional com o cabeçalho como primeira linha
+      if (itemsExcel.length == 0) {
+        throw new Error('Movimento Contábil Vazio')
       }
 
-      const zip = await zipFiles({
-        items: items,
-      });
-      const filename = `MOVIMENTO CONTABIL ${mes} ${ano}.zip`;
-      res.set("Content-Type", "application/zip");
+      // * Geração do buffer da planilha excel
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(itemsExcel);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+      conta_bancaria
+      const filename = `MOVIMENTO CONTABIL - ${grupo_economico ? grupo_economico + ' - ' : ''}${conta_bancaria ? conta_bancaria + ' - ' : ''}${String(mes).padStart(2,'0')}-${ano}.xlsx`;
+      res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
-      res.send(zip);
-      await conn.commit();
+      res.send(buffer);
       resolve();
     } catch (error) {
       logger.error({
@@ -310,7 +210,6 @@ function downloadMovimentoContabil(req, res) {
         method: "DOWNLOAD_MOVIMENTO_CONTABIL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      await conn.rollback();
       reject(error);
     } finally {
       conn.release();

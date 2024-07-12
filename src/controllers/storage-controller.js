@@ -39,7 +39,6 @@ async function createFolder(auth, folderName, parentFolderId = null) {
     return res.data;
 }
 
-clearTempDriveFiles()
 async function clearTempDriveFiles(){
     const conn = await db.getConnection()
     try {
