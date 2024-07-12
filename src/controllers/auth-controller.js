@@ -1,5 +1,7 @@
 const { db } = require("../../mysql");
 const { v4: uuidv4 } = require("uuid");
+const { createId: cuid } = require("@paralleldrive/cuid2");
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { logger } = require("../../logger");
@@ -64,7 +66,7 @@ async function login(req) {
       }
 
       const matchPass = await bcrypt.compare(senha, userBanco.senha);
-      const matchPassSenhaTemporaria = senha === userBanco.senha_temporaria;
+      const matchPassSenhaTemporaria = await bcrypt.compare(senha, userBanco.senha_temporaria);
 
       if (!matchPass && !matchPassSenhaTemporaria) {
         throw new Error("Usuário ou senha inválidos!");
@@ -122,16 +124,20 @@ async function recuperarSenha(req) {
         throw new Error("Usuário não encontrado");
       }
       const user = rowUser && rowUser[0];
-      const uuid = uuidv4();
+      const senha_temporaria = cuid();
+
+      const hash_senha_temporaria = await bcrypt.hash(senha_temporaria, 10);
+
       await enviarEmail({
         destinatarios: [email],
         assunto: "Instruções para Redefinição de Senha",
-        corpo: `Olá ${user.nome}, recebemos uma solicitação para alterar a senha da sua conta.\nA senha temporária será ${uuid}\nSe você não solicitou a alteração, por favor ignore este email. Sua senha atual não será alterada.`,
+        corpo: `Olá ${user.nome}, recebemos uma solicitação para alterar a senha da sua conta.\nA senha temporária será ${senha_temporaria}\nSe você não solicitou a alteração, por favor ignore este email. Sua senha atual não será alterada.`,
       });
       await conn.execute(`UPDATE users SET senha_temporaria = ? WHERE id = ?`, [
-        uuid,
+        hash_senha_temporaria,
         user.id,
       ]);
+
     } catch (error) {
       logger.error({
         module: "ROOT",
