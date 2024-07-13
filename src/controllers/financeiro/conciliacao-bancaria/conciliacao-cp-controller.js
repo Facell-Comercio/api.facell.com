@@ -66,6 +66,8 @@ function getAll(req) {
       if (!id_conta_bancaria || !range_data.to || !range_data.from) {
         resolve([]);
       }
+      // * A Conciliar
+      // ~ Vencimentos a conciliar
       const [rowsTitulosConciliar] = await conn.execute(
         `
       SELECT
@@ -89,7 +91,7 @@ function getAll(req) {
     `,
         params
       );
-
+      // ~ Transações a conciliar
       const [rowsTransacoesConciliar] = await conn.execute(
         `
       SELECT
@@ -106,6 +108,8 @@ function getAll(req) {
         params
       );
 
+      // * Itens conciliados 
+      // ~ Títulos conciliados
       const [rowsTitulosConciliados] = await conn.execute(
         `
         SELECT
@@ -129,6 +133,7 @@ function getAll(req) {
         params
       );
 
+      //~~ Transações conciliadas
       const [rowsTransacoesConciliadas] = await conn.execute(
         `
         SELECT
@@ -145,6 +150,7 @@ function getAll(req) {
     `,
         params
       );
+
       const [rowsBancoComFornecedor] = await conn.execute(
         `
         SELECT cb.id
@@ -248,6 +254,7 @@ function getConciliacoes(req) {
 
         ${where}
         AND cb.modulo = "CP"
+        ORDER BY cb.id DESC
         LIMIT ? OFFSET ?
     `,
         params
