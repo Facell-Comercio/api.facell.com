@@ -29,33 +29,26 @@ function getAll(req) {
     if (range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        whereTransacao += ` AND eb.data_transacao BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
-        whereTitulo += ` AND tv.data_prevista BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
-        whereTituloConciliado += ` AND tv.data_pagamento BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        whereTransacao += ` AND eb.data_transacao BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
+        whereTitulo += ` AND tv.data_prevista BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
+        whereTituloConciliado += ` AND tv.data_pagamento BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
-          whereTransacao += ` AND eb.data_transacao = '${
-            data_de.split("T")[0]
-          }' `;
+          whereTransacao += ` AND eb.data_transacao = '${data_de.split("T")[0]
+            }' `;
           whereTitulo += ` AND tv.data_prevista = '${data_de.split("T")[0]}' `;
-          whereTituloConciliado += ` AND tv.data_pagamento = '${
-            data_de.split("T")[0]
-          }' `;
+          whereTituloConciliado += ` AND tv.data_pagamento = '${data_de.split("T")[0]
+            }' `;
         }
         if (data_ate) {
-          whereTransacao += ` AND eb.data_transacao = '${
-            data_ate.split("T")[0]
-          }' `;
+          whereTransacao += ` AND eb.data_transacao = '${data_ate.split("T")[0]
+            }' `;
           whereTitulo += ` AND tv.data_prevista = '${data_ate.split("T")[0]}' `;
-          whereTituloConciliado += ` AND tv.data_pagamento = '${
-            data_ate.split("T")[0]
-          }' `;
+          whereTituloConciliado += ` AND tv.data_pagamento = '${data_ate.split("T")[0]
+            }' `;
         }
       }
     }
@@ -211,9 +204,8 @@ function getConciliacoes(req) {
     if (range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND cb.created_at BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND cb.created_at BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND cb.created_at = '${data_de.split("T")[0]}' `;
@@ -450,7 +442,7 @@ function conciliacaoAutomatica(req) {
           const transacao = transacoes[t];
           if (
             formatDate(vencimento.data_pagamento, "dd-MM-yyyy").toString() ==
-              formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
+            formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
             vencimento.valor == transacao.valor
           ) {
             //^ UPDATE do Vencimento
@@ -528,7 +520,7 @@ function conciliacaoTarifas(req) {
       throw new Error("A data de transação não foi informada!");
     }
     try {
-      await conn.beginTransaction();
+
       const result = [];
 
       //* Query para conseguir um id_bordero com os dados fornecidos
@@ -564,6 +556,8 @@ function conciliacaoTarifas(req) {
       const dadosSolicitacao = rowDadosSolicitacao && rowDadosSolicitacao[0];
 
       for (const tarifa of tarifas) {
+        await conn.beginTransaction();
+        // ^ Para cada tarifa terá uma transação, pois se o lançamento de uma der errado, o rollBack da tarifa será acionado!
         try {
           const [rowTarifasDuplicadas] = await conn.execute(
             `
@@ -578,7 +572,7 @@ function conciliacaoTarifas(req) {
               dadosSolicitacao.id_filial,
               tarifa.descricao,
               tarifa.valor,
-              new Date(tarifa.data_transacao),
+              formatDate(tarifa.data_transacao, 'yyyy-MM-dd'),
             ]
           );
           //* Verifica a existência da tarifa nas solicitações
@@ -687,7 +681,7 @@ function conciliacaoTarifas(req) {
           } else {
             const [resultInsertBordero] = await conn.execute(
               `
-              INSERT INTO fin_cp_bordero (id_conta_bancaria, data_prevista) VALUES (?,?)
+              INSERT INTO fin_cp_bordero (id_conta_bancaria, data_pagamento) VALUES (?,?)
               `,
               [id_conta_bancaria, new Date(data_transacao)]
             );
@@ -721,6 +715,7 @@ function conciliacaoTarifas(req) {
             `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_cp, valor) VALUES (?,?,?)`,
             [newIdConciliacao, idVencimento, tarifa.valor]
           );
+          await conn.commit();
           result.push({
             id_titulo: idTitulo,
             fornecedor: dadosSolicitacao.fornecedor,
@@ -732,7 +727,14 @@ function conciliacaoTarifas(req) {
             doc: tarifa.doc,
             conciliado: true,
           });
-        } catch (e) {
+        } catch (errorTarifa) {
+          logger.error({
+            module: "FINANCEIRO",
+            origin: "CONCILIÇÃO BANCÁRIA CP",
+            method: "LANÇAMENTO TARIFA INDIVIDIAL",
+            data: { message: errorTarifa.message, stack: errorTarifa.stack, name: errorTarifa.name },
+          })
+          await conn.rollback();
           result.push({
             data_pagamento: formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
             valor: tarifa.valor,
@@ -740,21 +742,19 @@ function conciliacaoTarifas(req) {
             descricao: tarifa.descricao,
             doc: tarifa.doc,
             conciliado: false,
-            error: e.message,
+            error: errorTarifa.message,
           });
         }
       }
-      await conn.commit();
-      // await conn.rollback();
       resolve(result);
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
         origin: "CONCILIÇÃO BANCÁRIA CP",
-        method: "TARIFAS",
+        method: "LANÇAMENTO TARIFAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      await conn.rollback();
+
       reject(error);
     } finally {
       conn.release();
