@@ -39,11 +39,11 @@ async function createFolder(auth, folderName, parentFolderId = null) {
     return res.data;
 }
 
-async function clearTempDriveFiles(){
+async function clearTempDriveFiles() {
     const conn = await db.getConnection()
     try {
         const [rows] = await conn.execute(`SELECT id, created_at FROM temp_files`)
-        for(const row of rows){
+        for (const row of rows) {
             try {
                 await deleteFile(row.id)
             } catch (error) { }
@@ -55,6 +55,117 @@ async function clearTempDriveFiles(){
         })
     }
     return
+}
+
+/*
+* Inclui arquivo no roll de exclusão às 00:00
+*/ 
+function appendIntoTempFile({
+    fileUrl
+}) {
+    return new Promise(async (resolve, reject) => {
+        let conn
+        try {
+            // Se as URLs forem iguais, então retornamos a nova url..
+            if (!fileUrl) {
+                resolve(fileUrl)
+                return
+            }
+            conn = await db.getConnection();
+
+            // Extrair id da nova url
+            const fileId = extractGoogleDriveId(fileUrl)
+            if(fileId){
+                // Remover da lista de exclusão
+                await conn.execute(`INSERT IGNORE temp_files (id) VALUES (?);`, [fileId])
+            }
+            resolve(fileUrl)
+        } catch (error) {
+            reject(error)
+            logger.error({
+                module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'APPEND_TEMP_FILE',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            });
+
+        } finally {
+            if (conn) conn.release()
+        }
+    })
+}
+
+/*
+Remove o arquivo do roll de exclusão às 00:00
+*/ 
+function persistFile({
+    fileUrl
+}) {
+    return new Promise(async (resolve, reject) => {
+        let conn
+        try {
+            // Se as URLs forem iguais, então retornamos a nova url..
+            if (!fileUrl) {
+                resolve(fileUrl)
+                return
+            }
+            conn = await db.getConnection();
+            await conn.beginTransaction()
+
+            // Extrair id da nova url
+            const fileId = extractGoogleDriveId(fileUrl)
+            if(fileId){
+                // Remover da lista de exclusão
+                await conn.execute(`DELETE FROM temp_files WHERE id =?;`, [fileId])
+            }
+            await conn.commit()
+            resolve(fileUrl)
+        } catch (error) {
+            if (conn) {
+                await conn.rollback()
+            }
+            reject(error)
+            logger.error({
+                module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'REPLACE_FILE_URL',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            });
+
+        } finally {
+            if (conn) conn.release()
+        }
+    })
+}
+
+/**
+ * Remove a nova URL da temp_files para persistência do arquivo;
+ * Inclui a antiga URL na temp_files para exclusão do arquivo no drive; 
+ */
+function replaceFileUrl({
+    oldFileUrl,
+    newFileUrl,
+}) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Se as URLs forem iguais, então retornamos a nova url..
+            if (oldFileUrl == newFileUrl) {
+                resolve(newFileUrl)
+                return
+            }
+            if (oldFileUrl) {
+                await appendIntoTempFile({fileUrl: oldFileUrl})
+            }
+            if (newFileUrl) {
+                // Remover da lista de exclusão
+                await persistFile({fileUrl: newFileUrl})
+            }
+            resolve(newFileUrl)
+        } catch (error) {
+            reject(error)
+            logger.error({
+                module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'REPLACE_FILE_URL',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            });
+
+        }
+    })
 }
 
 // * OK
@@ -92,7 +203,7 @@ function uploadFile(req) {
                 fields: 'id',
             });
             const fileId = response.data.id;
-            const fileUrl = createGoogleDriveUrl({fileId: fileId, mimetype: mimetype})
+            const fileUrl = createGoogleDriveUrl({ fileId: fileId, mimetype: mimetype })
             resolve({ fileUrl, fileId });
         } catch (error) {
             logger.error({
@@ -113,6 +224,10 @@ async function preUploadFile(req) {
             await conn.execute(`INSERT INTO temp_files (id) VALUES (?)`, [extractGoogleDriveId(fileUrl)])
             resolve({ fileUrl })
         } catch (error) {
+            logger.error({
+                module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'PRE_UPLOAD_FILE',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            });
             reject(error)
         } finally {
             conn.release()
@@ -121,19 +236,19 @@ async function preUploadFile(req) {
 }
 
 // * OK
-function createGoogleDriveUrl({fileId, mimetype}) {
+function createGoogleDriveUrl({ fileId, mimetype }) {
     if (!fileId) return null;
-    if(mimetype && mimetype.toLowerCase().includes('image')){
+    if (mimetype && mimetype.toLowerCase().includes('image')) {
         return 'https://lh3.google.com/u/0/d/' + fileId
     }
     return 'https://drive.google.com/file/d/' + fileId + '/view'
 }
 
 // * OK
-function extractGoogleDriveId(fileUrl){
-    if(!fileUrl) return null;
+function extractGoogleDriveId(fileUrl) {
+    if (!fileUrl) return null;
     if (!fileUrl.includes('/')) {
-        return fileUrl; 
+        return fileUrl;
     }
     const regex = /\/d\/([a-zA-Z0-9_-]+)/;
     const match = fileUrl.match(regex);
@@ -154,7 +269,7 @@ const getFile = async ({ fileId }) => {
 };
 
 // * OK
-const downloadFile = async ({fileId}) => {
+const downloadFile = async ({ fileId }) => {
     try {
         const fileMetadata = await gdrive.files.get({
             fileId: fileId,
@@ -229,7 +344,7 @@ function deleteFile(fileUrl) {
                 data: { message: error.message, stack: error.stack, name: error.name }
             });
             resolve(false);
-        }finally{
+        } finally {
             conn.release()
         }
     })
@@ -237,7 +352,9 @@ function deleteFile(fileUrl) {
 
 module.exports = {
     uploadFile,
+    replaceFileUrl,
     preUploadFile,
+    persistFile,
     downloadFile,
     createGoogleDriveUrl,
     extractGoogleDriveId,

@@ -22,6 +22,7 @@ router.post("/pre-upload", upload.single("file"), async (req, res) => {
     const { fileUrl } = await preUploadFile(req) 
     res.status(200).json({ fileUrl });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: error.message });
   }
 });

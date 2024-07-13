@@ -341,7 +341,7 @@ function insertOne(req) {
       if (!dia_vencimento) {
         throw new Error("É necessário informar o dia do vencimento!");
       }
-      if (!active) {
+      if (active === undefined || active === null) {
         throw new Error("É necessário informar o status!");
       }
       if (!dia_corte) {

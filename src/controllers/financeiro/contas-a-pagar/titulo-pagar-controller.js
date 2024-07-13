@@ -23,16 +23,16 @@ const {
   excelDateToJSDate,
   normalizeDate,
 } = require("../../../helpers/mask");
-const {
-  moverArquivoTempParaUploads,
-  zipFiles,
-  createUploadsPath,
-  replaceFileUrl,
-} = require("../../files-controller");
+// const {
+//   moverArquivoTempParaUploads,
+//   zipFiles,
+//   createUploadsPath,
+//   replaceFileUrl,
+// } = require("../../files-controller");
 const { addMonths } = require("date-fns/addMonths");
 const { logger } = require("../../../../logger");
 const { checkCodigoBarras } = require("../../../helpers/chekers");
-const { extractGoogleDriveId, deleteFile } = require("../../storage-controller");
+const { extractGoogleDriveId, deleteFile, replaceFileUrl, persistFile } = require("../../storage-controller");
 require("dotenv").config();
 
 function checkFeriado(date) {
@@ -1306,14 +1306,13 @@ function insertOne(req) {
         rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // * Persitir os anexos
-      const nova_url_nota_fiscal = await moverArquivoTempParaUploads(
-        url_nota_fiscal
-      );
-      const nova_url_xml = await moverArquivoTempParaUploads(url_xml);
-      const nova_url_boleto = await moverArquivoTempParaUploads(url_boleto);
-      const nova_url_contrato = await moverArquivoTempParaUploads(url_contrato);
-      const nova_url_planilha = await moverArquivoTempParaUploads(url_planilha);
-      const nova_url_txt = await moverArquivoTempParaUploads(url_txt);
+      const nova_url_nota_fiscal = await persistFile({fileUrl:
+        url_nota_fiscal});
+      const nova_url_xml = await persistFile({fileUrl: url_xml});
+      const nova_url_boleto = await persistFile({fileUrl: url_boleto});
+      const nova_url_contrato = await persistFile({fileUrl: url_contrato});
+      const nova_url_planilha = await persistFile({fileUrl: url_planilha});
+      const nova_url_txt = await persistFile({fileUrl: url_txt});
 
       // * Criação do Título a Pagar
       const [resultInsertTitulo] = await conn.execute(
@@ -2555,22 +2554,18 @@ function updateFileTitulo(req) {
         throw new Error("Solicitação não existe no sistema...");
       }
       
-      const newFileUrl =  fileUrl
-      const oldFileUrl = titulo[campo]
-      if(newFileUrl != oldFileUrl){
-          await deleteFile(oldFileUrl)
-      }
-      if(newFileUrl){
-        await conn.execute(`DELETE FROM temp_files WHERE id =?`, [extractGoogleDriveId(newFileUrl)])
-      }
+      const new_url = await replaceFileUrl({
+        oldFileUrl: titulo[campo],
+        newFileUrl: fileUrl
+      })
 
       await conn.execute(
         `UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `,
-        [newFileUrl, id]
+        [new_url, id]
       );
 
       await conn.commit();
-      resolve({ fileUrl: newFileUrl });
+      resolve({ fileUrl: new_url });
       return;
     } catch (error) {
       logger.error({

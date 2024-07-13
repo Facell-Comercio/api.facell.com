@@ -1,12 +1,12 @@
 const { db } = require("../../../mysql");
 const { v4: uuidv4 } = require("uuid");
-const {
-  urlContemTemp,
-  moverArquivoTempParaUploads,
-  replaceFileUrl,
-} = require("../files-controller");
+// const {
+//   urlContemTemp,
+//   moverArquivoTempParaUploads,
+//   replaceFileUrl,
+// } = require("../files-controller");
 const { logger } = require("../../../logger");
-const { deleteFile, extractGoogleDriveId } = require("../storage-controller");
+const { deleteFile, extractGoogleDriveId, persistFile, replaceFileUrl } = require("../storage-controller");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -200,22 +200,15 @@ function update(req) {
         throw new Error("Usuário não localizado!");
       }
 
-      const newImgUrl = img_url;
-      const oldFileUrl = user.img_url
-
-      if (oldFileUrl && newImgUrl != oldFileUrl) {
-        // A nova imagem é diferente da imagem que já existia, então vamos excluir a antiga;
-        try {
-          await deleteFile(oldFileUrl)
-        } catch (error) {}
-      }
-      const fileId = extractGoogleDriveId(img_url)
-      await conn.execute(`DELETE FROM temp_files WHERE id = ?`, [fileId])
+      const nova_img_url = await replaceFileUrl({
+        oldFileUrl: user.img_url,
+        newFileUrl: img_url,
+      })
 
       // Atualização de dados do usuário
       await conn.execute(
         "UPDATE users SET nome = ?, email = ?, img_url = ?, active = ? WHERE id = ?",
-        [nome, email, newImgUrl, active, id]
+        [nome, email, nova_img_url, active, id]
       );
 
       // Atualização de arrays
@@ -305,21 +298,14 @@ function updateImg(req) {
         throw new Error("Usuário não localizado!");
       }
 
-      let newImgUrl = img_url;
-      if(newImgUrl){
-        // Removemos da lista de arquivos temporários para não ser excluída:
-        await conn.execute(`DELETE FROM temp_files WHERE id = ?`, [extractGoogleDriveId(newImgUrl)])
-      }
-
-      const oldImgUrl = user.img_url
-      if (oldImgUrl) {
-        // Excluimos a imagem antiga
-        deleteFile(oldImgUrl) 
-      }
+      const nova_img_url = await replaceFileUrl({
+        oldFileUrl: user.img_url,
+        newFileUrl: img_url
+      })
 
       // Atualização de dados do usuário
       await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
-        newImgUrl,
+        nova_img_url,
         id,
       ]);
       await conn.commit();
@@ -378,17 +364,11 @@ function insertOne(req) {
         [id_publico, nome, email, active]
       );
       const newId = result.insertId;
-      // Já que deu certo inserir o usuário, vamos importar a imagem dele...
-      // Verificar se a imagem é temporária
-      const isImgTemp = urlContemTemp(img_url);
-      var newImgUrl = img_url;
-      if (isImgTemp) {
-        // Persistir imagem
-        const urlImgPersistida = await moverArquivoTempParaUploads(img_url);
-        newImgUrl = urlImgPersistida;
-      }
+
+      const nova_img_url = await persistFile({fileUrl: img_url});
+
       await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
-        newImgUrl,
+        nova_img_url,
         newId,
       ]);
 
