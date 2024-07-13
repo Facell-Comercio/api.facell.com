@@ -134,7 +134,9 @@ module.exports = function exportLayoutDatasys(req) {
         }
   
         if (!datasys.length) {
-          throw new Error("Nenhum título encontrado!");
+          resolve([])
+          conn.release()
+          return
         }
   
         resolve(datasys);

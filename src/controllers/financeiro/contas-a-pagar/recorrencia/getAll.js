@@ -1,8 +1,12 @@
+const { format } = require("date-fns");
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
+const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
 
 module.exports = function getAllRecorrencias(req) {
     return new Promise(async (resolve, reject) => {
+
       const { user } = req;
       const conn = await db.getConnection();
       const departamentosUser = user.departamentos.map(
