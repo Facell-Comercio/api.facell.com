@@ -19,7 +19,7 @@ async function lerOFX(pathOFX) {
             resolve(ofxData)
             return;
         } catch (error) {
-            reject('ERRO EM LEITURA DE OFX', error)
+            reject(error)
         }
     })
 }
@@ -30,7 +30,7 @@ async function readOFX(caminho) {
             if (err) {
                 reject('Não consegui ler')
             } else {
-                resolve(data)
+                resolve(data.replace(/\r\n/g, '\n').replace(/&(?!(?:apos|quot|[gl]t|amp);|#)/g, '&amp;'))
             }
         });
     })

@@ -3,6 +3,7 @@ const {
   login,
   updateSenha,
   recuperarSenha,
+  validarToken,
 } = require("../controllers/auth-controller");
 const authMiddleware = require("../middlewares/auth-middleware");
 
@@ -35,7 +36,8 @@ router.post("/recuperar-senha", async (req, res) => {
 
 router.get("/validar-token", authMiddleware, async (req, res) => {
   try {
-    res.status(200).json({ message: "Sucesso!" });
+    const token = await validarToken(req)
+    res.status(200).json({ token });
   } catch (error) {
     res.status(400).json({
       message: "Ocorreu um erro ao tentar validar a sua autenticação!",

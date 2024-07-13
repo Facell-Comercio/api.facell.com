@@ -6,6 +6,7 @@ const {
   replaceFileUrl,
 } = require("../files-controller");
 const { logger } = require("../../../logger");
+const { deleteFile, extractGoogleDriveId } = require("../storage-controller");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -18,10 +19,15 @@ function getAll(req) {
     // Filtros
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || { pageIndex: 0, pageSize: 5 };
-    const { termo } = filters || { termo: null };
+    const { termo, inactives } = filters || { };
 
     var where = ` WHERE 1=1 `;
     const params = [];
+
+    if(inactives != 'true' && (!inactives || parseInt(inactives) != 1)){
+      where += ` AND u.active = 1 `
+      params.push()
+    }
 
     if (termo) {
       where += ` AND u.nome LIKE CONCAT('%', ?, '%')`;
@@ -50,17 +56,13 @@ function getAll(req) {
             LIMIT ? OFFSET ?
             `;
 
-      // console.log(query)
-      // console.log(params)
       const [rows] = await conn.execute(query, params);
 
-      // console.log('Fetched users', users.length)
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      // console.log(objResponse)
       resolve(objResponse);
     } catch (error) {
       logger.error({
@@ -123,7 +125,6 @@ function getOne(req) {
             `,
         [id]
       );
-
       const [centros_custo] = await conn.execute(
         `
             SELECT ucc.*, fcc.nome, g.nome as grupo_economico
@@ -143,7 +144,6 @@ function getOne(req) {
         filiais,
         centros_custo,
       };
-      // console.log(objUser)
       resolve(objUser);
       return;
     } catch (error) {
@@ -178,7 +178,6 @@ function update(req) {
       permissoes,
       updatePermissoes,
     } = req.body;
-    // console.log(req.body)
 
     const conn = await db.getConnection();
     try {
@@ -193,9 +192,6 @@ function update(req) {
       }
       await conn.beginTransaction();
 
-      // Verificar se a imagem é temporária
-      const isImgTemp = urlContemTemp(img_url);
-
       const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
         id,
       ]);
@@ -204,15 +200,17 @@ function update(req) {
         throw new Error("Usuário não localizado!");
       }
 
-      var newImgUrl = img_url;
-      if (isImgTemp) {
-        // Substituir imagem
-        const urlImgPersistida = await replaceFileUrl({
-          oldFileUrl: user.img_url,
-          newFileUrl: img_url,
-        });
-        newImgUrl = urlImgPersistida;
+      const newImgUrl = img_url;
+      const oldFileUrl = user.img_url
+
+      if (oldFileUrl && newImgUrl != oldFileUrl) {
+        // A nova imagem é diferente da imagem que já existia, então vamos excluir a antiga;
+        try {
+          await deleteFile(oldFileUrl)
+        } catch (error) {}
       }
+      const fileId = extractGoogleDriveId(img_url)
+      await conn.execute(`DELETE FROM temp_files WHERE id = ?`, [fileId])
 
       // Atualização de dados do usuário
       await conn.execute(
@@ -288,7 +286,6 @@ function updateImg(req) {
   return new Promise(async (resolve, reject) => {
     const { img_url } = req.body;
     const { id } = req.params;
-    console.log(req.body, req.params);
 
     const conn = await db.getConnection();
     try {
@@ -300,9 +297,6 @@ function updateImg(req) {
       }
       await conn.beginTransaction();
 
-      // Verificar se a imagem é temporária
-      const isImgTemp = urlContemTemp(img_url);
-
       const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
         id,
       ]);
@@ -312,13 +306,15 @@ function updateImg(req) {
       }
 
       let newImgUrl = img_url;
-      if (isImgTemp) {
-        // Substituir imagem
-        const urlImgPersistida = await replaceFileUrl({
-          oldFileUrl: user.img_url,
-          newFileUrl: img_url,
-        });
-        newImgUrl = urlImgPersistida;
+      if(newImgUrl){
+        // Removemos da lista de arquivos temporários para não ser excluída:
+        await conn.execute(`DELETE FROM temp_files WHERE id = ?`, [extractGoogleDriveId(newImgUrl)])
+      }
+
+      const oldImgUrl = user.img_url
+      if (oldImgUrl) {
+        // Excluimos a imagem antiga
+        deleteFile(oldImgUrl) 
       }
 
       // Atualização de dados do usuário
@@ -359,7 +355,6 @@ function insertOne(req) {
       permissoes,
       updatePermissoes,
     } = req.body;
-    // console.log(req.body)
 
     const conn = await db.getConnection();
     try {

@@ -1,9 +1,8 @@
-const express = require("express");
-const path = require("path");
 const router = require("express").Router();
 
 const authRouter = require("./auth-router");
 const uploadRouter = require("./upload-router");
+const storageRouter = require("./storage-router");
 const financeiroRouter = require("./financeiro/financeiro-router");
 const grupoEconomico = require("./grupo-economico-router");
 const filial = require("./filial-router");
@@ -29,6 +28,7 @@ router.use("/auth", authRouter);
 router.use("/", authMiddleware);
 
 router.use("/upload", uploadRouter);
+router.use("/storage", storageRouter);
 router.use("/financeiro", financeiroRouter);
 router.use("/grupo-economico", grupoEconomico);
 router.use("/filial", filial);

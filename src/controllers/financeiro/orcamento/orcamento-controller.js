@@ -513,7 +513,7 @@ function getMyBudgets(req) {
     const orcamentos_habilitados = [];
 
     user?.centros_custo?.forEach((f) => {
-      orcamentos_habilitados.push(f.id);
+      orcamentos_habilitados.push(f.id_centro_custo);
     });
 
     const { filters, pagination } = req.query;

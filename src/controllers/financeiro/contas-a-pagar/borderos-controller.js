@@ -1579,7 +1579,7 @@ function exportRemessa(req, res) {
           //* Verifica se é cpf ou cnpj
           if (vencimento.favorecido_cnpj) {
             throw new Error(
-              `O fornecedor ${vencimento.favorecido_nome} não tem o cnpj do favorecido`
+              `Vencimento ${vencimento.id_vencimento}, fornecedor não tem o cnpj do favorecido ${vencimento.favorecido_nome}.`
             );
           }
           const favorecido_tipo_insc =

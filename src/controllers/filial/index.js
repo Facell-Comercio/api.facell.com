@@ -10,7 +10,7 @@ function getAll(req) {
     const filiais_habilitadas = [];
 
     user?.filiais?.forEach((f) => {
-      filiais_habilitadas.push(f.id);
+      filiais_habilitadas.push(f.id_filial);
     });
 
     // Filtros

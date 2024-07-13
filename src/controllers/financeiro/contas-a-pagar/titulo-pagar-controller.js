@@ -32,6 +32,7 @@ const {
 const { addMonths } = require("date-fns/addMonths");
 const { logger } = require("../../../../logger");
 const { checkCodigoBarras } = require("../../../helpers/chekers");
+const { extractGoogleDriveId, deleteFile } = require("../../storage-controller");
 require("dotenv").config();
 
 function checkFeriado(date) {
@@ -193,7 +194,7 @@ function getAll(req) {
       const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento" || tipo_data == "data_pagamento"
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
@@ -779,7 +780,7 @@ function getAllRecorrencias(req) {
     const { user } = req;
     const conn = await db.getConnection();
     const departamentosUser = user.departamentos.map(
-      (departamento) => departamento.id
+      (departamento) => departamento.id_departamento
     );
 
     try {
@@ -2073,8 +2074,9 @@ function update(req) {
 
       // ~ Início de Manipulação de Rateio //////////////////////
       // * Validação de orçamento e atualização do rateio
+      let id_orcamento_conta;
       if (update_rateio) {
-        if (!id_orcamento) {
+        if (!id_orcamento && grupoValidaOrcamento) {
           throw new Error("Orçamento não localizado!");
         }
 
@@ -2153,7 +2155,7 @@ function update(req) {
               rowOrcamentoConta[0] &&
               !!+rowOrcamentoConta[0]["active"];
 
-            const id_orcamento_conta =
+            id_orcamento_conta =
               rowOrcamentoConta &&
               rowOrcamentoConta[0] &&
               rowOrcamentoConta[0]["id"];
@@ -2187,17 +2189,20 @@ function update(req) {
               );
             }
 
-            const [result] = await conn.execute(
-              `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
-              [
-                id,
-                item_rateio.id_filial,
-                item_rateio.id_centro_custo,
-                item_rateio.id_plano_conta,
-                item_rateio.percentual,
-                valorRateio,
-              ]
-            );
+          } // fim da validação do orçamento;
+          
+          const [result] = await conn.execute(
+            `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
+            [
+              id,
+              item_rateio.id_filial,
+              item_rateio.id_centro_custo,
+              item_rateio.id_plano_conta,
+              item_rateio.percentual,
+              valorRateio,
+            ]
+          );
+          if(id_orcamento_conta){
             // * Persistir a conta de consumo do orçamento:
             await conn.execute(
               `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
@@ -2549,18 +2554,23 @@ function updateFileTitulo(req) {
       if (!titulo) {
         throw new Error("Solicitação não existe no sistema...");
       }
-      const newUrl = await replaceFileUrl({
-        oldFileUrl: titulo[campo],
-        newFileUrl: fileUrl,
-      });
+      
+      const newFileUrl =  fileUrl
+      const oldFileUrl = titulo[campo]
+      if(newFileUrl != oldFileUrl){
+          await deleteFile(oldFileUrl)
+      }
+      if(newFileUrl){
+        await conn.execute(`DELETE FROM temp_files WHERE id =?`, [extractGoogleDriveId(newFileUrl)])
+      }
 
       await conn.execute(
         `UPDATE fin_cp_titulos SET ${campo} = ? WHERE id = ? `,
-        [newUrl, id]
+        [newFileUrl, id]
       );
 
       await conn.commit();
-      resolve({ fileUrl: newUrl });
+      resolve({ fileUrl: newFileUrl });
       return;
     } catch (error) {
       logger.error({
@@ -3315,7 +3325,7 @@ function importSolicitacaoLote(req) {
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
-              req.user.departamentos[0].id,
+              req.user.departamentos[0].id_departamento,
               id_status,
               id_tipo_solicitacao,
               fornecedor.id,

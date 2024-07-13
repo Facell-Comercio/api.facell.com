@@ -1,20 +1,6 @@
 const router = require("express").Router();
 const multer = require("multer");
-const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "public/temp/"); // Defina o diretório de destino dos arquivos
-  },
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
-    );
-  },
-});
-
-const upload = multer({ storage });
 const {
   getAll,
   getOne,
@@ -30,6 +16,9 @@ const {
   reverseManualPayment,
 } = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
+
+const { localTempStorage } = require("../../../../libs/multer");
+const upload = multer({ storage: localTempStorage });
 
 router.put("/transfer", async (req, res) => {
   try {

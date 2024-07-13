@@ -7,6 +7,9 @@ require("dotenv").config();
 
 async function deleteFile(filePath) {
   try {
+    if(!filePath){
+      return true;
+    }
     await unlink(filePath);
     return true;
   } catch (error) {

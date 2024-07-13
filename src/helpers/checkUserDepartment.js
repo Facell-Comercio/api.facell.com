@@ -11,21 +11,21 @@ const checkUserDepartment = (req, depart, gestor = undefined) => {
     if (gestor !== undefined) {
       return (
         user.departamentos.findIndex(
-          (perm) => perm.id === depart && perm.gestor === gestor
+          (userDepart) => userDepart.id_departamento === depart && userDepart.gestor === gestor
         ) >= 0
       );
     }
-    return user.departamentos.findIndex((perm) => perm.id === depart) >= 0;
+    return user.departamentos.findIndex((userDepart) => userDepart.id_departamento === depart) >= 0;
   }
   if (tipo === "string") {
     if (gestor !== undefined) {
       return (
         user.departamentos.findIndex(
-          (perm) => perm.nome === depart && perm.gestor === gestor
+          (userDepart) => userDepart.nome === depart && userDepart.gestor === gestor
         ) >= 0
       );
     }
-    return user.departamentos.findIndex((perm) => perm.nome === depart) >= 0;
+    return user.departamentos.findIndex((userDepart) => userDepart.nome === depart) >= 0;
   }
   return false;
 };

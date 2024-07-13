@@ -10,7 +10,7 @@ function getAll(req) {
     const planos_contas_habilitados = [];
 
     user?.filiais?.forEach((f) => {
-      planos_contas_habilitados.push(f.id);
+      planos_contas_habilitados.push(f.id_filial);
     });
 
     if (!user) {

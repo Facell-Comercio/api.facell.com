@@ -10,7 +10,7 @@ function getAll(req) {
     const contas_bancarias_habilitadas = [];
 
     user?.filiais?.forEach((f) => {
-      contas_bancarias_habilitadas.push(f.id);
+      contas_bancarias_habilitadas.push(f.id_filial);
     });
 
     if (!user) {
