@@ -10,28 +10,20 @@ const {
   insertOneRecorrencia,
   getAllRecorrencias,
   changeFieldTitulos,
-  downloadAnexos,
   deleteRecorrencia,
-  changeRecorrencia,
-  exportDatasys,
+  updateRecorrencia,
+  exportLayoutDatasys,
   getAllCpVencimentosBordero,
   getOneByTimParams,
   getPendencias,
-  importSolicitacaoLote,
+  importLoteSolicitacoes,
   getAllCpItemsBordero,
 } = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
 
 router.get("/export-datasys", async (req, res) => {
   try {
-    const result = await exportDatasys(req);
+    const result = await exportLayoutDatasys(req);
     res.status(200).json(result);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-router.post("/download", async (req, res) => {
-  try {
-    await downloadAnexos(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -129,7 +121,7 @@ router.delete("/recorrencias/:id", async (req, res) => {
 
 router.put("/recorrencias/:id", async (req, res) => {
   try {
-    const result = await changeRecorrencia(req);
+    const result = await updateRecorrencia(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -156,7 +148,7 @@ router.post("/criar-recorrencia", async (req, res) => {
 
 router.post("/solicitacao-lote", async (req, res) => {
   try {
-    const result = await importSolicitacaoLote(req);
+    const result = await importLoteSolicitacoes(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -2,6 +2,7 @@ const { format, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
+//  * Cartões Corporativos:
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
@@ -121,185 +122,6 @@ function getOne(req) {
         module: "FINANCEIRO",
         origin: "CARTÕES",
         method: "GET_ONE",
-        data: { message: error.message, stack: error.stack, name: error.name },
-      });
-      reject(error);
-      return;
-    } finally {
-      conn.release();
-    }
-  });
-}
-
-function getOneFaturas(req) {
-  return new Promise(async (resolve, reject) => {
-    const { id } = req.params;
-    const { pagination } = req.query;
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
-    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
-
-    const params = [];
-    const conn = await db.getConnection();
-    try {
-      const [rowVencimentosEmFaturaQTD] = await conn.execute(
-        `
-        SELECT COUNT(*) AS qtde
-              FROM(
-              SELECT id FROM fin_cartoes_corporativos_faturas
-              WHERE id_cartao = ?
-                  )
-              as subconsulta
-            `,
-        [id]
-      );
-      const totalVencimentosEmFatura =
-        (rowVencimentosEmFaturaQTD && rowVencimentosEmFaturaQTD[0]["qtde"]) ||
-        0;
-
-      const [rowVencimentosEmFatura] = await conn.execute(
-        `
-            SELECT 
-                *
-            FROM fin_cartoes_corporativos_faturas
-            WHERE id_cartao = ?
-            ORDER BY 
-              id DESC
-            LIMIT ? OFFSET ?
-            `,
-        [id, pageSize, offset]
-      );
-
-      resolve({
-        rows: rowVencimentosEmFatura,
-        pageCount: Math.ceil(totalVencimentosEmFatura / pageSize),
-        rowCount: totalVencimentosEmFatura,
-      });
-      return;
-    } catch (error) {
-      logger.error({
-        module: "FINANCEIRO",
-        origin: "CARTÕES",
-        method: "GET_ONE_FATURAS",
-        data: { message: error.message, stack: error.stack, name: error.name },
-      });
-      reject(error);
-      return;
-    } finally {
-      conn.release();
-    }
-  });
-}
-
-function getFatura(req) {
-  return new Promise(async (resolve, reject) => {
-    const { id } = req.params;
-
-    const conn = await db.getConnection();
-    try {
-      const [rowFaturas] = await conn.execute(
-        `
-            SELECT 
-                ccf.*, fcc.dia_vencimento
-            FROM fin_cartoes_corporativos_faturas ccf
-            LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
-            WHERE ccf.id = ?
-            `,
-        [id]
-      );
-      const fatura = rowFaturas && rowFaturas[0];
-
-      //* Compras aprovadas
-      const [rowComprasAprovadas] = await conn.execute(
-        `
-            SELECT 
-                tv.*,
-                t.id_status, t.created_at, t.num_doc, t.descricao,
-                forn.nome as fornecedor,
-                f.nome as filial,
-                u.nome as solicitante
-            FROM fin_cp_titulos_vencimentos tv
-            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN filiais f ON f.id = t.id_filial
-            LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
-            `,
-        [id]
-      );
-      const [rowComprasAprovadasSoma] = await conn.execute(
-        `
-            SELECT 
-                SUM(tv.valor) as total
-            FROM fin_cp_titulos_vencimentos tv
-            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN filiais f ON f.id = t.id_filial
-            LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
-            `,
-        [id]
-      );
-      const totalAprovadas =
-        rowComprasAprovadasSoma &&
-        rowComprasAprovadasSoma[0] &&
-        rowComprasAprovadasSoma[0].total;
-
-      //* Compras pendentes
-      const [rowComprasPendentes] = await conn.execute(
-        `
-            SELECT 
-                tv.*,
-                t.id_status, t.created_at, t.num_doc, t.descricao,
-                forn.nome as fornecedor,
-                f.nome as filial,
-                u.nome as solicitante
-            FROM fin_cp_titulos_vencimentos tv
-            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN filiais f ON f.id = t.id_filial
-            LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? 
-            AND (t.id_status = 1   OR t.id_status = 2)
-            `,
-        [id]
-      );
-      const [rowComprasPendentesSoma] = await conn.execute(
-        `
-            SELECT 
-                SUM(tv.valor) as total
-            FROM fin_cp_titulos_vencimentos tv
-            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN filiais f ON f.id = t.id_filial
-            LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? 
-            AND (t.id_status = 1   OR t.id_status = 2)
-            `,
-        [id]
-      );
-      const totalPendentes =
-        rowComprasPendentesSoma &&
-        rowComprasPendentesSoma[0] &&
-        rowComprasPendentesSoma[0].total;
-
-      resolve({
-        dados: fatura,
-
-        comprasAprovadas: rowComprasAprovadas,
-        totalAprovadas,
-
-        comprasPendentes: rowComprasPendentes,
-        totalPendentes,
-      });
-      return;
-    } catch (error) {
-      logger.error({
-        module: "FINANCEIRO",
-        origin: "CARTÕES",
-        method: "GET_FATURA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -504,6 +326,186 @@ function deleteCartao(req) {
       });
       await conn.rollback();
       reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+// * Faturas:
+function getOneFaturas(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+    const { pagination } = req.query;
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+
+    const params = [];
+    const conn = await db.getConnection();
+    try {
+      const [rowVencimentosEmFaturaQTD] = await conn.execute(
+        `
+        SELECT COUNT(*) AS qtde
+              FROM(
+              SELECT id FROM fin_cartoes_corporativos_faturas
+              WHERE id_cartao = ?
+                  )
+              as subconsulta
+            `,
+        [id]
+      );
+      const totalVencimentosEmFatura =
+        (rowVencimentosEmFaturaQTD && rowVencimentosEmFaturaQTD[0]["qtde"]) ||
+        0;
+
+      const [rowVencimentosEmFatura] = await conn.execute(
+        `
+            SELECT 
+                *
+            FROM fin_cartoes_corporativos_faturas
+            WHERE id_cartao = ?
+            ORDER BY 
+              id DESC
+            LIMIT ? OFFSET ?
+            `,
+        [id, pageSize, offset]
+      );
+
+      resolve({
+        rows: rowVencimentosEmFatura,
+        pageCount: Math.ceil(totalVencimentosEmFatura / pageSize),
+        rowCount: totalVencimentosEmFatura,
+      });
+      return;
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "GET_ONE_FATURAS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+      return;
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function getFatura(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.params;
+
+    const conn = await db.getConnection();
+    try {
+      const [rowFaturas] = await conn.execute(
+        `
+            SELECT 
+                ccf.*, fcc.dia_vencimento
+            FROM fin_cartoes_corporativos_faturas ccf
+            LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
+            WHERE ccf.id = ?
+            `,
+        [id]
+      );
+      const fatura = rowFaturas && rowFaturas[0];
+
+      //* Compras aprovadas
+      const [rowComprasAprovadas] = await conn.execute(
+        `
+            SELECT 
+                tv.*,
+                t.id_status, t.created_at, t.num_doc, t.descricao,
+                forn.nome as fornecedor,
+                f.nome as filial,
+                u.nome as solicitante
+            FROM fin_cp_titulos_vencimentos tv
+            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN filiais f ON f.id = t.id_filial
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
+            `,
+        [id]
+      );
+      const [rowComprasAprovadasSoma] = await conn.execute(
+        `
+            SELECT 
+                SUM(tv.valor) as total
+            FROM fin_cp_titulos_vencimentos tv
+            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN filiais f ON f.id = t.id_filial
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
+            `,
+        [id]
+      );
+      const totalAprovadas =
+        rowComprasAprovadasSoma &&
+        rowComprasAprovadasSoma[0] &&
+        rowComprasAprovadasSoma[0].total;
+
+      //* Compras pendentes
+      const [rowComprasPendentes] = await conn.execute(
+        `
+            SELECT 
+                tv.*,
+                t.id_status, t.created_at, t.num_doc, t.descricao,
+                forn.nome as fornecedor,
+                f.nome as filial,
+                u.nome as solicitante
+            FROM fin_cp_titulos_vencimentos tv
+            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN filiais f ON f.id = t.id_filial
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            WHERE tv.id_fatura_cartao = ? 
+            AND (t.id_status = 1   OR t.id_status = 2)
+            `,
+        [id]
+      );
+      const [rowComprasPendentesSoma] = await conn.execute(
+        `
+            SELECT 
+                SUM(tv.valor) as total
+            FROM fin_cp_titulos_vencimentos tv
+            LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN filiais f ON f.id = t.id_filial
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            WHERE tv.id_fatura_cartao = ? 
+            AND (t.id_status = 1   OR t.id_status = 2)
+            `,
+        [id]
+      );
+      const totalPendentes =
+        rowComprasPendentesSoma &&
+        rowComprasPendentesSoma[0] &&
+        rowComprasPendentesSoma[0].total;
+
+      resolve({
+        dados: fatura,
+
+        comprasAprovadas: rowComprasAprovadas,
+        totalAprovadas,
+
+        comprasPendentes: rowComprasPendentes,
+        totalPendentes,
+      });
+      return;
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "GET_FATURA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+      return;
     } finally {
       conn.release();
     }

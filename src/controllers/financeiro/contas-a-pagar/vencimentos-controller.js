@@ -1,15 +1,6 @@
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
-const {
-  normalizeFirstAndLastName,
-  normalizeCurrency,
-} = require("../../../helpers/mask");
-const {
-  moverArquivoTempParaUploads,
-  zipFiles,
-  createUploadsPath,
-} = require("../../files-controller");
 const { logger } = require("../../../../logger");
 require("dotenv").config();
 
