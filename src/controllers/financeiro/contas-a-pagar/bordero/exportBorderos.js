@@ -39,15 +39,13 @@ module.exports = async function exportBorderos(req) {
                 ? normalizeDate(titulo.data_vencimento)
                 : "",
               FILIAL: titulo.filial || "",
-              "CPF/CNPJ": titulo.cnpj ? normalizeCnpjNumber(titulo.cnpj) : "",
+              "CPF/CNPJ": titulo.cnpj_fornecedor ? normalizeCnpjNumber(titulo.cnpj_fornecedor) : "",
               FORNECEDOR: titulo.nome_fornecedor || "",
               "Nº DOC": titulo.num_doc || "",
               DESCRIÇÃO: titulo.descricao || "",
               VALOR:
                 parseFloat(titulo.valor_total && titulo.valor_total.toString()) ||
                 "",
-              "CENTRO CUSTO": titulo.centro_custo || "",
-  
               "CONTA BANCÁRIA": response.conta_bancaria || "",
               BANCO: response.banco || "",
               STATUS: titulo.status || "",

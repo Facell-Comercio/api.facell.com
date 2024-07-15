@@ -302,7 +302,7 @@ function getAllVencimentosBordero(req) {
 
       var query = `
         SELECT DISTINCT 
-            t.id as id_titulo, t.num_doc, t.id_forma_pagamento, t.id_status, UPPER(t.descricao) as descricao,
+            t.id as id_titulo, t.data_emissao, t.num_doc, t.id_forma_pagamento, t.id_status, UPPER(t.descricao) as descricao,
             tv.id as id_vencimento, 
             tv.status, 
             tv.data_vencimento,
@@ -315,7 +315,8 @@ function getAllVencimentosBordero(req) {
             tv.qr_code,
             tv.data_pagamento,
             f.nome as filial, f.id_matriz,
-            forn.nome as nome_fornecedor, 
+            forn.nome as nome_fornecedor,
+            forn.cnpj as cnpj_fornecedor, 
             fp.forma_pagamento
         FROM fin_cp_titulos t 
         LEFT JOIN fin_cp_status s ON s.id = t.id_status 
@@ -798,7 +799,6 @@ function changeFieldVencimentos(req) {
           [id]
         );
         const titulo = rowTitulo && rowTitulo[0];
-        console.log(titulo);
         if (titulo.id_status >= 4) {
           throw new Error(
             `Alteração rejeitada pois o título ${titulo.id} já consta como ${titulo.id_status === 4 ? "pago parcial" : "pago"
