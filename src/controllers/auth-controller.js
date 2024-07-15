@@ -64,11 +64,27 @@ async function login(req) {
       if (!userBanco) {
         throw new Error("Usuário ou senha inválidos!");
       }
+      let sucesso_login = false;
+      try {
+        const matchPass = await bcrypt.compare(senha, userBanco.senha);
+        if(matchPass){
+          sucesso_login = true
+        }
+      } catch (error) {
+        sucesso_login = false
+      }
 
-      const matchPass = await bcrypt.compare(senha, userBanco.senha);
-      const matchPassSenhaTemporaria = await bcrypt.compare(senha, userBanco.senha_temporaria);
-
-      if (!matchPass && !matchPassSenhaTemporaria) {
+      if(!sucesso_login && userBanco.senha_temporaria){
+        try {
+          const matchPassSenhaTemporaria = await bcrypt.compare(senha, userBanco.senha_temporaria);
+          if(matchPassSenhaTemporaria){
+            sucesso_login = true
+          }
+        } catch (error) {
+          sucesso_login = false
+        }
+      }
+      if(!sucesso_login){
         throw new Error("Usuário ou senha inválidos!");
       }
       const user = await getOne({params: {id: userBanco.id}})
