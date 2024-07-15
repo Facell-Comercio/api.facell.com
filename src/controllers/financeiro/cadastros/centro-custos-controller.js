@@ -94,6 +94,7 @@ function getAll(req) {
             `;
 
       const [rows] = await conn.execute(query, params);
+
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),

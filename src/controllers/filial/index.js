@@ -72,7 +72,7 @@ function getAll(req) {
       }
       
     }
-    if (id_matriz && id_matriz !== "all") {
+    if (id_matriz !== undefined && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;
       params.push(id_matriz);
     }
@@ -104,6 +104,7 @@ function getAll(req) {
             `;
       const [rows] = await conn.execute(query, params);
 
+      console.log(params);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),

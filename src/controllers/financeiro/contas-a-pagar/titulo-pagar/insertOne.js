@@ -470,7 +470,7 @@ module.exports = function insertOne(req) {
                     ]
                 );
 
-                if (orcamentoAtivo) {
+                if (orcamentoAtivo && grupoValidaOrcamento) {
                     // ^ Vamos validar se orçamento possui saldo:
                     // Obter a Conta de Orçamento com o Valor Previsto:
                     const [rowOrcamentoConta] = await conn.execute(
