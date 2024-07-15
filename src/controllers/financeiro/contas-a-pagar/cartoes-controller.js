@@ -451,6 +451,13 @@ function getAllFaturasBordero(req) {
           where += ` AND dda.id IS NULL `;
         }
       }
+      if(closedFatura !== undefined){
+        if(closedFatura){
+          where += ` AND ccf.closed = 1 `;
+        }else{
+          where += ` AND ccf.closed = 0 `;
+        }
+      }
 
       // Determina o retorno com base se está ou não em borderô
       if (emBordero !== undefined) {
@@ -790,8 +797,9 @@ function deleteFatura(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.query;
 
-    const conn = await db.getConnection();
+    let conn
     try {
+      conn = await db.getConnection();
       if (!id) {
         throw new Error("ID da fatura não informado!");
       }
@@ -823,7 +831,7 @@ function deleteFatura(req) {
       });
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }

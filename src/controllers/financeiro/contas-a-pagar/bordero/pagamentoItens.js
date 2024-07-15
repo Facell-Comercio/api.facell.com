@@ -189,8 +189,6 @@ function pagarFatura({ user, conn, fatura, data_pagamento }) {
                 data_pagamento
             })))
             // console.log({ vencimentosFatura });
-            // * PAGAMENTO DOS TÍTULOS:
-            await Promise.all(vencimentosFatura.map(vencimento => pagarTituloPorVencimento({ user, conn, vencimento })))
 
             resolve(true)
         } catch (error) {
@@ -212,6 +210,9 @@ module.exports = function pagamentoItens(req) {
 
             if (!id_bordero) {
                 throw new Error("ID não informado!");
+            }
+            if (!data_pagamento) {
+                throw new Error("Data pagamento não informada!");
             }
 
             await conn.beginTransaction();

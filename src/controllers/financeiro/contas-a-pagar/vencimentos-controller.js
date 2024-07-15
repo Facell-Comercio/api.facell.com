@@ -360,6 +360,7 @@ function getAllVencimentosBordero(req) {
   });
 }
 
+
 function getVencimentosAPagar(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
