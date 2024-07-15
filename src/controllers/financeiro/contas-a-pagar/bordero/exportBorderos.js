@@ -1,5 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
+const getOne = require("./getOne");
+const { normalizeCnpjNumber } = require("../../../../helpers/mask");
 
 module.exports = async function exportBorderos(req) {
     return new Promise(async (resolve, reject) => {
@@ -12,7 +14,7 @@ module.exports = async function exportBorderos(req) {
   
         for (const b_id of borderos) {
           const response = await getOne({ params: { id: b_id } });
-          response.vencimentos.forEach((titulo) => {
+          response.itens.forEach((titulo) => {
             const normalizeDate = (data) => {
               const date = new Date(data);
               const day = date.getDate();
