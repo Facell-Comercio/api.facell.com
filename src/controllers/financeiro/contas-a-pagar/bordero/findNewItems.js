@@ -13,7 +13,7 @@ module.exports = function findNewItems(req) {
         closedFatura: true
       }
       const { pagination: {pageSize}} = req.query;
-      console.log(req.query);
+      // console.log(req.query);
       // * Obter os vencimentos
       const vencimentos = await getAllVencimentosBordero(req)
 

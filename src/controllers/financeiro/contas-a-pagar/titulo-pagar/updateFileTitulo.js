@@ -9,7 +9,7 @@ module.exports = function updateFileTitulo(req) {
         const conn = await db.getConnection();
 
         try {
-            console.log({ fileUrl });
+            // console.log({ fileUrl });
             await conn.beginTransaction();
 
             if (!id) {

@@ -51,7 +51,7 @@ function getAll() {
           });
 
           rl.on("error", (err) => {
-            console.log(err);
+            // console.log(err);
             reject(err);
           });
         });

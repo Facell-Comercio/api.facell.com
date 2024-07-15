@@ -11,7 +11,7 @@ function pagarTituloPorVencimento({ user, conn, vencimento }) {
 
             // * OBTÉM OS VENCIMENTOS NÃO PAGOS PARA AVALIAR SE TODOS FORAM PAGOS..
             const [vencimentosNaoPagos] = await conn.execute(
-            ` SELECT 
+                ` SELECT 
                 tv.id, tb.id_bordero 
               FROM fin_cp_titulos_vencimentos tv
               LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = tv.id_fatura
@@ -68,7 +68,7 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento }) {
                 vencimento.id_vencimento,
             ]
 
-            console.log({vencimento, params});
+            // console.log({vencimento, params});
 
             await conn.execute(
                 `UPDATE fin_cp_titulos_vencimentos 
@@ -125,7 +125,7 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento }) {
             }
 
             // * PAGAMENTO DE TÍTULO:
-            await pagarTituloPorVencimento({user, conn, vencimento})
+            await pagarTituloPorVencimento({ user, conn, vencimento })
 
             resolve(true)
         } catch (error) {
@@ -175,23 +175,23 @@ function pagarFatura({ user, conn, fatura, data_pagamento }) {
                 `, [fatura.id_vencimento])
 
             // * PAGAMENTO DOS VENCIMENTOS DA FATURA:
-            await Promise.all(vencimentosFatura.map(vencimento=>pagarVencimento({
-                    user,
-                    conn, 
-                    vencimento: {
-                            ...vencimento, 
-                            id_vencimento: vencimento.id,
-                            valor_pago: vencimento.valor,
-                            valor_total: vencimento.valor,
-                            tipo_baixa: 'PADRÃO',
-                            obs: 'PAGAMENTO REALIZADO MANUALMENTE'
-                    }, 
-                    data_pagamento
-                })))
-
+            await Promise.all(vencimentosFatura.map(vencimento => pagarVencimento({
+                user,
+                conn,
+                vencimento: {
+                    ...vencimento,
+                    id_vencimento: vencimento.id,
+                    valor_pago: vencimento.valor,
+                    valor_total: vencimento.valor,
+                    tipo_baixa: 'PADRÃO',
+                    obs: 'PAGAMENTO REALIZADO MANUALMENTE'
+                },
+                data_pagamento
+            })))
+            // console.log({ vencimentosFatura });
             // * PAGAMENTO DOS TÍTULOS:
-            await Promise.all(vencimentosFatura.map(vencimento=>pagarTituloPorVencimento({user, conn, vencimento})))
-            
+            await Promise.all(vencimentosFatura.map(vencimento => pagarTituloPorVencimento({ user, conn, vencimento })))
+
             resolve(true)
         } catch (error) {
             reject(error)

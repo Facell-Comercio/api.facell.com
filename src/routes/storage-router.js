@@ -22,7 +22,7 @@ router.post("/pre-upload", upload.single("file"), async (req, res) => {
     const { fileUrl } = await preUploadFile(req) 
     res.status(200).json({ fileUrl });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -66,7 +66,7 @@ router.delete("/", async (req, res) => {
     await deleteFile(fileId);
     res.status(200).json({ message: "Sucesso!" });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({
       message: "Houve um erro ao tentar o arquivo. Ou o arquivo pode já ter sido excluído.",
     });
