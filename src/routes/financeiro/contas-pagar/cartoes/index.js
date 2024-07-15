@@ -12,6 +12,7 @@ const {
   transferVencimentos,
   reabrirFatura,
   fecharFatura,
+  deleteFatura,
 } = require("../../../../controllers/financeiro/contas-a-pagar/cartoes-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -79,6 +80,19 @@ router.put(
   async (req, res) => {
     try {
       const result = await update(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/fatura",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteFatura(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });

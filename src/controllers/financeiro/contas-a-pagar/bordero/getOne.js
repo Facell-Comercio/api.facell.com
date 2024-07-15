@@ -49,7 +49,6 @@ module.exports = function getOne(req) {
           itens: itens_bordero,
         };
         resolve(objResponse);
-        return;
       } catch (error) {
         logger.error({
           module: "FINANCEIRO",
@@ -58,9 +57,8 @@ module.exports = function getOne(req) {
           data: { message: error.message, stack: error.stack, name: error.name },
         });
         reject(error);
-        return;
       } finally {
-        conn.release();
+        if(conn) conn.release();
       }
     });
   }

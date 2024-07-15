@@ -117,7 +117,6 @@ function getOne(req) {
       const cartao = rowCartoes && rowCartoes[0];
 
       resolve(cartao);
-      return;
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
@@ -126,7 +125,6 @@ function getOne(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
     } finally {
       conn.release();
     }
@@ -135,18 +133,22 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      id_matriz,
-      nome_portador,
-      dia_vencimento,
-      dia_corte,
-      descricao,
-      active,
-      id_fornecedor,
-    } = req.body;
-    const conn = await db.getConnection();
+    
+    let conn 
     try {
+      conn = await db.getConnection();
+
+      const {
+        id,
+        id_matriz,
+        nome_portador,
+        dia_vencimento,
+        dia_corte,
+        descricao,
+        active,
+        id_fornecedor,
+      } = req.body;
+
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
@@ -199,10 +201,10 @@ function insertOne(req) {
         method: "INSERT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      await conn.rollback();
+      if(conn) await conn.rollback();
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }
@@ -784,6 +786,48 @@ function fecharFatura(req) {
   });
 }
 
+function deleteFatura(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.query;
+
+    const conn = await db.getConnection();
+    try {
+      if (!id) {
+        throw new Error("ID da fatura não informado!");
+      }
+      // Busca pelos vencimentos associados à fatura:
+      const [rowVencimentosFatura] = await conn.execute(
+        `SELECT tv.id FROM fin_cp_titulos_vencimentos tv
+        WHERE tv.id_fatura = ?  `,
+        [id]
+      );
+      // ^ Se existir 1 ou mais vencimentos associados, então impede exclusão:
+      if (rowVencimentosFatura && rowVencimentosFatura.length > 0) {
+        throw new Error(
+          `Não é possível excluir a fatura pois existem ${rowVencimentosFatura.length} vencimentos associados a ela!`
+        );
+      }
+      // ! Exclusão da fatura:
+      await conn.execute(
+        `DELETE FROM fin_cartoes_corporativos_faturas WHERE id = ?`,
+        [id]
+      );
+
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "DELETE_FATURA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 function reabrirFatura(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.body;
@@ -944,4 +988,5 @@ module.exports = {
   deleteCartao,
   reabrirFatura,
   fecharFatura,
+  deleteFatura,
 };

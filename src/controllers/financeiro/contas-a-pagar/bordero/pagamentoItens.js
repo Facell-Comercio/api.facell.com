@@ -234,7 +234,7 @@ module.exports = function pagamentoItens(req) {
                 method: "PAGAMENTO_ITEM",
                 data: { message: error.message, stack: error.stack, name: error.name },
             });
-            await conn.rollback();
+            if(conn) await conn.rollback();
             reject(error);
         } finally {
             if (conn) conn.release();
