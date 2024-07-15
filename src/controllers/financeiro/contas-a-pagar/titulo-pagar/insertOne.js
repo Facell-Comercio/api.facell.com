@@ -67,6 +67,7 @@ module.exports = function insertOne(req) {
                 url_txt,
             } = data || {};
 
+            const isCartao = id_forma_pagamento == 6;
             // console.log('NOVOS_DADOS', novos_dados)
             // console.log(`TITULO ${data.id}: VENCIMENTOS: `,vencimentos)
             // console.log(`TITULO ${data.id}: ITENS_RATEIO: `,itens_rateio)
@@ -238,10 +239,7 @@ module.exports = function insertOne(req) {
                 rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
             // * Persitir os anexos
-            const nova_url_nota_fiscal = await persistFile({
-                fileUrl:
-                    url_nota_fiscal
-            });
+            const nova_url_nota_fiscal = await persistFile({ fileUrl: url_nota_fiscal });
             const nova_url_xml = await persistFile({ fileUrl: url_xml });
             const nova_url_boleto = await persistFile({ fileUrl: url_boleto });
             const nova_url_contrato = await persistFile({ fileUrl: url_contrato });
@@ -251,47 +249,47 @@ module.exports = function insertOne(req) {
             // * Criação do Título a Pagar
             const [resultInsertTitulo] = await conn.execute(
                 `INSERT INTO fin_cp_titulos 
-          (
-            id_solicitante,
-            id_fornecedor,
-            id_banco,
-            id_forma_pagamento,
-  
-            agencia,
-            dv_agencia,
-            id_tipo_conta,
-            conta,
-            dv_conta,
-            favorecido,
-            cnpj_favorecido,
-  
-            id_tipo_chave_pix,
-            chave_pix,
-            id_cartao,
-  
-            id_tipo_solicitacao,
-            id_filial,
-            id_departamento,
+                    (
+                        id_solicitante,
+                        id_fornecedor,
+                        id_banco,
+                        id_forma_pagamento,
             
-            data_emissao,
-            num_doc,
-            valor,
-            descricao,
+                        agencia,
+                        dv_agencia,
+                        id_tipo_conta,
+                        conta,
+                        dv_conta,
+                        favorecido,
+                        cnpj_favorecido,
             
-            id_rateio,
-  
-            url_nota_fiscal,
-            url_xml,
-            url_boleto,
-            url_contrato,
-            url_planilha,
-            url_txt,
-  
-            id_status
-          )
-  
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-          `,
+                        id_tipo_chave_pix,
+                        chave_pix,
+                        id_cartao,
+            
+                        id_tipo_solicitacao,
+                        id_filial,
+                        id_departamento,
+                        
+                        data_emissao,
+                        num_doc,
+                        valor,
+                        descricao,
+                        
+                        id_rateio,
+            
+                        url_nota_fiscal,
+                        url_xml,
+                        url_boleto,
+                        url_contrato,
+                        url_planilha,
+                        url_txt,
+            
+                        id_status
+                    )
+            
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    `,
                 [
                     user.id,
                     id_fornecedor,
@@ -371,8 +369,8 @@ module.exports = function insertOne(req) {
                 }
 
                 //* Início - Lógica de Cartões /////////////////
-                let id_fatura_cartao = null;
-                if (id_forma_pagamento == "6") {
+                let id_fatura = null;
+                if (isCartao) {
                     //* Consulta alguns dados do cartão e data de vencimento
                     const [rowCartoes] = await conn.execute(
                         `SELECT dia_vencimento, dia_corte FROM fin_cartoes_corporativos WHERE id = ?`,
@@ -391,9 +389,9 @@ module.exports = function insertOne(req) {
                     //* Consulta alguns dados da fatura
                     const [rowFaturas] = await conn.execute(
                         `
-              SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
-              WHERE id_cartao = ? AND data_vencimento = ?
-        `,
+                            SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
+                            WHERE id_cartao = ? AND data_vencimento = ?
+                        `,
                         [id_cartao, startOfDay(vencimento.data_vencimento)]
                     );
                     const fatura = rowFaturas && rowFaturas[0];
@@ -411,22 +409,20 @@ module.exports = function insertOne(req) {
                         const valor =
                             parseFloat(fatura.valor) + parseFloat(vencimento.valor);
                         await conn.execute(
-                            `
-              UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
-            `,
+                            `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ? `,
                             [valor, fatura.id]
                         );
-                        id_fatura_cartao = fatura.id;
+                        id_fatura = fatura.id;
                     }
 
                     //* Caso não exista uma fatura -> Cria uma nova
                     if (!fatura) {
                         const [result] = await conn.execute(
                             `
-              INSERT INTO fin_cartoes_corporativos_faturas
-              (id_cartao, data_vencimento, data_prevista, valor)
-              VALUES (?,?,?,?)
-            `,
+                            INSERT INTO fin_cartoes_corporativos_faturas
+                            (id_cartao, data_vencimento, data_prevista, valor)
+                            VALUES (?,?,?,?)
+                            `,
                             [
                                 id_cartao,
                                 startOfDay(vencimento.data_vencimento),
@@ -437,13 +433,13 @@ module.exports = function insertOne(req) {
                         if (!result.insertId) {
                             throw new Error("Falha ao inserir fatura!");
                         }
-                        id_fatura_cartao = result.insertId;
+                        id_fatura = result.insertId;
                     }
                 }
                 //* Fim - Lógica de Cartões /////////////////
 
                 await conn.execute(
-                    `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor, qr_code, id_fatura_cartao) VALUES (?,?,?,?,?,?,?)`,
+                    `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, cod_barras, valor, qr_code, id_fatura) VALUES (?,?,?,?,?,?,?)`,
                     [
                         newId,
                         startOfDay(vencimento.data_vencimento),
@@ -451,7 +447,7 @@ module.exports = function insertOne(req) {
                         cod_barras,
                         vencimento.valor,
                         qr_code,
-                        id_fatura_cartao,
+                        id_fatura,
                     ]
                 );
             }
@@ -479,11 +475,11 @@ module.exports = function insertOne(req) {
                     // Obter a Conta de Orçamento com o Valor Previsto:
                     const [rowOrcamentoConta] = await conn.execute(
                         `SELECT id, valor_previsto, active FROM fin_orcamento_contas 
-            WHERE 
-              id_orcamento = ?
-              AND id_centro_custo = ?
-              AND id_plano_contas = ?
-              `,
+                            WHERE 
+                            id_orcamento = ?
+                            AND id_centro_custo = ?
+                            AND id_plano_contas = ?
+                            `,
                         [
                             id_orcamento,
                             item_rateio.id_centro_custo,

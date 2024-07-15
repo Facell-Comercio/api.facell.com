@@ -99,8 +99,8 @@ module.exports = function getAll(req) {
             SELECT DISTINCT
               bordero.id
             FROM fin_cp_bordero bordero
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_bordero = bordero.id
-            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_bordero = bordero.id
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = bi.id_vencimento
             LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
             LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
             LEFT JOIN fin_contas_bancarias cb ON cb.id = bordero.id_conta_bancaria
@@ -121,78 +121,51 @@ module.exports = function getAll(req) {
   
         const query = `
           SELECT
-            bordero.id, bordero.data_pagamento, cb.descricao as conta_bancaria, 
-            t.descricao, f.id_matriz,
-  
-            ((SELECT COUNT(tv.id)
-                FROM fin_cp_titulos_vencimentos tv
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
-                WHERE tv.status = 'pendente' AND tb.id_bordero = bordero.id)+
-              (SELECT COUNT(cf.id)
-                FROM fin_cartoes_corporativos_faturas cf
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_fatura = cf.id
-                WHERE cf.status = 'pendente' AND tb.id_bordero = bordero.id
-              )
-            ) as qtde_pendente,
-            ((SELECT COUNT(tv.id)
-                FROM fin_cp_titulos_vencimentos tv
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
-                WHERE tv.status = 'erro' AND tb.id_bordero = bordero.id)+
-              (SELECT COUNT(cf.id)
-                FROM fin_cartoes_corporativos_faturas cf
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_fatura = cf.id
-                WHERE cf.status = 'erro' AND tb.id_bordero = bordero.id
-              )
-            ) as qtde_erro,
-             ((SELECT COUNT(tv.id)
-                FROM fin_cp_titulos_vencimentos tv
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
-                WHERE tv.status = 'programado' AND tb.id_bordero = bordero.id)+
-              (SELECT COUNT(cf.id)
-                FROM fin_cartoes_corporativos_faturas cf
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_fatura = cf.id
-                WHERE cf.status = 'programado' AND tb.id_bordero = bordero.id
-              )
-            ) as qtde_programado,
-             ((SELECT COUNT(tv.id)
-                FROM fin_cp_titulos_vencimentos tv
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
-                WHERE tv.status = 'pago' AND tb.id_bordero = bordero.id)+
-              (SELECT COUNT(cf.id)
-                FROM fin_cartoes_corporativos_faturas cf
-                INNER JOIN fin_cp_bordero_itens tb ON tb.id_fatura = cf.id
-                WHERE cf.status = 'pago' AND tb.id_bordero = bordero.id
-              )
-            ) as qtde_pago,
-  
-  
-            (SELECT COUNT(tv.id_titulo)
-              FROM fin_cp_titulos_vencimentos tv
-              INNER JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
-              WHERE tb.id_bordero = bordero.id
-            ) as qtde_total,
-             
-            (
-              SELECT SUM(tv.valor)
-              FROM fin_cp_titulos_vencimentos tv
-              INNER JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
-              WHERE tb.id_bordero = bordero.id
-            ) as valor_total
-          FROM fin_cp_bordero bordero
-          LEFT JOIN fin_cp_bordero_itens tb ON tb.id_bordero = bordero.id
-          LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
-          LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-          LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-          LEFT JOIN fin_contas_bancarias cb ON cb.id = bordero.id_conta_bancaria
-          LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
-          LEFT JOIN filiais f ON f.id = t.id_filial
-  
-          ${where}
-          GROUP BY bordero.id
-          ORDER BY bordero.id DESC
-          LIMIT ? OFFSET ?
+          bordero.id, 
+          bordero.data_pagamento, 
+          cb.descricao as conta_bancaria, 
+          t.descricao, 
+          f.id_matriz,
+
+          -- Calcular qtde_pendente, qtde_erro, qtde_programado, qtde_pago em uma única subconsulta
+          COUNT(CASE 
+                  WHEN tv.status = 'pendente' OR cf.status = 'pendente' THEN 1 
+                END) AS qtde_pendente,
+
+          COUNT(CASE 
+                  WHEN tv.status = 'erro' OR cf.status = 'erro' THEN 1 
+                END) AS qtde_erro,
+
+          COUNT(CASE 
+                  WHEN tv.status = 'programado' OR cf.status = 'programado' THEN 1 
+                END) AS qtde_programado,
+
+          COUNT(CASE 
+                  WHEN tv.status = 'pago' OR cf.status = 'pago' THEN 1 
+                END) AS qtde_pago,
+
+          -- Calcular qtde_total
+          COALESCE(COUNT(tv.id),0) + COALESCE(COUNT(cf.id),0) AS qtde_total,
+
+          -- Calcular valor_total
+          COALESCE(SUM(tv.valor),0) + COALESCE(SUM(cf.valor), 0) AS valor_total
+
+        FROM fin_cp_bordero bordero
+        LEFT JOIN fin_cp_bordero_itens bi ON bi.id_bordero = bordero.id
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = bi.id_vencimento
+        LEFT JOIN fin_cartoes_corporativos_faturas cf ON cf.id = bi.id_fatura
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = bordero.id_conta_bancaria
+        LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
+        LEFT JOIN filiais f ON f.id = t.id_filial
+
+        ${where}
+        GROUP BY bordero.id
+        ORDER BY bordero.id DESC
+        LIMIT ? OFFSET ?
         `;
-  
+        // console.log({query});
         const [rows] = await conn.execute(query, params);
   
         const objResponse = {

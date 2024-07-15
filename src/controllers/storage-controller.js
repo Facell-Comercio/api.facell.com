@@ -50,7 +50,7 @@ async function clearTempDriveFiles() {
         }
     } catch (error) {
         logger.error({
-            module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'UPLODAD_FILE',
+            module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'CLEAR_TEMP_FILES',
             data: { message: error.message, stack: error.stack, name: error.name }
         })
     }
@@ -124,7 +124,7 @@ function persistFile({
             }
             reject(error)
             logger.error({
-                module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'REPLACE_FILE_URL',
+                module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'PERSIST_FILE',
                 data: { message: error.message, stack: error.stack, name: error.name }
             });
 

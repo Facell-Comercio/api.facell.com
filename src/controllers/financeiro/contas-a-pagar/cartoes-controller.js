@@ -1,6 +1,7 @@
 const { format, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { normalizeCurrency } = require("../../../helpers/mask");
 
 //  * Cartões Corporativos:
 function getAll(req) {
@@ -395,6 +396,186 @@ function getOneFaturas(req) {
   });
 }
 
+function getAllFaturasBordero(req) {
+  return new Promise(async (resolve, reject) => {
+
+    let conn
+    try {
+      conn = await db.getConnection();
+
+      const { pagination, filters, emBordero, id_bordero, minStatusTitulo, enabledStatusPgto, closedFatura } = req.query
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
+      const { id_matriz, id_filial, id_vencimento, id_titulo, fornecedor, descricao, dda, tipo_data, range_data } = filters || {}
+
+      let where = ` WHERE 1=1 `;
+      const params = [];
+
+      if (id_vencimento) {
+        where += ` AND ccf.id = ? `;
+        params.push(id_vencimento);
+      }
+      if(id_bordero !== undefined){
+        where += ` AND  bi.id_bordero = ?`
+        params.push(id_bordero)
+      }
+      if (id_titulo) {
+        where += ` AND ccf.id_titulo = ? `;
+        params.push(id_titulo);
+      }
+      if (descricao) {
+        where += ` AND fcc.descricao LIKE CONCAT('%',?,'%')  `;
+        params.push(descricao);
+      }
+      if (id_matriz) {
+        where += ` AND fcc.id_matriz = ? `;
+        params.push(id_matriz);
+      }
+      if (id_filial) {
+        where += ` AND f.id = ? `;
+        params.push(id_filial);
+      }
+      if (fornecedor) {
+        where += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
+        params.push(fornecedor);
+      }
+      if (dda !== undefined) {
+        if (dda == "true") {
+          where += ` AND dda.id IS NOT NULL `;
+        }
+        if (dda == "false") {
+          where += ` AND dda.id IS NULL `;
+        }
+      }
+
+      // Determina o retorno com base se está ou não em borderô
+      if (emBordero !== undefined) {
+        if (emBordero) {
+          where += ` AND bi.id_fatura IS NOT NULL`
+        } else {
+          where += ` AND bi.id_fatura IS NULL`
+        }
+      }
+      // Filtra o status mínimo do título
+      if (minStatusTitulo !== undefined) {
+        where += ` AND t.id_status >= ? `
+        params.push(minStatusTitulo)
+      }
+
+      // Filtra com base no status de pagamento
+      if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
+        where += ` AND ccf.status IN ('${enabledStatusPgto.join("','")}')`;
+      }
+
+      if (tipo_data && range_data) {
+        const { from: data_de, to: data_ate } = range_data;
+        if (data_de && data_ate) {
+          where += ` AND ccf.${tipo_data} BETWEEN '${data_de.split("T")[0]
+            }' AND '${data_ate.split("T")[0]}'  `;
+        } else {
+          if (data_de) {
+            where += ` AND ccf.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          }
+          if (data_ate) {
+            where += ` AND ccf.${tipo_data} <= '${data_ate.split("T")[0]
+              }' `;
+          }
+        }
+      }
+
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde
+        FROM (
+        SELECT DISTINCT 
+          ccf.id as id_titulo, 
+          ccf.id as id_vencimento, 
+          ccf.status, 
+          ccf.data_prevista as previsao,
+          NULL as id_status, 
+          UPPER(fcc.descricao) as descricao,
+          ccf.valor as valor_total, 
+          ccf.data_vencimento as data_pagamento,
+          f.nome as filial, 
+          fcc.id_matriz,
+          forn.nome as nome_fornecedor,
+          "-" as num_doc,  
+          6 as forma_pagamento
+        FROM fin_cartoes_corporativos_faturas ccf
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
+        LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
+        LEFT JOIN filiais f ON f.id = fcc.id_matriz
+        LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
+
+        ${where} 
+        ) AS subconsulta
+        `,
+        params
+      );
+
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+
+      const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+      params.push(pageSize);
+      params.push(offset);
+
+      const [rows] = await conn.execute(
+        `SELECT DISTINCT 
+          ccf.id as id_titulo, 
+          ccf.id as id_vencimento, 
+          ccf.status, 
+          ccf.data_prevista as previsao,
+          NULL as id_status, 
+          UPPER(fcc.descricao) as descricao,
+          ccf.valor as valor_total, 
+          ccf.valor_pago, 
+          ccf.tipo_baixa,
+          ccf.data_pagamento,
+          ccf.obs,
+          f.nome as filial, 
+          fcc.id_matriz,
+          forn.nome as nome_fornecedor,
+          "-" as num_doc,  
+          "Cartão" as forma_pagamento,
+          6 as id_forma_pagamento
+        FROM fin_cartoes_corporativos_faturas ccf
+        LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
+        LEFT JOIN filiais f ON f.id = fcc.id_matriz
+        LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
+        ${where} 
+
+        LIMIT ? OFFSET ?
+        `,
+        params
+      );
+
+      const objResponse = {
+        rows,
+        pageCount: Math.ceil(qtdeTotal / pageSize),
+        rowCount: qtdeTotal,
+      };
+      resolve(objResponse)
+
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "GET_ALL_FATURAS_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+}
+
 function getFatura(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
@@ -427,7 +608,7 @@ function getFatura(req) {
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN filiais f ON f.id = t.id_filial
             LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
+            WHERE tv.id_fatura = ? AND t.id_status >= 3
             `,
         [id]
       );
@@ -440,7 +621,7 @@ function getFatura(req) {
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN filiais f ON f.id = t.id_filial
             LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
+            WHERE tv.id_fatura = ? AND t.id_status >= 3
             `,
         [id]
       );
@@ -463,7 +644,7 @@ function getFatura(req) {
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN filiais f ON f.id = t.id_filial
             LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? 
+            WHERE tv.id_fatura = ? 
             AND (t.id_status = 1   OR t.id_status = 2)
             `,
         [id]
@@ -477,7 +658,7 @@ function getFatura(req) {
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN filiais f ON f.id = t.id_filial
             LEFT JOIN users u ON u.id = t.id_solicitante
-            WHERE tv.id_fatura_cartao = ? 
+            WHERE tv.id_fatura = ? 
             AND (t.id_status = 1   OR t.id_status = 2)
             `,
         [id]
@@ -496,7 +677,6 @@ function getFatura(req) {
         comprasPendentes: rowComprasPendentes,
         totalPendentes,
       });
-      return;
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
@@ -505,7 +685,6 @@ function getFatura(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
     } finally {
       conn.release();
     }
@@ -515,55 +694,22 @@ function getFatura(req) {
 function updateFatura(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const { data_prevista, closed, cod_barras, valor } = req.body;
+    const { data_prevista, cod_barras, valor } = req.body;
 
     const conn = await db.getConnection();
     try {
       if (!id) {
         throw new Error("ID da fatura não informado!");
       }
-      if (closed === undefined && !data_prevista) {
-        throw new Error("Campo data_prevista não informado!");
+      if (!data_prevista) {
+        throw new Error("Data de previsão de pagamento não informada!");
       }
-      const [rowValorFatura] = await conn.execute(
-        `
-        SELECT 
-          SUM(tv.valor) as total
-        FROM fin_cp_titulos_vencimentos tv
-        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-        LEFT JOIN filiais f ON f.id = t.id_filial
-        LEFT JOIN users u ON u.id = t.id_solicitante
-        WHERE tv.id_fatura_cartao = ? AND t.id_status >= 3
-        `,
-        [id]
+      await conn.execute(
+        `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ?, cod_barras = ?, valor = ? WHERE id = ?`,
+        [startOfDay(data_prevista), cod_barras || null, valor, id]
       );
-      const total = parseFloat(rowValorFatura && rowValorFatura[0].total) || 0;
-      const diferenca = Math.abs(parseFloat(valor) - total);
-      if (total < valor) {
-        throw new Error(
-          `Valor da fatura ultrapassou o esperado em R$${diferenca}`
-        );
-      }
-      if (total > valor) {
-        throw new Error(
-          `Valor da fatura é inferior ao valor esperado em R$${diferenca}`
-        );
-      }
-      if (data_prevista) {
-        await conn.execute(
-          `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ?, cod_barras = ?, valor = ? WHERE id = ?`,
-          [startOfDay(data_prevista), cod_barras || null, valor, id]
-        );
-      }
-      if (closed !== undefined) {
-        await conn.execute(
-          `UPDATE fin_cartoes_corporativos_faturas SET closed = ?, cod_barras = ?, valor = ? WHERE id = ?`,
-          [closed, cod_barras, valor, id]
-        );
-      }
+
       resolve({ message: "Sucesso!" });
-      return;
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
@@ -572,7 +718,111 @@ function updateFatura(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function fecharFatura(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id, data_prevista, cod_barras, valor } = req.body;
+
+    const conn = await db.getConnection();
+    try {
+      if (!id) {
+        throw new Error("ID da fatura não informado!");
+      }
+      if (!data_prevista) {
+        throw new Error("Data prevista não informada!");
+      }
+      if (!cod_barras) {
+        throw new Error("Código de barras não informado!");
+      }
+      const [rowValorFatura] = await conn.execute(
+        `SELECT 
+          SUM(tv.valor) as total
+        FROM fin_cp_titulos_vencimentos tv
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN users u ON u.id = t.id_solicitante
+        WHERE tv.id_fatura = ? AND t.id_status >= 3
+        `,
+        [id]
+      );
+      const total = parseFloat(rowValorFatura && rowValorFatura[0].total) || 0;
+      const diferenca = Math.abs(parseFloat(valor) - total);
+      if (total < valor) {
+        throw new Error(
+          `Valor da fatura ultrapassa o esperado em ${normalizeCurrency(diferenca)}`
+        );
+      }
+      if (total > valor) {
+        throw new Error(
+          `Valor da fatura inferior ao valor total das compras em ${normalizeCurrency(diferenca)}`
+        );
+      }
+
+      await conn.execute(
+        `UPDATE fin_cartoes_corporativos_faturas SET closed = 1 WHERE id = ?`,
+        [id]
+      );
+
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "UPDATE_FATURA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
+function reabrirFatura(req) {
+  return new Promise(async (resolve, reject) => {
+    const { id } = req.body;
+
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction()
+      if (!id) {
+        throw new Error("ID da fatura não informado!");
+      }
+
+      const [rowFatura] = await conn.execute(`SELECT cf.* FROM fin_cartoes_corporativos_faturas cf WHERE cf.id = ?`, [id])
+      const fatura = rowFatura && rowFatura[0]
+      if (!fatura) {
+        throw new Error(`Fatura de ID ${id} não localizada no sistema!`)
+      }
+      if (fatura.status == 'pago' || fatura.status == 'programado') {
+        throw new Error(`Fatura já foi paga ou programada para pagamento!`)
+      }
+
+      // ! Removemos de um possível bordero:
+      await conn.execute(`DELETE FROM fin_cp_bordero_itens WHERE id_fatura = ?`, [id])
+
+      //* Abrimos de fato a fatura:
+      await conn.execute(
+        `UPDATE fin_cartoes_corporativos_faturas SET closed = 0 WHERE id = ?`,
+        [id]
+      );
+      await conn.commit();
+      resolve({ message: "Sucesso!" });
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "REABRIR_FATURA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      await conn.rollback();
+      reject(error);
     } finally {
       conn.release();
     }
@@ -629,7 +879,7 @@ function transferVencimentos(req) {
         const vencimento = rowVencimentos && rowVencimentos[0];
         valor += parseFloat(vencimento.valor);
         await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET id_fatura_cartao = ? WHERE id = ?`,
+          `UPDATE fin_cp_titulos_vencimentos SET id_fatura = ? WHERE id = ?`,
           [id_fatura, id]
         );
       }
@@ -685,10 +935,13 @@ module.exports = {
   getAll,
   getOne,
   getOneFaturas,
+  getAllFaturasBordero,
   getFatura,
   insertOne,
   update,
   updateFatura,
   transferVencimentos,
   deleteCartao,
+  reabrirFatura,
+  fecharFatura,
 };

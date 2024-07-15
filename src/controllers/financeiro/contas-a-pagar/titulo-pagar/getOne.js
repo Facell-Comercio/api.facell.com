@@ -37,7 +37,7 @@ module.exports = function getOne(req) {
   
         const [vencimentos] = await conn.execute(
           `SELECT 
-            tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.cod_barras, tv.qr_code 
+            tv.id, tv.data_vencimento, tv.data_prevista, tv.valor, tv.valor_pago, tv.cod_barras, tv.qr_code 
           FROM fin_cp_titulos_vencimentos tv 
           WHERE tv.id_titulo = ? 
           `,

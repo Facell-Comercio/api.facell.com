@@ -72,7 +72,7 @@ module.exports = function update(req) {
             // console.log('NOVOS_DADOS', novos_dados)
             // console.log(`TITULO ${data.id}: VENCIMENTOS: `,vencimentos)
             // console.log(`TITULO ${data.id}: ITENS_RATEIO: `,itens_rateio)
-
+            const isCartao = id_forma_pagamento == 6;
             // ^ Validações
             // Titulo
             if (!id) {
@@ -174,13 +174,28 @@ module.exports = function update(req) {
                 );
             }
 
+            // ^ Vamos validar se algum vencimento está em fatura fechada, se estiver, vamos abortar:
+            if (isCartao) {
+                const [vencimentosEmFaturaFechada] = await conn.execute(
+                    `SELECT cf.id FROM fin_cp_titulos_vencimentos tv
+                    INNER JOIN fin_cartoes_corporativos_faturas cf ON cf.id = tv.id_fatura
+                    WHERE cf.closed AND tv.id_titulo = ?`,
+                    [id]
+                );
+                if (vencimentosEmFaturaFechada && vencimentosEmFaturaFechada.length > 0) {
+                    throw new Error(
+                        `Você não pode alterar a solicitação pois ${vencimentosEmFaturaFechada.length} vencimentos já estão em fatura de cartão fechada.`
+                    );
+                }
+            }
+
             // Obter os Vencimentos anteriores para registra-los no histórico caso precise
             const [vencimentos_anteriores] = await conn.execute(
                 `SELECT tv.*
-          FROM fin_cp_titulos_vencimentos tv
-          WHERE tv.id_titulo = ?`,
-                [titulo.id]
-            );
+                    FROM fin_cp_titulos_vencimentos tv
+                    WHERE tv.id_titulo = ?`,
+                    [titulo.id]
+                );
 
             // * Verificar se o Grupo valida orçamento
             const [rowGrupoEconomico] = await conn.execute(
@@ -264,9 +279,9 @@ module.exports = function update(req) {
                     // ! Excluir o consumo do orçamento pelo titulo
                     await conn.execute(
                         `DELETE FROM fin_orcamento_consumo 
-              WHERE id_item_rateio IN (
-                SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?
-              )`,
+                            WHERE id_item_rateio IN (
+                                SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?
+                            )`,
                         [id]
                     );
 
@@ -275,11 +290,11 @@ module.exports = function update(req) {
                         // Obter a Conta de Orçamento com o Valor Previsto [orçado]:
                         const [rowOrcamentoConta] = await conn.execute(
                             `SELECT id, valor_previsto, active FROM fin_orcamento_contas 
-            WHERE 
-              id_orcamento = ?
-              AND id_centro_custo = ?
-              AND id_plano_contas = ?
-              `,
+                                WHERE 
+                                id_orcamento = ?
+                                AND id_centro_custo = ?
+                                AND id_plano_contas = ?
+                                `,
                             [
                                 id_orcamento,
                                 item_rateio.id_centro_custo,
@@ -311,8 +326,8 @@ module.exports = function update(req) {
                         // Obter o Valor Realizado da Conta do Orçamento:
                         const [rowConsumoOrcamento] = await conn.execute(
                             `SELECT sum(valor) as valor 
-            FROM fin_orcamento_consumo 
-            WHERE active = true AND id_orcamento_conta = ?`,
+                            FROM fin_orcamento_consumo 
+                            WHERE active = true AND id_orcamento_conta = ?`,
                             [id_orcamento_conta]
                         );
                         let valor_total_consumo =
@@ -410,8 +425,8 @@ module.exports = function update(req) {
                     }
 
                     //* Início - Lógica de Cartões /////////////////
-                    let id_fatura_cartao = null;
-                    if (id_forma_pagamento == "6") {
+                    let id_fatura = null;
+                    if (isCartao) {
                         //* Consulta alguns dados do cartão e data de vencimento
                         const [rowCartoes] = await conn.execute(
                             `SELECT dia_vencimento, dia_corte FROM fin_cartoes_corporativos WHERE id = ?`,
@@ -430,9 +445,9 @@ module.exports = function update(req) {
                         //* Consulta alguns dados da fatura
                         const [rowFaturas] = await conn.execute(
                             `
-              SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
-              WHERE id_cartao = ? AND data_vencimento = ?
-        `,
+                            SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
+                            WHERE id_cartao = ? AND data_vencimento = ?
+                            `,
                             [id_cartao, startOfDay(vencimento.data_vencimento)]
                         );
                         const fatura = rowFaturas && rowFaturas[0];
@@ -450,22 +465,20 @@ module.exports = function update(req) {
                             const valor =
                                 parseFloat(fatura.valor) + parseFloat(vencimento.valor);
                             await conn.execute(
-                                `
-              UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
-            `,
+                                `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
+                                `,
                                 [valor, fatura.id]
                             );
-                            id_fatura_cartao = fatura.id;
+                            id_fatura = fatura.id;
                         }
 
                         //* Caso não exista uma fatura -> Cria uma nova
                         if (!fatura) {
                             const [result] = await conn.execute(
-                                `
-              INSERT INTO fin_cartoes_corporativos_faturas
-              (id_cartao, data_vencimento, data_prevista, valor)
-              VALUES (?,?,?,?)
-            `,
+                                `INSERT INTO fin_cartoes_corporativos_faturas
+                                (id_cartao, data_vencimento, data_prevista, valor)
+                                VALUES (?,?,?,?)
+                                `,
                                 [
                                     id_cartao,
                                     startOfDay(vencimento.data_vencimento),
@@ -476,13 +489,13 @@ module.exports = function update(req) {
                             if (!result.insertId) {
                                 throw new Error("Falha ao inserir fatura!");
                             }
-                            id_fatura_cartao = result.insertId;
+                            id_fatura = result.insertId;
                         }
                     }
                     //* Fim - Lógica de Cartões /////////////////
 
                     await conn.execute(
-                        `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code, id_fatura_cartao) VALUES (?,?,?,?,?,?,?)`,
+                        `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code, id_fatura) VALUES (?,?,?,?,?,?,?)`,
                         [
                             id,
                             formatDate(vencimento.data_vencimento, "yyyy-MM-dd"),
@@ -490,7 +503,7 @@ module.exports = function update(req) {
                             valorVencimento,
                             cod_barras,
                             qr_code,
-                            id_fatura_cartao,
+                            id_fatura,
                         ]
                     );
                 }

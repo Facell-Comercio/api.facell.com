@@ -176,7 +176,7 @@ module.exports = function insertOne(req) {
                 `
                 SELECT tv.id_titulo FROM fin_cp_titulos_vencimentos tv
                 LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo 
-                WHERE id_fatura_cartao = ? 
+                WHERE id_fatura = ? 
                 AND t.id_status >= 3
               `,
                 [vencimento.id_vencimento]
@@ -188,7 +188,7 @@ module.exports = function insertOne(req) {
                   SELECT 
                     tv.id, tb.id_bordero 
                   FROM fin_cp_titulos_vencimentos tv
-                  LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = tv.id_fatura_cartao
+                  LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = tv.id_fatura
                   WHERE tv.id_titulo = ? 
                   AND tv.data_pagamento IS NULL
                 `,

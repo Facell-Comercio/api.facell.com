@@ -4,7 +4,8 @@ const { logger } = require("../../../../../logger");
 module.exports = function deleteBordero(req) {
     return new Promise(async (resolve, reject) => {
       const { id } = req.params;
-  
+      const id_bordero = id;
+
       const conn = await db.getConnection();
       try {
         if (!id) {
@@ -13,10 +14,17 @@ module.exports = function deleteBordero(req) {
   
         await conn.beginTransaction();
         const [vencimentos] = await conn.execute(
-          `SELECT id, status FROM fin_cp_titulos_vencimentos tv 
-          INNER JOIN fin_cp_titulo_bordero tb ON tb.id_vencimento = tv.id
-          WHERE tb.id`,
-          [id]
+          `SELECT tv.id, tv.status FROM fin_cp_titulos_vencimentos tv
+          INNER JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
+          WHERE bi.id_bordero = ?
+          
+          UNION ALL
+
+          SELECT ft.id, ft.status FROM fin_cartoes_corporativos_faturas ft
+          INNER JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ft.id
+          WHERE bi.id_bordero = ?
+          `,
+          [id_bordero, id_bordero]
         );
   
         for (const vencimento of vencimentos) {

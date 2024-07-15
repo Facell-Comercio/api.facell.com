@@ -1,11 +1,15 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
+const { getAllVencimentosBordero } = require("../vencimentos-controller");
+const { getAllFaturasBordero } = require("../cartoes-controller");
 
 module.exports = function getOne(req) {
     return new Promise(async (resolve, reject) => {
-      const { id } = req.params;
-      const conn = await db.getConnection();
+      const { id: id_bordero } = req.params;
+      let conn
       try {
+
+        conn = await db.getConnection();
         const [rowBorderos] = await conn.execute(
           `
               SELECT 
@@ -21,55 +25,28 @@ module.exports = function getOne(req) {
               LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
               WHERE b.id = ?
               `,
-          [id]
-        );
-        const [rowTitulos] = await conn.execute(
-          `
-              SELECT 
-                tv.id as id_vencimento,
-                tv.id_titulo, 
-                tv.valor as valor_total, 
-                tv.valor_pago as valor_pago, 
-                t.descricao, t.id_status, t.num_doc, t.id_forma_pagamento,
-                tv.data_prevista as previsao, 
-                tv.data_pagamento, 
-                fp.forma_pagamento,
-                tv.obs, tv.status, tv.tipo_baixa,
-                f.nome as nome_fornecedor, 
-                t.data_emissao, 
-                tv.data_vencimento,
-                c.nome as centro_custo,
-                  b.id_conta_bancaria, 
-                f.cnpj,
-                fi.nome as filial, 
-                dda.id as id_dda,
-                CASE WHEN (tv.data_pagamento) THEN FALSE ELSE TRUE END as can_remove,
-                CASE WHEN (tv.data_pagamento IS NOT NULL AND tb.remessa = 0 AND cbi.id_cp IS NULL) THEN TRUE ELSE FALSE END as can_modify,
-                tb.remessa,
-                false AS checked
-              FROM fin_cp_bordero b
-              LEFT JOIN fin_cp_bordero_itens tb ON tb.id_bordero = b.id
-              LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento
-              LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-              LEFT JOIN fin_cp_titulos_rateio tr ON tr.id_titulo = tv.id_titulo
-              LEFT JOIN fin_cp_status st ON st.id = t.id_status
-              LEFT JOIN fin_fornecedores f ON f.id = t.id_fornecedor
-              LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-              LEFT JOIN filiais fi ON fi.id = t.id_filial
-              LEFT JOIN fin_centros_custo c ON c.id = tr.id_centro_custo
-              LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
-              LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-              LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_cp = tv.id
-              WHERE b.id = ?
-              GROUP BY tv.id
-              `,
-          [id]
+          [id_bordero]
         );
         const bordero = rowBorderos && rowBorderos[0];
-  
+
+        const {rows: vencimentos} = await getAllVencimentosBordero({query: {id_bordero}});
+        const {rows: faturas} = await getAllFaturasBordero({query:{id_bordero}});
+
+        const itens_bordero = [
+            ...vencimentos.map(v=>({...v, tipo: 'vencimento'})), 
+            ...faturas.map(f=>({...f, tipo: 'fatura'}))
+          ]
+          .map(item_bordero=>({
+            ...item_bordero,
+            checked: false,
+            can_remove: !item_bordero.data_pagamento,
+            can_modify: !item_bordero.conciliado && !item_bordero.data_pagamento && !item_bordero.remessa
+          }))
+
+        // console.log({itens_bordero});
         const objResponse = {
           ...bordero,
-          vencimentos: rowTitulos,
+          itens: itens_bordero,
         };
         resolve(objResponse);
         return;

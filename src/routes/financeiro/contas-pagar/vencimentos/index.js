@@ -1,9 +1,6 @@
 const router = require("express").Router();
 
 const {
-  getAll,
-} = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
-const {
   getVencimentosAPagar,
   getVencimentosPagos,
   getVencimentosEmBordero,

@@ -65,9 +65,8 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -143,6 +142,224 @@ function getAll(req) {
   });
 }
 
+function getAllVencimentosBordero(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const { pagination, filters, emBordero, id_bordero, minStatusTitulo, enabledStatusPgto } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
+
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+    // console.log(pageIndex, pageSize, offset)
+
+    // Filtros
+    var where = ` WHERE t.id_cartao IS NULL `;
+    // Somente o Financeiro/Master podem ver todos
+
+    const {
+      id_vencimento,
+      id_titulo,
+      id_grupo_economico,
+      tipo_data,
+      fornecedor,
+      range_data,
+      descricao,
+      id_matriz,
+      id_filial,
+      id_conta_bancaria,
+      dda,
+      termo,
+    } = filters || {};
+
+    const params = [];
+    if (termo) {
+      where += ` AND (
+        t.id LIKE CONCAT(?,'%') 
+        OR t.descricao LIKE CONCAT('%',?,'%')
+        OR forn.nome LIKE CONCAT('%',?,'%')
+        OR t.num_doc LIKE CONCAT('%',?,'%')
+        OR t.valor LIKE CONCAT('%',?,'%')
+        OR f.nome LIKE CONCAT('%',?,'%')  
+    )  `;
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+      params.push(termo);
+    }
+    if (id_vencimento) {
+      where += ` AND tv.id = ? `;
+      params.push(id_vencimento);
+    }
+
+    if (id_titulo) {
+      where += ` AND tv.id_titulo = ? `;
+      params.push(id_titulo);
+    }
+    if(id_bordero !== undefined){
+      where += ` AND  bi.id_bordero = ?`
+      params.push(id_bordero)
+    }
+
+    if (descricao) {
+      where += ` AND t.descricao LIKE CONCAT('%',?,'%')  `;
+      params.push(descricao);
+    }
+    if (id_matriz) {
+      where += ` AND f.id_matriz = ? `;
+      params.push(id_matriz);
+    }
+    if (id_filial) {
+      where += ` AND f.id = ? `;
+      params.push(id_filial);
+    }
+    if (fornecedor) {
+      where += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
+      params.push(fornecedor);
+    }
+
+    if (dda !== undefined) {
+      if (dda == "true") {
+        where += ` AND dda.id IS NOT NULL `;
+      }
+      if (dda == "false") {
+        where += ` AND dda.id IS NULL `;
+      }
+    }
+
+    // Determina o retorno com base se está ou não em borderô
+    if (emBordero !== undefined) {
+      if (emBordero) {
+        where += ` AND bi.id_vencimento IS NOT NULL`
+      } else {
+        where += ` AND bi.id_vencimento IS NULL`
+      }
+    }
+    // Filtra o status mínimo do título
+    if (minStatusTitulo !== undefined) {
+      where += ` AND t.id_status >= ? `
+      params.push(minStatusTitulo)
+    }
+
+    // Filtra os vencimentos com base no status
+    if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
+      where += ` AND tv.status IN ('${enabledStatusPgto.join("','")}')`;
+    }
+
+    if (tipo_data && range_data) {
+      const { from: data_de, to: data_ate } = range_data;
+      if (data_de && data_ate) {
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
+      } else {
+        if (data_de) {
+          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
+        }
+        if (data_ate) {
+          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+        }
+      }
+    }
+    if (id_grupo_economico && id_grupo_economico !== "all") {
+      where += ` AND f.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
+    }
+    // console.log(where)
+
+    const conn = await db.getConnection();
+    try {
+      const queryQtdeTotal = `SELECT COUNT(*) AS qtde
+        FROM (
+          SELECT DISTINCT 
+          tv.id 
+          FROM fin_cp_titulos t 
+            LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+            LEFT JOIN filiais f ON f.id = t.id_filial 
+            LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+            LEFT JOIN users u ON u.id = t.id_solicitante
+            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
+            LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+          ${where}
+        ) as subconsulta
+        `
+      const [rowQtdeTotal] = await conn.execute(
+        queryQtdeTotal,
+        params
+      );
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+
+      let limit = '';
+      if (pagination !== undefined) {
+        limit = ' LIMIT ? OFFSET ?'
+        params.push(pageSize);
+        params.push(offset);
+      }
+
+      var query = `
+        SELECT DISTINCT 
+            t.id as id_titulo, t.num_doc, t.id_forma_pagamento, t.id_status, UPPER(t.descricao) as descricao,
+            tv.id as id_vencimento, 
+            tv.status, 
+            tv.data_vencimento,
+            tv.data_prevista as previsao, 
+            tv.valor as valor_total, 
+            tv.valor_pago,
+            tv.tipo_baixa,
+            tv.obs,
+            tv.cod_barras,
+            tv.qr_code,
+            tv.data_pagamento,
+            f.nome as filial, f.id_matriz,
+            forn.nome as nome_fornecedor, 
+            fp.forma_pagamento
+        FROM fin_cp_titulos t 
+        LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+        LEFT JOIN filiais f ON f.id = t.id_filial 
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN users u ON u.id = t.id_solicitante
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
+        LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
+        LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+        
+        ${where}
+
+        ORDER BY 
+            t.created_at DESC 
+        ${limit}
+        `;
+      // console.log(query);
+      // console.log(params);
+      const [vencimentos] = await conn.execute(query, params);
+
+      const objResponse = {
+        rows: vencimentos,
+        pageCount: Math.ceil(totalVencimentos / pageSize),
+        rowCount: totalVencimentos,
+      };
+      // console.log('Fetched Titulos', titulos.length)
+      // console.log(objResponse)
+      resolve(objResponse);
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_ALL_VENCIMENTOS_BORDERO",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 function getVencimentosAPagar(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
@@ -197,9 +414,8 @@ function getVencimentosAPagar(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -223,11 +439,11 @@ function getVencimentosAPagar(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
 
         ${where}
         AND (t.id_status = 3 OR t.id_status = 4)
-        AND tb.id IS NULL
+        AND bi.id IS NULL
         `,
         params
       );
@@ -246,10 +462,10 @@ function getVencimentosAPagar(req) {
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
             LEFT JOIN users u ON u.id = t.id_solicitante
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
 
             ${where}
-            AND tb.id IS NULL
+            AND bi.id IS NULL
             AND (t.id_status = 3 OR t.id_status = 4)
             ORDER BY 
               tv.data_prevista DESC 
@@ -333,9 +549,8 @@ function getVencimentosEmBordero(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -359,11 +574,11 @@ function getVencimentosEmBordero(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
 
         ${where}
         AND tv.data_pagamento IS NULL
-        AND tb.id IS NOT NULL
+        AND bi.id IS NOT NULL
         `,
         params
       );
@@ -382,17 +597,17 @@ function getVencimentosEmBordero(req) {
                 t.descricao, t.num_doc,
                 f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor,
-                tb.id_bordero
+                bi.id_bordero
             FROM fin_cp_titulos_vencimentos tv
             LEFT JOIN fin_cp_titulos t ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
 
             ${where}
             AND tv.data_pagamento IS NULL
-            AND tb.id IS NOT NULL
+            AND bi.id IS NOT NULL
             ORDER BY 
                 tv.data_prevista DESC 
             LIMIT ? OFFSET ?`,
@@ -474,9 +689,8 @@ function getVencimentosPagos(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -500,10 +714,10 @@ function getVencimentosPagos(req) {
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
 
         ${where}
-        AND tb.id IS NOT NULL
+        AND bi.id IS NOT NULL
         AND tv.data_pagamento IS NOT NULL
         `,
         params
@@ -519,17 +733,17 @@ function getVencimentosPagos(req) {
                 t.descricao, t.num_doc,
                 f.nome as filial, f.id_matriz,
                 forn.nome as fornecedor,
-                tb.id_bordero,
+                bi.id_bordero,
                 tv.data_pagamento, tv.tipo_baixa, tv.valor_pago
             FROM fin_cp_titulos_vencimentos tv
             LEFT JOIN fin_cp_titulos t ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
             LEFT JOIN filiais f ON f.id = t.id_filial 
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-            LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
 
             ${where}
-            AND tb.id IS NOT NULL
+            AND bi.id IS NOT NULL
             AND tv.data_pagamento IS NOT NULL
             ORDER BY 
                 tv.data_prevista DESC 
@@ -586,8 +800,7 @@ function changeFieldVencimentos(req) {
         console.log(titulo);
         if (titulo.id_status >= 4) {
           throw new Error(
-            `Alteração rejeitada pois o título ${titulo.id} já consta como ${
-              titulo.id_status === 4 ? "pago parcial" : "pago"
+            `Alteração rejeitada pois o título ${titulo.id} já consta como ${titulo.id_status === 4 ? "pago parcial" : "pago"
             }!`
           );
         }
@@ -625,6 +838,7 @@ function changeFieldVencimentos(req) {
 
 module.exports = {
   getAll,
+  getAllVencimentosBordero,
   getVencimentosAPagar,
   getVencimentosEmBordero,
   getVencimentosPagos,

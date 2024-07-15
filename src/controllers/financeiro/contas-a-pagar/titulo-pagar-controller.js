@@ -210,7 +210,7 @@ function getAllCpItemsBordero(req) {
 
     // Filtros
     let where = ` WHERE 1=1 `;
-    let whereFatura = ` WHERE 1=1 `;
+    
     // Somente o Financeiro/Master podem ver todos
     if (
       !checkUserDepartment(req, "FINANCEIRO") &&
@@ -290,64 +290,7 @@ function getAllCpItemsBordero(req) {
     }
     //* Fim - Filtros Vencimentos
 
-    //* Início - Filtros Faturas
-    if (id_vencimento) {
-      whereFatura += ` AND ccf.id = ? `;
-      params.push(id_vencimento);
-    }
-
-    if (id_titulo) {
-      whereFatura += ` AND ccf.id_titulo = ? `;
-      params.push(id_titulo);
-    }
-
-    if (descricao) {
-      whereFatura += ` AND fcc.descricao LIKE CONCAT('%',?,'%')  `;
-      params.push(descricao);
-    }
-    if (id_matriz) {
-      whereFatura += ` AND fcc.id_matriz = ? `;
-      params.push(id_matriz);
-    }
-    if (id_filial) {
-      whereFatura += ` AND f.id = ? `;
-      params.push(id_filial);
-    }
-    if (fornecedor) {
-      whereFatura += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
-      params.push(fornecedor);
-    }
-
-    if (dda !== undefined) {
-      if (dda == "true") {
-        whereFatura += ` AND dda.id IS NOT NULL `;
-      }
-      if (dda == "false") {
-        whereFatura += ` AND dda.id IS NULL `;
-      }
-    }
-
-    whereFatura += `
-    AND tb.id_fatura IS NULL `;
-
-    if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } = range_data;
-      if (data_de && data_ate) {
-        whereFatura += ` AND ccf.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
-      } else {
-        if (data_de) {
-          whereFatura += ` AND ccf.${tipo_data} >= '${data_de.split("T")[0]}' `;
-        }
-        if (data_ate) {
-          whereFatura += ` AND ccf.${tipo_data} <= '${
-            data_ate.split("T")[0]
-          }' `;
-        }
-      }
-    }
-    //* Fim - Filtros Faturas
+   
 
     const conn = await db.getConnection();
     try {
@@ -407,6 +350,7 @@ function getAllCpItemsBordero(req) {
         `,
         params
       );
+
       const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
 
       params.push(pageSize);
