@@ -14,11 +14,22 @@ const permissao = require("./permissao-router");
 const datasys = require("./datasys");
 const tim = require("./tim");
 const authMiddleware = require("../middlewares/auth-middleware");
+const { gerarRateio, removerRateio, subirAnexosParaDrive } = require("../controllers/testes-controller");
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')
 // const esteiraRouter = require('./esteira/esteiraRouter')
 // const facellRouter = require('./facell/facellRouter')
+router.post("/operacao-teste", async (req, res) => {
+  try {
+    // await gerarRateio(req);
+    // await removerRateio(req);
+    // await subirAnexosParaDrive(req);
+    res.status(200).json({message: 'Sucesso!'})
+  } catch (error) {
+    res.status(500).json({message: error.message})
+  }
+});
 
 router.get("/", (req, res) => {
   res.status(200).json({ msg: "Sucesso!" });
