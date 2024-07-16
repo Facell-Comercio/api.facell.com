@@ -65,8 +65,9 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -146,7 +147,14 @@ function getAllVencimentosBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const { pagination, filters, emBordero, id_bordero, minStatusTitulo, enabledStatusPgto } = req.query || {};
+    const {
+      pagination,
+      filters,
+      emBordero,
+      id_bordero,
+      minStatusTitulo,
+      enabledStatusPgto,
+    } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -200,9 +208,9 @@ function getAllVencimentosBordero(req) {
       where += ` AND tv.id_titulo = ? `;
       params.push(id_titulo);
     }
-    if(id_bordero !== undefined){
-      where += ` AND  bi.id_bordero = ?`
-      params.push(id_bordero)
+    if (id_bordero !== undefined) {
+      where += ` AND  bi.id_bordero = ?`;
+      params.push(id_bordero);
     }
 
     if (descricao) {
@@ -234,15 +242,15 @@ function getAllVencimentosBordero(req) {
     // Determina o retorno com base se está ou não em borderô
     if (emBordero !== undefined) {
       if (emBordero) {
-        where += ` AND bi.id_vencimento IS NOT NULL`
+        where += ` AND bi.id_vencimento IS NOT NULL`;
       } else {
-        where += ` AND bi.id_vencimento IS NULL`
+        where += ` AND bi.id_vencimento IS NULL`;
       }
     }
     // Filtra o status mínimo do título
     if (minStatusTitulo !== undefined) {
-      where += ` AND t.id_status >= ? `
-      params.push(minStatusTitulo)
+      where += ` AND t.id_status >= ? `;
+      params.push(minStatusTitulo);
     }
 
     // Filtra os vencimentos com base no status
@@ -253,8 +261,9 @@ function getAllVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -284,18 +293,18 @@ function getAllVencimentosBordero(req) {
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
             LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+            LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+              ON cbi.id_item = tv.id              
+              AND cbi.tipo = 'pagamento'
           ${where}
         ) as subconsulta
-        `
-      const [rowQtdeTotal] = await conn.execute(
-        queryQtdeTotal,
-        params
-      );
+        `;
+      const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
       const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
 
-      let limit = '';
+      let limit = "";
       if (pagination !== undefined) {
-        limit = ' LIMIT ? OFFSET ?'
+        limit = " LIMIT ? OFFSET ?";
         params.push(pageSize);
         params.push(offset);
       }
@@ -317,7 +326,9 @@ function getAllVencimentosBordero(req) {
             f.nome as filial, f.id_matriz,
             forn.nome as nome_fornecedor,
             forn.cnpj as cnpj_fornecedor, 
-            fp.forma_pagamento
+            fp.forma_pagamento,
+            bi.remessa,
+            cbi.id as conciliado
         FROM fin_cp_titulos t 
         LEFT JOIN fin_cp_status s ON s.id = t.id_status 
         LEFT JOIN filiais f ON f.id = t.id_filial 
@@ -327,6 +338,10 @@ function getAllVencimentosBordero(req) {
         LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
         LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+          ON cbi.id_item = tv.id              
+          AND cbi.tipo = 'pagamento'
+
         
         ${where}
 
@@ -360,7 +375,6 @@ function getAllVencimentosBordero(req) {
     }
   });
 }
-
 
 function getVencimentosAPagar(req) {
   return new Promise(async (resolve, reject) => {
@@ -416,8 +430,9 @@ function getVencimentosAPagar(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -551,8 +566,9 @@ function getVencimentosEmBordero(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -691,8 +707,9 @@ function getVencimentosPagos(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -801,7 +818,8 @@ function changeFieldVencimentos(req) {
         const titulo = rowTitulo && rowTitulo[0];
         if (titulo.id_status >= 4) {
           throw new Error(
-            `Alteração rejeitada pois o título ${titulo.id} já consta como ${titulo.id_status === 4 ? "pago parcial" : "pago"
+            `Alteração rejeitada pois o título ${titulo.id} já consta como ${
+              titulo.id_status === 4 ? "pago parcial" : "pago"
             }!`
           );
         }
