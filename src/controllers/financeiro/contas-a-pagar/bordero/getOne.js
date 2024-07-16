@@ -4,14 +4,13 @@ const { getAllVencimentosBordero } = require("../vencimentos-controller");
 const { getAllFaturasBordero } = require("../cartoes-controller");
 
 module.exports = function getOne(req) {
-    return new Promise(async (resolve, reject) => {
-      const { id: id_bordero } = req.params;
-      let conn
-      try {
-
-        conn = await db.getConnection();
-        const [rowBorderos] = await conn.execute(
-          `
+  return new Promise(async (resolve, reject) => {
+    const { id: id_bordero } = req.params;
+    let conn;
+    try {
+      conn = await db.getConnection();
+      const [rowBorderos] = await conn.execute(
+        `
               SELECT 
                 b.id, b.data_pagamento, b.id_conta_bancaria, 
                 cb.descricao as conta_bancaria, f.id_matriz, fb.nome as banco
@@ -25,40 +24,43 @@ module.exports = function getOne(req) {
               LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
               WHERE b.id = ?
               `,
-          [id_bordero]
-        );
-        const bordero = rowBorderos && rowBorderos[0];
+        [id_bordero]
+      );
+      const bordero = rowBorderos && rowBorderos[0];
 
-        const {rows: vencimentos} = await getAllVencimentosBordero({query: {id_bordero}});
-        const {rows: faturas} = await getAllFaturasBordero({query:{id_bordero}});
+      const { rows: vencimentos } = await getAllVencimentosBordero({
+        query: { id_bordero },
+      });
+      const { rows: faturas } = await getAllFaturasBordero({
+        query: { id_bordero },
+      });
 
-        const itens_bordero = [
-            ...vencimentos.map(v=>({...v, tipo: 'vencimento'})), 
-            ...faturas.map(f=>({...f, tipo: 'fatura'}))
-          ]
-          .map(item_bordero=>({
-            ...item_bordero,
-            checked: false,
-            can_remove: !item_bordero.data_pagamento,
-            can_modify: !item_bordero.conciliado && !item_bordero.data_pagamento && !item_bordero.remessa
-          }))
+      const itens_bordero = [
+        ...vencimentos.map((v) => ({ ...v, tipo: "vencimento" })),
+        ...faturas.map((f) => ({ ...f, tipo: "fatura" })),
+      ].map((item_bordero) => ({
+        ...item_bordero,
+        checked: false,
+        can_remove: !item_bordero.data_pagamento,
+        can_modify: !item_bordero.conciliado && !item_bordero.remessa,
+      }));
 
-        // console.log({itens_bordero});
-        const objResponse = {
-          ...bordero,
-          itens: itens_bordero,
-        };
-        resolve(objResponse);
-      } catch (error) {
-        logger.error({
-          module: "FINANCEIRO",
-          origin: "BORDERO",
-          method: "GET_ONE",
-          data: { message: error.message, stack: error.stack, name: error.name },
-        });
-        reject(error);
-      } finally {
-        if(conn) conn.release();
-      }
-    });
-  }
+      // console.log({itens_bordero});
+      const objResponse = {
+        ...bordero,
+        itens: itens_bordero,
+      };
+      resolve(objResponse);
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "BORDERO",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+};

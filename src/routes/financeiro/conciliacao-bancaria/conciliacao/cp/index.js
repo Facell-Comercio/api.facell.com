@@ -11,6 +11,8 @@ const {
   conciliacaoAutomatica,
   getConciliacoes,
   conciliacaoTarifas,
+  getExtratosCredit,
+  conciliacaoTransferenciaContas,
 } = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
 const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
 
@@ -26,6 +28,15 @@ router.get("/", async (req, res) => {
 router.get("/conciliacoes", async (req, res) => {
   try {
     const result = await getConciliacoes(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/extratos-credit", async (req, res) => {
+  try {
+    const result = await getExtratosCredit(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -71,6 +82,19 @@ router.post(
   async (req, res) => {
     try {
       const result = await conciliacaoTarifas(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/transferencia-contas",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await conciliacaoTransferenciaContas(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
