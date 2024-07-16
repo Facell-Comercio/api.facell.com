@@ -7,7 +7,7 @@ module.exports = function getAll(req) {
     return new Promise(async (resolve, reject) => {
       const { user } = req;
       const departamentosUser = user.departamentos.map(
-        (departamento) => departamento.id
+        (departamento) => departamento.id_departamento
       );
   
       const { pagination, filters } = req.query || {};
