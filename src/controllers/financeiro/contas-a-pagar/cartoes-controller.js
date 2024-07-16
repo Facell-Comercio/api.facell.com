@@ -407,10 +407,13 @@ function getAllFaturasBordero(req) {
         pagination,
         filters,
         emBordero,
+        emConciliacao,
+        pago,
         id_bordero,
         minStatusTitulo,
         enabledStatusPgto,
         closedFatura,
+        orderBy,
       } = req.query;
       const { pageIndex, pageSize } = pagination || {
         pageIndex: 0,
@@ -419,6 +422,8 @@ function getAllFaturasBordero(req) {
       const {
         id_matriz,
         id_filial,
+        id_conta_bancaria,
+        id_conciliacao,
         id_vencimento,
         id_titulo,
         fornecedor,
@@ -429,6 +434,7 @@ function getAllFaturasBordero(req) {
       } = filters || {};
 
       let where = ` WHERE 1=1 `;
+      let order = orderBy || " ORDER BY ccf.data_prevista ASC ";
       const params = [];
 
       if (id_vencimento) {
@@ -454,6 +460,14 @@ function getAllFaturasBordero(req) {
       if (id_filial) {
         where += ` AND f.id = ? `;
         params.push(id_filial);
+      }
+      if (id_conta_bancaria) {
+        where += ` AND b.id_conta_bancaria = ? `;
+        params.push(id_conta_bancaria);
+      }
+      if (id_conciliacao) {
+        where += ` AND cbi.id_conciliacao = ? `;
+        params.push(id_conciliacao);
       }
       if (fornecedor) {
         where += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
@@ -483,6 +497,25 @@ function getAllFaturasBordero(req) {
           where += ` AND bi.id_fatura IS NULL`;
         }
       }
+
+      // Determina o retorno com base se está ou não em conciliação
+      if (emConciliacao !== undefined) {
+        if (emConciliacao) {
+          where += ` AND cbi.id IS NOT NULL`;
+        } else {
+          where += ` AND cbi.id IS NULL`;
+        }
+      }
+
+      // Determina o retorno com base se está pago ou não
+      if (pago !== undefined) {
+        if (pago) {
+          where += ` AND ccf.data_pagamento IS NOT NULL`;
+        } else {
+          where += ` AND ccf.data_pagamento IS NULL`;
+        }
+      }
+
       // Filtra o status mínimo do título
       if (minStatusTitulo !== undefined) {
         where += ` AND t.id_status >= ? `;
@@ -513,18 +546,19 @@ function getAllFaturasBordero(req) {
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
         FROM (
-        SELECT DISTINCT 
-          ccf.id
-        FROM fin_cartoes_corporativos_faturas ccf
-        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
-        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-        LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
-        LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
-        LEFT JOIN filiais f ON f.id = fcc.id_matriz
-        LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
-        LEFT JOIN fin_conciliacao_bancaria_itens cbi 
-          ON cbi.id_item = ccf.id
-          AND cbi.tipo = 'fatura'
+          SELECT DISTINCT 
+            ccf.id
+          FROM fin_cartoes_corporativos_faturas ccf
+          LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
+          LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+          LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
+          LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
+          LEFT JOIN filiais f ON f.id = fcc.id_matriz
+          LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
+          LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
+          LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+            ON cbi.id_item = ccf.id
+            AND cbi.tipo = 'fatura'
         ${where} 
         ) AS subconsulta
         `,
@@ -557,7 +591,8 @@ function getAllFaturasBordero(req) {
           "Cartão" as forma_pagamento,
           6 as id_forma_pagamento,
           bi.remessa,
-          cbi.id as conciliado
+          cbi.id as conciliado,
+          cbi.id as id_conciliacao
         FROM fin_cartoes_corporativos_faturas ccf
         LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
@@ -565,11 +600,12 @@ function getAllFaturasBordero(req) {
         LEFT JOIN fin_fornecedores forn ON forn.id = fcc.id_fornecedor
         LEFT JOIN filiais f ON f.id = fcc.id_matriz
         LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
+        LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
         LEFT JOIN fin_conciliacao_bancaria_itens cbi 
           ON cbi.id_item = ccf.id
           AND cbi.tipo = 'fatura'
         ${where} 
-
+        ${order}
         LIMIT ? OFFSET ?
         `,
         params

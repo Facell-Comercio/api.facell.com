@@ -200,13 +200,13 @@ module.exports = function conciliacaoTarifas(req) {
 
           //* Adiciona a conciliação da tarifa (transaçao)
           await conn.execute(
-            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?, ?, ?);`,
+            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
             [newIdConciliacao, tarifa.id, tarifa.valor, "transacao"]
           );
 
           //* Adiciona o vencimento nos itens da conciliação bancária
           await conn.execute(
-            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?)`,
+            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
             [newIdConciliacao, idVencimento, tarifa.valor, "pagamento"]
           );
           await conn.commit();

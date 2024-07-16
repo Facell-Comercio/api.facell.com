@@ -3,8 +3,13 @@ const { db } = require("../../../../../mysql");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, vencimentos, transacoes, data_pagamento, id_conta_bancaria } =
-      req.body;
+    const {
+      id,
+      vencimentos: itensConciliacao,
+      transacoes,
+      data_pagamento,
+      id_conta_bancaria,
+    } = req.body;
 
     let conn;
     try {
@@ -17,7 +22,7 @@ module.exports = function insertOne(req) {
       if (!id_conta_bancaria) {
         throw new Error("É necessário informar uma conta bancária!");
       }
-      const vencimentosSoma = vencimentos.reduce(
+      const itensConciliacaoSoma = itensConciliacao.reduce(
         (acc, item) => acc + +item.valor_pago,
         0
       );
@@ -26,7 +31,7 @@ module.exports = function insertOne(req) {
         0
       );
       // ^ Verificando os valores de títulos e transações batem
-      if (vencimentosSoma !== transacoesSoma) {
+      if (itensConciliacaoSoma !== transacoesSoma) {
         throw new Error("A soma dos vencimentos e das transações não batem!");
       }
       await conn.beginTransaction();
@@ -45,17 +50,27 @@ module.exports = function insertOne(req) {
       // ^ Adiciona todas as transações nos itens da conciliação bancária
       for (const transacao of transacoes) {
         await conn.execute(
-          `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?, ?, ?);`,
+          `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
           [newId, transacao.id, transacao.valor, "transacao"]
         );
       }
 
-      for (const vencimento of vencimentos) {
+      for (const item of itensConciliacao) {
         // ^ Adiciona o título nos itens da conciliação bancária
-        await conn.execute(
-          `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?)`,
-          [newId, vencimento.id_vencimento, vencimento.valor_pago, "pagamento"]
-        );
+        //* No caso do item ser um vencimento
+        if (item.tipo === "vencimento") {
+          await conn.execute(
+            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
+            [newId, item.id_vencimento, item.valor_pago, "pagamento"]
+          );
+        }
+        //* No caso do item ser uma fatura
+        if (item.tipo === "fatura") {
+          await conn.execute(
+            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
+            [newId, item.id_vencimento, item.valor_pago, "fatura"]
+          );
+        }
       }
 
       await conn.commit();
