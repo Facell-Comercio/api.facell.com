@@ -51,9 +51,13 @@ module.exports = function getConciliacoes(req) {
           FROM fin_conciliacao_bancaria cb
           LEFT JOIN users u ON u.id = cb.id_user
           LEFT JOIN fin_conciliacao_bancaria_itens fcbi ON fcbi.id_conciliacao = cb.id
-          LEFT JOIN fin_extratos_bancarios eb ON eb.id = fcbi.id_extrato
+          LEFT JOIN fin_extratos_bancarios eb 
+            ON eb.id = fcbi.id_item
+            AND fcbi.tipo = 'transacao'
           LEFT JOIN fin_contas_bancarias fcbe ON fcbe.id = eb.id_conta_bancaria
-          LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = fcbi.id_cp
+          LEFT JOIN fin_cp_titulos_vencimentos tv 
+            ON tv.id = fcbi.id_item
+            AND fcbi.tipo = 'pagamento'
           LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
   
           ${where}

@@ -4,24 +4,29 @@ const { db } = require("../../../../../mysql");
 
 module.exports = function conciliacaoAutomatica(req) {
   return new Promise(async (resolve, reject) => {
-    let { vencimentos, transacoes, id_conta_bancaria } = req.body;
+    let {
+      vencimentos: itensConciliacao,
+      transacoes,
+      id_conta_bancaria,
+    } = req.body;
     let conn;
     try {
       conn = await db.getConnection();
       if (!id_conta_bancaria) {
         throw new Error("A conta bancária não foi informada!");
       }
+      console.log(itensConciliacao);
       await conn.beginTransaction();
       const result = [];
-      const vencimentosLength = vencimentos.length;
-      for (let v = 0; v < vencimentosLength; v++) {
-        const vencimento = vencimentos[v];
+      const itensConciliacaoLength = itensConciliacao.length;
+      for (let v = 0; v < itensConciliacaoLength; v++) {
+        const itemConciliacao = itensConciliacao[v];
         // console.log(vencimento);
         let obj = {
-          "ID TÍTULO": vencimento.id_titulo,
-          "DESCRIÇÃO TÍTULO": vencimento.descricao,
-          FORNECEDOR: vencimento.nome_fornecedor,
-          FILIAL: vencimento.filial,
+          "ID TÍTULO": itemConciliacao.id_titulo,
+          "DESCRIÇÃO TÍTULO": itemConciliacao.descricao,
+          FORNECEDOR: itemConciliacao.nome_fornecedor,
+          FILIAL: itemConciliacao.filial,
           CONCILIADO: "NÃO",
         };
 
@@ -30,13 +35,16 @@ module.exports = function conciliacaoAutomatica(req) {
         for (let t = 0; t < transacoesLength; t++) {
           const transacao = transacoes[t];
           if (
-            formatDate(vencimento.data_pagamento, "dd-MM-yyyy").toString() ==
+            formatDate(
+              itemConciliacao.data_pagamento,
+              "dd-MM-yyyy"
+            ).toString() ==
               formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
-            vencimento.valor == transacao.valor
+            itemConciliacao.valor == transacao.valor
           ) {
             //^ UPDATE do Vencimento
             const [result] = await conn.execute(
-              `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
+              `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?,?,?);`,
               [req.user.id, "AUTOMATICA", id_conta_bancaria]
             );
             const newId = result.insertId;
@@ -46,15 +54,35 @@ module.exports = function conciliacaoAutomatica(req) {
 
             //^ INSERT registro conciliação item TRANSAÇÃO
             await conn.execute(
-              `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?, ?, ?);`,
+              `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
               [newId, transacao.id, transacao.valor, "transacao"]
             );
 
             // ^ Adiciona o título nos itens da conciliação bancária
-            await conn.execute(
-              `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?)`,
-              [newId, vencimento.id_vencimento, vencimento.valor, "pagamento"]
-            );
+            //* No caso do item ser um vencimento
+            if (itemConciliacao.tipo === "vencimento") {
+              await conn.execute(
+                `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
+                [
+                  newId,
+                  itemConciliacao.id_vencimento,
+                  itemConciliacao.valor_pago,
+                  "pagamento",
+                ]
+              );
+            }
+            //* No caso do item ser uma fatura
+            if (itemConciliacao.tipo === "fatura") {
+              await conn.execute(
+                `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
+                [
+                  newId,
+                  itemConciliacao.id_vencimento,
+                  itemConciliacao.valor_pago,
+                  "fatura",
+                ]
+              );
+            }
 
             obj = {
               ...obj,

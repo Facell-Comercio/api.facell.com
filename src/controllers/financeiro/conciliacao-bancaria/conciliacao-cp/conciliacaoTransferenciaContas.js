@@ -33,17 +33,16 @@ module.exports = function conciliacaoTransferenciaContas(req) {
 
       //* Adiciona o extrato CREDIT
       await conn.execute(
-        `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?, ?, ?);`,
+        `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
         [newIdConciliacao, id_entrada, valor, "transacao"]
       );
 
       //* Adiciona o extrato DEBIT
       await conn.execute(
-        `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?)`,
+        `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
         [newIdConciliacao, id_saida, valor, "transacao"]
       );
 
-      console.log(req.body);
       await conn.commit();
 
       resolve({ message: "Sucesso!" });

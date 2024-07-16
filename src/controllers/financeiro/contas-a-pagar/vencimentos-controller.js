@@ -151,9 +151,12 @@ function getAllVencimentosBordero(req) {
       pagination,
       filters,
       emBordero,
+      emConciliacao,
+      pago,
       id_bordero,
       minStatusTitulo,
       enabledStatusPgto,
+      orderBy,
     } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
@@ -164,7 +167,8 @@ function getAllVencimentosBordero(req) {
     // console.log(pageIndex, pageSize, offset)
 
     // Filtros
-    var where = ` WHERE t.id_cartao IS NULL `;
+    let where = ` WHERE t.id_cartao IS NULL `;
+    let order = orderBy || "ORDER BY t.created_at DESC";
     // Somente o Financeiro/Master podem ver todos
 
     const {
@@ -178,6 +182,7 @@ function getAllVencimentosBordero(req) {
       id_matriz,
       id_filial,
       id_conta_bancaria,
+      id_conciliacao,
       dda,
       termo,
     } = filters || {};
@@ -225,6 +230,14 @@ function getAllVencimentosBordero(req) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
     }
+    if (id_conta_bancaria) {
+      where += ` AND b.id_conta_bancaria = ? `;
+      params.push(id_conta_bancaria);
+    }
+    if (id_conciliacao) {
+      where += ` AND cbi.id_conciliacao = ? `;
+      params.push(id_conciliacao);
+    }
     if (fornecedor) {
       where += ` AND forn.nome LIKE CONCAT('%',?,'%') `;
       params.push(fornecedor);
@@ -247,6 +260,25 @@ function getAllVencimentosBordero(req) {
         where += ` AND bi.id_vencimento IS NULL`;
       }
     }
+
+    // Determina o retorno com base se está ou não em conciliação
+    if (emConciliacao !== undefined) {
+      if (emConciliacao) {
+        where += ` AND cbi.id IS NOT NULL`;
+      } else {
+        where += ` AND cbi.id IS NULL`;
+      }
+    }
+
+    // Determina o retorno com base se está pago ou não
+    if (pago !== undefined) {
+      if (pago) {
+        where += ` AND tv.data_pagamento IS NOT NULL`;
+      } else {
+        where += ` AND tv.data_pagamento IS NULL`;
+      }
+    }
+
     // Filtra o status mínimo do título
     if (minStatusTitulo !== undefined) {
       where += ` AND t.id_status >= ? `;
@@ -292,6 +324,7 @@ function getAllVencimentosBordero(req) {
             LEFT JOIN users u ON u.id = t.id_solicitante
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
+            LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
             LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
             LEFT JOIN fin_conciliacao_bancaria_itens cbi 
               ON cbi.id_item = tv.id              
@@ -327,7 +360,8 @@ function getAllVencimentosBordero(req) {
             forn.nome as nome_fornecedor, 
             fp.forma_pagamento,
             bi.remessa,
-            cbi.id as conciliado
+            cbi.id as conciliado,
+            cbi.id as id_conciliacao
         FROM fin_cp_titulos t 
         LEFT JOIN fin_cp_status s ON s.id = t.id_status 
         LEFT JOIN filiais f ON f.id = t.id_filial 
@@ -335,6 +369,7 @@ function getAllVencimentosBordero(req) {
         LEFT JOIN users u ON u.id = t.id_solicitante
         LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
         LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
+        LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
         LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
         LEFT JOIN fin_conciliacao_bancaria_itens cbi 
@@ -344,8 +379,7 @@ function getAllVencimentosBordero(req) {
         
         ${where}
 
-        ORDER BY 
-            t.created_at DESC 
+        ${order}
         ${limit}
         `;
       // console.log(query);
@@ -626,7 +660,7 @@ function getVencimentosEmBordero(req) {
             AND tv.data_pagamento IS NULL
             AND bi.id IS NOT NULL
             ORDER BY 
-                tv.data_prevista DESC 
+                tv.data_prevista ASC 
             LIMIT ? OFFSET ?`,
         params
       );
