@@ -107,10 +107,14 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento }) {
             }
 
             if (vencimento.tipo_baixa === "PARCIAL") {
+
                 const valor =
                     parseFloat(vencimento.valor_total) -
                     parseFloat(vencimento.valor_pago);
 
+                if(!vencimento.data_prevista_parcial){
+                    throw new Error('Você precisa informar a Data de previsão de pagamento do que for tipo Baixa PARCIAL')
+                }
                 // ^ Baixa parcial -> Cria um novo vencimento
                 await conn.execute(
                     `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, vencimento_origem) VALUES (?,?,?,?,?);`,

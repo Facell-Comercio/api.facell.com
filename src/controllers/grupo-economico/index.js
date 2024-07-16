@@ -1,5 +1,6 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
+const { checkUserDepartment } = require("../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../helpers/checkUserPermission");
 
 function getAll(req) {
@@ -27,7 +28,7 @@ function getAll(req) {
 
     const params = [];
 
-    if (!isMaster) {
+    if (!isMaster && !checkUserDepartment(req, 'FINANCEIRO')) {
       if (
         !grupos_economicos_habilitados ||
         grupos_economicos_habilitados.length === 0
