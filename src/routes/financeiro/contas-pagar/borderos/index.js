@@ -11,12 +11,12 @@ const {
   transferBordero,
   exportBorderos,
   deleteVencimento,
-  exportRemessa,
   geradorDadosEmpresa,
   importRetornoRemessa,
   reverseManualPayment,
   findNewItems,
   pagamentoItens,
+  exportRemessa,
   
 } = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 
@@ -81,7 +81,7 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-router.get("/remessa/:id", async (req, res) => {
+router.post("/export-remessa", async (req, res) => {
   try {
     const response = await exportRemessa(req, res);
   } catch (error) {

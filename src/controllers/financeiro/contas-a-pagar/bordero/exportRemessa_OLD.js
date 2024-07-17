@@ -19,30 +19,18 @@ const {
 const { normalizeValue } = require("../../remessa/to-string/masks");
 const { logger } = require("../../../../../logger");
 
-
-/*
-^ Mesma função de antes, com a inclusão de recebimento de itens
-! Vamos refatorar essa para incluir faturas!
-*/ 
 module.exports = function exportRemessa(req, res) {
     return new Promise(async (resolve, reject) => {
-      const { id_bordero, isPix, itens } = req.body;
-      
-      let conn 
+      const { id } = req.params;
+      const { isPix } = req.query;
+      const conn = await db.getConnection();
+  
       try {
-        conn = await db.getConnection();
-
-        if (!id_bordero) {
+        if (!id) {
           throw new Error("ID do Borderô não indicado!");
         }
-        let whereVenvimentos = ` tb.id_bordero = ? `
-
-        if(itens && itens.length > 0){
-          whereVenvimentos += ` AND tv.id IN('${itens.map(item=>item.id_vencimento).join("','")}')`
-        }
         await conn.beginTransaction();
-        // console.log({whereVenvimentos});
-        // * DADOS DO BORDERÔ, CONTA BANCÁRIA, ETC:
+  
         const [rowsBordero] = await conn.execute(
           `
         SELECT
@@ -58,7 +46,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = cb.id_filial
         WHERE b.id = ?
       `,
-          [id_bordero]
+          [id]
         );
         const borderoData = rowsBordero && rowsBordero[0];
   
@@ -99,7 +87,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 5
         AND forn.cnpj <> f.cnpj
         AND fb.codigo = 341
@@ -107,7 +95,7 @@ module.exports = function exportRemessa(req, res) {
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -125,7 +113,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 5
         AND forn.cnpj <> f.cnpj
         AND fb.codigo = 341
@@ -133,7 +121,7 @@ module.exports = function exportRemessa(req, res) {
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -151,7 +139,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 5
         AND forn.cnpj = f.cnpj
         AND fb.codigo = 341
@@ -159,7 +147,7 @@ module.exports = function exportRemessa(req, res) {
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -177,14 +165,14 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 5
         AND forn.cnpj <> f.cnpj
         AND fb.codigo <> 341
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -202,14 +190,14 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 5
         AND forn.cnpj = f.cnpj
         AND fb.codigo <> 341
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -227,12 +215,12 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 4
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -250,13 +238,13 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 1
         AND (LEFT(COALESCE(dda.cod_barras, ''), 3) = 341 OR LEFT(COALESCE(tv.cod_barras, ''), 3) = 341)
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
           //* Pagamento Boleto Outro Banco Para Itaú
@@ -273,13 +261,13 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 1
         AND (LEFT(dda.cod_barras, 3) <> 341 OR LEFT(tv.cod_barras, 3) <> 341)
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
   
@@ -297,12 +285,12 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE tb.id_bordero = ?
         AND t.id_forma_pagamento = 8
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
       `,
-              [id_bordero]
+              [id]
             )
             .then(([rows]) => rows),
         ]);
@@ -440,9 +428,9 @@ module.exports = function exportRemessa(req, res) {
               [pagamento.id_vencimento]
             );
             const vencimento = rowVencimento && rowVencimento[0];
-            // console.log(vencimento);
+  
             //* Verifica se é cpf ou cnpj
-            if (!vencimento.favorecido_cnpj) {
+            if (vencimento.favorecido_cnpj) {
               throw new Error(
                 `Vencimento ${vencimento.id_vencimento}, fornecedor não tem o cnpj do favorecido ${vencimento.favorecido_nome}.`
               );
@@ -628,12 +616,12 @@ module.exports = function exportRemessa(req, res) {
         arquivo.push(trailerArquivo);
   
         //* Verificação da quantidade de lotes
-        // if (arquivo.length < 3) {
-        //   throw new Error(
-        //     "Erro ao criar a remessa. O arquivo resultante está vazio"
-        //   );
-        // }
-        // console.log(arquivo);
+        if (arquivo.length < 3) {
+          throw new Error(
+            "Erro ao criar a remessa. O arquivo resultante está vazio"
+          );
+        }
+  
         const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
         const filename = `REMESSA${isPix ? " PIX" : ""} - ${formatDate(
           borderoData.data_pagamento,
@@ -644,8 +632,9 @@ module.exports = function exportRemessa(req, res) {
         res.set("Content-Type", "text/plain");
         res.set("Content-Disposition", `attachment; filename=${filename}`);
         res.send(fileBuffer);
+        await conn.rollback();
   
-        await conn.commit();
+        // await conn.commit();
         resolve();
       } catch (error) {
         logger.error({
@@ -654,10 +643,10 @@ module.exports = function exportRemessa(req, res) {
           method: "EXPORT_REMESSA",
           data: { message: error.message, stack: error.stack, name: error.name },
         });
-        if(conn) await conn.rollback();
+        await conn.rollback();
         reject(error);
       } finally {
-        if(conn) conn.release();
+        conn.release();
       }
     });
   }

@@ -117,6 +117,9 @@ function normalizeCodigoBarras(text) {
   let textoLimpo = String(text)
     .trim()
     .replace(/[\s.-]/g, "");
+  if (textoLimpo.length === 44) {
+    return text
+  }
   if (textoLimpo.length !== 47) {
     return null;
   }

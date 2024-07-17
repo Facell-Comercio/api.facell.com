@@ -1,6 +1,8 @@
 function checkCodigoBarras(text) {
-
-  const dv = text.charAt(4);
+  if(!text){
+    return false;
+  }
+  const dv = String(text)?.charAt(4);
   const linhaCheck = `${text.substring(0, 4)}${text.substring(5, 47)}`;
   // console.log(text.substring(0, 4));
   // console.log(text.substring(4, 47));

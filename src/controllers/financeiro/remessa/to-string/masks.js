@@ -23,8 +23,11 @@ function normalizeCodigoBarras(text) {
 }
 
 function checkLinhaDigitavel(textLinha) {
+  if(!textLinha){
+    return false;
+  }
   const text = textLinha.trim();
-  const dv = text.charAt(4);
+  const dv = String(text).charAt(4);
   const linhaCheck = `${text.substring(0, 4)}${text.substring(5, 47)}`;
 
   const linhaCalculo = "4329876543298765432987654329876543298765432";
