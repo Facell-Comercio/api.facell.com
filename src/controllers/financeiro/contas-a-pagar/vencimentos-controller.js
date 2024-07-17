@@ -1,8 +1,8 @@
-const { db } = require("../../../../mysql");
-const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
-const { logger } = require("../../../../logger");
-require("dotenv").config();
+const { db } = require('../../../../mysql');
+const { checkUserDepartment } = require('../../../helpers/checkUserDepartment');
+const { checkUserPermission } = require('../../../helpers/checkUserPermission');
+const { logger } = require('../../../../logger');
+require('dotenv').config();
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -21,8 +21,8 @@ function getAll(req) {
     var where = ` WHERE 1=1 `;
     // Somente o Financeiro/Master podem ver todos
     if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
+      !checkUserDepartment(req, 'FINANCEIRO') &&
+      !checkUserPermission(req, 'MASTER')
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
@@ -43,7 +43,7 @@ function getAll(req) {
       where += ` AND t.id = ? `;
       params.push(id);
     }
-    if (id_status && id_status !== "all") {
+    if (id_status && id_status !== 'all') {
       where += ` AND t.id_status = ? `;
       params.push(id_status);
     }
@@ -60,24 +60,24 @@ function getAll(req) {
       const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+        tipo_data == 'data_prevista' || tipo_data == 'data_vencimento'
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
+          data_ate.split('T')[0]
         }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND ${campo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -93,8 +93,8 @@ function getAll(req) {
         `,
         params
       );
-      const totalTitulos = (rowsTitulos && rowsTitulos[0]["total"]) || 0;
-      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
+      const totalTitulos = (rowsTitulos && rowsTitulos[0]['total']) || 0;
+      const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
       var query = `
             SELECT 
                 t.id, s.status, t.created_at, t.descricao, t.valor,
@@ -130,12 +130,12 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "VENCIMENTOS",
-        method: "GET_ALL",
+        module: 'FINANCEIRO',
+        origin: 'VENCIMENTOS',
+        method: 'GET_ALL',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      console.error("", error);
+      console.error('', error);
       reject(error);
     } finally {
       conn.release();
@@ -292,22 +292,22 @@ function getAllVencimentosEFaturas(req) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
         where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+          data_de.split('T')[0]
+        }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND (tv.${tipo_data} >= '${
-            data_de.split("T")[0]
-          }' OR ccf.${tipo_data} >= '${data_de.split("T")[0]}') `;
+            data_de.split('T')[0]
+          }' OR ccf.${tipo_data} >= '${data_de.split('T')[0]}') `;
         }
         if (data_ate) {
           where += ` AND (tv.${tipo_data} <= '${
-            data_ate.split("T")[0]
-          }' OR ccf.${tipo_data} <= '${data_ate.split("T")[0]}') `;
+            data_ate.split('T')[0]
+          }' OR ccf.${tipo_data} <= '${data_ate.split('T')[0]}') `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND (f.id_grupo_economico = ? OR f2.id_grupo_economico = ?)`;
       params.push(id_grupo_economico);
       params.push(id_grupo_economico);
@@ -318,7 +318,7 @@ function getAllVencimentosEFaturas(req) {
       const [rowsVencimentosFaturas] = await conn.execute(
         ` SELECT COUNT(*) AS qtde
           FROM (
-            SELECT 
+            SELECT DISTINCT
                 COALESCE(ccf.id,t.id) as id_titulo 
               FROM fin_cp_titulos t 
               LEFT JOIN fin_cp_status s ON s.id = t.id_status 
@@ -341,10 +341,10 @@ function getAllVencimentosEFaturas(req) {
         params
       );
       const qtdeVencimentosFaturas =
-        (rowsVencimentosFaturas && rowsVencimentosFaturas[0]["qtde"]) || 0;
+        (rowsVencimentosFaturas && rowsVencimentosFaturas[0]['qtde']) || 0;
       const [rowsVencimentosFaturasValorTotal] = await conn.execute(
         `
-            SELECT 
+            SELECT DISTINCT 
               SUM(COALESCE(ccf.valor,tv.valor)) as total 
             FROM fin_cp_titulos t 
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
@@ -367,11 +367,11 @@ function getAllVencimentosEFaturas(req) {
       );
       const valorTotalVencimentosFaturas =
         (rowsVencimentosFaturasValorTotal &&
-          rowsVencimentosFaturasValorTotal[0]["total"]) ||
+          rowsVencimentosFaturasValorTotal[0]['total']) ||
         0;
-      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
+      const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
       const query = `
-            SELECT 
+            SELECT DISTINCT 
               COALESCE(ccf.id,t.id) as id_titulo, 
               COALESCE(ccf.id,tv.id) as id_vencimento,
               COALESCE(ccf.status,tv.status) as status, 
@@ -428,12 +428,12 @@ function getAllVencimentosEFaturas(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "VENCIMENTOS",
-        method: "GET_ALL_VENCIMENTOS_E_FATURAS",
+        module: 'FINANCEIRO',
+        origin: 'VENCIMENTOS',
+        method: 'GET_ALL_VENCIMENTOS_E_FATURAS',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      console.error("", error);
+      console.error('', error);
       reject(error);
     } finally {
       if (conn) conn.release();
@@ -466,7 +466,7 @@ function getAllVencimentosBordero(req) {
 
     // Filtros
     let where = ` WHERE t.id_cartao IS NULL `;
-    let order = orderBy || "ORDER BY t.created_at DESC";
+    let order = orderBy || 'ORDER BY t.created_at DESC';
     // Somente o Financeiro/Master podem ver todos
 
     const {
@@ -542,10 +542,10 @@ function getAllVencimentosBordero(req) {
     }
 
     if (dda !== undefined) {
-      if (dda == "true") {
+      if (dda == 'true') {
         where += ` AND dda.id IS NOT NULL `;
       }
-      if (dda == "false") {
+      if (dda == 'false') {
         where += ` AND dda.id IS NULL `;
       }
     }
@@ -592,18 +592,18 @@ function getAllVencimentosBordero(req) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
         where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+          data_de.split('T')[0]
+        }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
-          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -631,11 +631,11 @@ function getAllVencimentosBordero(req) {
         ) as subconsulta
         `;
       const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
-      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]['qtde']) || 0;
 
-      let limit = "";
+      let limit = '';
       if (pagination !== undefined) {
-        limit = " LIMIT ? OFFSET ?";
+        limit = ' LIMIT ? OFFSET ?';
         params.push(pageSize);
         params.push(offset);
       }
@@ -695,9 +695,9 @@ function getAllVencimentosBordero(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "TITULOS A PAGAR",
-        method: "GET_ALL_VENCIMENTOS_BORDERO",
+        module: 'FINANCEIRO',
+        origin: 'TITULOS A PAGAR',
+        method: 'GET_ALL_VENCIMENTOS_BORDERO',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
 
@@ -724,8 +724,8 @@ function getVencimentosAPagar(req) {
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
     if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
+      !checkUserDepartment(req, 'FINANCEIRO') &&
+      !checkUserPermission(req, 'MASTER')
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
@@ -757,24 +757,24 @@ function getVencimentosAPagar(req) {
       const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+        tipo_data == 'data_prevista' || tipo_data == 'data_vencimento'
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
+          data_ate.split('T')[0]
         }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND ${campo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -797,9 +797,9 @@ function getVencimentosAPagar(req) {
         params
       );
       const totalVencimentos =
-        (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
+        (rowsVencimentos && rowsVencimentos[0]['total']) || 0;
       const valorTotalVencimentos =
-        (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
+        (rowsVencimentos && rowsVencimentos[0]['valor_total']) || 0;
       var query = `
             SELECT 
                 tv.id,tv.id_titulo, tv.data_vencimento, tv.data_prevista, t.descricao, tv.valor,
@@ -832,9 +832,9 @@ function getVencimentosAPagar(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "VENCIMENTOS",
-        method: "GET_VENCIMENTOS_A_PAGAR",
+        module: 'FINANCEIRO',
+        origin: 'VENCIMENTOS',
+        method: 'GET_VENCIMENTOS_A_PAGAR',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -860,8 +860,8 @@ function getVencimentosEmBordero(req) {
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
     if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
+      !checkUserDepartment(req, 'FINANCEIRO') &&
+      !checkUserPermission(req, 'MASTER')
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
@@ -893,24 +893,24 @@ function getVencimentosEmBordero(req) {
       const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+        tipo_data == 'data_prevista' || tipo_data == 'data_vencimento'
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
+          data_ate.split('T')[0]
         }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND ${campo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -933,9 +933,9 @@ function getVencimentosEmBordero(req) {
         params
       );
       const totalVencimentos =
-        (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
+        (rowsVencimentos && rowsVencimentos[0]['total']) || 0;
       const valorTotalVencimentos =
-        (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
+        (rowsVencimentos && rowsVencimentos[0]['valor_total']) || 0;
 
       params.push(pageSize);
       params.push(offset);
@@ -973,9 +973,9 @@ function getVencimentosEmBordero(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "VENCIMENTOS",
-        method: "GET_VENCIMENTOS_EM_BORDERO",
+        module: 'FINANCEIRO',
+        origin: 'VENCIMENTOS',
+        method: 'GET_VENCIMENTOS_EM_BORDERO',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -1001,8 +1001,8 @@ function getVencimentosPagos(req) {
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
     if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
+      !checkUserDepartment(req, 'FINANCEIRO') &&
+      !checkUserPermission(req, 'MASTER')
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
@@ -1034,24 +1034,24 @@ function getVencimentosPagos(req) {
       const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
+        tipo_data == 'data_prevista' || tipo_data == 'data_vencimento'
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
+          data_ate.split('T')[0]
         }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND ${campo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -1074,9 +1074,9 @@ function getVencimentosPagos(req) {
         params
       );
       const totalVencimentos =
-        (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
+        (rowsVencimentos && rowsVencimentos[0]['total']) || 0;
       const valorTotalVencimentos =
-        (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
+        (rowsVencimentos && rowsVencimentos[0]['valor_total']) || 0;
 
       var query = `
             SELECT 
@@ -1112,9 +1112,9 @@ function getVencimentosPagos(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "VENCIMENTOS",
-        method: "GET_VENCIMENTOS_PAGOS",
+        module: 'FINANCEIRO',
+        origin: 'VENCIMENTOS',
+        method: 'GET_VENCIMENTOS_PAGOS',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -1132,10 +1132,10 @@ function changeFieldVencimentos(req) {
     await conn.beginTransaction();
     try {
       if (!value) {
-        throw new Error("VALOR da alteração não informado!");
+        throw new Error('VALOR da alteração não informado!');
       }
       if (ids && ids.length <= 0) {
-        throw new Error("VENCIMENTOS a serem alteradas não selecionadas!");
+        throw new Error('VENCIMENTOS a serem alteradas não selecionadas!');
       }
 
       for (const id of ids) {
@@ -1151,7 +1151,7 @@ function changeFieldVencimentos(req) {
         if (titulo.id_status >= 4) {
           throw new Error(
             `Alteração rejeitada pois o título ${titulo.id} já consta como ${
-              titulo.id_status === 4 ? "pago parcial" : "pago"
+              titulo.id_status === 4 ? 'pago parcial' : 'pago'
             }!`
           );
         }
@@ -1174,9 +1174,9 @@ function changeFieldVencimentos(req) {
       resolve(true);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "VENCIMENTOS",
-        method: "CHANGE_FIELD_VENCIMENTOS",
+        module: 'FINANCEIRO',
+        origin: 'VENCIMENTOS',
+        method: 'CHANGE_FIELD_VENCIMENTOS',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();
