@@ -16,6 +16,9 @@ const {
 } = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
 const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
 
+const tarifasPadraoRouter = require('../config/tarifas-padrao')
+router.use('/tarifas-padrao', tarifasPadraoRouter)
+
 router.get("/", async (req, res) => {
   try {
     const result = await getAll(req);
@@ -77,7 +80,7 @@ router.post(
 );
 
 router.post(
-  "/tarifas",
+  "/conciliar-tarifas",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
