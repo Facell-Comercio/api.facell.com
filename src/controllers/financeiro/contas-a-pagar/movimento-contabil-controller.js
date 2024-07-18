@@ -1,17 +1,17 @@
-const { endOfMonth, formatDate } = require("date-fns");
-const path = require("path");
-const { db } = require("../../../../mysql");
-const { createUploadsPath, zipFiles } = require("../../files-controller");
-const { normalizeCnpjNumber } = require("../../../helpers/mask");
-const XLSX = require("xlsx");
-const { logger } = require("../../../../logger");
+const { endOfMonth, formatDate } = require('date-fns');
+const path = require('path');
+const { db } = require('../../../../mysql');
+const { createUploadsPath, zipFiles } = require('../../files-controller');
+const { normalizeCnpjNumber } = require('../../../helpers/mask');
+const XLSX = require('xlsx');
+const { logger } = require('../../../../logger');
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     // user.perfil = 'Financeiro'
     if (!user) {
-      reject("Usuário não autenticado!");
+      reject('Usuário não autenticado!');
       return false;
     }
     // Filtros
@@ -56,7 +56,7 @@ function getAll(req) {
       );
 
       const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]['qtde']) || 0;
       params.push(pageSize);
       params.push(offset);
 
@@ -90,9 +90,9 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "MOVIMENTO CONTÁBIL",
-        method: "MOVIMENTO_CONTABIL_GET_ALL",
+        module: 'FINANCEIRO',
+        origin: 'MOVIMENTO CONTÁBIL',
+        method: 'MOVIMENTO_CONTABIL_GET_ALL',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -107,107 +107,121 @@ function downloadMovimentoContabil(req, res) {
     const conn = await db.getConnection();
     try {
       // ^ id_grupo_economico - id_conta_bancaria - mes - ano
-      const { id_grupo_economico, id_conta_bancaria, mes, ano } =
+      const { id_grupo_economico, id_conta_bancaria, range_data } =
         req.query.filters || {};
+      const { from: data_de, to: data_ate } = range_data;
+
       if (!id_grupo_economico) {
-        throw new Error("ID GRUPO ECONÔMICO não informado");
+        throw new Error('ID GRUPO ECONÔMICO não informado');
       }
-      if (!mes) {
-        throw new Error("Mês não informado");
+      if (!data_de && !data_ate) {
+        throw new Error('Período não informado');
       }
-      if (!ano) {
-        throw new Error("Ano não informado");
+      const grupo_economico = req.query.filters.grupo_economico || '';
+      const conta_bancaria = req.query.filters.conta_bancaria || '';
+
+      let itemsExcel = [];
+      let where = ` WHERE t.id_status > 3`;
+      if (data_de && data_ate) {
+        where += ` AND tv.data_pagamento BETWEEN '${
+          data_de.split('T')[0]
+        }' AND '${data_ate.split('T')[0]}'  `;
+      } else {
+        if (data_de) {
+          where += ` AND tv.data_pagamento >= '${data_de.split('T')[0]}' `;
+        }
+        if (data_ate) {
+          where += ` AND tv.data_pagamento <= '${data_ate.split('T')[0]}' `;
+        }
       }
-      const grupo_economico = req.query.filters.grupo_economico || ''
-      const conta_bancaria = req.query.filters.conta_bancaria || ''
 
-      let itemsExcel = []
-      const anoMes = formatDate(new Date(ano, parseInt(mes) -1, 1), 'yyyy-MM')
-
-      let where = ` AND DATE_FORMAT(tv.data_pagamento, '%Y-%m') = ? 
-        AND ge.id = ?
-        `
-      const params = [anoMes, id_grupo_economico]
-
-      if(id_conta_bancaria){
-        where += ` AND cb.id = ?`
-        params.push(id_conta_bancaria)
+      const params = [];
+      if (id_grupo_economico) {
+        where += ` AND ge.id = ?`;
+        params.push(id_grupo_economico);
+      }
+      if (id_conta_bancaria) {
+        where += ` AND cb.id = ? `;
+        params.push(id_conta_bancaria);
       }
 
       // * Passar por cada dia gerando uma pasta do dia e gerar os files
       const [titulos] = await conn.execute(
         `
-            SELECT 
-                tv.id,
-                tv.id_titulo, 
-                ff.cnpj, ff.nome as nome_fornecedor,
-                f.nome as filial, f.cnpj as cnpj_filial,
-                t.descricao, t.num_doc, tv.valor, 
-                tv.data_pagamento, cb.descricao as banco,
-                t.url_nota_fiscal,
-                t.url_xml,
-                t.url_boleto,
-                t.url_contrato,
-                t.url_planilha,
-                t.url_txt
-            FROM fin_cp_titulos as t
-            LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo  = t.id 
-            LEFT JOIN filiais as f ON f.id = t.id_filial
-            LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
-            LEFT JOIN fin_cp_bordero_itens as tb ON tv.id_titulo = t.id
-            LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
-            LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
-            LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
-            WHERE 
-              t.id_status > 3
-              ${where}
-            GROUP BY t.id
+        SELECT
+          tv.id,
+          tv.id_titulo,
+          ff.cnpj, ff.nome as nome_fornecedor,
+          f.nome as filial, f.cnpj as cnpj_filial,
+          t.descricao, t.num_doc, tv.valor,
+          tv.data_pagamento, cb.descricao as banco,
+          t.url_nota_fiscal,
+          t.url_xml,
+          t.url_boleto,
+          t.url_contrato,
+          t.url_planilha,
+          t.url_txt
+        FROM fin_cp_titulos as t
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo  = t.id
+        LEFT JOIN filiais as f ON f.id = t.id_filial
+        LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
+        LEFT JOIN fin_cp_bordero_itens as tb ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
+        LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
+        LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
+        ${where}
+        GROUP BY tv.id
         `,
         params
       );
 
       // * Adiciona os títulos no array do excel e no Objeto de dia
       itemsExcel = titulos.map((vencimento) => ({
-        "ID VENCIMENTO": vencimento.id,
-        "ID TÍTULO": vencimento.id_titulo,
-        "CPF/CNPJ": normalizeCnpjNumber(vencimento.cnpj || ""),
-        "NOME FORNECEDOR": vencimento.nome_fornecedor || "",
-        FILIAL: vencimento.filial || "",
-        "CNPJ FILIAL": vencimento.cnpj_filial || "",
-        DESCRIÇÃO: vencimento.descricao || "",
-        "Nº DOC": vencimento.num_doc || "",
-        "VALOR TÍTULO": parseFloat(vencimento.valor) || "",
-        "DT PAG": vencimento.data_pagamento || "",
-        BANCO: vencimento.banco || "",
+        'ID VENCIMENTO': vencimento.id,
+        'ID TÍTULO': vencimento.id_titulo,
+        'CPF/CNPJ': normalizeCnpjNumber(vencimento.cnpj || ''),
+        'NOME FORNECEDOR': vencimento.nome_fornecedor || '',
+        FILIAL: vencimento.filial || '',
+        'CNPJ FILIAL': vencimento.cnpj_filial || '',
+        DESCRIÇÃO: vencimento.descricao || '',
+        'Nº DOC': vencimento.num_doc || '',
+        'VALOR TÍTULO': parseFloat(vencimento.valor) || '',
+        'DT PAG': vencimento.data_pagamento || '',
+        BANCO: vencimento.banco || '',
         'NOTA FISCAL': vencimento.url_nota_fiscal,
-        'BOLETO': vencimento.url_boleto,
+        BOLETO: vencimento.url_boleto,
         'XML NF': vencimento.url_xml,
-        'CONTRATO': vencimento.url_contrato,
-        'PLANILHA': vencimento.url_planilha,
-        'TXT': vencimento.url_txt
+        CONTRATO: vencimento.url_contrato,
+        PLANILHA: vencimento.url_planilha,
+        TXT: vencimento.url_txt,
       }));
 
       // * Cria a matriz bidimensional com o cabeçalho como primeira linha
       if (itemsExcel.length == 0) {
-        throw new Error('Movimento Contábil Vazio')
+        throw new Error('Movimento Contábil Vazio');
       }
 
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(itemsExcel);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      conta_bancaria
-      const filename = `MOVIMENTO CONTABIL - ${grupo_economico ? grupo_economico + ' - ' : ''}${conta_bancaria ? conta_bancaria + ' - ' : ''}${String(mes).padStart(2,'0')}-${ano}.xlsx`;
-      res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.set("Content-Disposition", `attachment; filename=${filename}`);
+      conta_bancaria;
+      const filename = `MOVIMENTO CONTABIL - ${
+        grupo_economico ? grupo_economico + ' - ' : ''
+      }${conta_bancaria ? conta_bancaria : ''}.xlsx`;
+      res.set(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.set('Content-Disposition', `attachment; filename=${filename}`);
       res.send(buffer);
       resolve();
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "MOVIMENTO CONTÁBIL",
-        method: "DOWNLOAD_MOVIMENTO_CONTABIL",
+        module: 'FINANCEIRO',
+        origin: 'MOVIMENTO CONTÁBIL',
+        method: 'DOWNLOAD_MOVIMENTO_CONTABIL',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

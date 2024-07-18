@@ -386,7 +386,7 @@ function getAllVencimentosEFaturas(req) {
               COALESCE(f2.nome,f.nome) as filial, 
               COALESCE(fcc.id_matriz,f.id_matriz) as id_matriz,
               COALESCE(forn2.nome,forn.nome) as nome_fornecedor, 
-              COALESCE(t.num_doc, '-') as num_doc, 
+              CASE WHEN ccf.id THEN "-" ELSE t.num_doc END as num_doc,
               COALESCE(fp.forma_pagamento, 'Cartão') as forma_pagamento,
               COALESCE(t.id_forma_pagamento, 6) as id_forma_pagamento,
               CASE WHEN ccf.id THEN "fatura" ELSE "vencimento" END as tipo
