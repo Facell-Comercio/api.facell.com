@@ -104,7 +104,7 @@ function getAll(req) {
 function getAllMatriz(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, 'FINANCEIRO');
 
     const grupos_economicos_habilitados = [];
 
