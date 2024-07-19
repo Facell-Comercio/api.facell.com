@@ -1,9 +1,9 @@
-const { db } = require('../../../../../mysql');
-const fs = require('fs/promises');
+const { db } = require("../../../../../mysql");
+const fs = require("fs/promises");
 
-const { logger } = require('../../../../../logger');
-const { remessaToObject } = require('../../remessa/to-object');
-const constants = require('../../remessa/layout/ITAU/constants');
+const { logger } = require("../../../../../logger");
+const { remessaToObject } = require("../../remessa/to-object");
+const constants = require("../../remessa/layout/ITAU/constants");
 
 module.exports = async function importRetornoRemessa(req) {
   return new Promise(async (resolve, reject) => {
@@ -15,7 +15,7 @@ module.exports = async function importRetornoRemessa(req) {
 
       const files = req.files;
       if (!files || !files.length) {
-        throw new Error('Arquivos não recebidos!');
+        throw new Error("Arquivos não recebidos!");
       }
 
       let sequencial_arquivo = 1;
@@ -24,38 +24,42 @@ module.exports = async function importRetornoRemessa(req) {
         const filePath = file?.path;
         try {
           if (!filePath) {
-            throw new Error('O arquivo não importado corretamente!');
+            throw new Error("O arquivo não importado corretamente!");
           }
 
           // Ler e fazer parse do arquivo
-          const data = await fs.readFile(filePath, 'utf8');
+          const data = await fs.readFile(filePath, "utf8");
           const objRemessa = await remessaToObject(data);
           // Passagem pelos lotes
           const lotes = objRemessa.lotes;
           if (!lotes || !lotes.length) {
             throw new Error(
-              'Aquivo vazio ou não foi possível acessar os lotes de boletos...'
+              "Aquivo vazio ou não foi possível acessar os lotes de boletos..."
             );
           }
           for (const lote of lotes) {
             // Passagem pelos segmentos G
             const segmentos = lote.detalhe?.filter(
               (d) =>
-                d.cod_seg_registro_lote === 'A' ||
-                d.cod_seg_registro_lote === 'J'
+                d.cod_seg_registro_lote === "A" ||
+                d.cod_seg_registro_lote === "J"
             );
             if (!segmentos || !segmentos.length) {
               continue;
             }
             for (const segmento of segmentos) {
-              const id_vencimento = parseInt(segmento.id_vencimento.trim());
+              const id_vencimento = parseInt(
+                String(segmento.id_vencimento).trim()
+              );
               const ocorrencias =
-                segmento.ocorrencias.trim().match(/.{1,2}/g) || [];
+                String(segmento.ocorrencias)
+                  .trim()
+                  .match(/.{1,2}/g) || [];
               const pagamento = {
                 sequencial_arquivo,
                 id_vencimento,
-                ocorrencias: ocorrencias.join(', '),
-                status: 'sucesso',
+                ocorrencias: ocorrencias.join(", "),
+                status: "sucesso",
               };
               try {
                 const [rowVencimento] = await conn.execute(
@@ -64,7 +68,7 @@ module.exports = async function importRetornoRemessa(req) {
                     tv.id, tv.id_titulo, tv.status, tv.valor
                   FROM fin_cp_titulos_vencimentos tv
                   LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
-                  WHERE id = ? AND bi.id_bordero = ?
+                  WHERE tv.id = ? AND bi.id_bordero = ?
                   `,
                   [id_vencimento, id_bordero]
                 );
@@ -76,7 +80,7 @@ module.exports = async function importRetornoRemessa(req) {
                 }
 
                 //* Verificando se o status do vencimento é pago
-                if (vencimento.status === 'pago') {
+                if (vencimento.status === "pago") {
                   throw new Error(`Vencimento já constava como pago`);
                 }
 
@@ -94,18 +98,18 @@ module.exports = async function importRetornoRemessa(req) {
                 //* Verificar se há titulos relacionado a esse vencimento
                 if (!vencimentosNaoPagos || vencimentosNaoPagos.length === 0) {
                   throw new Error(
-                    'Não há títulos relacionados a esse vencimento'
+                    "Não há títulos relacionados a esse vencimento"
                   );
                 }
 
                 const ocorrenciasErro = ocorrencias.filter(
-                  (e) => e != '00' && e != 'BD'
+                  (e) => e != "00" && e != "BD"
                 );
                 if (ocorrenciasErro.length) {
                   const erros = ocorrenciasErro.map((erro) => {
                     return CodigosOcorrencias[erro];
                   });
-                  console.log('UPDATE');
+                  console.log("UPDATE");
                   //* Inicando que o vencimento pode ser incluso na remessa novamente
                   await conn.execute(
                     `
@@ -124,25 +128,25 @@ module.exports = async function importRetornoRemessa(req) {
                       SET status = "erro", obs = ? 
                       WHERE id = ?
                       `,
-                    [erros.join(', '), vencimento.id]
+                    [erros.join(", "), vencimento.id]
                   );
 
                   if (ocorrenciasErro.length > 1) {
-                    throw new Error(`${erros.join('\n')}`);
+                    throw new Error(`${erros.join("\n")}`);
                   } else {
-                    throw new Error(`${erros.join('\n')}`);
+                    throw new Error(`${erros.join("\n")}`);
                   }
                 }
-                if (ocorrencias[0] === 'BD') {
+                if (ocorrencias[0] === "BD") {
                   await conn.execute(
                     `
                       UPDATE fin_cp_titulos_vencimentos SET status = "programado" WHERE id = ?
                       `,
                     [vencimento.id]
                   );
-                  pagamento.status = 'programado';
+                  pagamento.status = "programado";
                 }
-                if (ocorrencias[0] == '00') {
+                if (ocorrencias[0] == "00") {
                   const valorPago =
                     segmento.valor_real_efetivacao_pgto ||
                     segmento.valor_pagamento;
@@ -175,7 +179,7 @@ module.exports = async function importRetornoRemessa(req) {
                   }
                 }
               } catch (error) {
-                pagamento.status = 'error';
+                pagamento.status = "error";
                 pagamento.obs = error.message;
               } finally {
                 pagamentos.push(pagamento);
@@ -185,13 +189,13 @@ module.exports = async function importRetornoRemessa(req) {
         } catch (error) {
           pagamentos.push({
             sequencial_arquivo,
-            status: 'error',
+            status: "error",
             obs: error.message,
           });
           logger.error({
-            module: 'FINANCEIRO',
-            origin: 'BORDERO',
-            method: 'IMPORT RETORNO REMESSA',
+            module: "FINANCEIRO",
+            origin: "BORDERO",
+            method: "IMPORT RETORNO REMESSA",
             data: {
               message: error.message,
               stack: error.stack,
@@ -204,9 +208,9 @@ module.exports = async function importRetornoRemessa(req) {
             await fs.unlink(filePath);
           } catch (unlinkErr) {
             logger.error({
-              module: 'FINANCEIRO',
-              origin: 'BORDERO',
-              method: 'UNLINK IMPORT RETORNO REMESSA',
+              module: "FINANCEIRO",
+              origin: "BORDERO",
+              method: "UNLINK IMPORT RETORNO REMESSA",
               data: {
                 message: unlinkErr.message,
                 stack: unlinkErr.stack,
@@ -224,9 +228,9 @@ module.exports = async function importRetornoRemessa(req) {
     } catch (error) {
       await conn.rollback();
       logger.error({
-        module: 'FINANCEIRO',
-        origin: 'BORDERO',
-        method: 'IMPORTAR RETORNO DE REMESSA',
+        module: "FINANCEIRO",
+        origin: "BORDERO",
+        method: "IMPORTAR RETORNO DE REMESSA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
