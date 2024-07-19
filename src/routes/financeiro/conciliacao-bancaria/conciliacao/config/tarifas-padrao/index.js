@@ -6,7 +6,7 @@ const {
   insert,
   update,
   deleteOne,
-} = require("../../../../../../controllers/financeiro/conciliacao-bancaria/configuracao/tarifas-controller");
+} = require("../../../../../../controllers/financeiro/conciliacao-bancaria/configuracao/tarifas-padrao-controller");
 const checkUserAuthorization = require("../../../../../../middlewares/authorization-middleware");
 
 router.get("/", async (req, res) => {

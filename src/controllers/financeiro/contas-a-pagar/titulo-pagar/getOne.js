@@ -16,10 +16,20 @@ module.exports = function getOne(req) {
             f.nome as filial,
             f.id_grupo_economico,
             f.id_matriz,
+            
+            -- Fornecedor:
+            fo.nome as nome_fornecedor, 
+            fo.favorecido as nome_favorecido, 
+            fo.cnpj as cnpj_fornecedor,
+
+            -- Dados bancários:
             fb.nome as banco,
             fb.codigo as codigo_banco,
-            fo.nome as nome_fornecedor, 
-            fo.cnpj as cnpj_fornecedor,
+            COALESCE(t.agencia, fo.agencia) as agencia,
+            COALESCE(t.dv_agencia, fo.dv_agencia) as dv_agencia,
+            COALESCE(t.conta, fo.conta) as conta,
+            COALESCE(t.dv_conta, fo.dv_conta) as dv_conta,
+
             t.id_departamento,
             COALESCE(fr.manual, TRUE) as rateio_manual
           FROM fin_cp_titulos t 
