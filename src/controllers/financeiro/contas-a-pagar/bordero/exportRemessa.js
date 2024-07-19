@@ -581,16 +581,6 @@ module.exports = function exportRemessa(req, res) {
                 chave_pix = normalizeNumberOnly(chave_pix);
                 break;
             }
-            console.log({
-              ...vencimento,
-              lote,
-              num_registro_lote: registroLote,
-              tipo_chave,
-              favorecido_tipo_insc,
-              num_inscricao: vencimento.favorecido_cnpj,
-              txid: vencimento.id_vencimento,
-              chave_pix,
-            });
 
             const segmentoB = createSegmentoB({
               ...vencimento,
