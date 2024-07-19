@@ -44,7 +44,7 @@ module.exports = function getAll(req) {
         where += ` AND f.id_grupo_economico = ?`;
         params.push(id_grupo_economico);
       }
-      if (id_matriz) {
+      if (id_matriz && id_matriz !== 'all') {
         where += ` AND f.id_matriz = ? `;
         params.push(id_matriz);
       }
@@ -165,7 +165,7 @@ module.exports = function getAll(req) {
         ORDER BY bordero.id DESC
         LIMIT ? OFFSET ?
         `;
-        // console.log({query});
+
         const [rows] = await conn.execute(query, params);
   
         const objResponse = {
@@ -173,6 +173,7 @@ module.exports = function getAll(req) {
           pageCount: Math.ceil(qtdeTotal / pageSize),
           rowCount: qtdeTotal,
         };
+
         resolve(objResponse);
       } catch (error) {
         logger.error({

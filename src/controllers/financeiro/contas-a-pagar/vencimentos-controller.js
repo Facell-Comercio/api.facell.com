@@ -236,12 +236,12 @@ function getAllVencimentosEFaturas(req) {
       params.push(descricao);
       params.push(descricao);
     }
-    if (id_matriz) {
-      where += ` AND (f.id_matriz = ? OR fcc.id_matriz) `;
+    if (id_matriz && id_matriz !== 'all') {
+      where += ` AND (f.id_matriz = ? OR fcc.id_matriz = ?) `;
       params.push(id_matriz);
       params.push(id_matriz);
     }
-    if (id_filial) {
+    if (id_filial && id_filial !== 'all') {
       where += ` AND (f.id = ? OR f2.id = ?)`;
       params.push(id_filial);
       params.push(id_filial);
@@ -312,11 +312,11 @@ function getAllVencimentosEFaturas(req) {
       params.push(id_grupo_economico);
       params.push(id_grupo_economico);
     }
+
     let conn;
     try {
       conn = await db.getConnection();
-      const [rowsVencimentosFaturas] = await conn.execute(
-        ` SELECT COUNT(*) AS qtde
+      let queryTotal = ` SELECT COUNT(*) AS qtde
           FROM (
             SELECT DISTINCT
                 COALESCE(ccf.id,t.id) as id_titulo 
@@ -337,9 +337,9 @@ function getAllVencimentosEFaturas(req) {
 
               ${where}
         ) as subconsulta
-        `,
-        params
-      );
+        `
+      const [rowsVencimentosFaturas] = await conn.execute(queryTotal, params);
+
       const qtdeVencimentosFaturas =
         (rowsVencimentosFaturas && rowsVencimentosFaturas[0]['qtde']) || 0;
       const [rowsVencimentosFaturasValorTotal] = await conn.execute(
