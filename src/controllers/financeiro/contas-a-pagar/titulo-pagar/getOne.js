@@ -60,8 +60,8 @@ module.exports = function getOne(req) {
             f.nome as filial,
             fcc.nome  as centro_custo,
             CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
-            FORMAT(tr.valor, 4) as valor, 
-            FORMAT(tr.percentual * 100, 4) as percentual
+            ROUND(tr.valor, 4) as valor, 
+            ROUND(tr.percentual * 100, 4) as percentual
           FROM 
             fin_cp_titulos_rateio tr 
           LEFT JOIN filiais f ON f.id = tr.id_filial
