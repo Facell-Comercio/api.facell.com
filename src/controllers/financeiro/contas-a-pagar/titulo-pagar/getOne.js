@@ -59,8 +59,9 @@ module.exports = function getOne(req) {
             tr.*,
             f.nome as filial,
             fcc.nome  as centro_custo,
-            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta, 
-            FORMAT(tr.percentual * 100, 2) as percentual
+            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
+            FORMAT(tr.valor, 4) as valor, 
+            FORMAT(tr.percentual * 100, 4) as percentual
           FROM 
             fin_cp_titulos_rateio tr 
           LEFT JOIN filiais f ON f.id = tr.id_filial
@@ -69,7 +70,7 @@ module.exports = function getOne(req) {
             WHERE tr.id_titulo = ?`,
           [id]
         );
-  
+
         const [historico] = await conn.execute(
           `SELECT * FROM fin_cp_titulos_historico WHERE id_titulo = ? ORDER BY created_at DESC`,
           [id]

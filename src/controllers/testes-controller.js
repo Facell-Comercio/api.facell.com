@@ -557,7 +557,7 @@ function subirAnexo({ row, folderName }) {
 function subirAnexosParaDrive() {
     return new Promise(async (resolve, reject) => {
         try {
-            const folderName = 'logistica';
+            const folderName = 'financeiro';
             const pathResult = path.join(process.cwd(), 'public', 'resultado_drive.xlsx')
 
             // ler os arquivos:
