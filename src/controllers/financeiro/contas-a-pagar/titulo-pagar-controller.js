@@ -1,7 +1,7 @@
-const { db } = require("../../../../mysql");
-const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
-const { logger } = require("../../../../logger");
+const { db } = require('../../../../mysql');
+const { checkUserDepartment } = require('../../../helpers/checkUserDepartment');
+const { checkUserPermission } = require('../../../helpers/checkUserPermission');
+const { logger } = require('../../../../logger');
 
 //! Remanejar para Borderô
 function getAllCpVencimentosBordero(req) {
@@ -21,8 +21,8 @@ function getAllCpVencimentosBordero(req) {
     var where = ` WHERE 1=1 `;
     // Somente o Financeiro/Master podem ver todos
     if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
+      !checkUserDepartment(req, 'FINANCEIRO') &&
+      !checkUserPermission(req, 'MASTER')
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
@@ -86,10 +86,10 @@ function getAllCpVencimentosBordero(req) {
     }
 
     if (dda !== undefined) {
-      if (dda == "true") {
+      if (dda == 'true') {
         where += ` AND dda.id IS NOT NULL `;
       }
-      if (dda == "false") {
+      if (dda == 'false') {
         where += ` AND dda.id IS NULL `;
       }
     }
@@ -102,18 +102,18 @@ function getAllCpVencimentosBordero(req) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
         where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+          data_de.split('T')[0]
+        }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
-          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
-    if (id_grupo_economico && id_grupo_economico !== "all") {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -140,7 +140,7 @@ function getAllCpVencimentosBordero(req) {
         `,
         params
       );
-      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]['qtde']) || 0;
 
       var query = `
             SELECT DISTINCT 
@@ -181,9 +181,9 @@ function getAllCpVencimentosBordero(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "TITULOS A PAGAR",
-        method: "GET_ALL_VENCIMENTOS_BORDERO",
+        module: 'FINANCEIRO',
+        origin: 'TITULOS A PAGAR',
+        method: 'GET_ALL_VENCIMENTOS_BORDERO',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
 
@@ -210,11 +210,11 @@ function getAllCpItemsBordero(req) {
 
     // Filtros
     let where = ` WHERE 1=1 `;
-    
+
     // Somente o Financeiro/Master podem ver todos
     if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
+      !checkUserDepartment(req, 'FINANCEIRO') &&
+      !checkUserPermission(req, 'MASTER')
     ) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
@@ -261,10 +261,10 @@ function getAllCpItemsBordero(req) {
     }
 
     if (dda !== undefined) {
-      if (dda == "true") {
+      if (dda == 'true') {
         where += ` AND dda.id IS NOT NULL `;
       }
-      if (dda == "false") {
+      if (dda == 'false') {
         where += ` AND dda.id IS NULL `;
       }
     }
@@ -277,20 +277,18 @@ function getAllCpItemsBordero(req) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
         where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+          data_de.split('T')[0]
+        }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
-          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} >= '${data_de.split('T')[0]}' `;
         }
         if (data_ate) {
-          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+          where += ` AND tv.${tipo_data} <= '${data_ate.split('T')[0]}' `;
         }
       }
     }
     //* Fim - Filtros Vencimentos
-
-   
 
     const conn = await db.getConnection();
     try {
@@ -351,7 +349,7 @@ function getAllCpItemsBordero(req) {
         params
       );
 
-      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]['qtde']) || 0;
 
       params.push(pageSize);
       params.push(offset);
@@ -427,9 +425,9 @@ function getAllCpItemsBordero(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO",
-        origin: "TITULOS A PAGAR",
-        method: "GET_ALL_VENCIMENTOS_BORDERO",
+        module: 'FINANCEIRO',
+        origin: 'TITULOS A PAGAR',
+        method: 'GET_ALL_VENCIMENTOS_BORDERO',
         data: { message: error.message, stack: error.stack, name: error.name },
       });
 
@@ -441,24 +439,26 @@ function getAllCpItemsBordero(req) {
 }
 
 module.exports = {
-  getAll: require("./titulo-pagar/getAll"),
-  getOne: require("./titulo-pagar/getOne"),
-  getOneByTimParams: require("./titulo-pagar/getOneByTimParams"),
-  getPendencias: require("./titulo-pagar/getPendencias"),
-  insertOne: require("./titulo-pagar/insertOne"),
-  insertOneByGN: require("./titulo-pagar/insertOneByGN"),
-  update: require("./titulo-pagar/update"),
-  updateFileTitulo: require("./titulo-pagar/updateFileTitulo"),
-  changeStatusTitulo: require("./titulo-pagar/changeStatusTitulo"),
-  changeFieldTitulos: require("./titulo-pagar/changeFieldTitulos"),
-  exportLayoutDatasys: require("./titulo-pagar/exportLayoutDatasys"),
-  importLoteSolicitacoes: require("./titulo-pagar/importLote"),
+  getAll: require('./titulo-pagar/getAll'),
+  getOne: require('./titulo-pagar/getOne'),
+  getOneByTimParams: require('./titulo-pagar/getOneByTimParams'),
+  getPendencias: require('./titulo-pagar/getPendencias'),
+  insertOne: require('./titulo-pagar/insertOne'),
+  insertOneByGN: require('./titulo-pagar/insertOneByGN'),
+  update: require('./titulo-pagar/update'),
+  updateFileTitulo: require('./titulo-pagar/updateFileTitulo'),
+  changeStatusTitulo: require('./titulo-pagar/changeStatusTitulo'),
+  changeFieldTitulos: require('./titulo-pagar/changeFieldTitulos'),
+  exportLayoutDatasys: require('./titulo-pagar/exportLayoutDatasys'),
+  importLoteSolicitacoes: require('./titulo-pagar/importLote'),
 
-  getAllRecorrencias: require("./recorrencia/getAll"),
-  insertOneRecorrencia: require("./recorrencia/insertOne"),
-  updateRecorrencia: require("./recorrencia/update"),
-  deleteRecorrencia: require("./recorrencia/delete"),
+  getAllRecorrencias: require('./recorrencia/getAll'),
+  insertOneRecorrencia: require('./recorrencia/insertOne'),
+  updateRecorrencia: require('./recorrencia/update'),
+  deleteRecorrencia: require('./recorrencia/delete'),
 
   getAllCpVencimentosBordero,
-  getAllCpItemsBordero
+  getAllCpItemsBordero,
+
+  checkDoc: require('./titulo-pagar/checkDoc'),
 };

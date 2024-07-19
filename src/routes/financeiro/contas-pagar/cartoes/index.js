@@ -5,7 +5,6 @@ const {
   getOne,
   update,
   insertOne,
-  getOneFaturas,
   getFatura,
   deleteCartao,
   updateFatura,
@@ -13,21 +12,19 @@ const {
   reabrirFatura,
   fecharFatura,
   deleteFatura,
+  insertUserFatura,
+  removeUserFatura,
 } = require("../../../../controllers/financeiro/contas-a-pagar/cartoes-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
-router.get(
-  "/",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await getAll(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+router.get("/", async (req, res) => {
+  try {
+    const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-);
+});
 router.get(
   "/fatura/:id",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -40,14 +37,6 @@ router.get(
     }
   }
 );
-router.get("/:id/faturas", async (req, res) => {
-  try {
-    const result = await getOneFaturas(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
 router.get(
   "/:id",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -74,12 +63,38 @@ router.post(
   }
 );
 
+router.post(
+  "/user",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await insertUserFatura(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 router.put(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await update(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/user/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await removeUserFatura(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
