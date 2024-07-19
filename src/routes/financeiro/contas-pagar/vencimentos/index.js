@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const {
-  changeFieldVencimentos,
+  changeFieldVencimentosFaturas,
   getAllVencimentosEFaturas,
 } = require("../../../../controllers/financeiro/contas-a-pagar/vencimentos-controller");
 
@@ -16,7 +16,7 @@ router.get("/vencimentos-e-faturas", async (req, res) => {
 
 router.put("/change-fields", async (req, res) => {
   try {
-    const result = await changeFieldVencimentos(req);
+    const result = await changeFieldVencimentosFaturas(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

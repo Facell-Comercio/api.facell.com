@@ -65,9 +65,8 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
-          data_ate.split('T')[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
@@ -291,19 +290,16 @@ function getAllVencimentosEFaturas(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split('T')[0]
-        }' AND '${data_ate.split('T')[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split('T')[0]
+          }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
-          where += ` AND (tv.${tipo_data} >= '${
-            data_de.split('T')[0]
-          }' OR ccf.${tipo_data} >= '${data_de.split('T')[0]}') `;
+          where += ` AND (tv.${tipo_data} >= '${data_de.split('T')[0]
+            }' OR ccf.${tipo_data} >= '${data_de.split('T')[0]}') `;
         }
         if (data_ate) {
-          where += ` AND (tv.${tipo_data} <= '${
-            data_ate.split('T')[0]
-          }' OR ccf.${tipo_data} <= '${data_ate.split('T')[0]}') `;
+          where += ` AND (tv.${tipo_data} <= '${data_ate.split('T')[0]
+            }' OR ccf.${tipo_data} <= '${data_ate.split('T')[0]}') `;
         }
       }
     }
@@ -372,6 +368,8 @@ function getAllVencimentosEFaturas(req) {
       const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
       const query = `
             SELECT DISTINCT 
+              COALESCE(ccf.id,tv.id) as id_item,
+              CASE WHEN ccf.id THEN 'fatura' ELSE 'vencimento' END as tipo,
               COALESCE(ccf.id,t.id) as id_titulo, 
               COALESCE(ccf.id,tv.id) as id_vencimento,
               COALESCE(ccf.status,tv.status) as status, 
@@ -591,9 +589,8 @@ function getAllVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split('T')[0]
-        }' AND '${data_ate.split('T')[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split('T')[0]
+          }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split('T')[0]}' `;
@@ -762,9 +759,8 @@ function getVencimentosAPagar(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
-          data_ate.split('T')[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
@@ -898,9 +894,8 @@ function getVencimentosEmBordero(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
-          data_ate.split('T')[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
@@ -1039,9 +1034,8 @@ function getVencimentosPagos(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${
-          data_ate.split('T')[0]
-        }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
+          }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split('T')[0]}' `;
@@ -1124,49 +1118,89 @@ function getVencimentosPagos(req) {
   });
 }
 
-function changeFieldVencimentos(req) {
+function changeFieldVencimentosFaturas(req) {
   return new Promise(async (resolve, reject) => {
-    const { value, ids } = req.body;
+    const { value: data_prevista, itens } = req.body;
+    // const itens = [
+    //   {id_item: 1, tipo: 'vencimento'},
+    //   {id_item: 2, tipo: 'fatura'},
+    // ]
     const conn = await db.getConnection();
 
     await conn.beginTransaction();
     try {
-      if (!value) {
-        throw new Error('VALOR da alteração não informado!');
+      if (!data_prevista) {
+        throw new Error('Preencha a previsão de pagamento!');
       }
-      if (ids && ids.length <= 0) {
-        throw new Error('VENCIMENTOS a serem alteradas não selecionadas!');
+      if (!itens || !itens?.length) {
+        throw new Error('Nenhum item selecionado!');
       }
 
-      for (const id of ids) {
-        const [rowTitulo] = await conn.execute(
-          `SELECT 
-            t.id,t.id_status, tv.status
-          FROM fin_cp_titulos_vencimentos tv
-          INNER JOIN fin_cp_titulos t ON t.id = tv.id_titulo
-          WHERE tv.id = ? `,
-          [id]
-        );
-        const titulo = rowTitulo && rowTitulo[0];
-        if (titulo.id_status >= 4) {
-          throw new Error(
-            `Alteração rejeitada pois o título ${titulo.id} já consta como ${
-              titulo.id_status === 4 ? 'pago parcial' : 'pago'
-            }!`
-          );
+      for (const item of itens) {
+        if (!item) {
+          throw new Error(`Item não itendificado ${JSON.stringify(item)}`)
         }
-        // ^ Vamos verificar se o título já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
-        const [rowBordero] = await conn.execute(
-          `SELECT id FROM fin_cp_bordero_itens WHERE id_vencimento = ?`,
-          [id]
-        );
-        const bordero = rowBordero && rowBordero[0];
+        const id_item = item.id_item;
 
-        if (!bordero || bordero.length === 0) {
-          await conn.execute(
-            `UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id = ? `,
-            [new Date(value), id]
+        // * ALTERAÇÃO DO VENCIMENTO:
+        if (item.tipo === 'vencimento') {
+          // ^ Vamos verificar se já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
+          const [rowBordero] = await conn.execute(
+            `SELECT id FROM fin_cp_bordero_itens WHERE id_vencimento = ?`,
+            [id_item]
           );
+          const bordero = rowBordero && rowBordero[0];
+          if (bordero) {
+            throw new Error(`O(a) ${item.tipo} já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`)
+          }
+
+          const [rowTitulo] = await conn.execute(
+            `SELECT 
+              t.id, t.id_status, tv.status
+            FROM fin_cp_titulos_vencimentos tv
+            INNER JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+            WHERE tv.id = ? `,
+            [item.id_item]
+          );
+          const titulo = rowTitulo && rowTitulo[0];
+          if (!titulo) {
+            throw new Error(`Titulo do vencimento ${item.id_item} não encontrado...`)
+          }
+          if (titulo.id_status >= 4) {
+            throw new Error(
+              `Alteração rejeitada pois o título ${titulo.id} já consta como ${titulo.id_status === 4 ? 'pago parcial' : 'pago'
+              }!`
+            );
+          }
+
+          if (!bordero || bordero.length === 0) {
+            await conn.execute(
+              `UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id = ? `,
+              [new Date(data_prevista), id_item]
+            );
+          }
+        }
+
+        // * ALTERAÇÃO DA FATURA:
+        if (item.tipo === 'fatura') {
+
+          // ^ Vamos verificar se já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
+          const [rowBordero] = await conn.execute(
+            `SELECT id FROM fin_cp_bordero_itens WHERE id_fatura = ?`,
+            [id_item]
+          );
+          const bordero = rowBordero && rowBordero[0];
+          if (bordero) {
+            throw new Error(`A Fatura já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`)
+          }
+          
+          // Atualizar a fatura:
+          await conn.execute(`UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ? WHERE id = ?`, 
+            [new Date(data_prevista), id_item])
+
+          // Atualizar os vencimentos da fatura:
+          await conn.execute(`UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id_fatura = ?`, 
+            [new Date(data_prevista), id_item])
         }
       }
 
@@ -1193,6 +1227,6 @@ module.exports = {
   getVencimentosAPagar,
   getVencimentosEmBordero,
   getVencimentosPagos,
-  changeFieldVencimentos,
+  changeFieldVencimentosFaturas,
   getAllVencimentosEFaturas,
 };
