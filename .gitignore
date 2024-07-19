@@ -3,3 +3,5 @@ node_modules
 public
 logs
 google_credentials.json
+google_credentials.local.json
+google_credentials.production.json

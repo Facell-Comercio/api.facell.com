@@ -16,10 +16,20 @@ module.exports = function getOne(req) {
             f.nome as filial,
             f.id_grupo_economico,
             f.id_matriz,
+            
+            -- Fornecedor:
+            fo.nome as nome_fornecedor, 
+            fo.favorecido as nome_favorecido, 
+            fo.cnpj as cnpj_fornecedor,
+
+            -- Dados bancários:
             fb.nome as banco,
             fb.codigo as codigo_banco,
-            fo.nome as nome_fornecedor, 
-            fo.cnpj as cnpj_fornecedor,
+            COALESCE(t.agencia, fo.agencia) as agencia,
+            COALESCE(t.dv_agencia, fo.dv_agencia) as dv_agencia,
+            COALESCE(t.conta, fo.conta) as conta,
+            COALESCE(t.dv_conta, fo.dv_conta) as dv_conta,
+
             t.id_departamento,
             COALESCE(fr.manual, TRUE) as rateio_manual
           FROM fin_cp_titulos t 
@@ -49,8 +59,9 @@ module.exports = function getOne(req) {
             tr.*,
             f.nome as filial,
             fcc.nome  as centro_custo,
-            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta, 
-            FORMAT(tr.percentual * 100, 2) as percentual
+            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
+            FORMAT(tr.valor, 4) as valor, 
+            FORMAT(tr.percentual * 100, 4) as percentual
           FROM 
             fin_cp_titulos_rateio tr 
           LEFT JOIN filiais f ON f.id = tr.id_filial
@@ -59,7 +70,7 @@ module.exports = function getOne(req) {
             WHERE tr.id_titulo = ?`,
           [id]
         );
-  
+
         const [historico] = await conn.execute(
           `SELECT * FROM fin_cp_titulos_historico WHERE id_titulo = ? ORDER BY created_at DESC`,
           [id]

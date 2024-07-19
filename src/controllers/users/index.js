@@ -6,7 +6,12 @@ const { v4: uuidv4 } = require("uuid");
 //   replaceFileUrl,
 // } = require("../files-controller");
 const { logger } = require("../../../logger");
-const { deleteFile, extractGoogleDriveId, persistFile, replaceFileUrl } = require("../storage-controller");
+const {
+  deleteFile,
+  extractGoogleDriveId,
+  persistFile,
+  replaceFileUrl,
+} = require("../storage-controller");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -19,14 +24,14 @@ function getAll(req) {
     // Filtros
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || { pageIndex: 0, pageSize: 5 };
-    const { termo, inactives } = filters || { };
+    const { termo, inactives } = filters || {};
 
     var where = ` WHERE 1=1 `;
     const params = [];
 
-    if(inactives != 'true' && (!inactives || parseInt(inactives) != 1)){
-      where += ` AND u.active = 1 `
-      params.push()
+    if (inactives != "true" && (!inactives || parseInt(inactives) != 1)) {
+      where += ` AND u.active = 1 `;
+      params.push();
     }
 
     if (termo) {
@@ -50,7 +55,7 @@ function getAll(req) {
       params.push(pageSize);
       params.push(offset);
       var query = `
-            SELECT u.*, '*****' as senha FROM users u
+            SELECT u.*, '*****' as senha, '*****' as senha_temporaria FROM users u
             ${where}
             
             LIMIT ? OFFSET ?
@@ -203,7 +208,7 @@ function update(req) {
       const nova_img_url = await replaceFileUrl({
         oldFileUrl: user.img_url,
         newFileUrl: img_url,
-      })
+      });
 
       // Atualização de dados do usuário
       await conn.execute(
@@ -300,8 +305,8 @@ function updateImg(req) {
 
       const nova_img_url = await replaceFileUrl({
         oldFileUrl: user.img_url,
-        newFileUrl: img_url
-      })
+        newFileUrl: img_url,
+      });
 
       // Atualização de dados do usuário
       await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
@@ -356,8 +361,8 @@ function insertOne(req) {
         throw new Error("Email não enviado!");
       }
       await conn.beginTransaction();
-      const id_publico = uuidv4()
-      
+      const id_publico = uuidv4();
+
       // Atualização de dados do usuário
       const [result] = await conn.execute(
         "INSERT INTO users (id_publico, nome, email, active) VALUES (?,?,?,?)",
@@ -365,7 +370,7 @@ function insertOne(req) {
       );
       const newId = result.insertId;
 
-      const nova_img_url = await persistFile({fileUrl: img_url});
+      const nova_img_url = await persistFile({ fileUrl: img_url });
 
       await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
         nova_img_url,

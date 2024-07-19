@@ -200,7 +200,7 @@ function uploadFile(req) {
             const response = await gdrive.files.create({
                 resource: fileMetadata,
                 media: media,
-                fields: 'id',
+                fields: 'id, webViewLink, webContentLink',
             });
             const fileId = response.data.id;
             const fileUrl = createGoogleDriveUrl({ fileId: fileId, mimetype: mimetype })

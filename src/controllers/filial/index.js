@@ -19,9 +19,10 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap } = filters || {
-      termo: null,
-    };
+    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap } =
+      filters || {
+        termo: null,
+      };
 
     var where = ` WHERE 1=1 `;
     const params = [];
@@ -64,13 +65,12 @@ function getAll(req) {
       params.push(id_grupo_economico);
     }
     if (tim_cod_sap) {
-      if(tim_cod_sap !== 'all'){
+      if (tim_cod_sap !== "all") {
         where += ` AND f.tim_cod_sap = ?`;
         params.push(tim_cod_sap);
-      }else{
+      } else {
         where += ` AND NOT f.tim_cod_sap IS NULL`;
       }
-      
     }
     if (id_matriz !== undefined && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;
@@ -104,7 +104,7 @@ function getAll(req) {
             `;
       const [rows] = await conn.execute(query, params);
 
-      console.log(params);
+      // console.log(params);
       const objResponse = {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
@@ -113,9 +113,11 @@ function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'FILIAL', method: 'GET_ALL',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "FILIAL",
+        method: "GET_ALL",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -141,9 +143,11 @@ function getOne(req) {
       return;
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'FILIAL', method: 'GET_ONE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "FILIAL",
+        method: "GET_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       reject(error);
       return;
     } finally {
@@ -273,9 +277,11 @@ function update(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'FILIAL', method: 'UPDATE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "FILIAL",
+        method: "UPDATE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {
@@ -415,9 +421,11 @@ function insertOne(req) {
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
-        module: 'ADM', origin: 'FILIAL', method: 'INSERT_ONE',
-        data: { message: error.message, stack: error.stack, name: error.name }
-      })
+        module: "ADM",
+        origin: "FILIAL",
+        method: "INSERT_ONE",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
       await conn.rollback();
       reject(error);
     } finally {

@@ -1,4 +1,4 @@
-const router = require("express").Router();
+const router = require('express').Router();
 
 const {
   getAll,
@@ -17,9 +17,10 @@ const {
   insertOneRecorrencia,
   updateRecorrencia,
   deleteRecorrencia,
-} = require("../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller");
+  checkDoc,
+} = require('../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller');
 
-router.get("/export-datasys", async (req, res) => {
+router.get('/export-datasys', async (req, res) => {
   try {
     const result = await exportLayoutDatasys(req);
     res.status(200).json(result);
@@ -28,7 +29,7 @@ router.get("/export-datasys", async (req, res) => {
   }
 });
 
-router.post("/update-anexo", async (req, res) => {
+router.post('/update-anexo', async (req, res) => {
   try {
     const result = await updateFileTitulo(req);
     res.status(200).json(result);
@@ -37,7 +38,7 @@ router.post("/update-anexo", async (req, res) => {
   }
 });
 
-router.post("/change-status", async (req, res) => {
+router.post('/change-status', async (req, res) => {
   try {
     const result = await changeStatusTitulo(req);
     res.status(200).json(result);
@@ -46,7 +47,7 @@ router.post("/change-status", async (req, res) => {
   }
 });
 
-router.put("/change-fields", async (req, res) => {
+router.put('/change-fields', async (req, res) => {
   try {
     const result = await changeFieldTitulos(req);
     res.status(200).json(result);
@@ -55,7 +56,7 @@ router.put("/change-fields", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const result = await getAll(req);
     res.status(200).json(result);
@@ -64,7 +65,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/by-tim", async (req, res) => {
+router.get('/by-tim', async (req, res) => {
   try {
     const result = await getOneByTimParams(req);
     res.status(200).json(result);
@@ -73,7 +74,7 @@ router.get("/by-tim", async (req, res) => {
   }
 });
 
-router.get("/recorrencias", async (req, res) => {
+router.get('/recorrencias', async (req, res) => {
   try {
     const result = await getAllRecorrencias(req);
     res.status(200).json(result);
@@ -82,7 +83,7 @@ router.get("/recorrencias", async (req, res) => {
   }
 });
 
-router.get("/pendencias", async (req, res) => {
+router.get('/pendencias', async (req, res) => {
   try {
     const result = await getPendencias(req);
     res.status(200).json(result);
@@ -91,16 +92,16 @@ router.get("/pendencias", async (req, res) => {
   }
 });
 
-router.get("/pendencias", async (req, res) => {
+router.get('/check-doc', async (req, res) => {
   try {
-    const result = await getPendencias(req);
+    const result = await checkDoc(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-router.delete("/recorrencias/:id", async (req, res) => {
+router.delete('/recorrencias/:id', async (req, res) => {
   try {
     const result = await deleteRecorrencia(req);
     res.status(200).json(result);
@@ -109,7 +110,7 @@ router.delete("/recorrencias/:id", async (req, res) => {
   }
 });
 
-router.put("/recorrencias/:id", async (req, res) => {
+router.put('/recorrencias/:id', async (req, res) => {
   try {
     const result = await updateRecorrencia(req);
     res.status(200).json(result);
@@ -118,7 +119,7 @@ router.put("/recorrencias/:id", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const result = await getOne(req);
     res.status(200).json(result);
@@ -127,7 +128,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/criar-recorrencia", async (req, res) => {
+router.post('/criar-recorrencia', async (req, res) => {
   try {
     const result = await insertOneRecorrencia(req);
     res.status(200).json(result);
@@ -136,7 +137,7 @@ router.post("/criar-recorrencia", async (req, res) => {
   }
 });
 
-router.post("/solicitacao-lote", async (req, res) => {
+router.post('/solicitacao-lote', async (req, res) => {
   try {
     const result = await importLoteSolicitacoes(req);
     res.status(200).json(result);
@@ -145,7 +146,7 @@ router.post("/solicitacao-lote", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const result = await insertOne(req);
     res.status(200).json(result);
@@ -154,7 +155,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/", async (req, res) => {
+router.put('/', async (req, res) => {
   try {
     const result = await update(req);
     res.status(200).json(result);
