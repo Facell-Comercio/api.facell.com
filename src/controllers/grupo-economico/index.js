@@ -23,7 +23,7 @@ function getAll(req) {
 
     const { id_matriz, termo } = filters || { id_matriz: null };
 
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE g.active = 1 `;
     var limit = pagination ? " LIMIT ? OFFSET ? " : "";
 
     const params = [];

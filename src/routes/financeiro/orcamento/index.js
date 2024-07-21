@@ -35,7 +35,6 @@ router.get("/logs/:id", async (req, res) => {
 
 router.get(
   "/my-budget",
-  // checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await getMyBudgets(req);
@@ -57,7 +56,6 @@ router.get("/my-budget/:id", async (req, res) => {
 
 router.put(
   "/my-budget",
-  // checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await transfer(req);

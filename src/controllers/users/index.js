@@ -57,7 +57,7 @@ function getAll(req) {
       var query = `
             SELECT u.*, '*****' as senha, '*****' as senha_temporaria FROM users u
             ${where}
-            
+            ORDER BY u.nome ASC
             LIMIT ? OFFSET ?
             `;
 

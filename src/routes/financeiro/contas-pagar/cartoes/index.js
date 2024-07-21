@@ -27,7 +27,6 @@ router.get("/", async (req, res) => {
 });
 router.get(
   "/fatura/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await getFatura(req);
@@ -39,7 +38,6 @@ router.get(
 );
 router.get(
   "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await getOne(req);

@@ -657,7 +657,7 @@ function getAllVencimentosBordero(req) {
             fp.forma_pagamento,
             bi.remessa,
             cbi.id as conciliado,
-            cbi.id as id_conciliacao
+            cbi.id_conciliacao as id_conciliacao
         FROM fin_cp_titulos t 
         LEFT JOIN fin_cp_status s ON s.id = t.id_status 
         LEFT JOIN filiais f ON f.id = t.id_filial 
