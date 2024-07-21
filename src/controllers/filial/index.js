@@ -24,7 +24,7 @@ function getAll(req) {
         termo: null,
       };
 
-    var where = ` WHERE 1=1 `;
+    var where = ` WHERE f.active = 1 `;
     const params = [];
     const limit = pagination ? "LIMIT ? OFFSET ?" : "";
 
