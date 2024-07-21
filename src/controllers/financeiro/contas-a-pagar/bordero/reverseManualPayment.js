@@ -72,15 +72,14 @@ module.exports = function reverseManualPayment(req) {
         conciliado,
       } = rowItemPagamento && rowItemPagamento[0];
 
-      if (
-        remessa || //* Em remessa
-        conciliado || //* Conciliado
-        !(
-          checkUserDepartment(req, "FINACEIRO", true) ||
-          checkUserPermission(req, "MASTER")
-        ) //* Não é Gestor financeiro nem Master
-      ) {
-        throw new Error("Item não pode ser revertido!");
+      if (remessa) {
+        throw new Error("Não é possível reverter pagamento feito por arquivo de remessa!");
+      }
+      if (conciliado) {
+        throw new Error("Pagamento já foi conciliado!");
+      }
+      if (!checkUserDepartment(req, "FINACEIRO", true) && !checkUserPermission(req, "MASTER")) {
+        throw new Error("Você não tem permissão para desfazer o pagamento!");
       }
       if (!rowItemPagamento.length) {
         throw new Error("Item não existente!");
@@ -202,8 +201,8 @@ module.exports = function reverseManualPayment(req) {
           [4, id_titulo]
         );
       }
-      // await conn.commit();
-      await conn.rollback();
+
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({

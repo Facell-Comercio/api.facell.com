@@ -11,6 +11,7 @@ const { getAllTransacoesBancarias } = require("./getAllTransacoesBancarias");
 module.exports = function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
+
     let conn;
     try {
       conn = await db.getConnection();

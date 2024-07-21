@@ -196,7 +196,7 @@ module.exports = function getAllFaturasBordero(req) {
             6 as id_forma_pagamento,
             bi.remessa,
             cbi.id as conciliado,
-            cbi.id as id_conciliacao
+            cbi.id_conciliacao as id_conciliacao
           FROM fin_cartoes_corporativos_faturas ccf
           LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id

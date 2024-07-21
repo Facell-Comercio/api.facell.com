@@ -333,6 +333,20 @@ function deleteFile(fileUrl) {
             if (!fileId) {
                 throw new Error('ID do arquivo não recebido!')
             }
+            // ^ Verificar se algum Boleto ou Nota Fiscal no banco utiliza esse id
+            const [arquivosBanco] = await conn.execute(`SELECT id 
+                    FROM fin_cp_titulos 
+                    WHERE 
+                        url_nota_fiscal LIKE CONCAT('%',?,'%') OR
+                        url_boleto LIKE CONCAT('%',?,'%')
+                        `, 
+                    [
+                        fileId, fileId
+                    ]);
+            if(arquivosBanco && arquivosBanco.length > 0){
+                resolve(true);
+                return;
+            }
             await gdrive.files.delete({
                 fileId: fileId,
             });

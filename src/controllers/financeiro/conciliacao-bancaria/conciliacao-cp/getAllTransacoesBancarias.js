@@ -89,7 +89,7 @@ function getAllTransacoesBancarias(req) {
 
       var query = `
         SELECT DISTINCT
-            cbi.id as id_conciliacao, eb.id, eb.id_transacao, eb.documento as doc,
+            cbi.id_conciliacao as id_conciliacao, eb.id, eb.id_transacao, eb.documento as doc,
             ABS(eb.valor) as valor, eb.data_transacao, eb.descricao, cb.descricao as conta_bancaria
         FROM fin_extratos_bancarios eb
         LEFT JOIN fin_conciliacao_bancaria_itens cbi 
