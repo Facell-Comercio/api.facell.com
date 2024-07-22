@@ -166,7 +166,7 @@ module.exports = function getAll(req) {
               SELECT DISTINCT 
                   t.id, s.status, t.created_at, t.num_doc, t.descricao, t.valor,
                   f.nome as filial, f.id_matriz,
-                  forn.nome as fornecedor, u.nome as solicitante,
+                  forn.nome as fornecedor, forn.cnpj as cnpj_fornecedor, u.nome as solicitante,
                   fp.forma_pagamento
               FROM fin_cp_titulos t 
               LEFT JOIN fin_cp_status s ON s.id = t.id_status 
