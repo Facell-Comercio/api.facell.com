@@ -35,7 +35,7 @@ function createHeaderArquivo(params) {
     .join("");
 }
 
-function createHeaderLote(params, versao = '040') {
+function createHeaderLote(params, versao = "040") {
   const headerModel = ITAU.loteHeader[versao];
   return headerModel
     .map((h) => {
@@ -74,9 +74,7 @@ function createSegmentoA(params) {
         params[h.field] === undefined &&
         h.default === undefined
       ) {
-        throw new Error(
-          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento A!`
-        );
+        throw new Error(`O campo ${h.field} é obrigatório no segmento A!`);
       }
 
       if (params[h.field]) {
@@ -99,9 +97,29 @@ function createSegmentoB(params) {
         params[h.field] === undefined &&
         h.default === undefined
       ) {
-        throw new Error(
-          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento B!`
-        );
+        throw new Error(`O campo ${h.field} é obrigatório no segmento B!`);
+      }
+
+      if (params[h.field]) {
+        // console.log("B ", params[h.field], h.type, h.length, h.format);
+        return normalizeValue(params[h.field], h.type, h.length, h.format);
+      }
+      return normalizeValue(h.default, h.type, h.length, h.format);
+    })
+    .join("");
+}
+
+function createSegmentoO(params) {
+  const segmentoModel = ITAU.detalhe.O;
+
+  return segmentoModel
+    .map((h) => {
+      if (
+        h.required &&
+        params[h.field] === undefined &&
+        h.default === undefined
+      ) {
+        throw new Error(`O campo ${h.field} é obrigatório no segmento O!`);
       }
 
       if (params[h.field]) {
@@ -122,9 +140,7 @@ function createSegmentoJ(params) {
         params[h.field] === undefined &&
         h.default === undefined
       ) {
-        throw new Error(
-          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento J!`
-        );
+        throw new Error(`O campo ${h.field} é obrigatório no segmento J!`);
       }
 
       if (params[h.field]) {
@@ -145,9 +161,7 @@ function createSegmentoJ52(params) {
         params[h.field] === undefined &&
         h.default === undefined
       ) {
-        throw new Error(
-          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento J-52!`
-        );
+        throw new Error(`O campo ${h.field} é obrigatório no segmento J-52!`);
       }
 
       if (params[h.field]) {
@@ -169,7 +183,7 @@ function createSegmentoJ52Pix(params) {
         h.default === undefined
       ) {
         throw new Error(
-          `O campo ${h.field} do vencimento ${params.vencimento} é obrigatório no segmento J-52-PIX!`
+          `O campo ${h.field} é obrigatório no segmento J-52-PIX!`
         );
       }
 
@@ -227,6 +241,7 @@ module.exports = {
   createHeaderLote,
   createSegmentoA,
   createSegmentoB,
+  createSegmentoO,
   createSegmentoJ,
   createSegmentoJ52,
   createSegmentoJ52Pix,

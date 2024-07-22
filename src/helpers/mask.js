@@ -118,7 +118,7 @@ function normalizeCodigoBarras(text) {
     .trim()
     .replace(/[\s.-]/g, "");
   if (textoLimpo.length === 44) {
-    return text
+    return text;
   }
   if (textoLimpo.length !== 47) {
     return null;
@@ -130,6 +130,64 @@ function normalizeCodigoBarras(text) {
   const parte2 = textoLimpo.substring(32, 47);
 
   return `${parte1}${parte2}${parte3}${parte4}${parte5}`;
+}
+
+/**
+ * Função que transforma linha digitável em Código de Barras
+ * */
+function normalizeCodigoBarras48(linhaDigitavel) {
+  if (!linhaDigitavel) return null;
+
+  if (linhaDigitavel.length == 44) return linhaDigitavel;
+  // Remove pontos e espaços
+  let linhaDigitavelSemPontuacao = linhaDigitavel
+    .replace(/./g, "")
+    .replace(/ /g, "");
+
+  // Extrai campos da linha digitável
+  let campo1 =
+    linhaDigitavelSemPontuacao.substring(0, 9) +
+    linhaDigitavelSemPontuacao.substring(10, 11);
+  let campo2 = linhaDigitavelSemPontuacao.substring(12, 22);
+  let campo3 = linhaDigitavelSemPontuacao.substring(24, 34);
+  let campo4 = linhaDigitavelSemPontuacao.substring(36, 37);
+  let campo5 = linhaDigitavelSemPontuacao.substring(37);
+
+  // Combina campos para formar o código de barras
+  let codigoBarras =
+    campo1.substring(0, 4) +
+    campo4 +
+    campo1.substring(4) +
+    campo2 +
+    campo3 +
+    campo5;
+  return codigoBarras;
+}
+
+function normalizeCodigoBarras48(linhaDigitavel) {
+  // Remove pontos e espaços
+  let linhaDigitavelSemPontuacao = linhaDigitavel
+    .replace(/./g, "")
+    .replace(/ /g, "");
+
+  // Extrai campos da linha digitável
+  let campo1 =
+    linhaDigitavelSemPontuacao.substring(0, 9) +
+    linhaDigitavelSemPontuacao.substring(10, 11);
+  let campo2 = linhaDigitavelSemPontuacao.substring(12, 22);
+  let campo3 = linhaDigitavelSemPontuacao.substring(24, 34);
+  let campo4 = linhaDigitavelSemPontuacao.substring(36, 37);
+  let campo5 = linhaDigitavelSemPontuacao.substring(37);
+
+  // Combina campos para formar o código de barras
+  let codigoBarras =
+    campo1.substring(0, 4) +
+    campo4 +
+    campo1.substring(4) +
+    campo2 +
+    campo3 +
+    campo5;
+  return codigoBarras;
 }
 
 /**
@@ -164,6 +222,7 @@ module.exports = {
   normalizeFirstAndLastName,
   removeSpecialCharactersAndAccents,
   normalizeCodigoBarras,
+  normalizeCodigoBarras48,
   normalizeURLChaveEnderecamentoPIX,
   excelDateToJSDate,
 };
