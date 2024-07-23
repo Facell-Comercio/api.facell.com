@@ -1,3 +1,5 @@
+const { normalizeDate } = require("../../../../helpers/mask");
+
 function removeSpecialCharactersAndAccents(text) {
   return text
     .normalize("NFD") // Normaliza o texto para decompor caracteres acentuados
@@ -23,7 +25,7 @@ function normalizeCodigoBarras(text) {
 }
 
 function checkLinhaDigitavel(textLinha) {
-  if(!textLinha){
+  if (!textLinha) {
     return false;
   }
   const text = textLinha.trim();
@@ -51,7 +53,9 @@ function normalizeValue(value, type, maxLength, format) {
   } else if (type === "numeric") {
     return String(value || 0).padStart(maxLength, "0");
   } else if (type === "date") {
-    return String(value).replaceAll("/", "").padStart(maxLength, "0");
+    return String(normalizeDate(value, "ddMMyyyy"))
+      .replaceAll("/", "")
+      .padStart(maxLength, "0");
   } else if (format === "any") {
     return String(value || "")
       .padEnd(maxLength, " ")
