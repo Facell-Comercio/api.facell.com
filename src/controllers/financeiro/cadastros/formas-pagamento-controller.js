@@ -11,7 +11,7 @@ function getAll(req) {
     }
     const conn = await db.getConnection();
     try {
-      var query = `SELECT ffp.id, ffp.forma_pagamento FROM fin_formas_pagamento ffp`;
+      var query = `SELECT ffp.id, ffp.forma_pagamento FROM fin_formas_pagamento ffp ORDER BY ffp.forma_pagamento`;
       // console.log(query)
       // console.log(params)
       const [rows] = await conn.execute(query);
