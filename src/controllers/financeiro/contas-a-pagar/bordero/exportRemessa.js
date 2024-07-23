@@ -15,6 +15,7 @@ const {
   createSegmentoJ,
   createSegmentoJ52Pix,
   createSegmentoJ52,
+  createSegmentoO,
 } = require("../../remessa/to-string/itau");
 const { normalizeValue } = require("../../remessa/to-string/masks");
 const { logger } = require("../../../../../logger");
@@ -85,6 +86,7 @@ module.exports = function exportRemessa(req, res) {
         rowsPagamentoBoletoItau,
         rowsPagamentoBoletoOutroBancoParaItau,
         rowsPagamentoPIXQRCode,
+        rowsPagamentoBoletoImpostos,
       ] = await Promise.all([
         //* Pagamento Corrente Itaú
         conn
@@ -306,6 +308,29 @@ module.exports = function exportRemessa(req, res) {
             [id_bordero]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento Boleto de Impostos/Concessionárias
+        conn
+          .execute(
+            `
+        SELECT
+          tv.id as id_vencimento
+        FROM fin_cp_titulos_vencimentos tv
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+        WHERE ${whereVenvimentos}
+        AND t.id_forma_pagamento = 10
+        AND tv.data_pagamento IS NULL
+        AND (tv.status = "erro" OR tv.status = "pendente")
+  `,
+            [id_bordero]
+          )
+          .then(([rows]) => rows),
       ]);
 
       let formasPagamento;
@@ -329,6 +354,7 @@ module.exports = function exportRemessa(req, res) {
             PagamentoBoletoItau: rowsPagamentoBoletoItau,
             PagamentoBoletoOutroBancoParaItau:
               rowsPagamentoBoletoOutroBancoParaItau,
+            PagamentoBoletoImpostos: rowsPagamentoBoletoImpostos,
           })
         );
       }
@@ -382,6 +408,9 @@ module.exports = function exportRemessa(req, res) {
             break;
           case "PagamentoPIXQRCode":
             forma_pagamento = 47;
+            break;
+          case "  ":
+            forma_pagamento = 13; //! Validar se essa realmente é a forma de pagamento correta
             break;
         }
 
@@ -475,7 +504,8 @@ module.exports = function exportRemessa(req, res) {
           if (
             key !== "PagamentoBoletoItau" &&
             key !== "PagamentoBoletoOutroBancoParaItau" &&
-            key !== "PagamentoPIXQRCode"
+            key !== "PagamentoPIXQRCode" &&
+            key !== "PagamentoBoletoImpostos"
           ) {
             const segmentoA = createSegmentoA({
               ...vencimento,
@@ -492,6 +522,18 @@ module.exports = function exportRemessa(req, res) {
                   : vencimento.cod_banco_favorecido,
             });
             arquivo.push(segmentoA);
+            qtde_registros++;
+            qtde_registros_arquivo++;
+          } else if (key === "PagamentoBoletoImpostos") {
+            const segmentoO = createSegmentoO({
+              ...vencimento,
+              lote,
+              num_registro_lote: registroLote,
+              vencimento: vencimento.id_vencimento,
+              cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
+              nome_concessionaria: vencimento.favorecido_nome,
+            });
+            arquivo.push(segmentoO);
             qtde_registros++;
             qtde_registros_arquivo++;
           } else if (key === "PagamentoPIXQRCode") {
@@ -605,6 +647,8 @@ module.exports = function exportRemessa(req, res) {
             `,
             [true, vencimento.id_vencimento]
           );
+          await conn.rollback();
+
           // console.log(true, vencimento.id_vencimento);
         }
         //sdfjaslfa

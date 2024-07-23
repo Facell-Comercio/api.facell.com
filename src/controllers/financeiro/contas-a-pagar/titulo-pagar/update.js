@@ -5,6 +5,7 @@ const {
   normalizeCurrency,
   normalizeCodigoBarras,
   normalizeDate,
+  normalizeCodigoBarras48,
 } = require("../../../../helpers/mask");
 
 const { logger } = require("../../../../../logger");
@@ -410,22 +411,28 @@ module.exports = function update(req) {
           }
 
           // * Persistir o vencimento
-          // Código de Barras
-          const cod_barras = !!vencimento.cod_barras
-            ? normalizeCodigoBarras(vencimento.cod_barras)
-            : null;
+
+          //* Código de Barras
+          let cod_barras = vencimento.cod_barras;
+          if (id_forma_pagamento == "10") {
+            cod_barras = normalizeCodigoBarras48(vencimento.cod_barras);
+          } else {
+            cod_barras = normalizeCodigoBarras(vencimento.cod_barras);
+          }
+
           if (
-            id_forma_pagamento == "1" &&
-            !!vencimento.cod_barras &&
+            !!cod_barras &&
+            id_forma_pagamento != "10" &&
             !checkCodigoBarras(cod_barras)
           ) {
             throw new Error(`Linha Digitável inválida: ${cod_barras}`);
           }
-          // PIX QR Code
+
+          // //* PIX QR Code
           const qr_code = vencimento.qr_code || null;
-          if (id_forma_pagamento == "8" && !qr_code) {
-            throw new Error("Preencha o PIX Copia e Cola!");
-          }
+          // if (id_forma_pagamento == "8" && !qr_code) {
+          //   throw new Error("Preencha o PIX Copia e Cola!");
+          // }
 
           //* Início - Lógica de Cartões /////////////////
           let id_fatura = null;
