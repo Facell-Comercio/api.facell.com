@@ -36,8 +36,12 @@ module.exports = function getOne(req) {
       });
 
       const itens_bordero = [
-        ...vencimentos.map((v) => ({ ...v, tipo: "vencimento" })),
-        ...faturas.map((f) => ({ ...f, tipo: "fatura" })),
+        ...vencimentos.map((v) => ({
+          ...v,
+          tipo: "vencimento",
+          id_item: v.id_vencimento,
+        })),
+        ...faturas.map((f) => ({ ...f, tipo: "fatura", id_item: f.id })),
       ].map((item_bordero) => ({
         ...item_bordero,
         checked: false,

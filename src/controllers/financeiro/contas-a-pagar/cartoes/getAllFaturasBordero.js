@@ -177,6 +177,7 @@ module.exports = function getAllFaturasBordero(req) {
 
       const [rows] = await conn.execute(
         `SELECT DISTINCT 
+            ccf.id,
             ccf.id as id_titulo, 
             ccf.id as id_vencimento, 
             ccf.status, 
