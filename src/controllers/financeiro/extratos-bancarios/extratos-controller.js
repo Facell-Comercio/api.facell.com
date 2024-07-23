@@ -281,7 +281,7 @@ function importarExtrato(req) {
       for (const transaction of ofx_transactions) {
         const data_transaction = formatarDataTransacao(transaction.DTPOSTED);
         const id_transacao = transaction.FITID;
-        const valor_transacao = parseFloat(transaction.TRNAMT).toFixed(2);
+        const valor_transacao = parseFloat(transaction.TRNAMT.replace(',', '.')).toFixed(2);
         const documento_transacao = transaction.CHECKNUM;
         const descricao_transacao = transaction.MEMO;
         const tipo_transacao = transaction.TRNTYPE;
@@ -291,7 +291,7 @@ function importarExtrato(req) {
         }
 
         await conn.execute(
-          `INSERT IGNORE INTO fin_extratos_bancarios (
+          `INSERT INTO fin_extratos_bancarios (
           id_conta_bancaria, 
           id_transacao,
           id_user,
@@ -300,7 +300,10 @@ function importarExtrato(req) {
           documento,
           descricao,
           tipo_transacao
-        ) VALUES (?,?,?,?,?,?,?,?)`,
+        ) VALUES (?,?,?,?,?,?,?,?) 
+          ON DUPLICATE KEY UPDATE
+          valor = VALUES(valor)
+        `,
           [
             id_conta_bancaria,
             id_transacao,
