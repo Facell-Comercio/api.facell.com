@@ -5,7 +5,7 @@ function getAllTransacoesBancarias(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const { pagination, filters, emConciliacao, orderBy } = req.query || {};
+    const { pagination, filters, emConciliacao, naoConciliaveis, orderBy } = req.query || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -19,7 +19,7 @@ function getAllTransacoesBancarias(req) {
     let order = orderBy || "ORDER BY eb.data_transacao DESC";
     // Somente o Financeiro/Master podem ver todos
 
-    const { id_transacao, range_data, id_conta_bancaria, id_conciliacao } =
+    const {  id_transacao, range_data, id_conta_bancaria, id_conciliacao } =
       filters || {};
 
     const params = [];
@@ -35,6 +35,19 @@ function getAllTransacoesBancarias(req) {
     if (id_conciliacao) {
       where += ` AND cbi.id_conciliacao = ? `;
       params.push(id_conciliacao);
+    }
+
+    // Caso seja informado, vamos avaliar as transações não conciliaveis:
+    if(naoConciliaveis !== undefined){
+      if(!naoConciliaveis){
+        // Vamos retirar as não conciliaveis
+        const [transacoesNaoConciliaveis] = await conn.execute(`SELECT descricao, tipo_transacao FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`, [id_conta_bancaria])
+        for(const transacaoNaoConciliavel of transacoesNaoConciliaveis){
+          where += ` AND NOT (eb.descricao = ? AND eb.tipo_transacao = ?)`
+          params.push(transacaoNaoConciliavel.descricao)
+          params.push(transacaoNaoConciliavel.tipo_transacao)
+        }
+      }
     }
 
     // Determina o retorno com base se está ou não em conciliação
