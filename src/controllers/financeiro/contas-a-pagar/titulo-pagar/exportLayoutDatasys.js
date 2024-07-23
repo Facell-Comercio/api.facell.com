@@ -129,7 +129,7 @@ module.exports = function exportLayoutDatasys(req, res) {
       const worksheet = XLSX.utils.json_to_sheet(datasys);
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      const filename = `EXPORTAÇÃO DATASYS ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
+      const filename = `EXPORT DATASYS ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
 
       res.set("Content-Type", 'text/plain');
       res.set("Content-Disposition", `attachment; filename=${filename}`);
