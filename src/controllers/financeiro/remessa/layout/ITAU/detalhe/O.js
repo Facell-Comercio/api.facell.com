@@ -111,7 +111,7 @@ module.exports = [
   },
 
   {
-    field: "valor_pagamento",
+    field: "valor_pagamento", // Esse é o valor pago
     startPos: 145,
     endPos: 159,
     length: 15,
@@ -134,7 +134,7 @@ module.exports = [
     length: 9,
     required: false,
     type: "numeric",
-    default: new Array(9).fill(" ").join(""), //! Verificar se esse é necessário
+    default: new Array(9).fill(0).join(""),
   },
   {
     field: "brancos",

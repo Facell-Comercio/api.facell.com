@@ -139,54 +139,27 @@ function normalizeCodigoBarras48(linhaDigitavel) {
   if (!linhaDigitavel) return null;
 
   if (linhaDigitavel.length == 44) return linhaDigitavel;
+
   // Remove pontos e espaços
-  let linhaDigitavelSemPontuacao = linhaDigitavel
-    .replace(/./g, "")
-    .replace(/ /g, "");
+  let linhaDigitavelSemPontuacao = String(linhaDigitavel).replace(/[ .]/g, "");
+
+  if (linhaDigitavelSemPontuacao.length !== 48) {
+    throw new Error("A linha digitável deve ter 48 caracteres.");
+  }
 
   // Extrai campos da linha digitável
-  let campo1 =
-    linhaDigitavelSemPontuacao.substring(0, 9) +
-    linhaDigitavelSemPontuacao.substring(10, 11);
-  let campo2 = linhaDigitavelSemPontuacao.substring(12, 22);
-  let campo3 = linhaDigitavelSemPontuacao.substring(24, 34);
-  let campo4 = linhaDigitavelSemPontuacao.substring(36, 37);
-  let campo5 = linhaDigitavelSemPontuacao.substring(37);
+  let campo1 = linhaDigitavelSemPontuacao.substring(0, 11);
+  let campo2 = linhaDigitavelSemPontuacao.substring(12, 23);
+  let campo3 = linhaDigitavelSemPontuacao.substring(24, 35);
+  let campo4 = linhaDigitavelSemPontuacao.substring(36, 47);
 
   // Combina campos para formar o código de barras
   let codigoBarras =
-    campo1.substring(0, 4) +
-    campo4 +
-    campo1.substring(4) +
-    campo2 +
-    campo3 +
-    campo5;
-  return codigoBarras;
-}
+    campo1.substring(0, 11) +
+    campo2.substring(0, 11) +
+    campo3.substring(0, 11) +
+    campo4.substring(0, 11);
 
-function normalizeCodigoBarras48(linhaDigitavel) {
-  // Remove pontos e espaços
-  let linhaDigitavelSemPontuacao = linhaDigitavel
-    .replace(/./g, "")
-    .replace(/ /g, "");
-
-  // Extrai campos da linha digitável
-  let campo1 =
-    linhaDigitavelSemPontuacao.substring(0, 9) +
-    linhaDigitavelSemPontuacao.substring(10, 11);
-  let campo2 = linhaDigitavelSemPontuacao.substring(12, 22);
-  let campo3 = linhaDigitavelSemPontuacao.substring(24, 34);
-  let campo4 = linhaDigitavelSemPontuacao.substring(36, 37);
-  let campo5 = linhaDigitavelSemPontuacao.substring(37);
-
-  // Combina campos para formar o código de barras
-  let codigoBarras =
-    campo1.substring(0, 4) +
-    campo4 +
-    campo1.substring(4) +
-    campo2 +
-    campo3 +
-    campo5;
   return codigoBarras;
 }
 
