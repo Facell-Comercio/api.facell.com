@@ -647,7 +647,7 @@ module.exports = function exportRemessa(req, res) {
             `,
             [true, vencimento.id_vencimento]
           );
-          await conn.rollback();
+          // await conn.rollback();
 
           // console.log(true, vencimento.id_vencimento);
         }
