@@ -47,6 +47,7 @@ function getAll(req) {
       where += ` AND t.id_status = ? `;
       params.push(id_status);
     }
+
     if (descricao) {
       where += ` AND t.descricao LIKE CONCAT('%',?,'%') `;
       params.push(descricao);
@@ -65,8 +66,9 @@ function getAll(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -118,7 +120,7 @@ function getAll(req) {
       // console.log(query);
       // console.log(params);
       const [titulos] = await conn.execute(query, params);
-      // console.log(query, params, titulos);
+      // console.log(query, params);
       const objResponse = {
         rows: titulos,
         pageCount: Math.ceil(totalTitulos / pageSize),
@@ -177,6 +179,7 @@ function getAllVencimentosEFaturas(req) {
       range_data,
       descricao,
       id_matriz,
+      forma_pagamento_list,
       id_filial,
       id_conta_bancaria,
       id_conciliacao,
@@ -235,12 +238,17 @@ function getAllVencimentosEFaturas(req) {
       params.push(descricao);
       params.push(descricao);
     }
-    if (id_matriz && id_matriz !== 'all') {
+    if (id_matriz && id_matriz !== "all") {
       where += ` AND (f.id_matriz = ? OR fcc.id_matriz = ?) `;
       params.push(id_matriz);
       params.push(id_matriz);
     }
-    if (id_filial && id_filial !== 'all') {
+    if (forma_pagamento_list && forma_pagamento_list.length > 0) {
+      where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join(
+        "','"
+      )}')`;
+    }
+    if (id_filial && id_filial !== "all") {
       where += ` AND (f.id = ? OR f2.id = ?)`;
       params.push(id_filial);
       params.push(id_filial);
@@ -290,16 +298,19 @@ function getAllVencimentosEFaturas(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split('T')[0]
-          }' AND '${data_ate.split('T')[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
-          where += ` AND (tv.${tipo_data} >= '${data_de.split('T')[0]
-            }' OR ccf.${tipo_data} >= '${data_de.split('T')[0]}') `;
+          where += ` AND (tv.${tipo_data} >= '${
+            data_de.split("T")[0]
+          }' OR ccf.${tipo_data} >= '${data_de.split("T")[0]}') `;
         }
         if (data_ate) {
-          where += ` AND (tv.${tipo_data} <= '${data_ate.split('T')[0]
-            }' OR ccf.${tipo_data} <= '${data_ate.split('T')[0]}') `;
+          where += ` AND (tv.${tipo_data} <= '${
+            data_ate.split("T")[0]
+          }' OR ccf.${tipo_data} <= '${data_ate.split("T")[0]}') `;
         }
       }
     }
@@ -333,7 +344,7 @@ function getAllVencimentosEFaturas(req) {
 
               ${where}
         ) as subconsulta
-        `
+        `;
       const [rowsVencimentosFaturas] = await conn.execute(queryTotal, params);
 
       const qtdeVencimentosFaturas =
@@ -590,8 +601,9 @@ function getAllVencimentosBordero(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split('T')[0]
-          }' AND '${data_ate.split('T')[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${
+          data_de.split("T")[0]
+        }' AND '${data_ate.split("T")[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -760,8 +772,9 @@ function getVencimentosAPagar(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -895,8 +908,9 @@ function getVencimentosEmBordero(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -1035,8 +1049,9 @@ function getVencimentosPagos(req) {
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${data_de.split('T')[0]}' AND '${data_ate.split('T')[0]
-          }'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
           where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -1131,20 +1146,20 @@ function changeFieldVencimentosFaturas(req) {
     await conn.beginTransaction();
     try {
       if (!data_prevista) {
-        throw new Error('Preencha a previsão de pagamento!');
+        throw new Error("Preencha a previsão de pagamento!");
       }
       if (!itens || !itens?.length) {
-        throw new Error('Nenhum item selecionado!');
+        throw new Error("Nenhum item selecionado!");
       }
 
       for (const item of itens) {
         if (!item) {
-          throw new Error(`Item não itendificado ${JSON.stringify(item)}`)
+          throw new Error(`Item não itendificado ${JSON.stringify(item)}`);
         }
         const id_item = item.id_item;
 
         // * ALTERAÇÃO DO VENCIMENTO:
-        if (item.tipo === 'vencimento') {
+        if (item.tipo === "vencimento") {
           // ^ Vamos verificar se já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
           const [rowBordero] = await conn.execute(
             `SELECT id FROM fin_cp_bordero_itens WHERE id_vencimento = ?`,
@@ -1152,7 +1167,9 @@ function changeFieldVencimentosFaturas(req) {
           );
           const bordero = rowBordero && rowBordero[0];
           if (bordero) {
-            throw new Error(`O(a) ${item.tipo} já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`)
+            throw new Error(
+              `O(a) ${item.tipo} já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`
+            );
           }
 
           const [rowTitulo] = await conn.execute(
@@ -1165,11 +1182,14 @@ function changeFieldVencimentosFaturas(req) {
           );
           const titulo = rowTitulo && rowTitulo[0];
           if (!titulo) {
-            throw new Error(`Titulo do vencimento ${item.id_item} não encontrado...`)
+            throw new Error(
+              `Titulo do vencimento ${item.id_item} não encontrado...`
+            );
           }
           if (titulo.id_status >= 4) {
             throw new Error(
-              `Alteração rejeitada pois o título ${titulo.id} já consta como ${titulo.id_status === 4 ? 'pago parcial' : 'pago'
+              `Alteração rejeitada pois o título ${titulo.id} já consta como ${
+                titulo.id_status === 4 ? "pago parcial" : "pago"
               }!`
             );
           }
@@ -1183,8 +1203,7 @@ function changeFieldVencimentosFaturas(req) {
         }
 
         // * ALTERAÇÃO DA FATURA:
-        if (item.tipo === 'fatura') {
-
+        if (item.tipo === "fatura") {
           // ^ Vamos verificar se já está em um bordero, se estiver, vamos impedir a mudança na data de pagamento:
           const [rowBordero] = await conn.execute(
             `SELECT id FROM fin_cp_bordero_itens WHERE id_fatura = ?`,
@@ -1192,16 +1211,22 @@ function changeFieldVencimentosFaturas(req) {
           );
           const bordero = rowBordero && rowBordero[0];
           if (bordero) {
-            throw new Error(`A Fatura já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`)
+            throw new Error(
+              `A Fatura já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`
+            );
           }
-          
+
           // Atualizar a fatura:
-          await conn.execute(`UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ? WHERE id = ?`, 
-            [new Date(data_prevista), id_item])
+          await conn.execute(
+            `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ? WHERE id = ?`,
+            [new Date(data_prevista), id_item]
+          );
 
           // Atualizar os vencimentos da fatura:
-          await conn.execute(`UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id_fatura = ?`, 
-            [new Date(data_prevista), id_item])
+          await conn.execute(
+            `UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id_fatura = ?`,
+            [new Date(data_prevista), id_item]
+          );
         }
       }
 
