@@ -196,7 +196,6 @@ function downloadMovimentoContabil(req, res) {
         TXT: vencimento.url_txt,
       }));
 
-      // * Cria a matriz bidimensional com o cabeçalho como primeira linha
       if (itemsExcel.length == 0) {
         throw new Error('Movimento Contábil Vazio');
       }
@@ -206,7 +205,7 @@ function downloadMovimentoContabil(req, res) {
       const worksheet = XLSX.utils.json_to_sheet(itemsExcel);
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      conta_bancaria;
+      
       const filename = `MOVIMENTO CONTABIL - ${
         grupo_economico ? grupo_economico + ' - ' : ''
       }${conta_bancaria ? conta_bancaria : ''}.xlsx`;

@@ -449,7 +449,9 @@ module.exports = {
   updateFileTitulo: require('./titulo-pagar/updateFileTitulo'),
   changeStatusTitulo: require('./titulo-pagar/changeStatusTitulo'),
   changeFieldTitulos: require('./titulo-pagar/changeFieldTitulos'),
+
   exportLayoutDatasys: require('./titulo-pagar/exportLayoutDatasys'),
+  exportLayoutPrevisaoPagamento: require('./titulo-pagar/exportLayoutPrevisaoPagamento'),
   importLoteSolicitacoes: require('./titulo-pagar/importLote'),
 
   getAllRecorrencias: require('./recorrencia/getAll'),
