@@ -23,15 +23,15 @@ module.exports = function insertOne(req) {
         throw new Error("É necessário informar uma conta bancária!");
       }
       const itensConciliacaoSoma = itensConciliacao.reduce(
-        (acc, item) => acc + +item.valor_pago,
+        (acc, item) => acc + parseFloat(item.valor_pago),
         0
       );
       const transacoesSoma = transacoes.reduce(
-        (acc, item) => acc + +item.valor,
+        (acc, item) => acc + parseFloat(item.valor),
         0
       );
       // ^ Verificando os valores de títulos e transações batem
-      if (itensConciliacaoSoma !== transacoesSoma) {
+      if (itensConciliacaoSoma.toFixed(2) !== transacoesSoma.toFixed(2)) {
         throw new Error("A soma dos vencimentos e das transações não batem!");
       }
       await conn.beginTransaction();
