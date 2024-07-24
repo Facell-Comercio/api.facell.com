@@ -452,6 +452,7 @@ module.exports = function exportRemessa(req, res) {
               forn.agencia,
               forn.dv_agencia,
               forn.conta,
+              forn.dv_conta,
               forn.favorecido as favorecido_nome,
               DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
               DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_vencimento,
@@ -491,7 +492,12 @@ module.exports = function exportRemessa(req, res) {
               new Array(6).fill(0).join(""),
               normalizeValue(vencimento.conta, "numeric", 6),
               " ",
-              normalizeValue(vencimento.dv_agencia, "numeric", 1)
+              normalizeValue(
+                parseInt(vencimento.dv_conta) ||
+                  parseInt(vencimento.dv_agencia),
+                "numeric",
+                1
+              )
             );
           } else {
             agencia.push(
@@ -499,7 +505,12 @@ module.exports = function exportRemessa(req, res) {
               " ",
               normalizeValue(vencimento.conta, "numeric", 12),
               " ",
-              normalizeValue(vencimento.dv_agencia, "alphanumeric", 1)
+              normalizeValue(
+                parseInt(vencimento.dv_conta) ||
+                  parseInt(vencimento.dv_agencia),
+                "alphanumeric",
+                1
+              )
             );
           }
           //* O segmento A só é gerado se o tipo de pagamento não é boleto ou pix qr code
