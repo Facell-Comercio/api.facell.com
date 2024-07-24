@@ -271,9 +271,12 @@ const getFile = async ({ fileId }) => {
 // * OK
 const downloadFile = async ({ fileId }) => {
     try {
+        if(!fileId){
+            throw new Error('fileId não informado!')
+        }
+        const newFileId = extractGoogleDriveId(fileId)
         const fileMetadata = await gdrive.files.get({
-            fileId: fileId,
-            fields: 'name'
+            fileId: newFileId,
         });
 
         const fileName = fileMetadata.data.name;
@@ -283,7 +286,7 @@ const downloadFile = async ({ fileId }) => {
         return new Promise((resolve, reject) => {
             gdrive.files.get(
                 {
-                    fileId,
+                    fileId: newFileId,
                     alt: 'media',
                 },
                 { responseType: 'stream' },
