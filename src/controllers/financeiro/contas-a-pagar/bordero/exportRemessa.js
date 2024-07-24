@@ -593,7 +593,7 @@ module.exports = function exportRemessa(req, res) {
 
           somatoria_valores += parseFloat(vencimento.valor_pagamento);
 
-          registroLote++;
+          // registroLote++;
 
           let tipo_chave = "00";
           let chave_pix = vencimento.chave_pix;
