@@ -3,18 +3,8 @@ const router = require("express").Router();
 const authRouter = require("./auth-router");
 const uploadRouter = require("./upload-router");
 const storageRouter = require("./storage-router");
+const financeiroRouter = require("./financeiro/financeiro-router");
 const comercialRouter = require("./comercial/comercial-router");
-const financeiroRouter = require("./financeiro/financeiro-router");
-const grupoEconomico = require("./grupo-economico-router");
-const filial = require("./filial-router");
-const user = require("./user-router");
-const logs = require("./logs-router");
-const departamento = require("./departamento-router");
-const permissao = require("./permissao-router");
-const authRouter = require("./auth-router");
-const uploadRouter = require("./upload-router");
-const storageRouter = require("./storage-router");
-const financeiroRouter = require("./financeiro/financeiro-router");
 const grupoEconomico = require("./grupo-economico-router");
 const filial = require("./filial-router");
 const user = require("./user-router");
@@ -31,9 +21,6 @@ const {
   removerRateio,
   subirAnexosParaDrive,
 } = require("../controllers/testes-controller");
-const datasys = require("./datasys");
-const tim = require("./tim");
-const authMiddleware = require("../middlewares/auth-middleware");
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')
