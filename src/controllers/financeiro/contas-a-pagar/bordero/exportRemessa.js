@@ -593,7 +593,7 @@ module.exports = function exportRemessa(req, res) {
 
           somatoria_valores += parseFloat(vencimento.valor_pagamento);
 
-          registroLote++;
+          // registroLote++;
 
           let tipo_chave = "00";
           let chave_pix = vencimento.chave_pix;
@@ -635,6 +635,7 @@ module.exports = function exportRemessa(req, res) {
               chave_pix,
             });
             arquivo.push(segmentoB);
+            qtde_registros++;
             qtde_registros_arquivo++;
           }
 
@@ -651,7 +652,6 @@ module.exports = function exportRemessa(req, res) {
 
           // console.log(true, vencimento.id_vencimento);
         }
-        //sdfjaslfa
         qtde_registros++;
         qtde_registros_arquivo++;
         const trailerLote = createTrailerLote({
