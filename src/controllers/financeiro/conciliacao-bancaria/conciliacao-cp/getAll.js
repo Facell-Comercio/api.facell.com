@@ -117,6 +117,7 @@ module.exports = function getAll(req) {
         query: {
           filters: { ...filters },
           emConciliacao: false,
+          naoConciliaveis: false
         },
       });
 

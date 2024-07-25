@@ -463,4 +463,5 @@ module.exports = {
   getAllCpItemsBordero,
 
   checkDoc: require('./titulo-pagar/checkDoc'),
+  processarXml: require('./titulo-pagar/processarXml')
 };

@@ -3,67 +3,81 @@ const { db } = require("../../../../../mysql");
 
 function getAllTransacoesBancarias(req) {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
-
-    const { pagination, filters, emConciliacao, orderBy } = req.query || {};
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
-
-    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
-    // console.log(pageIndex, pageSize, offset)
-
-    // Filtros
-    let where = ` WHERE 1=1 `;
-    let order = orderBy || "ORDER BY eb.data_transacao DESC";
-    // Somente o Financeiro/Master podem ver todos
-
-    const { id_transacao, range_data, id_conta_bancaria, id_conciliacao } =
-      filters || {};
-
-    const params = [];
-
-    if (id_transacao) {
-      where += ` AND eb.id = ? `;
-      params.push(id_transacao);
-    }
-    if (id_conta_bancaria) {
-      where += ` AND eb.id_conta_bancaria = ? `;
-      params.push(id_conta_bancaria);
-    }
-    if (id_conciliacao) {
-      where += ` AND cbi.id_conciliacao = ? `;
-      params.push(id_conciliacao);
-    }
-
-    // Determina o retorno com base se está ou não em conciliação
-    if (emConciliacao !== undefined) {
-      if (emConciliacao) {
-        where += ` AND cbi.id IS NOT NULL`;
-      } else {
-        where += ` AND cbi.id IS NULL`;
-      }
-    }
-
-    if (range_data) {
-      const { from: data_de, to: data_ate } = range_data;
-      if (data_de && data_ate) {
-        where += ` AND eb.data_transacao BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
-      } else {
-        if (data_de) {
-          where += ` AND eb.data_transacao >= '${data_de.split("T")[0]}' `;
-        }
-        if (data_ate) {
-          where += ` AND eb.data_transacao <= '${data_ate.split("T")[0]}' `;
-        }
-      }
-    }
-
-    const conn = await db.getConnection();
+    let conn
     try {
+      conn = await db.getConnection();
+      const { user } = req;
+
+      const { pagination, filters, emConciliacao, naoConciliaveis, orderBy } = req.query || {};
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
+
+      const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+      // console.log(pageIndex, pageSize, offset)
+
+      // Filtros
+      let where = ` WHERE 1=1 `;
+      let order = orderBy || "ORDER BY eb.data_transacao DESC";
+      // Somente o Financeiro/Master podem ver todos
+
+      const { id_transacao, range_data, id_conta_bancaria, id_conciliacao } =
+        filters || {};
+
+      const params = [];
+
+      if (id_transacao) {
+        where += ` AND eb.id = ? `;
+        params.push(id_transacao);
+      }
+      if (id_conta_bancaria) {
+        where += ` AND eb.id_conta_bancaria = ? `;
+        params.push(id_conta_bancaria);
+      }
+      if (id_conciliacao) {
+        where += ` AND cbi.id_conciliacao = ? `;
+        params.push(id_conciliacao);
+      }
+
+      // Caso seja informado, vamos avaliar as transações não conciliaveis:
+      if (naoConciliaveis !== undefined) {
+        if (!naoConciliaveis) {
+          // Vamos retirar as não conciliaveis
+          const [transacoesNaoConciliaveis] = await conn.execute(`SELECT descricao, tipo_transacao FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`, [id_conta_bancaria])
+          for (const transacaoNaoConciliavel of transacoesNaoConciliaveis) {
+            where += ` AND NOT (eb.descricao = ? AND eb.tipo_transacao = ?)`
+            params.push(transacaoNaoConciliavel.descricao)
+            params.push(transacaoNaoConciliavel.tipo_transacao)
+          }
+        }
+      }
+
+      // Determina o retorno com base se está ou não em conciliação
+      if (emConciliacao !== undefined) {
+        if (emConciliacao) {
+          where += ` AND cbi.id IS NOT NULL`;
+        } else {
+          where += ` AND cbi.id IS NULL`;
+        }
+      }
+
+      if (range_data) {
+        const { from: data_de, to: data_ate } = range_data;
+        if (data_de && data_ate) {
+          where += ` AND eb.data_transacao BETWEEN '${data_de.split("T")[0]
+            }' AND '${data_ate.split("T")[0]}'  `;
+        } else {
+          if (data_de) {
+            where += ` AND eb.data_transacao >= '${data_de.split("T")[0]}' `;
+          }
+          if (data_ate) {
+            where += ` AND eb.data_transacao <= '${data_ate.split("T")[0]}' `;
+          }
+        }
+      }
+
+
       const queryQtdeTotal = `SELECT COUNT(*) AS qtde
         FROM (
             SELECT DISTINCT
@@ -122,7 +136,7 @@ function getAllTransacoesBancarias(req) {
 
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }
