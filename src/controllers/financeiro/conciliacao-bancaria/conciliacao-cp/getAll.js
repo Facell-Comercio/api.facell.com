@@ -108,7 +108,7 @@ module.exports = function getAll(req) {
         })),
         ...faturasConciliar.map((f) => ({
           ...f,
-          valor: v.valor_total,
+          valor: f.valor_total,
           tipo: "fatura",
         })),
       ];
@@ -117,7 +117,7 @@ module.exports = function getAll(req) {
         query: {
           filters: { ...filters },
           emConciliacao: false,
-          naoConciliaveis: false
+          naoConciliaveis: false,
         },
       });
 
