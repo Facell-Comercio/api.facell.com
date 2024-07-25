@@ -15,7 +15,6 @@ module.exports = function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     const params = [];
 
@@ -36,11 +35,7 @@ module.exports = function getAll(req) {
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
 
-      const campo_data =
-        tipo_data == "created_at" ||
-        tipo_data == "updated_at" ||
-        tipo_data == "data_inicio_cobranca" ||
-        `v.${tipo_data}`;
+      const campo_data = `v.${tipo_data}`;
 
       if (data_de && data_ate) {
         where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
@@ -78,10 +73,7 @@ module.exports = function getAll(req) {
         params.push(offset);
       }
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
-      if (limit) {
-        params.push(pageSize);
-        params.push(offset);
-      }
+
       const [rows] = await conn.execute(
         `
               SELECT 
