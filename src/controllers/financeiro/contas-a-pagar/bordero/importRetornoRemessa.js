@@ -221,9 +221,8 @@ module.exports = async function importRetornoRemessa(req) {
         }
       }
 
-      // await conn.commit();
-      await conn.rollback();
-      // resolve({ qtdeImportada })
+      await conn.commit();
+      // await conn.rollback();
       resolve(pagamentos);
     } catch (error) {
       await conn.rollback();
