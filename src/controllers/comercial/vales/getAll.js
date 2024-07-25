@@ -73,20 +73,7 @@ module.exports = function getAll(req) {
         params.push(offset);
       }
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
-      console.log(
-        `
-        SELECT 
-          v.*,
-          f.nome as filial
-        FROM vales v
-        LEFT JOIN filiais f ON f.id = v.id_filial 
-        ${where}
-        
-        ORDER BY v.id
-        ${limit}
-        `,
-        params
-      );
+
       const [rows] = await conn.execute(
         `
               SELECT 

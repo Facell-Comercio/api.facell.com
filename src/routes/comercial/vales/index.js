@@ -4,7 +4,10 @@ const checkUserAuthorization = require("../../../middlewares/authorization-middl
 const {
   getAll,
   getOne,
+  deleteVale,
 } = require("../../../controllers/comercial/comercial-controller");
+
+//! Refazer as validações de autorização
 
 router.get(
   "/",
@@ -25,6 +28,19 @@ router.get(
   async (req, res) => {
     try {
       const result = await getOne(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteVale(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
