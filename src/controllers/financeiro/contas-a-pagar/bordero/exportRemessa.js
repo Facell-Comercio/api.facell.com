@@ -426,7 +426,6 @@ module.exports = function exportRemessa(req, res) {
             empresa_tipo_insc,
             lote,
             forma_pagamento,
-            tipo_pagamento: key !== "PagamentoBoletoImpostos" ? "22" : "20",
           });
           arquivo.push(headerLote);
         } else {
@@ -435,6 +434,7 @@ module.exports = function exportRemessa(req, res) {
             lote,
             forma_pagamento,
             versao_layout: "030",
+            tipo_pagamento: key === "PagamentoBoletoImpostos" ? "22" : "20",
           });
           arquivo.push(headerLote);
         }
