@@ -1,10 +1,29 @@
 const { normalizeDate } = require("../../../../helpers/mask");
 
-function removeSpecialCharactersAndAccents(text) {
+// function removeSpecialCharactersAndAccents(text) {
+//   return text
+//     .normalize("NFD") // Normaliza o texto para decompor caracteres acentuados
+//     .replace(/[\u0300-\u036f]/g, "") // Remove os diacríticos
+//     .replace(/[^a-zA-Z0-9 ]/g, ""); // Remove caracteres especiais
+// }
+
+function removeSpecialCharactersAndAccents(
+  text,
+  allowedSpecialCharacters = ""
+) {
+  // Cria uma expressão regular dinâmica para incluir os caracteres permitidos
+  const allowedCharactersRegex = new RegExp(
+    `[^a-zA-Z0-9 ${allowedSpecialCharacters.replace(
+      /[-/\\^$*+?.()|[\]{}]/g,
+      "\\$&"
+    )}]`,
+    "g"
+  );
+
   return text
     .normalize("NFD") // Normaliza o texto para decompor caracteres acentuados
     .replace(/[\u0300-\u036f]/g, "") // Remove os diacríticos
-    .replace(/[^a-zA-Z0-9 ]/g, ""); // Remove caracteres especiais
+    .replace(allowedCharactersRegex, ""); // Remove caracteres especiais, exceto os permitidos
 }
 
 function normalizeCodigoBarras(text) {
@@ -45,7 +64,7 @@ function checkLinhaDigitavel(textLinha) {
   return digitoVerificador === parseInt(dv);
 }
 
-function normalizeValue(value, type, maxLength, format) {
+function normalizeValue(value, type, maxLength, format, allowedCharacter) {
   if (type === "numeric" && format === "float") {
     return String(value || 0)
       .replace(".", "")
@@ -61,7 +80,10 @@ function normalizeValue(value, type, maxLength, format) {
       .padEnd(maxLength, " ")
       .slice(0, maxLength);
   } else {
-    return removeSpecialCharactersAndAccents(String(value || ""))
+    return removeSpecialCharactersAndAccents(
+      String(value || ""),
+      allowedCharacter || ""
+    )
       .padEnd(maxLength, " ")
       .slice(0, maxLength);
   }

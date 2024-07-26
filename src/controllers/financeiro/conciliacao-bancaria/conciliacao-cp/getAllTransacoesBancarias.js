@@ -3,12 +3,13 @@ const { db } = require("../../../../../mysql");
 
 function getAllTransacoesBancarias(req) {
   return new Promise(async (resolve, reject) => {
-    let conn
+    let conn;
     try {
       conn = await db.getConnection();
       const { user } = req;
 
-      const { pagination, filters, emConciliacao, naoConciliaveis, orderBy } = req.query || {};
+      const { pagination, filters, emConciliacao, naoConciliaveis, orderBy } =
+        req.query || {};
       const { pageIndex, pageSize } = pagination || {
         pageIndex: 0,
         pageSize: 15,
@@ -44,11 +45,14 @@ function getAllTransacoesBancarias(req) {
       if (naoConciliaveis !== undefined) {
         if (!naoConciliaveis) {
           // Vamos retirar as não conciliaveis
-          const [transacoesNaoConciliaveis] = await conn.execute(`SELECT descricao, tipo_transacao FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`, [id_conta_bancaria])
+          const [transacoesNaoConciliaveis] = await conn.execute(
+            `SELECT descricao, tipo_transacao FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`,
+            [id_conta_bancaria]
+          );
           for (const transacaoNaoConciliavel of transacoesNaoConciliaveis) {
-            where += ` AND NOT (eb.descricao = ? AND eb.tipo_transacao = ?)`
-            params.push(transacaoNaoConciliavel.descricao)
-            params.push(transacaoNaoConciliavel.tipo_transacao)
+            where += ` AND NOT (eb.descricao = ? AND eb.tipo_transacao = ?)`;
+            params.push(transacaoNaoConciliavel.descricao);
+            params.push(transacaoNaoConciliavel.tipo_transacao);
           }
         }
       }
@@ -65,8 +69,9 @@ function getAllTransacoesBancarias(req) {
       if (range_data) {
         const { from: data_de, to: data_ate } = range_data;
         if (data_de && data_ate) {
-          where += ` AND eb.data_transacao BETWEEN '${data_de.split("T")[0]
-            }' AND '${data_ate.split("T")[0]}'  `;
+          where += ` AND eb.data_transacao BETWEEN '${
+            data_de.split("T")[0]
+          }' AND '${data_ate.split("T")[0]}'  `;
         } else {
           if (data_de) {
             where += ` AND eb.data_transacao >= '${data_de.split("T")[0]}' `;
@@ -76,7 +81,6 @@ function getAllTransacoesBancarias(req) {
           }
         }
       }
-
 
       const queryQtdeTotal = `SELECT COUNT(*) AS qtde
         FROM (
@@ -89,6 +93,7 @@ function getAllTransacoesBancarias(req) {
             LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
             ${where}
             AND tipo_transacao = 'DEBIT'
+            AND eb.id_duplicidade IS NULL 
         ) as subconsulta
         `;
       const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
@@ -112,6 +117,7 @@ function getAllTransacoesBancarias(req) {
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
         AND tipo_transacao = 'DEBIT'
+        AND eb.id_duplicidade IS NULL 
         ${order}
         ${limit}
         `;
@@ -136,7 +142,7 @@ function getAllTransacoesBancarias(req) {
 
       reject(error);
     } finally {
-      if(conn) conn.release();
+      if (conn) conn.release();
     }
   });
 }
