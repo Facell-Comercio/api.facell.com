@@ -102,9 +102,21 @@ function createSegmentoB(params) {
 
       if (params[h.field]) {
         // console.log("B ", params[h.field], h.type, h.length, h.format);
-        return normalizeValue(params[h.field], h.type, h.length, h.format);
+        return normalizeValue(
+          params[h.field],
+          h.type,
+          h.length,
+          h.format,
+          h.allowedCharacter
+        );
       }
-      return normalizeValue(h.default, h.type, h.length, h.format);
+      return normalizeValue(
+        h.default,
+        h.type,
+        h.length,
+        h.format,
+        h.allowedCharacter
+      );
     })
     .join("");
 }

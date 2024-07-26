@@ -606,8 +606,6 @@ module.exports = function exportRemessa(req, res) {
 
           somatoria_valores += parseFloat(vencimento.valor_pagamento);
 
-          registroLote++;
-
           let tipo_chave = "00";
           let chave_pix = vencimento.chave_pix;
           if (key === "PagamentoPIX") {
@@ -650,6 +648,7 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoB);
             qtde_registros++;
             qtde_registros_arquivo++;
+            registroLote++;
           }
 
           //* Marcando vencimento como já incluso em uma remessa
