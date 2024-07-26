@@ -18,7 +18,7 @@ module.exports = function getOne(req) {
               SELECT 
                 v.*, 
                 f.nome as filial,
-                v.valor as valor_parcela, 
+                v.valor as valor_parcela, v.cpf as cpf_colaborador, 
                 u.nome as criador
               FROM vales v
               LEFT JOIN filiais f ON f.id = v.id_filial

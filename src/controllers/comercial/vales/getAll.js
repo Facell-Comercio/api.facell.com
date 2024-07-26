@@ -83,7 +83,7 @@ module.exports = function getAll(req) {
               LEFT JOIN filiais f ON f.id = v.id_filial 
               ${where}
               
-              ORDER BY v.id
+              ORDER BY v.id DESC
               ${limit}
               `,
         params
