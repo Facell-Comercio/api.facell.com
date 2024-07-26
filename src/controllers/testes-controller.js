@@ -2,9 +2,9 @@ const { db } = require("../../mysql");
 const fs = require('fs').promises;
 const path = require('path');
 const Decimal = require('decimal.js');
-const { uploadFile } = require("./storage-controller");
+const { uploadFile, downloadFile } = require("./storage-controller");
 const XLSX = require('xlsx');
-
+const { lerXML } = require('../helpers/lerXML');
 
 const titulos_sem_rateio = [
     { id_titulo: 125, id_plano_conta: 645, id_centro_custo: 1 },
@@ -565,7 +565,7 @@ function subirAnexosParaDrive() {
 
             const results = []
             let i = 1;
-            for(const row of rows){
+            for (const row of rows) {
                 const result = await subirAnexo({ row, folderName })
                 console.log(`Passamos pelo anexo ${i} de ${rows.length} ${row.filename}`)
                 results.push(result)
@@ -585,10 +585,31 @@ function subirAnexosParaDrive() {
     })
 }
 
+function lerXMLnota(req) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const result = await lerXML(req.file.path)
+            resolve(result)
+        } catch (error) {
+            reject(error)
+            console.log(error);
+        }
+    })
+}
 
+async function teste(){
+    try {
+        const filePath = await downloadFile({fileId: 'https://drive.google.com/file/d/1FMQcWlVdxLa8yFkEug7Olic_7vaotHbI/view?usp=drive_link'})
+        return filePath
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 module.exports = {
     gerarRateio,
     removerRateio,
     subirAnexosParaDrive,
+    lerXMLnota,
+    teste,
 }

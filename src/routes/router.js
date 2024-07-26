@@ -3,14 +3,15 @@ const router = require("express").Router();
 const authRouter = require("./auth-router");
 const uploadRouter = require("./upload-router");
 const storageRouter = require("./storage-router");
-const comercialRouter = require("./comercial/comercial-router");
 const financeiroRouter = require("./financeiro/financeiro-router");
+const comercialRouter = require("./comercial/comercial-router");
 const grupoEconomico = require("./grupo-economico-router");
 const filial = require("./filial-router");
 const user = require("./user-router");
 const logs = require("./logs-router");
 const departamento = require("./departamento-router");
 const permissao = require("./permissao-router");
+const testes = require("./testes-router");
 
 const datasys = require("./datasys");
 const tim = require("./tim");
@@ -40,6 +41,7 @@ router.get("/", (req, res) => {
   res.status(200).json({ msg: "Sucesso!" });
 });
 router.use("/auth", authRouter);
+router.use("/testes", testes);
 
 router.use("/", authMiddleware);
 

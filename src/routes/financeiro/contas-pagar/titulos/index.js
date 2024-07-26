@@ -19,12 +19,13 @@ const {
   updateRecorrencia,
   deleteRecorrencia,
   checkDoc,
+  processarXml,
 } = require('../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller');
 
 router.get('/export-datasys', async (req, res) => {
   try {
-    const result = await exportLayoutDatasys(req);
-    res.status(200).json(result);
+    await exportLayoutDatasys(req, res);
+    // res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -33,6 +34,15 @@ router.get('/export-datasys', async (req, res) => {
 router.get("/export-previsao-pagamento", async (req, res) => {
   try {
     const response = await exportLayoutPrevisaoPagamento(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.post('/processar-xml', async (req, res) => {
+  try {
+    const result = await processarXml(req);
+    res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

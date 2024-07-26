@@ -426,7 +426,6 @@ module.exports = function exportRemessa(req, res) {
             empresa_tipo_insc,
             lote,
             forma_pagamento,
-            tipo_pagamento: key !== "PagamentoBoletoImpostos" ? "22" : "20",
           });
           arquivo.push(headerLote);
         } else {
@@ -435,6 +434,7 @@ module.exports = function exportRemessa(req, res) {
             lote,
             forma_pagamento,
             versao_layout: "030",
+            tipo_pagamento: key === "PagamentoBoletoImpostos" ? "22" : "20",
           });
           arquivo.push(headerLote);
         }
@@ -452,6 +452,7 @@ module.exports = function exportRemessa(req, res) {
               forn.agencia,
               forn.dv_agencia,
               forn.conta,
+              forn.dv_conta,
               forn.favorecido as favorecido_nome,
               DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_pagamento,
               DATE_FORMAT(tv.data_prevista, '%d/%m/%Y') as data_vencimento,
@@ -491,7 +492,12 @@ module.exports = function exportRemessa(req, res) {
               new Array(6).fill(0).join(""),
               normalizeValue(vencimento.conta, "numeric", 6),
               " ",
-              normalizeValue(vencimento.dv_agencia, "numeric", 1)
+              normalizeValue(
+                parseInt(vencimento.dv_conta) ||
+                  parseInt(vencimento.dv_agencia),
+                "numeric",
+                1
+              )
             );
           } else {
             agencia.push(
@@ -499,7 +505,12 @@ module.exports = function exportRemessa(req, res) {
               " ",
               normalizeValue(vencimento.conta, "numeric", 12),
               " ",
-              normalizeValue(vencimento.dv_agencia, "alphanumeric", 1)
+              normalizeValue(
+                parseInt(vencimento.dv_conta) ||
+                  parseInt(vencimento.dv_agencia),
+                "alphanumeric",
+                1
+              )
             );
           }
           //* O segmento A só é gerado se o tipo de pagamento não é boleto ou pix qr code
@@ -595,8 +606,6 @@ module.exports = function exportRemessa(req, res) {
 
           somatoria_valores += parseFloat(vencimento.valor_pagamento);
 
-          registroLote++;
-
           let tipo_chave = "00";
           let chave_pix = vencimento.chave_pix;
           if (key === "PagamentoPIX") {
@@ -639,6 +648,7 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoB);
             qtde_registros++;
             qtde_registros_arquivo++;
+            registroLote++;
           }
 
           //* Marcando vencimento como já incluso em uma remessa

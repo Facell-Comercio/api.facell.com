@@ -92,8 +92,8 @@ function getAllTransacoesBancarias(req) {
                 AND cbi.tipo = "transacao"
             LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
             ${where}
-            AND eb.tipo_transacao = 'DEBIT'
-            AND eb.id_duplicidade IS NULL
+            AND tipo_transacao = 'DEBIT'
+            AND eb.id_duplicidade IS NULL 
         ) as subconsulta
         `;
       const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
@@ -116,9 +116,8 @@ function getAllTransacoesBancarias(req) {
             AND cbi.tipo = "transacao"
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
-        AND eb.tipo_transacao = 'DEBIT'
-        AND eb.id_duplicidade IS NULL
-
+        AND tipo_transacao = 'DEBIT'
+        AND eb.id_duplicidade IS NULL 
         ${order}
         ${limit}
         `;

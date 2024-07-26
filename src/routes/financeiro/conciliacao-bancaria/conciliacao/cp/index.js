@@ -1,4 +1,4 @@
-const router = require('express').Router();
+const router = require("express").Router();
 
 const {
   getAll,
@@ -13,13 +13,15 @@ const {
   conciliacaoTarifas,
   getExtratosCredit,
   conciliacaoTransferenciaContas,
-} = require('../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller');
-const checkUserAuthorization = require('../../../../../middlewares/authorization-middleware');
+  getExtratoDuplicated,
+  tratarDuplicidade,
+} = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
+const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
 
-const tarifasPadraoRouter = require('../config/tarifas-padrao');
-router.use('/tarifas-padrao', tarifasPadraoRouter);
+const tarifasPadraoRouter = require("../config/tarifas-padrao");
+router.use("/tarifas-padrao", tarifasPadraoRouter);
 
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const result = await getAll(req);
     res.status(200).json(result);
@@ -28,7 +30,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/conciliacoes', async (req, res) => {
+router.get("/conciliacoes", async (req, res) => {
   try {
     const result = await getConciliacoes(req);
     res.status(200).json(result);
@@ -37,7 +39,7 @@ router.get('/conciliacoes', async (req, res) => {
   }
 });
 
-router.get('/extratos-credit', async (req, res) => {
+router.get("/extratos-credit", async (req, res) => {
   try {
     const result = await getExtratosCredit(req);
     res.status(200).json(result);
@@ -46,7 +48,16 @@ router.get('/extratos-credit', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get("/extratos-duplicated", async (req, res) => {
+  try {
+    const result = await getExtratoDuplicated(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
   try {
     const result = await getOne(req);
     res.status(200).json(result);
@@ -55,8 +66,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 router.post(
-  '/',
-  checkUserAuthorization('FINANCEIRO', 'OR', 'MASTER'),
+  "/",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await insertOne(req);
@@ -67,8 +78,8 @@ router.post(
   }
 );
 router.post(
-  '/automatica',
-  checkUserAuthorization('FINANCEIRO', 'OR', 'MASTER'),
+  "/automatica",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await conciliacaoAutomatica(req);
@@ -80,8 +91,8 @@ router.post(
 );
 
 router.post(
-  '/conciliar-tarifas',
-  checkUserAuthorization('FINANCEIRO', 'OR', 'MASTER'),
+  "/conciliar-tarifas",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await conciliacaoTarifas(req);
@@ -93,8 +104,8 @@ router.post(
 );
 
 router.post(
-  '/transferencia-contas',
-  checkUserAuthorization('FINANCEIRO', 'OR', 'MASTER'),
+  "/transferencia-contas",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await conciliacaoTransferenciaContas(req);
@@ -105,8 +116,8 @@ router.post(
   }
 );
 router.put(
-  '/',
-  checkUserAuthorization('FINANCEIRO', 'OR', 'MASTER'),
+  "/",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await update(req);
@@ -117,22 +128,43 @@ router.put(
   }
 );
 
-router.delete('/titulo/:id', async (req, res) => {
-  try {
-    const result = await deleteTitulo(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+router.put(
+  "/tratar-duplicidade",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await tratarDuplicidade(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
 
-router.delete('/:id', async (req, res) => {
-  try {
-    const result = await deleteConciliacao(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+router.delete(
+  "/titulo/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteTitulo(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
   }
-});
+);
+
+router.delete(
+  "/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteConciliacao(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 
 module.exports = router;

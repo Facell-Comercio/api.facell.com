@@ -50,6 +50,7 @@ module.exports = [
     length: 2,
     required: true,
     type: "alphanumeric",
+    allowedChar: "+", //~ Usado na função de remoção de caracteres especiais
   },
   {
     field: "brancos",

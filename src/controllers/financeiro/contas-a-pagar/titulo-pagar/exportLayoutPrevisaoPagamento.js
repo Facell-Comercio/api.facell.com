@@ -146,8 +146,12 @@ module.exports = function exportLayoutPagamento(req, res) {
           s.status as status_titulo,
           tv.valor as valor_vencimento, 
           t.valor as valor_titulo, 
-          ge.nome as grupo_economico,
+          COALESCE(ge.nome, 'RR') as grupo_economico,
           f.nome as filial,
+          forn.cnpj as cnpj_fornecedor,
+          forn.nome as nome_fornecedor,
+          t.descricao,
+          t.num_doc as documento,
           t.data_emissao,
           t.created_at as data_criacao,
           tv.data_vencimento,
@@ -164,7 +168,7 @@ module.exports = function exportLayoutPagamento(req, res) {
         LEFT JOIN fin_cp_status s ON s.id = t.id_status 
         LEFT JOIN users u ON u.id = t.id_solicitante
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-        INNER JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
+        LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
         WHERE 
           ${where}
           ORDER BY tv.data_vencimento ASC`, params)
