@@ -6,6 +6,8 @@ const {
   getOne,
   deleteVale,
   insertOne,
+  update,
+  insertAbatimento,
 } = require("../../../controllers/comercial/comercial-controller");
 
 //! Refazer as validações de autorização
@@ -42,6 +44,32 @@ router.post(
   async (req, res) => {
     try {
       const result = await insertOne(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/abatimento",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await insertAbatimento(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.put(
+  "/",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await update(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

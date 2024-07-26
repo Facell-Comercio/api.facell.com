@@ -2,7 +2,7 @@ const { parse, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
-module.exports = function getOne(req) {
+module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
     const {
       id,
@@ -37,7 +37,8 @@ module.exports = function getOne(req) {
           nome_colaborador= ?,
           id_filial = ?,
           origem = ?,
-          obs = ?
+          obs = ?,
+          updated_at = ?
         WHERE id = ?`,
         [
           startOfDay(data_inicio_cobranca),
@@ -46,6 +47,7 @@ module.exports = function getOne(req) {
           id_filial,
           origem,
           obs,
+          new Date(),
           id,
         ]
       );

@@ -2,7 +2,7 @@ const { parse, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
-module.exports = function getOne(req) {
+module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const {
       id,
@@ -33,6 +33,20 @@ module.exports = function getOne(req) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
+      }
+      if (
+        !data_inicio_cobranca ||
+        !cpf_colaborador ||
+        !nome_colaborador ||
+        !id_filial ||
+        !origem ||
+        !parcelas ||
+        !parcela ||
+        !valor_parcela ||
+        !saldo ||
+        !obs
+      ) {
+        throw new Error("Dados insuficientes!");
       }
       if (intParcelas === intParcela && floatValorParcela !== floatSaldo) {
         throw new Error("O valor da parcela não pode ser diferente do saldo!");
