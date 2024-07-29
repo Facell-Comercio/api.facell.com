@@ -32,8 +32,7 @@ module.exports = function deleteVencimento(req) {
         [id]
       );
 
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
