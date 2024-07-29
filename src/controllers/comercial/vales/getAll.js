@@ -66,13 +66,31 @@ module.exports = function getAll(req) {
               `,
         params
       );
+      const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
+
+      const [rowDataChart] = await conn.execute(
+        ` SELECT 
+            SUM(v.saldo) as saldo_total, SUM(v.valor) as valor_total
+            FROM vales v
+            LEFT JOIN filiais f ON f.id = v.id_filial 
+            ${where}`,
+        params
+      );
+      const saldoTotal = parseFloat(
+        (rowDataChart && rowDataChart[0] && rowDataChart[0]["saldo_total"]) ||
+          "0"
+      );
+      const valorTotal = parseFloat(
+        (rowDataChart && rowDataChart[0] && rowDataChart[0]["valor_total"]) ||
+          "0"
+      );
+
       const limit = pagination ? " LIMIT ? OFFSET ? " : "";
       if (limit) {
         const offset = pageIndex * pageSize;
         params.push(pageSize);
         params.push(offset);
       }
-      const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
 
       const [rows] = await conn.execute(
         `
@@ -93,6 +111,8 @@ module.exports = function getAll(req) {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
+        saldoTotal: saldoTotal.toFixed(2),
+        valorAbatido: (valorTotal - saldoTotal).toFixed(2),
       };
 
       resolve(objResponse);
