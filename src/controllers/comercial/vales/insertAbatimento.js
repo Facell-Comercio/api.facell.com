@@ -42,7 +42,7 @@ module.exports = function insertAbatimento(req) {
           obs,
           id_user
         ) VALUES(?,?,?,?)`,
-        [id_vale, valor, String(obs).toUpperCase(), user.id]
+        [id_vale, valor, obs, user.id]
       );
 
       const newId = result.insertId;
@@ -52,7 +52,7 @@ module.exports = function insertAbatimento(req) {
       }
 
       // Atualizar saldo do vale
-      await conn.execute(`UPDATE vales SET saldo = saldo - ? WHERE id =?`, [
+      await conn.execute(`UPDATE vales SET saldo = saldo - ? WHERE id = ?`, [
         floatValor,
         id_vale,
       ]);
@@ -64,7 +64,7 @@ module.exports = function insertAbatimento(req) {
       logger.error({
         module: "COMERCIAL",
         origin: "VALES",
-        method: "GET_ONE",
+        method: "INSERT_ABATIMENTO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();

@@ -8,6 +8,9 @@ const {
   insertOne,
   update,
   insertAbatimento,
+  getOneAbatimento,
+  updateAbatimento,
+  deleteAbatimento,
 } = require("../../../controllers/comercial/comercial-controller");
 
 //! Refazer as validações de autorização
@@ -38,6 +41,19 @@ router.get(
   }
 );
 
+router.get(
+  "/abatimentos/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getOneAbatimento(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
 router.post(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
@@ -52,7 +68,7 @@ router.post(
 );
 
 router.post(
-  "/abatimento",
+  "/abatimentos",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
@@ -77,12 +93,38 @@ router.put(
   }
 );
 
+router.put(
+  "/abatimentos",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await updateAbatimento(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
 router.delete(
   "/:id",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await deleteVale(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/abatimentos/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteAbatimento(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
