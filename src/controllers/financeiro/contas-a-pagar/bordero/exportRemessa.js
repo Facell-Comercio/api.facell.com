@@ -647,8 +647,9 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoB);
             qtde_registros++;
             qtde_registros_arquivo++;
-            registroLote++;
           }
+
+          registroLote++;
 
           //* Marcando vencimento como já incluso em uma remessa
           await conn.execute(
@@ -659,6 +660,7 @@ module.exports = function exportRemessa(req, res) {
             `,
             [true, vencimento.id_vencimento]
           );
+
           // await conn.rollback();
 
           // console.log(true, vencimento.id_vencimento);
