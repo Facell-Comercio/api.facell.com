@@ -18,6 +18,7 @@ module.exports = function getOne(req) {
               SELECT 
                 v.*, 
                 f.nome as filial,
+                v.valor as valor_parcela, 
                 u.nome as criador
               FROM vales v
               LEFT JOIN filiais f ON f.id = v.id_filial
@@ -33,7 +34,7 @@ module.exports = function getOne(req) {
       const [rowsAbatimentos] = await conn.execute(
         `
               SELECT 
-                va.*, 
+                va.*,
                 u.nome as criador
               FROM vales_abatimentos va
               LEFT JOIN users u ON u.id = va.id_user
