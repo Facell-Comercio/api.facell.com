@@ -43,13 +43,17 @@ module.exports = function getExtratoDuplicated(req) {
             eb.id, eb.documento, eb.descricao, ABS(eb.valor) as valor, eb.data_transacao,
             cb.descricao as conta_bancaria
         FROM fin_extratos_bancarios eb
-        LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria 
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+                ON cbi.id_item = eb.id
+                AND cbi.tipo = "transacao"
         WHERE eb.id_conta_bancaria = ?
         AND eb.descricao = ?
         AND ABS(eb.valor) = ?
         AND eb.data_transacao = ?
         AND eb.tipo_transacao = "DEBIT"
         AND eb.id <> ?
+        AND cbi.id IS NOT NULL
       `,
         [
           id_conta_bancaria,
