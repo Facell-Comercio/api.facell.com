@@ -7,12 +7,12 @@ function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
 
   const token = authHeader && authHeader.split(" ")[1];
-  logger.info({
-    module: "AUTH",
-    origin: "USER",
-    method: "TESTE",
-    data: { message: JSON.stringify({ authHeader, token }) },
-  });
+  //   logger.info({
+  //     module: "AUTH",
+  //     origin: "USER",
+  //     method: "TESTE",
+  //     data: { message: JSON.stringify({ authHeader, token }) },
+  //   });
   if (!token) {
     return res
       .status(401)
