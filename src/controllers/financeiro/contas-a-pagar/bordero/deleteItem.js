@@ -1,7 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 
-module.exports = function deleteItemBordero(req) {
+module.exports = function deleteItem(req) {
   return new Promise(async (resolve, reject) => {
     const { id, tipo } = req.body;
 
@@ -61,8 +61,8 @@ module.exports = function deleteItemBordero(req) {
         [id]
       );
 
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
+      // await conn.rollback();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
