@@ -10,13 +10,13 @@ const {
   deleteBordero,
   transferBordero,
   exportBorderos,
-  deleteVencimento,
   geradorDadosEmpresa,
   importRetornoRemessa,
   reverseManualPayment,
   findNewItems,
   pagamentoItens,
   exportRemessa,
+  deleteItem,
 } = require("../../../../controllers/financeiro/contas-a-pagar/borderos-controller");
 
 const { localTempStorage } = require("../../../../libs/multer");
@@ -186,11 +186,11 @@ router.put(
 );
 
 router.delete(
-  "/titulo/:id",
+  "/item",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await deleteVencimento(req);
+      const result = await deleteItem(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
