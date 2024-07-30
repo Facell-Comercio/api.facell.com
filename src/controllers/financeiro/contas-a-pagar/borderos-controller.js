@@ -1,3 +1,5 @@
+const deleteItem = require("./bordero/deleteItem");
+
 module.exports = {
   insertOne: require("./bordero/insertOne"),
   getOne: require("./bordero/getOne"),
@@ -6,7 +8,7 @@ module.exports = {
   update: require("./bordero/update"),
   reverseManualPayment: require("./bordero/reverseManualPayment"),
   deleteBordero: require("./bordero/deleteBordero"),
-  deleteVencimento: require("./bordero/deleteVencimento"),
+  deleteItem: require("./bordero/deleteItem"),
   pagamentoItens: require("./bordero/pagamentoItens"),
   transferBordero: require("./bordero/transferBordero"),
   exportBorderos: require("./bordero/exportBorderos"),

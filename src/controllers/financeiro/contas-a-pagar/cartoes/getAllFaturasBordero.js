@@ -50,7 +50,7 @@ module.exports = function getAllFaturasBordero(req) {
         params.push(id_bordero);
       }
       if (id_titulo) {
-        where += ` AND ccf.id_titulo = ? `;
+        where += ` AND tv.id_titulo = ? `;
         params.push(id_titulo);
       }
       if (descricao) {
