@@ -11,7 +11,7 @@ function authMiddleware(req, res, next) {
     module: "AUTH",
     origin: "USER",
     method: "TESTE",
-    data: { authHeader, token },
+    data: { message: JSON.stringify({ authHeader, token }) },
   });
   if (!token) {
     return res
