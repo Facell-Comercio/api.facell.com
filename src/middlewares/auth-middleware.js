@@ -23,6 +23,7 @@ function authMiddleware(req, res, next) {
     // Verificar e decodificar o token JWT
     const decoded = jwt.verify(token, process.env.SECRET);
     req.user = decoded.user; // Adicionar informações do usuário ao objeto de solicitação
+    console.log(decoded.user);
     next();
   } catch (error) {
     return res.status(401).json({ message: "Token de autenticação inválido" });
