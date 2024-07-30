@@ -5,14 +5,7 @@ require("dotenv");
 function authMiddleware(req, res, next) {
   // Verificar se o token JWT está presente nos cabeçalhos da requisição
   const authHeader = req.headers.authorization || req.headers.Authorization;
-
   const token = authHeader && authHeader.split(" ")[1];
-    // logger.info({
-    //   module: "AUTH",
-    //   origin: "USER",
-    //   method: "TESTE",
-    //   data: { message: JSON.stringify({ authHeader, token }) },
-    // });
   if (!token) {
     return res
       .status(401)
