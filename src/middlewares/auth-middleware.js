@@ -25,8 +25,8 @@ function authMiddleware(req, res, next) {
     req.user = decoded.user; // Adicionar informações do usuário ao objeto de solicitação
     next();
   } catch (error) {
-    console.log('Erro decoded token');
-    console.log(error);
+    // console.log('Erro decoded token');
+    // console.log(error);
     return res.status(401).json({ message: "Token de autenticação inválido" });
   }
 }
