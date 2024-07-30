@@ -39,6 +39,8 @@ router.get("/validar-token", authMiddleware, async (req, res) => {
     const token = await validarToken(req)
     res.status(200).json({ token });
   } catch (error) {
+    console.log('Router validar-token');
+    console.error(error);
     res.status(400).json({
       message: "Ocorreu um erro ao tentar validar a sua autenticação!",
     });
