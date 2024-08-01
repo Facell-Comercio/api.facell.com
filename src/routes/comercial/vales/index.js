@@ -16,27 +16,47 @@ const {
 
 //! Refazer as validações de autorização
 
-router.get("/", async (req, res) => {
-  try {
-    const result = await getAll(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+router.get(
+  "/",
+  checkUserAuthorization("FINANCEIRO", "OR", [
+    "GERENCIAR_VALES",
+    "VISUALIZAR_VALES",
+    "MASTER",
+  ]),
+  async (req, res) => {
+    try {
+      const result = await getAll(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
-router.get("/:id", async (req, res) => {
-  try {
-    const result = await getOne(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+router.get(
+  "/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", [
+    "GERENCIAR_VALES",
+    "VISUALIZAR_VALES",
+    "MASTER",
+  ]),
+  async (req, res) => {
+    try {
+      const result = await getOne(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
 router.get(
   "/abatimentos/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", [
+    "GERENCIAR_VALES",
+    "VISUALIZAR_VALES",
+    "MASTER",
+  ]),
   async (req, res) => {
     try {
       const result = await getOneAbatimento(req);
@@ -49,7 +69,7 @@ router.get(
 
 router.post(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertOne(req);
@@ -62,7 +82,7 @@ router.post(
 
 router.post(
   "/lancamento-lote",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await lancamentoLote(req);
@@ -75,7 +95,7 @@ router.post(
 
 router.post(
   "/abatimentos",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertAbatimento(req);
@@ -88,7 +108,7 @@ router.post(
 
 router.put(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await update(req);
@@ -101,7 +121,7 @@ router.put(
 
 router.put(
   "/abatimentos",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await updateAbatimento(req);
@@ -114,7 +134,7 @@ router.put(
 
 router.delete(
   "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await deleteVale(req);
@@ -127,7 +147,7 @@ router.delete(
 
 router.delete(
   "/abatimentos/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await deleteAbatimento(req);

@@ -44,18 +44,23 @@ module.exports = function lancamentoLote(req) {
           }
 
           //^ Quando houver tabela de colaboradores
-          // const [rowColaborador] = await conn.execute(
-          //   `
-          //   SELECT id FROM colaboradores WHERE cpf =?
-          // `,
-          //   [cpf]
-          // );
+          const [rowColaborador] = await conn.execute(
+            `
+            SELECT id, nome FROM colaboradores WHERE cpf = ?
+          `,
+            [cpf]
+          );
+          const colaborador = rowColaborador && rowColaborador[0];
+          if (!colaborador) {
+            throw new Error(`Colaborador não encontrado no sistema`);
+          }
 
           const [result] = await conn.execute(
             `INSERT INTO vales (
               data_inicio_cobranca,
-              cpf,
+              id_colaborador,
               nome_colaborador,
+              cpf_colaborador,
               id_filial,
               origem,
               parcelas,
@@ -64,11 +69,12 @@ module.exports = function lancamentoLote(req) {
               saldo,
               obs,
               id_criador
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
               startOfDay(excelDateToJSDate(data_inicio_cobranca)),
+              colaborador.id,
+              colaborador.nome,
               cpf,
-              "EM LOTE",
               id_filial,
               origem,
               1,

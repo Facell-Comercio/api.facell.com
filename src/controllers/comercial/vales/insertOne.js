@@ -7,8 +7,9 @@ module.exports = function insertOne(req) {
     const {
       id,
       data_inicio_cobranca,
-      cpf_colaborador,
+      id_colaborador,
       nome_colaborador,
+      cpf_colaborador,
       id_filial,
       origem,
       parcelas,
@@ -36,8 +37,7 @@ module.exports = function insertOne(req) {
       }
       if (
         !data_inicio_cobranca ||
-        !cpf_colaborador ||
-        !nome_colaborador ||
+        !id_colaborador ||
         !id_filial ||
         !origem ||
         !parcelas ||
@@ -59,17 +59,16 @@ module.exports = function insertOne(req) {
           "A parcela não pode ser maior que a quantidade de parcelas"
         );
       }
-      if (cpf_colaborador.length !== 11) {
-        throw new Error("CPF do colaborador inválido!");
-      }
+
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       const [result] = await conn.execute(
         `INSERT INTO vales (
           data_inicio_cobranca,
-          cpf,
+          id_colaborador,
           nome_colaborador,
+          cpf_colaborador,
           id_filial,
           origem,
           parcelas,
@@ -78,11 +77,12 @@ module.exports = function insertOne(req) {
           saldo,
           obs,
           id_criador
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
           startOfDay(data_inicio_cobranca),
-          cpf_colaborador,
+          id_colaborador,
           nome_colaborador,
+          cpf_colaborador,
           id_filial,
           origem,
           intParcelas,
@@ -107,7 +107,7 @@ module.exports = function insertOne(req) {
       logger.error({
         module: "COMERCIAL",
         origin: "VALES",
-        method: "GET_ONE",
+        method: "INSERT_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
