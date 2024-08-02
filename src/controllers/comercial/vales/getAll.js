@@ -72,7 +72,8 @@ module.exports = function getAll(req) {
         ` SELECT 
             SUM(v.saldo) as saldo_total, SUM(v.valor) as valor_total
             FROM vales v
-            LEFT JOIN filiais f ON f.id = v.id_filial 
+            LEFT JOIN filiais f ON f.id = v.id_filial
+            LEFT JOIN colaboradores c ON c.id = v.id_colaborador
             ${where}`,
         params
       );
@@ -96,9 +97,12 @@ module.exports = function getAll(req) {
         `
               SELECT 
                 v.*,
+                c.nome as nome_colaborador,
+                c.cpf,
                 f.nome as filial
               FROM vales v
-              LEFT JOIN filiais f ON f.id = v.id_filial 
+              LEFT JOIN filiais f ON f.id = v.id_filial
+              LEFT JOIN colaboradores c ON c.id = v.id_colaborador
               ${where}
               
               ORDER BY v.id DESC
@@ -113,6 +117,7 @@ module.exports = function getAll(req) {
         rowCount: qtdeTotal,
         saldoTotal: saldoTotal.toFixed(2),
         valorAbatido: (valorTotal - saldoTotal).toFixed(2),
+        valorTotal: valorTotal.toFixed(2),
       };
 
       resolve(objResponse);

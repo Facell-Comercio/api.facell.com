@@ -1,4 +1,4 @@
-const path = require('path')
+const path = require("path");
 const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
@@ -15,7 +15,7 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { id_conta_bancaria, periodo } = filters || {};
+    const { id_conta_bancaria, periodo, mes, ano } = filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
@@ -33,34 +33,43 @@ function getAll(req) {
         params.push(id_conta_bancaria);
       }
 
-      if (!periodo) {
-        throw new Error("Informe a data ou o período de visualização!");
+      // if (!periodo) {
+      //   throw new Error("Informe a data ou o período de visualização!");
+      // }
+
+      // if (!data_de && !data_ate) {
+      //   throw new Error("Informe a data ou período de visualização!");
+      // }
+
+      // if (periodo && periodo.from && periodo.to) {
+      //   const { from: data_de, to: data_ate } = periodo;
+      //   where += ` AND e.data_transacao BETWEEN '${formatDate(
+      //     data_de,
+      //     "yyyy-MM-dd"
+      //   )}' AND '${formatDate(data_ate, "yyyy-MM-dd")}'  `;
+      // } else {
+      //   if (data_de) {
+      //     where += ` AND e.data_transacao = '${formatDate(
+      //       data_de,
+      //       "yyyy-MM-dd"
+      //     )}' `;
+      //   }
+      //   if (data_ate) {
+      //     where += ` AND e.data_transacao = '${formatDate(
+      //       data_ate,
+      //       "yyyy-MM-dd"
+      //     )}' `;
+      //   }
+      // }
+
+      if (mes) {
+        where += ` AND MONTH(e.data_transacao) = ? `;
+        params.push(mes);
       }
 
-      const { from: data_de, to: data_ate } = periodo;
-
-      if (!data_de && !data_ate) {
-        throw new Error("Informe a data ou período de visualização!");
-      }
-
-      if (data_de && data_ate) {
-        where += ` AND e.data_transacao BETWEEN '${formatDate(
-          data_de,
-          "yyyy-MM-dd"
-        )}' AND '${formatDate(data_ate, "yyyy-MM-dd")}'  `;
-      } else {
-        if (data_de) {
-          where += ` AND e.data_transacao = '${formatDate(
-            data_de,
-            "yyyy-MM-dd"
-          )}' `;
-        }
-        if (data_ate) {
-          where += ` AND e.data_transacao = '${formatDate(
-            data_ate,
-            "yyyy-MM-dd"
-          )}' `;
-        }
+      if (ano) {
+        where += ` AND YEAR(e.data_transacao) = ? `;
+        params.push(ano);
       }
 
       const [rowQtdeTotal] = await conn.execute(
@@ -321,13 +330,15 @@ function importarExtrato(req) {
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
-        module: "FINANCEIRO", origin: "EXTRATOS BANCÁRIOS", method: "IMPORT",
+        module: "FINANCEIRO",
+        origin: "EXTRATOS BANCÁRIOS",
+        method: "IMPORT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();
       reject(error);
-    } finally{
-      conn.release()
+    } finally {
+      conn.release();
     }
   });
 }

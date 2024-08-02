@@ -7,8 +7,9 @@ module.exports = function update(req) {
     const {
       id,
       data_inicio_cobranca,
-      cpf_colaborador,
+      id_colaborador,
       nome_colaborador,
+      cpf_colaborador,
       id_filial,
       origem,
       obs,
@@ -24,17 +25,15 @@ module.exports = function update(req) {
       if (!id) {
         throw new Error("ID não informado!");
       }
-      if (cpf_colaborador.length !== 11) {
-        throw new Error("CPF do colaborador inválido!");
-      }
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       await conn.execute(
         `UPDATE vales SET
           data_inicio_cobranca = ?,
-          cpf = ?,
-          nome_colaborador= ?,
+          id_colaborador= ?,
+          nome_colaborador = ?,
+          cpf_colaborador = ?,
           id_filial = ?,
           origem = ?,
           obs = ?,
@@ -42,8 +41,9 @@ module.exports = function update(req) {
         WHERE id = ?`,
         [
           startOfDay(data_inicio_cobranca),
-          cpf_colaborador,
+          id_colaborador,
           nome_colaborador,
+          cpf_colaborador,
           id_filial,
           origem,
           obs,
@@ -59,7 +59,7 @@ module.exports = function update(req) {
       logger.error({
         module: "COMERCIAL",
         origin: "VALES",
-        method: "GET_ONE",
+        method: "UPDATE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
