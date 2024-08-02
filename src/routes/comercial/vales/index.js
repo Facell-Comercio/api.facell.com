@@ -5,16 +5,41 @@ const {
   getAll,
   getOne,
   deleteVale,
+  insertOne,
+  update,
+  insertAbatimento,
+  getOneAbatimento,
+  updateAbatimento,
+  deleteAbatimento,
+  lancamentoLote,
 } = require("../../../controllers/comercial/comercial-controller");
 
 //! Refazer as validações de autorização
 
+router.get("/", async (req, res) => {
+  try {
+    const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await getOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 router.get(
-  "/",
+  "/abatimentos/:id",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getAll(req);
+      const result = await getOneAbatimento(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -22,12 +47,64 @@ router.get(
   }
 );
 
-router.get(
-  "/:id",
+router.post(
+  "/",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getOne(req);
+      const result = await insertOne(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/lancamento-lote",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await lancamentoLote(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/abatimentos",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await insertAbatimento(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.put(
+  "/",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await update(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.put(
+  "/abatimentos",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await updateAbatimento(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
@@ -41,6 +118,19 @@ router.delete(
   async (req, res) => {
     try {
       const result = await deleteVale(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/abatimentos/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await deleteAbatimento(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });
