@@ -19,10 +19,16 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap } =
-      filters || {
-        termo: null,
-      };
+    const {
+      termo,
+      descricao,
+      id_grupo_economico,
+      id_matriz,
+      tim_cod_sap,
+      isLojaTim,
+    } = filters || {
+      termo: null,
+    };
 
     var where = ` WHERE f.active = 1 `;
     const params = [];
@@ -71,6 +77,9 @@ function getAll(req) {
       } else {
         where += ` AND NOT f.tim_cod_sap IS NULL`;
       }
+    }
+    if (isLojaTim) {
+      where += ` AND NOT f.tim_cod_sap IS NULL`;
     }
     if (id_matriz !== undefined && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;

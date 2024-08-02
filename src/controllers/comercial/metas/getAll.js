@@ -9,8 +9,15 @@ module.exports = function getAll(req) {
       return false;
     }
     const { filters, pagination } = req.query;
-    const { colaborador, id_filial, origem, tipo_data, range_data } =
-      filters || {};
+    const {
+      id_filial,
+      id_grupo_economico,
+      nome,
+      cpf,
+      cargo,
+      tipo_data,
+      range_data,
+    } = filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -19,23 +26,32 @@ module.exports = function getAll(req) {
     const params = [];
 
     let where = ` WHERE 1=1 `;
-    if (colaborador) {
-      where += ` AND (v.cpf = ? OR v.nome_colaborador LIKE CONCAT('%',?,'%'))`;
-      params.push(colaborador, colaborador);
-    }
+
     if (id_filial) {
-      where += ` AND v.id_filial = ? `;
+      where += ` AND fm.id_filial = ? `;
       params.push(id_filial);
     }
-    if (origem) {
-      where += ` AND v.origem LIKE CONCAT('%',?,'%') `;
-      params.push(origem);
+    if (id_grupo_economico) {
+      where += ` AND f.id_grupo_economico = ? `;
+      params.push(id_grupo_economico);
+    }
+    if (nome) {
+      where += ` AND fm.nome LIKE CONCAT('%',?,'%') `;
+      params.push(nome);
+    }
+    if (cpf) {
+      where += ` AND fm.cpf LIKE CONCAT(?,'%') `;
+      params.push(cpf);
+    }
+    if (cargo) {
+      where += ` AND fm.cargo LIKE CONCAT('%',?,'%') `;
+      params.push(cargo);
     }
 
     if (tipo_data && range_data) {
       const { from: data_de, to: data_ate } = range_data;
 
-      const campo_data = `v.${tipo_data}`;
+      const campo_data = `fm.${tipo_data}`;
 
       if (data_de && data_ate) {
         where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
@@ -57,9 +73,11 @@ module.exports = function getAll(req) {
       const [rowTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde
               FROM (
-                SELECT v.id
-                FROM vales v
-                LEFT JOIN filiais f ON f.id = v.id_filial 
+                SELECT 
+                  fm.id
+                FROM facell_metas fm
+                LEFT JOIN filiais f ON f.id = fm.id_filial
+                LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
                 ${where}
               ) 
               as subconsulta
@@ -67,24 +85,6 @@ module.exports = function getAll(req) {
         params
       );
       const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
-
-      const [rowDataChart] = await conn.execute(
-        ` SELECT 
-            SUM(v.saldo) as saldo_total, SUM(v.valor) as valor_total
-            FROM vales v
-            LEFT JOIN filiais f ON f.id = v.id_filial
-            LEFT JOIN colabs c ON c.id = v.id_colaborador
-            ${where}`,
-        params
-      );
-      const saldoTotal = parseFloat(
-        (rowDataChart && rowDataChart[0] && rowDataChart[0]["saldo_total"]) ||
-          "0"
-      );
-      const valorTotal = parseFloat(
-        (rowDataChart && rowDataChart[0] && rowDataChart[0]["valor_total"]) ||
-          "0"
-      );
 
       const limit = pagination ? " LIMIT ? OFFSET ? " : "";
       if (limit) {
@@ -96,16 +96,32 @@ module.exports = function getAll(req) {
       const [rows] = await conn.execute(
         `
               SELECT 
-                v.*,
-                c.nome as nome_colaborador,
-                c.cpf,
-                f.nome as filial
-              FROM vales v
-              LEFT JOIN filiais f ON f.id = v.id_filial
-              LEFT JOIN colabs c ON c.id = v.id_colaborador
+                fm.*,
+                f.nome as filial,
+                gp.nome as grupo_econômico
+              FROM facell_metas fm
+              LEFT JOIN filiais f ON f.id = fm.id_filial
+              LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
               
-              ORDER BY v.id DESC
+              ORDER BY fm.id DESC
+              ${limit}
+              `,
+        params
+      );
+
+      console.log(
+        `
+              SELECT 
+                fm.*,
+                f.nome as filial,
+                gp.nome as grupo_econômico
+              FROM facell_metas fm
+              LEFT JOIN filiais f ON f.id = fm.id_filial
+              LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
+              ${where}
+              
+              ORDER BY fm.id DESC
               ${limit}
               `,
         params
@@ -115,16 +131,13 @@ module.exports = function getAll(req) {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
-        saldoTotal: saldoTotal.toFixed(2),
-        valorAbatido: (valorTotal - saldoTotal).toFixed(2),
-        valorTotal: valorTotal.toFixed(2),
       };
 
       resolve(objResponse);
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "VALES",
+        origin: "METAS",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
