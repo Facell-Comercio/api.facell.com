@@ -282,9 +282,9 @@ function importarExtrato(req) {
         const data_transaction = formatarDataTransacao(transaction.DTPOSTED);
         const id_transacao = transaction.FITID;
         const valor_transacao = parseFloat(transaction.TRNAMT.replace(',', '.')).toFixed(2);
-        const documento_transacao = transaction.CHECKNUM;
+        const documento_transacao = transaction.CHECKNUM || transaction.FITID;
         const descricao_transacao = transaction.MEMO;
-        const tipo_transacao = transaction.TRNTYPE;
+        const tipo_transacao = transaction.TRNTYPE.toUpperCase();
 
         if (data_transaction >= data_atual) {
           continue;
