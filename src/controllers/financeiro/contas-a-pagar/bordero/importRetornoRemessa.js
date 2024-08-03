@@ -109,7 +109,7 @@ module.exports = async function importRetornoRemessa(req) {
                   const erros = ocorrenciasErro.map((erro) => {
                     return CodigosOcorrencias[erro];
                   });
-                  console.log("UPDATE");
+                  // console.log("UPDATE");
                   //* Inicando que o vencimento pode ser incluso na remessa novamente
                   await conn.execute(
                     `

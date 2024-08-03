@@ -131,8 +131,7 @@ module.exports = function getAll(req) {
         transacoesConciliadas: transacoesConciliadas,
         bancoComFornecedor: bancoComFornecedor,
       };
-      console.log(objResponse);
-      
+   
       resolve(objResponse);
     } catch (error) {
       logger.error({
