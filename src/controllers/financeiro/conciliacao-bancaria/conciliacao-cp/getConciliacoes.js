@@ -3,6 +3,8 @@ const { db } = require("../../../../../mysql");
 
 module.exports = function getConciliacoes(req) {
   return new Promise(async (resolve, reject) => {
+    let conn;
+    try {
     const { user } = req;
     // user.perfil = 'Financeiro'
     if (!user) {
@@ -15,6 +17,7 @@ module.exports = function getConciliacoes(req) {
       pageIndex: 0,
       pageSize: 15,
     };
+    
     const { id_filial, range_data } = filters || {};
     let where = ` WHERE 1=1 `;
     const params = [];
@@ -40,8 +43,7 @@ module.exports = function getConciliacoes(req) {
         }
       }
     }
-    let conn;
-    try {
+    
       conn = await db.getConnection();
 
       const [rowsConciliacoes] = await conn.execute(

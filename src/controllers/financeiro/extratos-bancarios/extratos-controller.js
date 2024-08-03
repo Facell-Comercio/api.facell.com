@@ -85,21 +85,6 @@ function getAll(req) {
         params
       );
 
-      const [dataChartConciliacaoRecebimentos] = await conn.execute(
-        `
-        SELECT
-          e.data_transacao, 
-          count(e.id) as total,
-          SUM(CASE WHEN cbi.id_item IS NULL THEN 0 ELSE 1 END) as conciliado,
-          SUM(CASE WHEN cbi.id_item IS NULL THEN 1 ELSE 0 END) as pendente
-        FROM fin_extratos_bancarios e
-        LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.tipo = 'transacao' AND cbi.id_item = e.id
-        ${where} AND e.tipo_transacao = 'CREDIT'
-        GROUP BY e.data_transacao
-      `,
-        params
-      );
-
       const objResponse = {
         rows: rows,
         dataChartTransacoes: dataChartTransacoes,

@@ -101,7 +101,7 @@ function getAll(req) {
       params.push(offset);
       var query = `
             SELECT 
-              f.id_matriz, cb.id, cb.descricao, f.nome as filial, ge.nome, 
+              f.id_matriz, cb.id_filial, cb.id, cb.descricao, f.nome as filial, ge.nome, 
               fb.nome as banco, ge.nome as grupo_economico, 
               ftc.tipo as tipo_conta, cb.active
             FROM fin_contas_bancarias cb
