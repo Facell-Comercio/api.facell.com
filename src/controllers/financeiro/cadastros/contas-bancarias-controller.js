@@ -54,7 +54,7 @@ function getAll(req) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
     }
-    if (id_matriz) {
+    if (id_matriz && id_matriz !== 'all') {
       where += ` AND f.id_matriz = ? `;
       params.push(id_matriz);
     }
@@ -67,7 +67,7 @@ function getAll(req) {
       else where += ` AND fb.nome LIKE CONCAT('%',?,'%') `;
       params.push(banco);
     }
-    if (id_grupo_economico) {
+    if (id_grupo_economico && id_grupo_economico !== 'all') {
       where += ` AND ge.id = ? `;
       params.push(id_grupo_economico);
     }

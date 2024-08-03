@@ -15,7 +15,7 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { id_conta_bancaria, periodo, mes, ano } = filters || {};
+    const { id_conta_bancaria, mes, ano } = filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
@@ -32,35 +32,6 @@ function getAll(req) {
         where += ` AND e.id_conta_bancaria = ? `;
         params.push(id_conta_bancaria);
       }
-
-      // if (!periodo) {
-      //   throw new Error("Informe a data ou o período de visualização!");
-      // }
-
-      // if (!data_de && !data_ate) {
-      //   throw new Error("Informe a data ou período de visualização!");
-      // }
-
-      // if (periodo && periodo.from && periodo.to) {
-      //   const { from: data_de, to: data_ate } = periodo;
-      //   where += ` AND e.data_transacao BETWEEN '${formatDate(
-      //     data_de,
-      //     "yyyy-MM-dd"
-      //   )}' AND '${formatDate(data_ate, "yyyy-MM-dd")}'  `;
-      // } else {
-      //   if (data_de) {
-      //     where += ` AND e.data_transacao = '${formatDate(
-      //       data_de,
-      //       "yyyy-MM-dd"
-      //     )}' `;
-      //   }
-      //   if (data_ate) {
-      //     where += ` AND e.data_transacao = '${formatDate(
-      //       data_ate,
-      //       "yyyy-MM-dd"
-      //     )}' `;
-      //   }
-      // }
 
       if (mes) {
         where += ` AND MONTH(e.data_transacao) = ? `;
@@ -98,10 +69,10 @@ function getAll(req) {
 
       const [rows] = await conn.execute(query, params);
 
-      const [chartData] = await conn.execute(
+      const [dataChartTransacoes] = await conn.execute(
         `
       SELECT
-          DATE_FORMAT(e.data_transacao, '%d/%m') as data_transacao, 
+          e.data_transacao, 
           COUNT(e.id) as 'Transações',
           SUM(CASE WHEN e.tipo_transacao = 'DEBIT' THEN e.valor ELSE 0 END) as 'Débito',
           SUM(CASE WHEN e.tipo_transacao = 'CREDIT' THEN e.valor ELSE 0 END) as 'Crédito'
@@ -114,9 +85,24 @@ function getAll(req) {
         params
       );
 
+      const [dataChartConciliacaoRecebimentos] = await conn.execute(
+        `
+        SELECT
+          e.data_transacao, 
+          count(e.id) as total,
+          SUM(CASE WHEN cbi.id_item IS NULL THEN 0 ELSE 1 END) as conciliado,
+          SUM(CASE WHEN cbi.id_item IS NULL THEN 1 ELSE 0 END) as pendente
+        FROM fin_extratos_bancarios e
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.tipo = 'transacao' AND cbi.id_item = e.id
+        ${where} AND e.tipo_transacao = 'CREDIT'
+        GROUP BY e.data_transacao
+      `,
+        params
+      );
+
       const objResponse = {
         rows: rows,
-        chartData: chartData,
+        dataChartTransacoes: dataChartTransacoes,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };

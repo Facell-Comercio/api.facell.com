@@ -453,7 +453,6 @@ function getAllVencimentosEFaturas(req) {
 
 function getAllVencimentosBordero(req) {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
 
     const {
       pagination,
