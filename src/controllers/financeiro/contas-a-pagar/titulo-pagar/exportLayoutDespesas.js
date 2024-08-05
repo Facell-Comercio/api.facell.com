@@ -19,7 +19,7 @@ module.exports = function exportLayoutDespesas(req, res) {
       const { filters } = req.query || {};
 
       // Filtros
-      var where = ` tv.data_pagamento IS NULL `;
+      var where = ` tv.data_pagamento IS NOT NULL `;
       //* Somente o Financeiro/Master podem ver todos
       if (
         !checkUserDepartment(req, "FINANCEIRO") &&
@@ -140,11 +140,12 @@ module.exports = function exportLayoutDespesas(req, res) {
       }
 
       // * Lista de vencimentos
-      const [vencimentos] = await conn.execute(`SELECT 
+      const query = `SELECT 
           tv.id as id_vencimento,  
           t.id as id_titulo, 
           s.status as status_titulo,
           tv.valor as valor_vencimento, 
+          tv.data_pagamento, 
           t.valor as valor_titulo, 
           COALESCE(ge.nome, 'RR') as grupo_economico,
           f.nome as filial,
@@ -156,12 +157,18 @@ module.exports = function exportLayoutDespesas(req, res) {
           t.created_at as data_criacao,
           tv.data_vencimento,
           tv.data_prevista ,
+          tv.tipo_baixa,
+          tv.valor as valor_vencimento,
           tv.status AS status_pagamento,
           tv.valor_pago,
           u.nome as solicitante,
-          cv.descricao as conta_bancaria
+          cb.descricao as conta_bancaria,
+          d.nome as departamento,
+          COALESCE(r.nome, 'MANUAL') as rateio
         FROM fin_cp_titulos_vencimentos tv 
-        INNER JOIN fin_cp_titulos t on t.id = tv.id_titulo 
+        INNER JOIN fin_cp_titulos t on t.id = tv.id_titulo
+        LEFT JOIN departamentos d ON d.id = t.id_departamento 
+        LEFT JOIN fin_rateio r ON r.id = t.id_rateio 
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
         LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero 
@@ -172,47 +179,88 @@ module.exports = function exportLayoutDespesas(req, res) {
         LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
         WHERE 
           ${where}
-          ORDER BY tv.data_vencimento ASC`, params)
+          ORDER BY tv.data_vencimento ASC`
 
+      const [vencimentos] = await conn.execute(query, params)
+      // console.log({ query });
+      // console.log({ params });
 
       const despesas = []
 
-      vencimentos.forEach(vencimento=>{
+      async function gerarDespesa({ vencimento }) {
+        const [itens_rateio] = await conn.execute(
+          `SELECT 
+            tr.*,
+            tr.id as id_item_rateio,
+            f.nome as filial,
+            fcc.nome  as centro_custo,
+            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
+            tr.percentual
+          FROM 
+            fin_cp_titulos_rateio tr 
+          LEFT JOIN filiais f ON f.id = tr.id_filial
+          LEFT JOIN fin_centros_custo fcc ON fcc.id = tr.id_centro_custo
+          LEFT JOIN fin_plano_contas fpc ON fpc.id = tr.id_plano_conta
+            WHERE tr.id_titulo = ?`,
+          [vencimento.id_titulo]
+        );
+
         vencimento.valor_vencimento = parseFloat(vencimento.valor_vencimento)
+        vencimento.valor_pago = parseFloat(vencimento.valor_pago)
         vencimento.valor_titulo = parseFloat(vencimento.valor_titulo)
 
-        // Cada vencimento será quebrado em despesas, que nada mais é do que os itens_rateio do título quebrando os vencimentos.
-        const despesa = {
-          'Nível': 4,
-          'Empresa': '<item_rateio.filial>',
-          'Conta/Descrição': 'Conta: <item_rateio.codigo_plano_conta> - <item_rateio.plano_conta>',
-          'Data Movimento': vencimento.data_pagamento,
-          'Documento': vencimento.documento,
-          'Histórico': vencimento.descricao,
-          'Origem Lançamento': 'Contas Pagar',
-          'Centro Custos': '<item_rateio.centro_custo>',
-          'Cliente / Fornecedor': vencimento.nome_fornecedor,
-          'Tipo': 'Pagamentos',
-          'Base': 'Contas Pagar',
-          'Valor': '<valor_pago_vencimento_rateado>',
-          'Banco': vencimento.conta_bancaria,
-          'Filial Lançamento': vencimento.filial,
-          'ID Titulo': vencimento.id_titulo,
-          'Valor Titulo': vencimento.valor_titulo,
-          'ID Vencimento': vencimento.id_vencimento,
-          'Valor Vencimento': vencimento.valor_pago 
+        for (const item_rateio of itens_rateio) {
+          const valorVencimentoRateado = parseFloat(item_rateio.percentual) * (vencimento.valor_vencimento);
+          const valorPagoVencimentoRateado = parseFloat(item_rateio.percentual) * vencimento.valor_pago;
 
+          // Cada vencimento será quebrado em despesas, que nada mais é do que os itens_rateio do título quebrando os vencimentos.
+          const despesa = {
+            'IDPG': vencimento.id_vencimento + '.' + item_rateio.id_item_rateio,
+            'CNPJ FORNECEDOR': vencimento.cnpj_fornecedor,
+            'NOME FORNECEDOR': vencimento.nome_fornecedor,
+
+            'GRUPO': vencimento.grupo_economico,
+            'FILIAL': item_rateio.filial,
+            'DEPARTAMENTO': vencimento.departamento,
+            'SOLICITANTE': vencimento.solicitante,
+
+            'FILIAL RATEIO': vencimento.filial,
+            'RATEIO': vencimento.rateio || '',
+
+            'ID TITULO': vencimento.id_titulo,
+            'STATUS TITULO': vencimento.status_titulo,
+            'VALOR TITULO': vencimento.valor_titulo,
+            'DOCUMENTO': vencimento.documento,
+            'DESCRICAO': vencimento.descricao,
+            'DATA SOLICITACAO': vencimento.data_criacao,
+            'DATA EMISSAO': vencimento.data_emissao,
+            'ID VENCIMENTO': vencimento.id_vencimento,
+            'VALOR VENCIMENTO': vencimento.valor_pago || vencimento.valor,
+
+            'DATA VENCIMENTO': vencimento.data_vencimento,
+            'DATA PREVISTA': vencimento.data_prevista,
+            'CENTRO DE CUSTOS': item_rateio.centro_custo,
+            'PLANO DE CONTAS': item_rateio.plano_conta,
+            'VALOR': valorVencimentoRateado,
+            'DATA PAGAMENTO': vencimento.data_pagamento,
+            'VALOR PAGO': valorPagoVencimentoRateado,
+            'TIPO BAIXA': vencimento.tipo_baixa,
+
+          }
+          // console.log({ despesa });
+          despesas.push(despesa)
         }
-      })
+      }
 
+      await Promise.all(vencimentos.map(vencimento => gerarDespesa({ vencimento })))
 
 
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(vencimentos);
+      const worksheet = XLSX.utils.json_to_sheet(despesas);
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      const filename = `EXPORTAÇÃO DESPESAS ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
+      const filename = `EXPORT CONTAS A PAGAR LAYOUT DRE ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
 
       res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
@@ -222,7 +270,7 @@ module.exports = function exportLayoutDespesas(req, res) {
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
-        method: "EXPORT_LAYOUT_DESPESAS",
+        method: "EXPORT_LAYOUT_DRE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

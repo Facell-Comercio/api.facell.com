@@ -4,7 +4,6 @@ const { logger } = require("../../../../../logger");
 const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
 const XLSX = require('xlsx');
-const getOne = require("./getOne");
 
 module.exports = function exportLayoutDRE(req, res) {
   return new Promise(async (resolve, reject) => {
