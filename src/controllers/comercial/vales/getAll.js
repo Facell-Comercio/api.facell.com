@@ -97,8 +97,7 @@ module.exports = function getAll(req) {
         `
               SELECT 
                 v.*,
-                c.nome as nome_colaborador,
-                c.cpf,
+                v.cpf_colaborador as cpf,
                 f.nome as filial
               FROM vales v
               LEFT JOIN filiais f ON f.id = v.id_filial

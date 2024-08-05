@@ -6,13 +6,33 @@ module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
     const {
       id,
-      data_inicio_cobranca,
-      id_colaborador,
-      nome_colaborador,
-      cpf_colaborador,
+      ref,
+      ciclo,
+      id_grupo_economico,
+      grupo_economico,
       id_filial,
-      origem,
-      obs,
+      filial,
+      cargo,
+      cpf,
+      nome,
+      tags,
+
+      data_inicial,
+      data_final,
+
+      proporcional,
+
+      controle,
+      pos,
+      upgrade,
+      receita,
+      qtde_aparelho,
+      aparelho,
+      acessorio,
+      pitzi,
+      fixo,
+      wttx,
+      live,
     } = req.body;
     const { user } = req;
     if (!user) {
@@ -25,29 +45,90 @@ module.exports = function update(req) {
       if (!id) {
         throw new Error("ID não informado!");
       }
+      if (
+        !ref ||
+        !ciclo ||
+        !id_grupo_economico ||
+        !grupo_economico ||
+        !id_filial ||
+        !filial ||
+        !cargo ||
+        !cpf ||
+        !nome ||
+        !data_inicial ||
+        !data_final ||
+        !proporcional ||
+        !controle ||
+        !pos ||
+        !upgrade ||
+        !receita ||
+        !qtde_aparelho ||
+        !aparelho ||
+        !acessorio ||
+        !pitzi ||
+        !fixo ||
+        !wttx ||
+        !live
+      ) {
+        throw new Error("Dados insuficientes!");
+      }
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       await conn.execute(
-        `UPDATE vales SET
-          data_inicio_cobranca = ?,
-          id_colaborador= ?,
-          nome_colaborador = ?,
-          cpf_colaborador = ?,
+        `UPDATE facell_metas SET
+          ref = ?,
+          ciclo = ?,
+          data_inicial = ?,
+          data_final = ?,
+          proporcional = ?,
+
+          nome = ?,
+          cpf = ?,
           id_filial = ?,
-          origem = ?,
-          obs = ?,
-          updated_at = ?
+          filial = ?,
+          grupo_economico = ?,
+          cargo = ?,
+          tags = ?,
+
+          controle = ?,
+          pos = ?,
+          upgrade = ?,
+          receita = ?,
+          acessorio = ?,
+          pitzi = ?,
+          fixo = ?,
+          wttx = ?,
+          live = ?,
+          qtde_aparelho = ?,
+          aparelho = ?
         WHERE id = ?`,
         [
-          startOfDay(data_inicio_cobranca),
-          id_colaborador,
-          nome_colaborador,
-          cpf_colaborador,
+          startOfDay(ref),
+          startOfDay(ciclo),
+          startOfDay(data_inicial),
+          startOfDay(data_final),
+          proporcional,
+
+          nome,
+          cpf,
           id_filial,
-          origem,
-          obs,
-          new Date(),
+          filial,
+          grupo_economico,
+          cargo,
+          tags,
+
+          controle,
+          pos,
+          upgrade,
+          receita,
+          acessorio,
+          pitzi,
+          fixo,
+          wttx,
+          live,
+          qtde_aparelho,
+          aparelho,
           id,
         ]
       );
@@ -58,7 +139,7 @@ module.exports = function update(req) {
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "VALES",
+        origin: "METAS",
         method: "UPDATE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

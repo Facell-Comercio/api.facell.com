@@ -6,17 +6,33 @@ module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const {
       id,
-      data_inicio_cobranca,
-      id_colaborador,
-      nome_colaborador,
-      cpf_colaborador,
+      ref,
+      ciclo,
+      id_grupo_economico,
+      grupo_economico,
       id_filial,
-      origem,
-      parcelas,
-      parcela,
-      valor_parcela,
-      saldo,
-      obs,
+      filial,
+      cargo,
+      cpf,
+      nome,
+      tags,
+
+      data_inicial,
+      data_final,
+
+      proporcional,
+
+      controle,
+      pos,
+      upgrade,
+      receita,
+      qtde_aparelho,
+      aparelho,
+      acessorio,
+      pitzi,
+      fixo,
+      wttx,
+      live,
     } = req.body;
     const { user } = req;
     if (!user) {
@@ -24,10 +40,6 @@ module.exports = function insertOne(req) {
       return false;
     }
 
-    const intParcela = parseInt(parcela);
-    const intParcelas = parseInt(parcelas);
-    const floatValorParcela = parseFloat(valor_parcela);
-    const floatSaldo = parseFloat(saldo);
     let conn;
     try {
       if (id) {
@@ -36,77 +48,107 @@ module.exports = function insertOne(req) {
         );
       }
       if (
-        !data_inicio_cobranca ||
-        !id_colaborador ||
+        !ref ||
+        !ciclo ||
+        !id_grupo_economico ||
+        !grupo_economico ||
         !id_filial ||
-        !origem ||
-        !parcelas ||
-        !parcela ||
-        !valor_parcela ||
-        !saldo ||
-        !obs
+        !filial ||
+        !cargo ||
+        !cpf ||
+        !nome ||
+        !data_inicial ||
+        !data_final ||
+        !proporcional ||
+        !controle ||
+        !pos ||
+        !upgrade ||
+        !receita ||
+        !qtde_aparelho ||
+        !aparelho ||
+        !acessorio ||
+        !pitzi ||
+        !fixo ||
+        !wttx ||
+        !live ||
+        !proporcional
       ) {
         throw new Error("Dados insuficientes!");
-      }
-      if (intParcelas === intParcela && floatValorParcela !== floatSaldo) {
-        throw new Error("O valor da parcela não pode ser diferente do saldo!");
-      }
-      if (floatValorParcela > floatSaldo) {
-        throw new Error("Valor da parcela não pode ser maior que o saldo!");
-      }
-      if (intParcela > intParcelas) {
-        throw new Error(
-          "A parcela não pode ser maior que a quantidade de parcelas"
-        );
       }
 
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       const [result] = await conn.execute(
-        `INSERT INTO vales (
-          data_inicio_cobranca,
-          id_colaborador,
-          nome_colaborador,
-          cpf_colaborador,
+        `INSERT INTO facell_metas (
+          ref,
+          ciclo,
+          data_inicial,
+          data_final,
+          proporcional,
+
+          nome,
+          cpf,
           id_filial,
-          origem,
-          parcelas,
-          parcela,
-          valor,
-          saldo,
-          obs,
-          id_criador
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+          filial,
+          grupo_economico,
+          cargo,
+          tags,
+
+          controle,
+          pos,
+          upgrade,
+          receita,
+          acessorio,
+          pitzi,
+          fixo,
+          wttx,
+          live,
+          qtde_aparelho,
+          aparelho
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
-          startOfDay(data_inicio_cobranca),
-          id_colaborador,
-          nome_colaborador,
-          cpf_colaborador,
+          startOfDay(ref),
+          startOfDay(ciclo),
+          startOfDay(data_inicial),
+          startOfDay(data_final),
+          proporcional,
+
+          nome,
+          cpf,
           id_filial,
-          origem,
-          intParcelas,
-          intParcela,
-          floatValorParcela,
-          floatSaldo,
-          obs,
-          user.id,
+          filial,
+          grupo_economico,
+          cargo,
+          tags,
+
+          controle,
+          pos,
+          upgrade,
+          receita,
+          acessorio,
+          pitzi,
+          fixo,
+          wttx,
+          live,
+          qtde_aparelho,
+          aparelho,
         ]
       );
 
       const newId = result.insertId;
 
       if (!newId) {
-        throw new Error(`Vale não inserido`);
+        throw new Error(`Meta não inserida`);
       }
 
-      // await conn.rollback();
-      await conn.commit();
+      await conn.rollback();
+      // await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "VALES",
+        origin: "METAS",
         method: "INSERT_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

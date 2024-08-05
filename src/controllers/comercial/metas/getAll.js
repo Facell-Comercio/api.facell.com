@@ -98,24 +98,7 @@ module.exports = function getAll(req) {
               SELECT 
                 fm.*,
                 f.nome as filial,
-                gp.nome as grupo_econômico
-              FROM facell_metas fm
-              LEFT JOIN filiais f ON f.id = fm.id_filial
-              LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-              ${where}
-              
-              ORDER BY fm.id DESC
-              ${limit}
-              `,
-        params
-      );
-
-      console.log(
-        `
-              SELECT 
-                fm.*,
-                f.nome as filial,
-                gp.nome as grupo_econômico
+                gp.nome as grupo_economico
               FROM facell_metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
