@@ -11,6 +11,7 @@ const {
   exportLayoutDatasys,
   exportLayoutPrevisaoPagamento,
   exportLayoutDespesas,
+  exportLayoutVencimentos,
   exportLayoutDRE,
   importLoteSolicitacoes,
   getOneByTimParams,
@@ -45,6 +46,14 @@ router.get("/export-previsao-pagamento", async (req, res) => {
 router.get("/export-layout-despesas", async (req, res) => {
   try {
     const response = await exportLayoutDespesas(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/export-layout-vencimentos", async (req, res) => {
+  try {
+    const response = await exportLayoutVencimentos(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

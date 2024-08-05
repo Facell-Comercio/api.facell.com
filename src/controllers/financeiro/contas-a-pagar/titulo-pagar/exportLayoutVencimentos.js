@@ -4,9 +4,8 @@ const { logger } = require("../../../../../logger");
 const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
 const XLSX = require('xlsx');
-const getOne = require("./getOne");
 
-module.exports = function exportLayoutDRE(req, res) {
+module.exports = function exportLayoutVencimentos(req, res) {
   return new Promise(async (resolve, reject) => {
     let conn
     try {
@@ -20,7 +19,7 @@ module.exports = function exportLayoutDRE(req, res) {
       const { filters } = req.query || {};
 
       // Filtros
-      var where = ` tv.data_pagamento IS NOT NULL `;
+      var where = ` 1=1 `;
       //* Somente o Financeiro/Master podem ver todos
       if (
         !checkUserDepartment(req, "FINANCEIRO") &&
@@ -141,12 +140,11 @@ module.exports = function exportLayoutDRE(req, res) {
       }
 
       // * Lista de vencimentos
-      const query = `SELECT 
+      const [vencimentos] = await conn.execute(`SELECT 
           tv.id as id_vencimento,  
           t.id as id_titulo, 
           s.status as status_titulo,
           tv.valor as valor_vencimento, 
-          tv.data_pagamento, 
           t.valor as valor_titulo, 
           COALESCE(ge.nome, 'RR') as grupo_economico,
           f.nome as filial,
@@ -158,11 +156,9 @@ module.exports = function exportLayoutDRE(req, res) {
           t.created_at as data_criacao,
           tv.data_vencimento,
           tv.data_prevista ,
-          tv.tipo_baixa,
           tv.status AS status_pagamento,
           tv.valor_pago,
-          u.nome as solicitante,
-          cb.descricao as conta_bancaria
+          u.nome as solicitante
         FROM fin_cp_titulos_vencimentos tv 
         INNER JOIN fin_cp_titulos t on t.id = tv.id_titulo 
         LEFT JOIN filiais f ON f.id = t.id_filial
@@ -175,77 +171,23 @@ module.exports = function exportLayoutDRE(req, res) {
         LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
         WHERE 
           ${where}
-          ORDER BY tv.data_vencimento ASC`
+          ORDER BY tv.data_vencimento ASC`, params)
 
-      const [vencimentos] = await conn.execute(query, params)
-      // console.log({ query });
-      // console.log({ params });
 
-      const despesas = []
-
-      async function gerarDespesa({ vencimento }) {
-        const [itens_rateio] = await conn.execute(
-          `SELECT 
-            tr.*,
-            f.nome as filial,
-            fcc.nome  as centro_custo,
-            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
-            ROUND(tr.valor, 4) as valor, 
-            tr.percentual
-          FROM 
-            fin_cp_titulos_rateio tr 
-          LEFT JOIN filiais f ON f.id = tr.id_filial
-          LEFT JOIN fin_centros_custo fcc ON fcc.id = tr.id_centro_custo
-          LEFT JOIN fin_plano_contas fpc ON fpc.id = tr.id_plano_conta
-            WHERE tr.id_titulo = ?`,
-          [vencimento.id_titulo]
-        );
-
-        vencimento.valor_pago = parseFloat(vencimento.valor_pago)
+      vencimentos.forEach(vencimento=>{
+        vencimento.valor_vencimento = parseFloat(vencimento.valor_vencimento)
         vencimento.valor_titulo = parseFloat(vencimento.valor_titulo)
-
-        for (const item_rateio of itens_rateio) {
-          const valorVencimentoRateado = parseFloat(item_rateio.percentual) * vencimento.valor_pago;
-          
-          // Cada vencimento será quebrado em despesas, que nada mais é do que os itens_rateio do título quebrando os vencimentos.
-          const despesa = {
-            'Nível': 4,
-            'Grupo': vencimento.grupo_economico,
-            'Empresa': item_rateio.filial,
-            'Conta/Descrição': `Conta: ${item_rateio.plano_conta}`,
-            'Data Movimento': vencimento.data_pagamento,
-            'Documento': vencimento.documento,
-            'Histórico': vencimento.descricao,
-            'Origem Lançamento': 'Contas Pagar',
-            'Centro Custos': item_rateio.centro_custo,
-            'Cliente / Fornecedor': vencimento.nome_fornecedor,
-            'Tipo': 'Pagamentos',
-            'Base': 'Contas Pagar',
-            'Valor': valorVencimentoRateado,
-            'Banco': vencimento.conta_bancaria,
-            'Filial Lançamento': vencimento.filial,
-            'ID Titulo': vencimento.id_titulo,
-            'Valor Titulo': vencimento.valor_titulo,
-            'ID Vencimento': vencimento.id_vencimento,
-            'Valor Vencimento': vencimento.valor_pago,
-            'Tipo Baixa': vencimento.tipo_baixa
-          }
-          // console.log({despesa});
-          despesas.push(despesa)
-        }
-      }
-
-      await Promise.all(vencimentos.map(vencimento => gerarDespesa({ vencimento })))
-
+        vencimento.valor_pago = parseFloat(vencimento.valor_pago || '0')
+      })
 
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(despesas);
+      const worksheet = XLSX.utils.json_to_sheet(vencimentos);
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      const filename = `EXPORT CONTAS A PAGAR LAYOUT DRE ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
+      const filename = `EXPORT VENCIMENTOS.xlsx`;
 
-      res.set("Content-Type", "text/plain");
+      res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(buffer);
       resolve();
@@ -253,7 +195,7 @@ module.exports = function exportLayoutDRE(req, res) {
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
-        method: "EXPORT_LAYOUT_DRE",
+        method: "EXPORT_LAYOUT_VENCIMENTOS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

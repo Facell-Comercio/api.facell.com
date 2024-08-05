@@ -173,11 +173,6 @@ module.exports = function exportLayoutPagamento(req, res) {
           ${where}
           ORDER BY tv.data_vencimento ASC`, params)
 
-
-      if (vencimentos.length == 0) {
-        throw new Error('Movimento Contábil Vazio');
-      }
-
       vencimentos.forEach(vencimento=>{
         vencimento.valor_vencimento = parseFloat(vencimento.valor_vencimento)
         vencimento.valor_titulo = parseFloat(vencimento.valor_titulo)

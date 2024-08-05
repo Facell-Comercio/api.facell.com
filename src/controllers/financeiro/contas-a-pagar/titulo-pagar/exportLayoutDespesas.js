@@ -222,7 +222,7 @@ module.exports = function exportLayoutDespesas(req, res) {
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
-        method: "EXPORT_PREVISAO_PAGAMENTO",
+        method: "EXPORT_LAYOUT_DESPESAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
