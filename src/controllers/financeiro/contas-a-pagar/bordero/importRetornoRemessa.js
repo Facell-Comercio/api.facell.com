@@ -84,23 +84,7 @@ module.exports = async function importRetornoRemessa(req) {
                   throw new Error(`Vencimento já constava como pago`);
                 }
 
-                const [vencimentosNaoPagos] = await conn.execute(
-                  `
-                        SELECT 
-                          tv.id 
-                        FROM fin_cp_titulos_vencimentos tv
-                        WHERE tv.id_titulo = ? 
-                        AND tv.data_pagamento IS NULL
-                      `,
-                  [vencimento.id_titulo]
-                );
-
-                //* Verificar se há titulos relacionado a esse vencimento
-                if (!vencimentosNaoPagos || vencimentosNaoPagos.length === 0) {
-                  throw new Error(
-                    "Não há títulos relacionados a esse vencimento"
-                  );
-                }
+                
 
                 const ocorrenciasErro = ocorrencias.filter(
                   (e) => e != "00" && e != "BD"
@@ -153,6 +137,7 @@ module.exports = async function importRetornoRemessa(req) {
                   const dataPagamento =
                     segmento.data_real_efetivacao_pgto ||
                     segmento.data_pagamento;
+
                   await conn.execute(
                     `
                         UPDATE fin_cp_titulos_vencimentos 
@@ -161,6 +146,18 @@ module.exports = async function importRetornoRemessa(req) {
                         obs="PAGAMENTO REALIZADO NO RETORNO DA REMESSA" WHERE id = ?
                         `,
                     [valorPago, valorPago, dataPagamento, vencimento.id]
+                  );
+
+                  // * Obtém os vencimentos não pagos do titulo
+                  const [vencimentosNaoPagos] = await conn.execute(
+                    `
+                          SELECT 
+                            tv.id 
+                          FROM fin_cp_titulos_vencimentos tv
+                          WHERE tv.id_titulo = ? 
+                          AND tv.data_pagamento IS NULL
+                        `,
+                    [vencimento.id_titulo]
                   );
 
                   if (vencimentosNaoPagos.length === 0) {
