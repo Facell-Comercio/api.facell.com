@@ -452,6 +452,8 @@ module.exports = {
 
   exportLayoutDatasys: require('./titulo-pagar/exportLayoutDatasys'),
   exportLayoutPrevisaoPagamento: require('./titulo-pagar/exportLayoutPrevisaoPagamento'),
+  exportLayoutDespesas: require('./titulo-pagar/exportLayoutDespesas'),
+  exportLayoutDRE: require('./titulo-pagar/exportLayoutDRE'),
   importLoteSolicitacoes: require('./titulo-pagar/importLote'),
 
   getAllRecorrencias: require('./recorrencia/getAll'),

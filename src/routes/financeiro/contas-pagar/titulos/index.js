@@ -10,6 +10,8 @@ const {
   changeStatusTitulo,
   exportLayoutDatasys,
   exportLayoutPrevisaoPagamento,
+  exportLayoutDespesas,
+  exportLayoutDRE,
   importLoteSolicitacoes,
   getOneByTimParams,
   getPendencias,
@@ -20,6 +22,7 @@ const {
   deleteRecorrencia,
   checkDoc,
   processarXml,
+  
 } = require('../../../../controllers/financeiro/contas-a-pagar/titulo-pagar-controller');
 
 router.get('/export-datasys', async (req, res) => {
@@ -34,6 +37,22 @@ router.get('/export-datasys', async (req, res) => {
 router.get("/export-previsao-pagamento", async (req, res) => {
   try {
     const response = await exportLayoutPrevisaoPagamento(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/export-layout-despesas", async (req, res) => {
+  try {
+    const response = await exportLayoutDespesas(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/export-layout-dre", async (req, res) => {
+  try {
+    const response = await exportLayoutDRE(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
