@@ -262,7 +262,7 @@ module.exports = function exportLayoutDespesas(req, res) {
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
       const filename = `EXPORT DESPESAS ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
 
-      res.set("Content-Type", "text/plain");
+      res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(buffer);
       resolve();
@@ -270,7 +270,7 @@ module.exports = function exportLayoutDespesas(req, res) {
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
-        method: "EXPORT_LAYOUT_DRE",
+        method: "EXPORT_LAYOUT_DESPESAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
