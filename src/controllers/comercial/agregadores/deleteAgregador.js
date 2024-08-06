@@ -1,7 +1,7 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
-module.exports = function deleteMeta(req) {
+module.exports = function deleteAgregador(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
     const { user } = req;
@@ -16,14 +16,14 @@ module.exports = function deleteMeta(req) {
       if (!id) {
         throw new Error("ID não informado!");
       }
-      // ! Exclusão de meta:
-      await conn.execute(`DELETE FROM facell_metas WHERE id = ?`, [id]);
+      // ! Exclusão de agregador:
+      await conn.execute(`DELETE FROM facell_agregadores WHERE id = ?`, [id]);
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "METAS",
-        method: "DELETE_META",
+        origin: "AGREGADORES",
+        method: "DELETE_AGREGADOR",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

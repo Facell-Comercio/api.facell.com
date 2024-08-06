@@ -142,13 +142,13 @@ module.exports = function insertOne(req) {
         throw new Error(`Meta não inserida`);
       }
 
-      // await conn.rollback();
-      await conn.commit();
+      await conn.rollback();
+      // await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "METAS",
+        origin: "AGREGADORES",
         method: "INSERT_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

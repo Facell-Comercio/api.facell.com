@@ -17,6 +17,7 @@ module.exports = function getAll(req) {
       cargo,
       mes,
       ano,
+      tipo_agregacao,
       tipo_data,
       range_data,
     } = filters || {};
@@ -30,7 +31,7 @@ module.exports = function getAll(req) {
     let where = ` WHERE 1=1 `;
 
     if (id_filial) {
-      where += ` AND fm.id_filial = ? `;
+      where += ` AND fa.id_filial = ? `;
       params.push(id_filial);
     }
     if (id_grupo_economico) {
@@ -38,22 +39,26 @@ module.exports = function getAll(req) {
       params.push(id_grupo_economico);
     }
     if (nome) {
-      where += ` AND fm.nome LIKE CONCAT('%',?,'%') `;
+      where += ` AND fa.nome LIKE CONCAT('%',?,'%') `;
       params.push(nome);
     }
     if (cpf) {
-      where += ` AND fm.cpf LIKE CONCAT(?,'%') `;
+      where += ` AND fa.cpf LIKE CONCAT(?,'%') `;
       params.push(cpf);
     }
     if (cargo) {
-      where += ` AND fm.cargo LIKE CONCAT('%',?,'%') `;
+      where += ` AND fa.cargo LIKE CONCAT('%',?,'%') `;
       params.push(cargo);
+    }
+    if (tipo_agregacao) {
+      where += ` AND fa.tipo_agregacao LIKE CONCAT('%',?,'%') `;
+      params.push(tipo_agregacao);
     }
 
     // if (tipo_data && range_data) {
     //   const { from: data_de, to: data_ate } = range_data;
 
-    //   const campo_data = `fm.${tipo_data}`;
+    //   const campo_data = `fa.${tipo_data}`;
 
     //   if (data_de && data_ate) {
     //     where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
@@ -70,12 +75,12 @@ module.exports = function getAll(req) {
     // }
 
     if (mes) {
-      where += ` AND MONTH(fm.ref) = ? `;
+      where += ` AND MONTH(fa.ref) = ? `;
       params.push(mes);
     }
 
     if (ano) {
-      where += ` AND YEAR(fm.ref) = ? `;
+      where += ` AND YEAR(fa.ref) = ? `;
       params.push(ano);
     }
 
@@ -86,9 +91,9 @@ module.exports = function getAll(req) {
         `SELECT COUNT(*) AS qtde
               FROM (
                 SELECT 
-                  fm.id
-                FROM facell_metas fm
-                LEFT JOIN filiais f ON f.id = fm.id_filial
+                  fa.id
+                FROM facell_agregadores fa
+                LEFT JOIN filiais f ON f.id = fa.id_filial
                 LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
                 ${where}
               ) 
@@ -108,15 +113,15 @@ module.exports = function getAll(req) {
       const [rows] = await conn.execute(
         `
               SELECT 
-                fm.*,
+                fa.*,
                 f.nome as filial,
                 gp.nome as grupo_economico
-              FROM facell_metas fm
-              LEFT JOIN filiais f ON f.id = fm.id_filial
+              FROM facell_agregadores fa
+              LEFT JOIN filiais f ON f.id = fa.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
               
-              ORDER BY fm.id DESC
+              ORDER BY fa.id DESC
               ${limit}
               `,
         params
@@ -132,7 +137,7 @@ module.exports = function getAll(req) {
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "METAS",
+        origin: "AGREGADORES",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

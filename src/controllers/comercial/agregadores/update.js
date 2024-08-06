@@ -2,7 +2,7 @@ const { parse, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
-module.exports = function insertOne(req) {
+module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
     const {
       id,
@@ -42,10 +42,8 @@ module.exports = function insertOne(req) {
 
     let conn;
     try {
-      if (id) {
-        throw new Error(
-          "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
-        );
+      if (!id) {
+        throw new Error("ID não informado!");
       }
       if (
         !ref ||
@@ -70,43 +68,41 @@ module.exports = function insertOne(req) {
         !pitzi ||
         !fixo ||
         !wttx ||
-        !live ||
-        !proporcional
+        !live
       ) {
         throw new Error("Dados insuficientes!");
       }
-
       conn = await db.getConnection();
       await conn.beginTransaction();
 
-      const [result] = await conn.execute(
-        `INSERT INTO facell_metas (
-          ref,
-          ciclo,
-          data_inicial,
-          data_final,
-          proporcional,
+      await conn.execute(
+        `UPDATE facell_metas SET
+          ref = ?,
+          ciclo = ?,
+          data_inicial = ?,
+          data_final = ?,
+          proporcional = ?,
 
-          nome,
-          cpf,
-          id_filial,
-          filial,
-          grupo_economico,
-          cargo,
-          tags,
+          nome = ?,
+          cpf = ?,
+          id_filial = ?,
+          filial = ?,
+          grupo_economico = ?,
+          cargo = ?,
+          tags = ?,
 
-          controle,
-          pos,
-          upgrade,
-          receita,
-          acessorio,
-          pitzi,
-          fixo,
-          wttx,
-          live,
-          qtde_aparelho,
-          aparelho
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          controle = ?,
+          pos = ?,
+          upgrade = ?,
+          receita = ?,
+          acessorio = ?,
+          pitzi = ?,
+          fixo = ?,
+          wttx = ?,
+          live = ?,
+          qtde_aparelho = ?,
+          aparelho = ?
+        WHERE id = ?`,
         [
           startOfDay(ref),
           startOfDay(ciclo),
@@ -133,14 +129,9 @@ module.exports = function insertOne(req) {
           live,
           qtde_aparelho,
           aparelho,
+          id,
         ]
       );
-
-      const newId = result.insertId;
-
-      if (!newId) {
-        throw new Error(`Meta não inserida`);
-      }
 
       // await conn.rollback();
       await conn.commit();
@@ -148,8 +139,8 @@ module.exports = function insertOne(req) {
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "METAS",
-        method: "INSERT_ONE",
+        origin: "AGREGADORES",
+        method: "UPDATE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
