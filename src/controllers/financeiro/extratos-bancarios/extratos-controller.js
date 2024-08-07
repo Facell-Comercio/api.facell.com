@@ -253,21 +253,19 @@ function importarExtrato(req) {
           `OFX Agência/Conta ${ofx_conta.ACCTID}, diverge de conta selecionada: Agência: ${contaBancaria.agencia} Conta: ${contaBancaria.conta}`
         );
       }
-
-      const ofx_transactions =
-        ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN;
       const data_atual = formatDate(new Date(), "yyyy-MM-dd");
-
-      for (const transaction of ofx_transactions) {
+      
+      // Função de importaçaõ de transação:
+      async function importTransacao({ transaction }) {
         const data_transaction = formatarDataTransacao(transaction.DTPOSTED);
         const id_transacao = transaction.FITID;
         const valor_transacao = parseFloat(transaction.TRNAMT.replace(',', '.')).toFixed(2);
         const documento_transacao = transaction.CHECKNUM || transaction.FITID;
         const descricao_transacao = transaction.MEMO;
         const tipo_transacao = transaction.TRNTYPE.toUpperCase();
-
+        
         if (data_transaction >= data_atual) {
-          continue;
+          return;
         }
 
         await conn.execute(
@@ -295,6 +293,20 @@ function importarExtrato(req) {
             tipo_transacao,
           ]
         );
+      }
+
+      const ofx_transactions =
+        ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN;
+      if (ofx_transactions) {
+
+
+        if (Array.isArray(ofx_transactions)) {
+          for (const transaction of ofx_transactions) {
+            await importTransacao({ transaction })
+          }
+        } else {
+          await importTransacao({ transaction: ofx_transactions })
+        }
       }
 
       await conn.commit();
