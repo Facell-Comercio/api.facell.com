@@ -98,7 +98,7 @@ module.exports = function getAll(req) {
         })),
         ...faturasConciliados.map((f) => ({
           ...f,
-          valor: v.valor_total,
+          valor: f.valor_total,
           tipo: "fatura",
         })),
       ];
