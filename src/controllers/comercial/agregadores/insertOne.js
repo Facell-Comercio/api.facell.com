@@ -16,23 +16,12 @@ module.exports = function insertOne(req) {
       cpf,
       nome,
       tags,
+      tipo_agregacao,
 
       data_inicial,
       data_final,
 
       proporcional,
-
-      controle,
-      pos,
-      upgrade,
-      receita,
-      qtde_aparelho,
-      aparelho,
-      acessorio,
-      pitzi,
-      fixo,
-      wttx,
-      live,
     } = req.body;
     const { user } = req;
     if (!user) {
@@ -60,18 +49,7 @@ module.exports = function insertOne(req) {
         !data_inicial ||
         !data_final ||
         !proporcional ||
-        !controle ||
-        !pos ||
-        !upgrade ||
-        !receita ||
-        !qtde_aparelho ||
-        !aparelho ||
-        !acessorio ||
-        !pitzi ||
-        !fixo ||
-        !wttx ||
-        !live ||
-        !proporcional
+        !tipo_agregacao
       ) {
         throw new Error("Dados insuficientes!");
       }
@@ -80,7 +58,7 @@ module.exports = function insertOne(req) {
       await conn.beginTransaction();
 
       const [result] = await conn.execute(
-        `INSERT INTO facell_metas (
+        `INSERT INTO facell_agregadores (
           ref,
           ciclo,
           data_inicial,
@@ -94,19 +72,8 @@ module.exports = function insertOne(req) {
           grupo_economico,
           cargo,
           tags,
-
-          controle,
-          pos,
-          upgrade,
-          receita,
-          acessorio,
-          pitzi,
-          fixo,
-          wttx,
-          live,
-          qtde_aparelho,
-          aparelho
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          tipo_agregacao
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
           startOfDay(ref),
           startOfDay(ciclo),
@@ -120,19 +87,8 @@ module.exports = function insertOne(req) {
           filial,
           grupo_economico,
           cargo,
-          tags,
-
-          controle,
-          pos,
-          upgrade,
-          receita,
-          acessorio,
-          pitzi,
-          fixo,
-          wttx,
-          live,
-          qtde_aparelho,
-          aparelho,
+          tags || null,
+          tipo_agregacao,
         ]
       );
 
@@ -142,8 +98,8 @@ module.exports = function insertOne(req) {
         throw new Error(`Meta não inserida`);
       }
 
-      await conn.rollback();
-      // await conn.commit();
+      // await conn.rollback();
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({

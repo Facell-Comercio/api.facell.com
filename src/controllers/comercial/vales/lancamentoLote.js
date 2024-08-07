@@ -2,6 +2,7 @@ const { parse, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { excelDateToJSDate } = require("../../../helpers/mask");
+const { checkCPF } = require("../../../helpers/chekers");
 
 module.exports = function lancamentoLote(req) {
   return new Promise(async (resolve, reject) => {
@@ -26,6 +27,13 @@ module.exports = function lancamentoLote(req) {
           ...vale,
         };
         try {
+          let cpfNormalizado = cpf;
+          if (cpfNormalizado.length < 11) {
+            cpfNormalizado = String(cpfNormalizado).padStart(11, "0");
+          }
+          if (!checkCPF(cpfNormalizado)) {
+            throw new Error(`CPF inválido`);
+          }
           const [rowFiliais] = await conn.execute(
             `
             SELECT id FROM filiais WHERE nome LIKE CONCAT('%',?,'%')
@@ -38,9 +46,6 @@ module.exports = function lancamentoLote(req) {
           }
           if (parseFloat(valor) <= 0) {
             throw new Error(`Valor do vale não pode ser zero`);
-          }
-          if (cpf.length !== 11) {
-            throw new Error(`CPF inválido`);
           }
 
           //^ Quando houver tabela de colaboradores
@@ -74,7 +79,7 @@ module.exports = function lancamentoLote(req) {
               startOfDay(excelDateToJSDate(data_inicio_cobranca)),
               colaborador.id,
               colaborador.nome,
-              cpf,
+              cpfNormalizado,
               id_filial,
               origem,
               1,

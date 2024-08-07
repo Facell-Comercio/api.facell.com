@@ -1,5 +1,4 @@
 const router = require("express").Router();
-const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
 
 const {
   getAll,
@@ -9,44 +8,29 @@ const {
   update,
   lancamentoLote,
 } = require("../../../controllers/comercial/agregadores-controller");
+const checkUserPermissionMiddleware = require("../../../middlewares/permission-middleware");
 
-router.get(
-  "/",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_METAS",
-    "VISUALIZAR_METAS",
-    "MASTER",
-  ]),
-  async (req, res) => {
-    try {
-      const result = await getAll(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/", async (req, res) => {
+  try {
+    const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_METAS",
-    "VISUALIZAR_METAS",
-    "MASTER",
-  ]),
-  async (req, res) => {
-    try {
-      const result = await getOne(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await getOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.post(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
+  checkUserPermissionMiddleware(["GERENCIAR_METAS", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertOne(req);
@@ -59,7 +43,7 @@ router.post(
 
 router.post(
   "/lancamento-lote",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
+  checkUserPermissionMiddleware(["GERENCIAR_METAS", "MASTER"]),
   async (req, res) => {
     try {
       const result = await lancamentoLote(req);
@@ -72,7 +56,7 @@ router.post(
 
 router.put(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
+  checkUserPermissionMiddleware(["GERENCIAR_METAS", "MASTER"]),
   async (req, res) => {
     try {
       const result = await update(req);
@@ -85,7 +69,7 @@ router.put(
 
 router.delete(
   "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
+  checkUserPermissionMiddleware(["GERENCIAR_METAS", "MASTER"]),
   async (req, res) => {
     try {
       const result = await deleteAgregador(req);

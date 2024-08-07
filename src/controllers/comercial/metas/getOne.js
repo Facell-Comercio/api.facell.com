@@ -1,5 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 module.exports = function getOne(req) {
   return new Promise(async (resolve, reject) => {
@@ -8,6 +9,32 @@ module.exports = function getOne(req) {
     if (!user) {
       reject("Usuário não autenticado!");
       return false;
+    }
+    const params = [];
+    let where = "WHERE 1 = 1 ";
+    const filiaisGestor = user.filiais
+      .filter((filial) => filial.gestor)
+      .map((filial) => filial.id_filial);
+    if (
+      !checkUserPermission(req, [
+        "MASTER",
+        "GERENCIAR_METAS",
+        "VISUALIZAR_METAS",
+      ])
+    ) {
+      if (filiaisGestor.length > 0) {
+        where += ` AND (fm.id_filial IN ('${filiaisGestor.join(
+          "','"
+        )}') OR fm.cpf = ?)`;
+        params.push(user.cpf);
+      } else {
+        where += ` AND fm.cpf = ? `;
+        params.push(user.cpf);
+      }
+    }
+    if (id) {
+      where += ` AND fm.id = ? `;
+      params.push(id);
     }
 
     let conn;
@@ -23,16 +50,24 @@ module.exports = function getOne(req) {
               FROM facell_metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-              WHERE fm.id = ?
+              ${where}
               `,
-        [id]
+        params
       );
       const meta = rowsMetas && rowsMetas[0];
       if (!meta) {
         throw new Error(`A meta de id ${id} não foi encontrada`);
       }
 
-      resolve(meta);
+      resolve({
+        ...meta,
+        canEdit:
+          checkUserPermission(req, [
+            "MASTER",
+            "GERENCIAR_METAS",
+            "VISUALIZAR_METAS",
+          ]) || filiaisGestor.includes(meta.id_filial),
+      });
     } catch (error) {
       logger.error({
         module: "COMERCIAL",

@@ -1,6 +1,7 @@
 const { parse, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
@@ -39,6 +40,9 @@ module.exports = function update(req) {
       reject("Usuário não autenticado!");
       return false;
     }
+    const filiaisGestor = user.filiais
+      .filter((filial) => filial.gestor)
+      .map((filial) => filial.id_filial);
 
     let conn;
     try {
@@ -74,6 +78,26 @@ module.exports = function update(req) {
       }
       conn = await db.getConnection();
       await conn.beginTransaction();
+
+      //* Validação de permissão de edição
+      const [rowsMetas] = await conn.execute(
+        `
+        SELECT id_filial FROM facell_metas WHERE id = ?
+        `,
+        [id]
+      );
+      const meta = rowsMetas && rowsMetas[0];
+
+      if (
+        !checkUserPermission(req, [
+          "MASTER",
+          "GERENCIAR_METAS",
+          "VISUALIZAR_METAS",
+        ]) &&
+        !filiaisGestor.includes(meta.id_filial)
+      ) {
+        throw new Error("Sem permissão para edição dessa meta");
+      }
 
       await conn.execute(
         `UPDATE facell_metas SET

@@ -1,5 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 module.exports = function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -8,6 +9,11 @@ module.exports = function getAll(req) {
       reject("Usuário não autenticado!");
       return false;
     }
+
+    const filiaisGestor = user.filiais
+      .filter((filial) => filial.gestor)
+      .map((filial) => filial.id_filial);
+
     const { filters, pagination } = req.query;
     const {
       id_filial,
@@ -17,6 +23,8 @@ module.exports = function getAll(req) {
       cargo,
       mes,
       ano,
+      cpf_list,
+      agregacao,
       tipo_data,
       range_data,
     } = filters || {};
@@ -49,27 +57,50 @@ module.exports = function getAll(req) {
       where += ` AND fm.cargo LIKE CONCAT('%',?,'%') `;
       params.push(cargo);
     }
+    if (cpf_list && cpf_list.length > 0 && cpf_list[0] !== "") {
+      where += ` AND NOT fm.cpf IN ('${cpf_list.join("','")}') `;
+    }
+    if (agregacao) {
+      where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
+    }
 
-    // if (tipo_data && range_data) {
-    //   const { from: data_de, to: data_ate } = range_data;
-
-    //   const campo_data = `fm.${tipo_data}`;
-
-    //   if (data_de && data_ate) {
-    //     where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-    //       data_ate.split("T")[0]
-    //     }'  `;
-    //   } else {
-    //     if (data_de) {
-    //       where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
-    //     }
-    //     if (data_ate) {
-    //       where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
-    //     }
-    //   }
-    // }
-
+    if (
+      !checkUserPermission(req, [
+        "MASTER",
+        "GERENCIAR_METAS",
+        "VISUALIZAR_METAS",
+      ])
+    ) {
+      if (filiaisGestor.length > 0) {
+        where += ` AND (fm.id_filial IN ('${filiaisGestor.join(
+          "','"
+        )}') OR fm.cpf = ?)`;
+        params.push(user.cpf);
+      } else {
+        where += ` AND fm.cpf = ? `;
+        params.push(user.cpf);
+      }
+    }
     if (mes) {
+      // if (tipo_data && range_data) {
+      //   const { from: data_de, to: data_ate } = range_data;
+
+      //   const campo_data = `fm.${tipo_data}`;
+
+      //   if (data_de && data_ate) {
+      //     where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+      //       data_ate.split("T")[0]
+      //     }'  `;
+      //   } else {
+      //     if (data_de) {
+      //       where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
+      //     }
+      //     if (data_ate) {
+      //       where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
+      //     }
+      //   }
+      // }
+
       where += ` AND MONTH(fm.ref) = ? `;
       params.push(mes);
     }
@@ -106,6 +137,22 @@ module.exports = function getAll(req) {
       }
 
       const [rows] = await conn.execute(
+        `
+              SELECT 
+                fm.*,
+                f.nome as filial,
+                gp.nome as grupo_economico
+              FROM facell_metas fm
+              LEFT JOIN filiais f ON f.id = fm.id_filial
+              LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
+              ${where}
+              
+              ORDER BY fm.id DESC
+              ${limit}
+              `,
+        params
+      );
+      console.log(
         `
               SELECT 
                 fm.*,

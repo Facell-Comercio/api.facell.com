@@ -22,18 +22,10 @@ module.exports = function update(req) {
 
       proporcional,
 
-      controle,
-      pos,
-      upgrade,
-      receita,
-      qtde_aparelho,
-      aparelho,
-      acessorio,
-      pitzi,
-      fixo,
-      wttx,
-      live,
+      tipo_agregacao,
+      metas_agregadas,
     } = req.body;
+
     const { user } = req;
     if (!user) {
       reject("Usuário não autenticado!");
@@ -58,17 +50,8 @@ module.exports = function update(req) {
         !data_inicial ||
         !data_final ||
         !proporcional ||
-        !controle ||
-        !pos ||
-        !upgrade ||
-        !receita ||
-        !qtde_aparelho ||
-        !aparelho ||
-        !acessorio ||
-        !pitzi ||
-        !fixo ||
-        !wttx ||
-        !live
+        !tipo_agregacao ||
+        !metas_agregadas
       ) {
         throw new Error("Dados insuficientes!");
       }
@@ -76,7 +59,7 @@ module.exports = function update(req) {
       await conn.beginTransaction();
 
       await conn.execute(
-        `UPDATE facell_metas SET
+        `UPDATE facell_agregadores SET
           ref = ?,
           ciclo = ?,
           data_inicial = ?,
@@ -91,17 +74,8 @@ module.exports = function update(req) {
           cargo = ?,
           tags = ?,
 
-          controle = ?,
-          pos = ?,
-          upgrade = ?,
-          receita = ?,
-          acessorio = ?,
-          pitzi = ?,
-          fixo = ?,
-          wttx = ?,
-          live = ?,
-          qtde_aparelho = ?,
-          aparelho = ?
+          tipo_agregacao = ?,
+          metas_agregadas = ?
         WHERE id = ?`,
         [
           startOfDay(ref),
@@ -117,18 +91,8 @@ module.exports = function update(req) {
           grupo_economico,
           cargo,
           tags,
-
-          controle,
-          pos,
-          upgrade,
-          receita,
-          acessorio,
-          pitzi,
-          fixo,
-          wttx,
-          live,
-          qtde_aparelho,
-          aparelho,
+          tipo_agregacao,
+          metas_agregadas,
           id,
         ]
       );

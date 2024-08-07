@@ -1,5 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 module.exports = function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -29,6 +30,17 @@ module.exports = function getAll(req) {
     const params = [];
 
     let where = ` WHERE 1=1 `;
+
+    if (
+      !checkUserPermission(req, [
+        "MASTER",
+        "GERENCIAR_METAS",
+        "VISUALIZAR_METAS",
+      ])
+    ) {
+      where += ` AND fa.cpf = ? `;
+      params.push(user.cpf);
+    }
 
     if (id_filial) {
       where += ` AND fa.id_filial = ? `;
