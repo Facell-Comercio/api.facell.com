@@ -87,6 +87,7 @@ module.exports = function exportRemessa(req, res) {
         rowsPagamentoBoletoOutroBancoParaItau,
         rowsPagamentoPIXQRCode,
         rowsPagamentoBoletoImpostos,
+        rowsPagamentoTributos,
       ] = await Promise.all([
         //* Pagamento Corrente Itaú
         conn
@@ -331,6 +332,29 @@ module.exports = function exportRemessa(req, res) {
             [id_bordero]
           )
           .then(([rows]) => rows),
+
+        //* Pagamento Tributos
+        conn
+          .execute(
+            `
+        SELECT
+          tv.id as id_vencimento
+        FROM fin_cp_titulos_vencimentos tv
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
+        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN filiais f ON f.id = t.id_filial
+        LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
+        LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
+        WHERE ${whereVenvimentos}
+        AND t.id_forma_pagamento = 11
+        AND tv.data_pagamento IS NULL
+        AND (tv.status = "erro" OR tv.status = "pendente")
+  `,
+            [id_bordero]
+          )
+          .then(([rows]) => rows),
       ]);
 
       let formasPagamento;
@@ -355,6 +379,7 @@ module.exports = function exportRemessa(req, res) {
             PagamentoBoletoOutroBancoParaItau:
               rowsPagamentoBoletoOutroBancoParaItau,
             PagamentoBoletoImpostos: rowsPagamentoBoletoImpostos,
+            PagamentoTributosCodBarras: rowsPagamentoTributos,
           })
         );
       }
@@ -409,7 +434,10 @@ module.exports = function exportRemessa(req, res) {
           case "PagamentoPIXQRCode":
             forma_pagamento = 47;
             break;
-          case "PagamentoBoletoImpostos":
+          case "PagamentoTributos":
+            forma_pagamento = 91;
+            break;
+          case "PagamentoTributosCodBarras":
             forma_pagamento = 13; //! Validar se essa realmente é a forma de pagamento correta
             break;
         }
@@ -419,6 +447,7 @@ module.exports = function exportRemessa(req, res) {
           key !== "PagamentoBoletoItau" &&
           key !== "PagamentoBoletoOutroBancoParaItau" &&
           key !== "PagamentoPIXQRCode" &&
+          key !== "PagamentoTributosCodBarras" &&
           key !== "PagamentoBoletoImpostos"
         ) {
           const headerLote = createHeaderLote({
@@ -433,6 +462,7 @@ module.exports = function exportRemessa(req, res) {
             ...borderoData,
             lote,
             forma_pagamento,
+            tipo_pagamento: key === "PagamentoTributosCodBarras" ? "22" : "20",
             versao_layout: "030",
           });
           arquivo.push(headerLote);
@@ -517,6 +547,7 @@ module.exports = function exportRemessa(req, res) {
             key !== "PagamentoBoletoItau" &&
             key !== "PagamentoBoletoOutroBancoParaItau" &&
             key !== "PagamentoPIXQRCode" &&
+            key !== "PagamentoTributosCodBarras" &&
             key !== "PagamentoBoletoImpostos"
           ) {
             const segmentoA = createSegmentoA({
@@ -536,7 +567,10 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoA);
             qtde_registros++;
             qtde_registros_arquivo++;
-          } else if (key === "PagamentoBoletoImpostos") {
+          } else if (
+            key === "PagamentoBoletoImpostos" ||
+            key === "PagamentoTributosCodBarras"
+          ) {
             const segmentoO = createSegmentoO({
               ...vencimento,
               lote,
