@@ -114,9 +114,11 @@ function removeSpecialCharactersAndAccents(str) {
  * */
 function normalizeCodigoBarras(text) {
   if (!text) return null;
+
   let textoLimpo = String(text)
     .trim()
     .replace(/[\s.-]/g, "");
+
   if (textoLimpo.length === 44) {
     return text;
   }

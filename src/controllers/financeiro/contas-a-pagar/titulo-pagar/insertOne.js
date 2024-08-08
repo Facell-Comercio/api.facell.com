@@ -365,7 +365,8 @@ module.exports = function insertOne(req) {
 
         //* Código de Barras
         let cod_barras = vencimento.cod_barras;
-        if (id_forma_pagamento == "10") {
+        if (id_forma_pagamento == "10" || id_forma_pagamento == "11") {
+          console.log("Código de Barras");
           cod_barras = normalizeCodigoBarras48(vencimento.cod_barras);
         } else {
           cod_barras = normalizeCodigoBarras(vencimento.cod_barras);
@@ -374,6 +375,7 @@ module.exports = function insertOne(req) {
         if (
           !!cod_barras &&
           id_forma_pagamento != "10" &&
+          id_forma_pagamento != "11" &&
           !checkCodigoBarras(cod_barras)
         ) {
           throw new Error(`Linha Digitável inválida: ${cod_barras}`);
