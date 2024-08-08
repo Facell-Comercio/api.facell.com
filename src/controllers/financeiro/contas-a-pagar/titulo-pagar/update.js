@@ -352,6 +352,7 @@ module.exports = function update(req) {
             }
           } // fim da validação do orçamento;
 
+          // * Persistência de rateio
           const [result] = await conn.execute(
             `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
             [
@@ -360,14 +361,14 @@ module.exports = function update(req) {
               item_rateio.id_centro_custo,
               item_rateio.id_plano_conta,
               item_rateio.percentual,
-              valorRateio,
+              valorRateio.toFixed(4),
             ]
           );
           if (id_orcamento_conta) {
             // * Persistir a conta de consumo do orçamento:
             await conn.execute(
               `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
-              [id_orcamento_conta, result.insertId, valorRateio]
+              [id_orcamento_conta, result.insertId, valorRateio.toFixed(2)]
             );
           }
         }
@@ -477,7 +478,7 @@ module.exports = function update(req) {
               await conn.execute(
                 `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
                                 `,
-                [valor, fatura.id]
+                [valor.toFixed(2), fatura.id]
               );
               id_fatura = fatura.id;
             }
