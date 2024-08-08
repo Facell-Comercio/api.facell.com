@@ -10,6 +10,7 @@ const {
   lancamentoLote,
   exportLayoutMetas,
   getComparison,
+  importMetas,
 } = require("../../../controllers/comercial/metas-controller");
 
 router.get(
@@ -69,11 +70,11 @@ router.post(
 );
 
 router.post(
-  "/lancamento-lote",
+  "/import",
   checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
   async (req, res) => {
     try {
-      const result = await lancamentoLote(req);
+      const result = await importMetas(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

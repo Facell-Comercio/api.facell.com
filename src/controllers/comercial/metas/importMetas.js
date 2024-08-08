@@ -3,9 +3,9 @@ const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { excelDateToJSDate } = require("../../../helpers/mask");
 
-module.exports = function lancamentoLote(req) {
+module.exports = function importMetas(req) {
   return new Promise(async (resolve, reject) => {
-    const vales = req.body;
+    const metas = req.body;
     const { user } = req;
     if (!user) {
       reject("Usuário não autenticado!");
@@ -13,18 +13,40 @@ module.exports = function lancamentoLote(req) {
     }
     let conn;
     try {
-      if (!vales || vales.length === 0) {
-        throw new Error("Nenhum vale foi informado no arquivo");
+      if (!metas || metas.length === 0) {
+        throw new Error("Nenhuma meta foi informada no arquivo");
       }
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       const retorno = [];
-      for (const vale of vales) {
-        const { data_inicio_cobranca, cpf, filial, origem, obs, valor, nome } =
-          vale;
+      for (const meta of metas) {
+        const {
+          id,
+          ref,
+          ciclo,
+          filial,
+          cargo,
+          cpf,
+          nome,
+          tags,
+          data_inicial,
+          data_final,
+          proporcional,
+          controle,
+          pos,
+          upgrade,
+          qtde_aparelho,
+          receita,
+          aparelho,
+          acessorio,
+          pitzi,
+          fixo,
+          wttx,
+          live,
+        } = meta;
         let obj = {
-          ...vale,
+          ...meta,
         };
         try {
           const [rowFiliais] = await conn.execute(
@@ -38,14 +60,14 @@ module.exports = function lancamentoLote(req) {
             throw new Error(`Filial não encontrada no sistema`);
           }
           if (parseFloat(valor) <= 0) {
-            throw new Error(`Valor do vale não pode ser zero`);
+            throw new Error(`Valor do meta não pode ser zero`);
           }
           if (cpf.length !== 11) {
             throw new Error(`CPF inválido`);
           }
 
           const [result] = await conn.execute(
-            `INSERT INTO vales (
+            `INSERT INTO metas (
               data_inicio_cobranca,
               nome_colaborador,
               cpf_colaborador,
@@ -75,7 +97,7 @@ module.exports = function lancamentoLote(req) {
           const newId = result.insertId;
 
           if (!newId) {
-            throw new Error(`Vale não inserido`);
+            throw new Error(`Meta não inserido`);
           }
           obj = {
             id: newId,
@@ -94,13 +116,13 @@ module.exports = function lancamentoLote(req) {
         }
       }
 
-      // await conn.rollback();
-      await conn.commit();
+      await conn.rollback();
+      // await conn.commit();
       resolve(retorno);
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "VALES",
+        origin: "METAS",
         method: "GET_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
