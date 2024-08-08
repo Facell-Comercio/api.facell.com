@@ -251,6 +251,8 @@ module.exports = function update(req) {
         // * Persistir o rateio
         for (const item_rateio of itens_rateio) {
           const valorRateio = parseFloat(item_rateio.valor);
+          console.log({valorRateio, teste: valorRateio.toFixed(4)});
+          
           if (!valorRateio) {
             throw new Error(
               `O Rateio não possui Valor! Rateio: ${JSON.stringify(
