@@ -1,5 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { checkUserFilial } = require("../../../helpers/checkUserFilial");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
 module.exports = function getOne(req) {
@@ -66,7 +67,7 @@ module.exports = function getOne(req) {
             "MASTER",
             "GERENCIAR_METAS",
             "VISUALIZAR_METAS",
-          ]) || filiaisGestor.includes(meta.id_filial),
+          ]) || checkUserFilial(req, meta.id_filial, true),
       });
     } catch (error) {
       logger.error({

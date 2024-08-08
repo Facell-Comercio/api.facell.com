@@ -8,6 +8,8 @@ const {
   insertOne,
   update,
   lancamentoLote,
+  exportLayoutMetas,
+  getComparison,
 } = require("../../../controllers/comercial/metas-controller");
 
 router.get(
@@ -22,6 +24,23 @@ router.get(
     }
   }
 );
+
+router.get("/export-metas", async (req, res) => {
+  try {
+    await exportLayoutMetas(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/comparison", async (req, res) => {
+  try {
+    const result = await getComparison(req, res);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
 router.get(
   "/:id",

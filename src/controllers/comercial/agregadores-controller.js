@@ -5,4 +5,6 @@ module.exports = {
   lancamentoLote: require("./agregadores/lancamentoLote"),
   update: require("./agregadores/update"),
   deleteAgregador: require("./agregadores/deleteAgregador"),
+
+  exportLayoutAgregadores: require("./agregadores/exportLayoutAgregadores"),
 };

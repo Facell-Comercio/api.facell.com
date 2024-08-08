@@ -1,9 +1,12 @@
-const { logger } = require("../../../../logger");
-const { db } = require("../../../../mysql");
-const { checkUserFilial } = require("../../../helpers/checkUserFilial");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { formatDate } = require("date-fns");
 
-module.exports = function getAll(req) {
+const XLSX = require("xlsx");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { db } = require("../../../../mysql");
+const { logger } = require("../../../../logger");
+const { formatDatabaseDate } = require("../../../helpers/mask");
+
+module.exports = function exportLayoutMetas(req, res) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     if (!user) {
@@ -26,13 +29,7 @@ module.exports = function getAll(req) {
       ano,
       cpf_list,
       agregacao,
-      tipo_data,
-      range_data,
     } = filters || {};
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
 
     const params = [];
 
@@ -95,69 +92,84 @@ module.exports = function getAll(req) {
     let conn;
     try {
       conn = await db.getConnection();
-      const [rowTotal] = await conn.execute(
-        `SELECT COUNT(*) AS qtde
-              FROM (
-                SELECT 
-                  fm.id
-                FROM facell_metas fm
-                LEFT JOIN filiais f ON f.id = fm.id_filial
-                LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-                ${where}
-              ) 
-              as subconsulta
-              `,
-        params
-      );
-      const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
 
-      const limit = pagination ? " LIMIT ? OFFSET ? " : "";
-      if (limit) {
-        const offset = pageIndex * pageSize;
-        params.push(pageSize);
-        params.push(offset);
-      }
-
-      const [rows] = await conn.execute(
+      const [metas] = await conn.execute(
         `
               SELECT 
-                fm.*,
+                fm.id,
+                fm.ref, 
+                fm.ciclo,
+                gp.nome as grupo_economico,
                 f.nome as filial,
-                gp.nome as grupo_economico
+                fm.cargo,
+                fm.cpf,
+                fm.nome,
+                fm.tags,
+                fm.data_inicial,
+                fm.data_final,
+                fm.proporcional,
+                fm.controle,
+                fm.pos,
+                fm.upgrade,
+                fm.qtde_aparelho,
+                fm.receita,
+                fm.aparelho,
+                fm.acessorio,
+                fm.pitzi,
+                fm.fixo,
+                fm.wttx,
+                fm.live
               FROM facell_metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
-              
               ORDER BY fm.id DESC
-              ${limit}
               `,
         params
       );
 
-      const objResponse = {
-        rows: rows,
-        pageCount: Math.ceil(qtdeTotal / pageSize),
-        rowCount: qtdeTotal,
-        canView:
-          checkUserPermission(req, [
-            "MASTER",
-            "GERENCIAR_METAS",
-            "VISUALIZAR_METAS",
-          ]) ||
-          checkUserFilial(
-            req,
-            rows.map((row) => row.filial),
-            true
-          ),
-      };
+      if (metas.length === 0) {
+        throw new Error("Não há metas para exportar!");
+      }
 
-      resolve(objResponse);
+      metas.forEach((meta) => {
+        meta.proporcional = parseFloat(meta.proporcional);
+        meta.controle = parseInt(meta.controle);
+        meta.pos = parseInt(meta.pos);
+        meta.upgrade = parseInt(meta.upgrade);
+        meta.qtde_aparelho = parseInt(meta.qtde_aparelho);
+        meta.receita = parseFloat(meta.receita);
+        meta.aparelho = parseFloat(meta.aparelho);
+        meta.acessorio = parseFloat(meta.acessorio);
+        meta.pitzi = parseFloat(meta.pitzi);
+        meta.fixo = parseInt(meta.fixo);
+        meta.wttx = parseInt(meta.wttx);
+        meta.live = parseInt(meta.live);
+        meta.ref = formatDatabaseDate(meta.ref);
+        meta.ciclo = formatDatabaseDate(meta.ciclo);
+        meta.data_inicial = formatDatabaseDate(meta.data_inicial);
+        meta.data_final = formatDatabaseDate(meta.data_final);
+      });
+
+      // * Geração do buffer da planilha excel
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(metas);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+      const filename = `METAS ${formatDate(
+        new Date(),
+        "dd-MM-yyyy hh.mm"
+      )}.xlsx`;
+
+      res.set("Content-Type", "text/plain");
+      res.set("Content-Disposition", `attachment; filename=${filename}`);
+      res.send(buffer);
+      resolve();
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
         origin: "METAS",
-        method: "GET_ALL",
+        method: "EXPORT_LAYOUT_METAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

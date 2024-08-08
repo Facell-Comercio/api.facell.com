@@ -19,8 +19,6 @@ module.exports = function getAll(req) {
       mes,
       ano,
       tipo_agregacao,
-      tipo_data,
-      range_data,
     } = filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
@@ -66,25 +64,6 @@ module.exports = function getAll(req) {
       where += ` AND fa.tipo_agregacao LIKE CONCAT('%',?,'%') `;
       params.push(tipo_agregacao);
     }
-
-    // if (tipo_data && range_data) {
-    //   const { from: data_de, to: data_ate } = range_data;
-
-    //   const campo_data = `fa.${tipo_data}`;
-
-    //   if (data_de && data_ate) {
-    //     where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
-    //       data_ate.split("T")[0]
-    //     }'  `;
-    //   } else {
-    //     if (data_de) {
-    //       where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
-    //     }
-    //     if (data_ate) {
-    //       where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
-    //     }
-    //   }
-    // }
 
     if (mes) {
       where += ` AND MONTH(fa.ref) = ? `;

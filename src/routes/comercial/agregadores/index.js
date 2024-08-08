@@ -7,6 +7,7 @@ const {
   insertOne,
   update,
   lancamentoLote,
+  exportLayoutAgregadores,
 } = require("../../../controllers/comercial/agregadores-controller");
 const checkUserPermissionMiddleware = require("../../../middlewares/permission-middleware");
 
@@ -14,6 +15,14 @@ router.get("/", async (req, res) => {
   try {
     const result = await getAll(req);
     res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.get("/export-agregadores", async (req, res) => {
+  try {
+    await exportLayoutAgregadores(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

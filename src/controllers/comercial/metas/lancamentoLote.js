@@ -21,7 +21,8 @@ module.exports = function lancamentoLote(req) {
 
       const retorno = [];
       for (const vale of vales) {
-        const { data_inicio_cobranca, cpf, filial, origem, obs, valor } = vale;
+        const { data_inicio_cobranca, cpf, filial, origem, obs, valor, nome } =
+          vale;
         let obj = {
           ...vale,
         };
@@ -43,22 +44,9 @@ module.exports = function lancamentoLote(req) {
             throw new Error(`CPF inválido`);
           }
 
-          //^ Quando houver tabela de colaboradores
-          const [rowColaborador] = await conn.execute(
-            `
-            SELECT id, nome FROM colabs WHERE cpf = ?
-          `,
-            [cpf]
-          );
-          const colaborador = rowColaborador && rowColaborador[0];
-          if (!colaborador) {
-            throw new Error(`Colaborador não encontrado no sistema`);
-          }
-
           const [result] = await conn.execute(
             `INSERT INTO vales (
               data_inicio_cobranca,
-              id_colaborador,
               nome_colaborador,
               cpf_colaborador,
               id_filial,
@@ -72,7 +60,6 @@ module.exports = function lancamentoLote(req) {
             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
               startOfDay(excelDateToJSDate(data_inicio_cobranca)),
-              colaborador.id,
               colaborador.nome,
               cpf,
               id_filial,

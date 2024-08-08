@@ -1,3 +1,6 @@
+const { parseISO, format, formatISO, formatISO9075 } = require("date-fns");
+const { formatDate } = require("date-fns/format");
+
 const normalizeNumberOnly = (value) => {
   if (!value) return "";
   return value.replace(/[\D]/g, "");
@@ -83,6 +86,32 @@ const normalizeCurrency = (data) => {
       minimumFractionDigits: 2,
     });
   }
+};
+
+const formatDatabaseDate = (data) => {
+  if (!data) {
+    return null;
+  }
+
+  const [ano, mes, dia] = formatDate(data, "yyyy-MM-dd").split("-");
+
+  const baseDate = new Date(1899, 11, 30, 0, 0, 0);
+  const baseDateUtc = new Date(Date.UTC(1899, 11, 30, 0, 0, 0));
+  const timezoneOffsetFix =
+    baseDateUtc.valueOf() +
+    baseDate.getTimezoneOffset() * 60000 -
+    baseDate.valueOf();
+
+  const date = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
+
+  const needFix =
+    new Date(date.valueOf() - timezoneOffsetFix).getTimezoneOffset() !==
+    baseDate.getTimezoneOffset();
+  const fixedDate = needFix
+    ? new Date(date.valueOf() - timezoneOffsetFix)
+    : date;
+
+  return fixedDate;
 };
 
 function normalizeFirstAndLastName(nomeCompleto) {
@@ -191,6 +220,7 @@ module.exports = {
   normalizePercentual,
   normalizeDataDayOne,
   normalizeDate,
+  formatDatabaseDate,
   normalizeCurrency,
   normalizeFirstAndLastName,
   removeSpecialCharactersAndAccents,

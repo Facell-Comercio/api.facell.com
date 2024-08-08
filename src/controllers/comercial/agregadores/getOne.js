@@ -30,20 +30,6 @@ module.exports = function getOne(req) {
     let conn;
     try {
       conn = await db.getConnection();
-      console.log(
-        `
-              SELECT 
-                fa.*,
-                (fa.proporcional * 100) as proporcional,
-                f.nome as filial,
-                gp.id as id_grupo_economico, gp.nome as grupo_econômico
-              FROM facell_agregadores fa
-              LEFT JOIN filiais f ON f.id = fa.id_filial
-              LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-              ${where}
-              `,
-        params
-      );
 
       const [rowsAgregadores] = await conn.execute(
         `

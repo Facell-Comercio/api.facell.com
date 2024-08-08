@@ -5,4 +5,7 @@ module.exports = {
   lancamentoLote: require("./metas/lancamentoLote"),
   update: require("./metas/update"),
   deleteMeta: require("./metas/deleteMeta"),
+
+  exportLayoutMetas: require("./metas/exportLayoutMetas"),
+  getComparison: require("./metas/getComparison"),
 };
