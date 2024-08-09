@@ -434,10 +434,10 @@ module.exports = function exportRemessa(req, res) {
           case "PagamentoPIXQRCode":
             forma_pagamento = 47;
             break;
-          case "PagamentoTributos":
+          case "PagamentoTributosCodBarras":
             forma_pagamento = 91;
             break;
-          case "PagamentoTributosCodBarras":
+          case "PagamentoBoletoImpostos":
             forma_pagamento = 13; //! Validar se essa realmente é a forma de pagamento correta
             break;
         }
