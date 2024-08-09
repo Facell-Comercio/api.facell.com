@@ -220,11 +220,11 @@ module.exports = function exportLayoutDespesas(req, res) {
             'NOME FORNECEDOR': vencimento.nome_fornecedor,
 
             'GRUPO': vencimento.grupo_economico,
-            'FILIAL': item_rateio.filial,
+            'FILIAL': vencimento.filial,
             'DEPARTAMENTO': vencimento.departamento,
             'SOLICITANTE': vencimento.solicitante,
 
-            'FILIAL RATEIO': vencimento.filial,
+            'FILIAL RATEIO': item_rateio.filial,
             'RATEIO': vencimento.rateio || '',
 
             'ID TITULO': vencimento.id_titulo,
