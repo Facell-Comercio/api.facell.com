@@ -71,7 +71,7 @@ module.exports = function getChartConciliacaoPagamentos(req) {
                 SUM(CASE WHEN cbi.id_item IS NULL THEN 1 ELSE 0 END) as pendente
                 FROM fin_extratos_bancarios e
                 LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.tipo = 'transacao' AND cbi.id_item = e.id
-                ${where} AND e.tipo_transacao = 'DEBIT'
+                ${where} AND e.tipo_transacao = 'DEBIT' and e.id_duplicidade is NULL
                 GROUP BY e.data_transacao
             `, params);
 
