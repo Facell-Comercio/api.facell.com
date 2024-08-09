@@ -140,7 +140,7 @@ module.exports = function update(req) {
           filial,
           grupo_economico,
           cargo,
-          tags,
+          tags || null,
 
           controle,
           pos,

@@ -6,7 +6,7 @@ const {
   deleteAgregador,
   insertOne,
   update,
-  lancamentoLote,
+  importAgregadores,
   exportLayoutAgregadores,
 } = require("../../../controllers/comercial/agregadores-controller");
 const checkUserPermissionMiddleware = require("../../../middlewares/permission-middleware");
@@ -51,11 +51,11 @@ router.post(
 );
 
 router.post(
-  "/lancamento-lote",
+  "/import",
   checkUserPermissionMiddleware(["GERENCIAR_METAS", "MASTER"]),
   async (req, res) => {
     try {
-      const result = await lancamentoLote(req);
+      const result = await importAgregadores(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(400).json({ message: error.message });

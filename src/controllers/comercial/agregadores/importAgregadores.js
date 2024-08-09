@@ -8,9 +8,9 @@ const {
 } = require("../../../helpers/mask");
 const { checkCPF } = require("../../../helpers/chekers");
 
-module.exports = function importMetas(req) {
+module.exports = function importAgregadores(req) {
   return new Promise(async (resolve, reject) => {
-    const metas = req.body;
+    const agregadores = req.body;
     const { user } = req;
     if (!user) {
       reject("Usuário não autenticado!");
@@ -18,14 +18,14 @@ module.exports = function importMetas(req) {
     }
     let conn;
     try {
-      if (!metas || metas.length === 0) {
-        throw new Error("Nenhuma meta foi informada no arquivo");
+      if (!agregadores || agregadores.length === 0) {
+        throw new Error("Nenhum agregador foi informado no arquivo");
       }
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       const retorno = [];
-      for (const meta of metas) {
+      for (const agregador of agregadores) {
         const {
           id,
           ref,
@@ -38,21 +38,12 @@ module.exports = function importMetas(req) {
           data_inicial,
           data_final,
           proporcional,
-          controle,
-          pos,
-          upgrade,
-          qtde_aparelho,
-          receita,
-          aparelho,
-          acessorio,
-          pitzi,
-          fixo,
-          wttx,
-          live,
-        } = meta;
+          tipo_agregacao,
+          metas_agregadas,
+        } = agregador;
 
         let obj = {
-          ...meta,
+          ...agregador,
           ref: formatDate(excelDateToJSDate(ref), "dd/MM/yyyy"),
           ciclo: formatDate(excelDateToJSDate(ciclo), "dd/MM/yyyy"),
           data_inicial: formatDate(
@@ -62,7 +53,6 @@ module.exports = function importMetas(req) {
           data_final: formatDate(excelDateToJSDate(data_final), "dd/MM/yyyy"),
         };
         try {
-          let cpf_padrao = cpf;
           const [rowFiliais] = await conn.execute(
             `
             SELECT f.id as id_filial, gp.nome as grupo_economico
@@ -78,20 +68,12 @@ module.exports = function importMetas(req) {
           if (!id_filial) {
             throw new Error(`Filial não encontrada no sistema`);
           }
-          if (cargo !== "FILIAL") {
-            if (!checkCPF(cpf)) {
-              throw new Error(`CPF inválido`);
-            }
-            cpf_padrao = normalizeNumberOnly(cpf);
-          } else {
-            const [filiais] = await conn.execute(
-              `SELECT id FROM filiais f WHERE nome = ?`,
-              [cpf]
-            );
-            if (!(filiais && filiais.length && filiais[0].id)) {
-              throw new Error(`CPF inválido`);
-            }
+          if (!checkCPF(cpf)) {
+            throw new Error(`CPF inválido`);
           }
+
+          let cpf_padrao = normalizeNumberOnly(cpf);
+
           if (
             !(
               ref &&
@@ -103,25 +85,14 @@ module.exports = function importMetas(req) {
               data_inicial &&
               data_final &&
               proporcional &&
-              controle &&
-              pos &&
-              upgrade &&
-              qtde_aparelho &&
-              receita &&
-              aparelho &&
-              acessorio &&
-              pitzi &&
-              fixo &&
-              wttx &&
-              live
+              tipo_agregacao
             )
           ) {
-            throw new Error("Dados insuficientes!");
+            throw new Error("Dados insuficientes");
           }
-
           if (id) {
             await conn.execute(
-              `UPDATE facell_metas SET
+              `UPDATE facell_agregadores SET
                 ref =  ?,
                 ciclo =  ?,
                 data_inicial =  ?,
@@ -135,17 +106,8 @@ module.exports = function importMetas(req) {
                 tags =  ?,
                 
                 proporcional =  ?,
-                controle =  ?,
-                pos =  ?,
-                upgrade =  ?,
-                receita =  ?,
-                qtde_aparelho =  ?,
-                aparelho =  ?,
-                acessorio =  ?,
-                pitzi =  ?,
-                fixo =  ?,
-                wttx =  ?,
-                live =  ?,
+                metas_agregadas = ?,
+                tipo_agregacao = ?,
 
                 id_filial =  ?
               WHERE id = ?
@@ -164,17 +126,8 @@ module.exports = function importMetas(req) {
                 tags || null,
 
                 parseFloat(proporcional),
-                parseInt(controle),
-                parseInt(pos),
-                parseInt(upgrade),
-                parseFloat(receita),
-                parseInt(qtde_aparelho),
-                parseFloat(aparelho),
-                parseFloat(acessorio),
-                parseFloat(pitzi),
-                parseInt(fixo),
-                parseInt(wttx),
-                parseInt(live),
+                metas_agregadas || null,
+                tipo_agregacao,
 
                 id_filial,
 
@@ -183,7 +136,7 @@ module.exports = function importMetas(req) {
             );
           } else {
             const [result] = await conn.execute(
-              `INSERT INTO facell_metas (
+              `INSERT INTO facell_agregadores (
                 ref,
                 ciclo,
                 data_inicial,
@@ -197,20 +150,11 @@ module.exports = function importMetas(req) {
                 tags,
 
                 proporcional,
-                controle,
-                pos,
-                upgrade,
-                receita,
-                qtde_aparelho,
-                aparelho,
-                acessorio,
-                pitzi,
-                fixo,
-                wttx,
-                live,
+                metas_agregadas,
+                tipo_agregacao,
 
                 id_filial
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
               [
                 startOfDay(excelDateToJSDate(ref)),
                 startOfDay(excelDateToJSDate(ciclo)),
@@ -225,24 +169,15 @@ module.exports = function importMetas(req) {
                 tags || null,
 
                 parseFloat(proporcional),
-                parseInt(controle),
-                parseInt(pos),
-                parseInt(upgrade),
-                parseFloat(receita),
-                parseInt(qtde_aparelho),
-                parseFloat(aparelho),
-                parseFloat(acessorio),
-                parseFloat(pitzi),
-                parseInt(fixo),
-                parseInt(wttx),
-                parseInt(live),
+                metas_agregadas || null,
+                tipo_agregacao,
 
                 id_filial,
               ]
             );
             const newId = result.insertId;
             if (!newId) {
-              throw new Error(`Meta não inserida`);
+              throw new Error(`Agregador não inserido`);
             }
             obj = {
               id: newId,
@@ -271,7 +206,7 @@ module.exports = function importMetas(req) {
     } catch (error) {
       logger.error({
         module: "COMERCIAL",
-        origin: "METAS",
+        origin: "AGREGADORES",
         method: "GET_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

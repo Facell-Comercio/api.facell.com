@@ -25,7 +25,6 @@ module.exports = function getComparison(req) {
       ano,
       cpf_list,
     } = filters || {};
-    console.log(filters);
 
     const params = [];
 
@@ -83,7 +82,7 @@ module.exports = function getComparison(req) {
       conn = await db.getConnection();
       const [rowFiliais] = await conn.execute(
         `
-          SELECT 
+          SELECT
             fm.*,
             f.nome as filial_nome
           FROM facell_metas fm
@@ -98,7 +97,7 @@ module.exports = function getComparison(req) {
       for (const filial of rowFiliais) {
         const [rowMetas] = await conn.execute(
           `
-            SELECT 
+            SELECT
               SUM(fm.controle) as controle,
               SUM(fm.pos) as pos,
               SUM(fm.upgrade) as upgrade,

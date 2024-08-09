@@ -120,7 +120,7 @@ module.exports = function insertOne(req) {
           filial,
           grupo_economico,
           cargo,
-          tags,
+          tags || null,
 
           controle,
           pos,
