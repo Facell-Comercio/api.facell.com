@@ -526,7 +526,7 @@ function subirEmLote(promises, size) {
 
 }
 
-function subirAnexo({ row, folderName }) {
+function subirAnexo({ conn, row, folderName }) {
     return new Promise(async (resolve) => {
         try {
             // para cada arquivo tentar fazer o upload e pegar o id
@@ -545,6 +545,7 @@ function subirAnexo({ row, folderName }) {
             row.obs = ''
             row.fileId = fileId
             row.fileUrl = fileUrl
+            await conn.execute(`UPDATE fin_cp_titulos SET ${row.campo} = ? WHERE id = ?;`, [fileUrl, row.id_titulo])
             resolve(row)
         } catch (error) {
             row.status = 'ERRO'
@@ -556,7 +557,10 @@ function subirAnexo({ row, folderName }) {
 
 function subirAnexosParaDrive() {
     return new Promise(async (resolve, reject) => {
+        let conn;
         try {
+            conn = await db.getConnection();
+
             const folderName = 'financeiro';
             const pathResult = path.join(process.cwd(), 'public', 'resultado_drive.xlsx')
 
@@ -566,7 +570,8 @@ function subirAnexosParaDrive() {
             const results = []
             let i = 1;
             for (const row of rows) {
-                const result = await subirAnexo({ row, folderName })
+                const result = await subirAnexo({ conn, row, folderName })
+
                 console.log(`Passamos pelo anexo ${i} de ${rows.length} ${row.filename}`)
                 results.push(result)
                 i++;
@@ -580,7 +585,8 @@ function subirAnexosParaDrive() {
             console.log(error);
             reject(error)
         } finally {
-
+            if(conn) conn.release();
+            
         }
     })
 }
@@ -599,11 +605,12 @@ function lerXMLnota(req) {
 
 async function teste(){
     try {
-        const filePath = await downloadFile({fileId: 'https://drive.google.com/file/d/1FMQcWlVdxLa8yFkEug7Olic_7vaotHbI/view?usp=drive_link'})
-        return filePath
+        await subirAnexosParaDrive()
+        return true
     } catch (error) {
-        console.log(error);
+        return false
     }
+
 }
 
 module.exports = {
