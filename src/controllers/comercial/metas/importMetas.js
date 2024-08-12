@@ -1,4 +1,4 @@
-const { parse, startOfDay, formatDate } = require("date-fns");
+const { parse, startOfDay, formatDate, startOfMonth } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const {
@@ -212,8 +212,8 @@ module.exports = function importMetas(req) {
                 id_filial
             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
               [
-                startOfDay(excelDateToJSDate(ref)),
-                startOfDay(excelDateToJSDate(ciclo)),
+                startOfMonth(excelDateToJSDate(ref)),
+                startOfMonth(excelDateToJSDate(ciclo)),
                 startOfDay(excelDateToJSDate(data_inicial)),
                 startOfDay(excelDateToJSDate(data_final)),
 

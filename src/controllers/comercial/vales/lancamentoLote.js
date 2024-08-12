@@ -1,4 +1,4 @@
-const { parse, startOfDay } = require("date-fns");
+const { parse, startOfDay, startOfMonth } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { excelDateToJSDate } = require("../../../helpers/mask");
@@ -20,9 +20,19 @@ module.exports = function lancamentoLote(req) {
       conn = await db.getConnection();
       await conn.beginTransaction();
 
+      throw new Error("Importação ainda em melhorias...");
+
       const retorno = [];
       for (const vale of vales) {
-        const { data_inicio_cobranca, cpf, filial, origem, obs, valor } = vale;
+        const {
+          data_inicio_cobranca,
+          cpf,
+          nome_colaborador,
+          filial,
+          origem,
+          obs,
+          valor,
+        } = vale;
         let obj = {
           ...vale,
         };
@@ -48,18 +58,6 @@ module.exports = function lancamentoLote(req) {
             throw new Error(`Valor do vale não pode ser zero`);
           }
 
-          //^ Quando houver tabela de colaboradores
-          const [rowColaborador] = await conn.execute(
-            `
-            SELECT id, nome FROM colabs WHERE cpf = ?
-          `,
-            [cpf]
-          );
-          const colaborador = rowColaborador && rowColaborador[0];
-          if (!colaborador) {
-            throw new Error(`Colaborador não encontrado no sistema`);
-          }
-
           const [result] = await conn.execute(
             `INSERT INTO vales (
               data_inicio_cobranca,
@@ -76,9 +74,8 @@ module.exports = function lancamentoLote(req) {
               id_criador
             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
-              startOfDay(excelDateToJSDate(data_inicio_cobranca)),
-              colaborador.id,
-              colaborador.nome,
+              startOfMonth(excelDateToJSDate(data_inicio_cobranca)),
+              nome_colaborador,
               cpfNormalizado,
               id_filial,
               origem,

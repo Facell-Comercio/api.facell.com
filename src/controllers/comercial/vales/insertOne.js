@@ -1,13 +1,13 @@
 const { parse, startOfDay } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { checkCPF } = require("../../../helpers/chekers");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
     const {
       id,
       data_inicio_cobranca,
-      id_colaborador,
       nome_colaborador,
       cpf_colaborador,
       id_filial,
@@ -37,7 +37,6 @@ module.exports = function insertOne(req) {
       }
       if (
         !data_inicio_cobranca ||
-        !id_colaborador ||
         !id_filial ||
         !origem ||
         !parcelas ||
@@ -59,6 +58,9 @@ module.exports = function insertOne(req) {
           "A parcela não pode ser maior que a quantidade de parcelas"
         );
       }
+      if (!checkCPF(cpf_colaborador)) {
+        throw new Error("CPF inválido!");
+      }
 
       conn = await db.getConnection();
       await conn.beginTransaction();
@@ -66,7 +68,6 @@ module.exports = function insertOne(req) {
       const [result] = await conn.execute(
         `INSERT INTO vales (
           data_inicio_cobranca,
-          id_colaborador,
           nome_colaborador,
           cpf_colaborador,
           id_filial,
@@ -77,10 +78,9 @@ module.exports = function insertOne(req) {
           saldo,
           obs,
           id_criador
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
         [
           startOfDay(data_inicio_cobranca),
-          id_colaborador,
           nome_colaborador,
           cpf_colaborador,
           id_filial,

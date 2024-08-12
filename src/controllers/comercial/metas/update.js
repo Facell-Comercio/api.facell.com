@@ -1,4 +1,10 @@
-const { parse, startOfDay } = require("date-fns");
+const {
+  parse,
+  startOfDay,
+  startOfMonth,
+  isEqual,
+  isAfter,
+} = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
@@ -87,14 +93,14 @@ module.exports = function update(req) {
         [id]
       );
       const meta = rowsMetas && rowsMetas[0];
+      const allowedData =
+        isAfter(startOfMonth(ref), startOfMonth(new Date())) ||
+        isEqual(startOfMonth(ref), startOfMonth(new Date()));
 
       if (
-        !checkUserPermission(req, [
-          "MASTER",
-          "GERENCIAR_METAS",
-          "VISUALIZAR_METAS",
-        ]) &&
-        !filiaisGestor.includes(meta.id_filial)
+        (!checkUserPermission(req, ["MASTER", "GERENCIAR_METAS"]) &&
+          !filiaisGestor.includes(meta.id_filial)) ||
+        (filiaisGestor.includes(meta.id_filial) && !allowedData)
       ) {
         throw new Error("Sem permissão para edição dessa meta");
       }
@@ -128,8 +134,8 @@ module.exports = function update(req) {
           aparelho = ?
         WHERE id = ?`,
         [
-          startOfDay(ref),
-          startOfDay(ciclo),
+          startOfMonth(ref),
+          startOfMonth(ciclo),
           startOfDay(data_inicial),
           startOfDay(data_final),
           proporcional,

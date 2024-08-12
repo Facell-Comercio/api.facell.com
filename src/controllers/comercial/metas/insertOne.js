@@ -1,4 +1,4 @@
-const { parse, startOfDay } = require("date-fns");
+const { parse, startOfDay, startOfMonth } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 
@@ -108,8 +108,8 @@ module.exports = function insertOne(req) {
           aparelho
         ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
-          startOfDay(ref),
-          startOfDay(ciclo),
+          startOfMonth(ref),
+          startOfMonth(ciclo),
           startOfDay(data_inicial),
           startOfDay(data_final),
           proporcional,
