@@ -1,13 +1,14 @@
 const { formatDate } = require("date-fns");
-const { logger } = require("../../../../logger");
-const {db} = require("../../../../mysql");
-const createDateArrayFromRange = require("../../../helpers/createDateArrayFromRange");
-const { getMovimentoCaixa } = require("../api");
+const { logger } = require("../../../../../logger");
+const {db} = require("../../../../../mysql");
+const createDateArrayFromRange = require("../../../../helpers/createDateArrayFromRange");
+const { getMovimentoCaixa } = require("../../../datasys/api/index");
 
-async function checkSeRecarga({conn, pedido}){
+async function checkSeRecarga({conn, pedido, grupo_economico}){
     return new Promise(async(resolve, reject)=>{
         try {
-            const [rowsVenda] = await conn.execute(`SELECT id WHERE grupoEstoque = 'RECARGA ELETRONICA' AND numeroPedido = ? `, [pedido])
+            const datasys_vendas = grupo_economico == 'FACELL' ? 'datasys_vendas' : 'datasys_vendas_fort'; 
+            const [rowsVenda] = await conn.execute(`SELECT id FROM ${datasys_vendas} WHERE grupoEstoque = 'RECARGA ELETRONICA' AND numeroPedido = ? `, [pedido])
             const isRecarga = rowsVenda && rowsVenda.length > 0 
             resolve(isRecarga)
         } catch (error) {
@@ -16,7 +17,7 @@ async function checkSeRecarga({conn, pedido}){
     })
 }
 
-async function processarCaixa({conn, id_caixa, id_filial, data, movimento}){
+async function processarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_economico}){
     return new Promise(async(resolve, reject)=>{
         try {
             if(!(movimento && movimento.length > 0)){
@@ -26,7 +27,6 @@ async function processarCaixa({conn, id_caixa, id_filial, data, movimento}){
                 throw new Error('id_caixa não recebido!')
             }
             
-
             let valor_cartao = 0;
             let valor_dinheiro = 0;
             let valor_retiradas = 0;
@@ -47,10 +47,13 @@ async function processarCaixa({conn, id_caixa, id_filial, data, movimento}){
                 const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null
 
                 let isRecarga = false;
-                if(tipo_operacao == 'Venda' && !historico.includes('CANCELAMENTO')){
+                if(tipo_operacao == 'VENDA' && !historico.includes('CANCELAMENTO')){
                     try {
-                        isRecarga = await checkSeRecarga({conn, pedido: pedido.replace('PV', '')})
-                    } catch (error) { }
+                        isRecarga = await checkSeRecarga({conn, pedido: pedido.replace('PV', ''), grupo_economico})
+                    } catch (error) {
+                        console.log(error);
+                        
+                     }
                 }
 
                 if(forma_pgto == 'DINHEIRO'){
@@ -181,7 +184,7 @@ module.exports = async (req)=>{
 
                 const movimento = await getMovimentoCaixa({cnpj: filial.cnpj, data, grupo_economico: filial.grupo_economico})
 
-                const caixa = await processarCaixa({conn, id_caixa, id_filial, data, movimento: movimento.filter(mov=>mov.LOJA == filial.cnpj)})
+                const caixa = await processarCaixa({conn, id_caixa, id_filial, data, grupo_economico: filial.grupo_economico, movimento: movimento.filter(mov=>mov.LOJA == filial.cnpj)})
                 result.push(caixa)
             }
             

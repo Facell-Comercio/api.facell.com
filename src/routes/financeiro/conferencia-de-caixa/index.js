@@ -1,9 +1,10 @@
+const { importCaixasDatasys } = require('../../../controllers/financeiro/conferencia-de-caixa')
+
 const router = require('express').Router()
-const importCaixas = require('../../../controllers/datasys/caixas/import')
 
 router.post('/import', async (req, res)=>{
     try {
-        const result = await importCaixas(req)
+        const result = await importCaixasDatasys(req)
         res.status(200).send(result)
     } catch (error) {
         res.status(400).send({message: error.message})

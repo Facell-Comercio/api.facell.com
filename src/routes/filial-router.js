@@ -10,6 +10,7 @@ router.get('/:id', async (req, res)=>{
         res.status(400).json({message: error.message})
     }
 })
+
 router.get('/', async (req, res)=>{
     try {
         const result = await getAll(req)
