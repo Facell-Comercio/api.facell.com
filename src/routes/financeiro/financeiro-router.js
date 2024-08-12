@@ -21,7 +21,7 @@ const tarifas = require("./conciliacao-bancaria/conciliacao/config/tarifas-padra
 // Contas a pagar
 router.use("/contas-a-pagar", contasPagar);
 
-// Coferência de caixa
+// Conferência de caixa
 router.use("/conferencia-de-caixa", conferenciaDeCaixa);
 
 // Orçamento
