@@ -45,7 +45,6 @@ module.exports = async function importRetornoRemessa(req) {
                 d.cod_seg_registro_lote === "O" ||
                 d.cod_seg_registro_lote === "J"
             );
-            console.log(segmentos);
 
             if (!segmentos || !segmentos.length) {
               continue;
@@ -94,7 +93,6 @@ module.exports = async function importRetornoRemessa(req) {
                   const erros = ocorrenciasErro.map((erro) => {
                     return CodigosOcorrencias[erro];
                   });
-                  // console.log("UPDATE");
                   //* Inicando que o vencimento pode ser incluso na remessa novamente
                   await conn.execute(
                     `
