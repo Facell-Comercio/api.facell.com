@@ -575,7 +575,6 @@ module.exports = function exportRemessa(req, res) {
               ...vencimento,
               lote,
               num_registro_lote: registroLote,
-              vencimento: vencimento.id_vencimento,
               cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
               nome_concessionaria: vencimento.favorecido_nome,
             });
