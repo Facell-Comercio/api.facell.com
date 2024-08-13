@@ -26,7 +26,7 @@ module.exports = async (req) => {
       params.push(id_filial);
     }
     if (status_list && status_list.length > 0) {
-      where += ` AND dc.status_conferencia IN ('${status_list.join("','")}') `;
+      where += ` AND dc.status IN ('${status_list.join("','")}') `;
     }
     if (range_data) {
       const { from: data_de, to: data_ate } = range_data;

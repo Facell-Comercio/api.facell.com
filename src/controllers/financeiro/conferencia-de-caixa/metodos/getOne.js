@@ -28,7 +28,6 @@ module.exports = async (req) => {
       );
 
       const caixa = caixas && caixas[0];
-      console.log(id, caixa);
       resolve(caixa);
     } catch (error) {
       logger.error({

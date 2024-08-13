@@ -24,9 +24,9 @@ module.exports = async (req) => {
         `
         SELECT 
           dc.id_filial,
-          SUM(dc.status_conferencia = 'A CONFERIR') as a_conferir,
-          SUM(dc.status_conferencia = 'CONFERIDO / BAIXA PENDENTE') as baixa_pendente,
-          SUM(dc.status_conferencia = 'BAIXADO / PENDENTE DATASYS') as baixa_datasys_pendente,
+          SUM(dc.status = 'A CONFERIR') as a_conferir,
+          SUM(dc.status = 'CONFERIDO / BAIXA PENDENTE') as baixa_pendente,
+          SUM(dc.status = 'BAIXADO / PENDENTE DATASYS') as baixa_datasys_pendente,
           SUM(dco.resolvida = 0) as ocorrencias,
           SUM(dc.divergente) as divergentes,
           f.nome as filial
