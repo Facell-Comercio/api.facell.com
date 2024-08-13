@@ -1,5 +1,6 @@
 const {
   getAll,
+  getOne,
   getFiliais,
   importCaixasDatasys,
 } = require("../../../controllers/financeiro/conferencia-de-caixa");
@@ -26,6 +27,19 @@ router.get(
   async (req, res) => {
     try {
       const result = await getAll(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.get(
+  "/:id",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getOne(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
