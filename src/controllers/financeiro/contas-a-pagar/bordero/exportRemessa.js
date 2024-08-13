@@ -35,13 +35,32 @@ module.exports = function exportRemessa(req, res) {
       if (!id_bordero) {
         throw new Error("ID do Borderô não indicado!");
       }
-      let whereVencimentos = ` tb.id_bordero = ? `;
+      const idsVencimentos =
+        itens &&
+        itens.length > 0 &&
+        itens
+          .filter((item) => item.tipo == "vencimento")
+          .map((item) => item.id_vencimento);
 
-      if (itens && itens.length > 0) {
-        whereVencimentos += ` AND tv.id IN('${itens
-          .map((item) => item.id_vencimento)
-          .join("','")}')`;
+      const idsFaturas =
+        itens &&
+        itens.length > 0 &&
+        itens
+          .filter((item) => item.tipo == "fatura")
+          .map((item) => item.id_vencimento);
+
+      let whereVencimentos = ` tb.id_bordero = ? `;
+      let whereFaturas = ` tb.id_bordero = ? `;
+
+      console.log(idsVencimentos, idsFaturas);
+
+      if (idsVencimentos && idsVencimentos.length > 0) {
+        whereVencimentos += ` AND tv.id IN('${idsVencimentos.join("','")}') `;
       }
+      if (idsFaturas && idsFaturas.length > 0) {
+        whereFaturas += ` AND ccf.id IN('${idsFaturas.join("','")}') `;
+      }
+
       await conn.beginTransaction();
       // console.log({whereVencimentos});
       // * DADOS DO BORDERÔ, CONTA BANCÁRIA, ETC:
@@ -84,7 +103,9 @@ module.exports = function exportRemessa(req, res) {
         rowsPagamentoTEDMesmoTitular,
         rowsPagamentoPIX,
         rowsPagamentoBoletoItau,
+        rowsPagamentoFaturaBoletoItau,
         rowsPagamentoBoletoOutroBancoParaItau,
+        rowsPagamentoFaturaBoletoOutroBancoParaItau,
         rowsPagamentoPIXQRCode,
         rowsPagamentoBoletoImpostos,
         rowsPagamentoTributos,
@@ -270,6 +291,27 @@ module.exports = function exportRemessa(req, res) {
             [id_bordero]
           )
           .then(([rows]) => rows),
+        //* Pagamento Boleto Fatura Itaú
+        conn
+          .execute(
+            `
+        SELECT
+          ccf.id as id_vencimento
+        FROM fin_cartoes_corporativos_faturas ccf
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = ccf.id
+        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
+        LEFT JOIN filiais f ON f.id = cc.id_matriz
+        LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
+        WHERE ${whereFaturas}
+        AND LEFT(ccf.cod_barras, 3) = 341
+        AND ccf.data_pagamento IS NULL
+        AND (ccf.status = "erro" OR ccf.status = "pendente")
+      `,
+            [id_bordero]
+          )
+          .then(([rows]) => rows),
         //* Pagamento Boleto Outro Banco Para Itaú
         conn
           .execute(
@@ -294,7 +336,27 @@ module.exports = function exportRemessa(req, res) {
             [id_bordero]
           )
           .then(([rows]) => rows),
-
+        //* Pagamento Boleto Fatura Outro Banco Para Itaú
+        conn
+          .execute(
+            `
+        SELECT
+          ccf.id as id_vencimento
+        FROM fin_cartoes_corporativos_faturas ccf
+        LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = ccf.id
+        LEFT JOIN fin_cp_bordero b ON b.id = tb.id_bordero
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
+        LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
+        LEFT JOIN filiais f ON f.id = cc.id_matriz
+        LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
+        WHERE ${whereFaturas}
+        AND LEFT(ccf.cod_barras, 3) <> 341
+        AND ccf.data_pagamento IS NULL
+        AND (ccf.status = "erro" OR ccf.status = "pendente")
+      `,
+            [id_bordero]
+          )
+          .then(([rows]) => rows),
         //* Pagamento PIX QR Code
         conn
           .execute(
@@ -387,8 +449,11 @@ module.exports = function exportRemessa(req, res) {
             PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
             PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
             PagamentoBoletoItau: rowsPagamentoBoletoItau,
+            PagamentoFaturaBoletoItau: rowsPagamentoFaturaBoletoItau,
             PagamentoBoletoOutroBancoParaItau:
               rowsPagamentoBoletoOutroBancoParaItau,
+            PagamentoFaturaBoletoOutroBancoParaItau:
+              rowsPagamentoFaturaBoletoOutroBancoParaItau,
             PagamentoBoletoImpostos: rowsPagamentoBoletoImpostos,
             PagamentoTributosCodBarras: rowsPagamentoTributos,
           })
@@ -430,7 +495,13 @@ module.exports = function exportRemessa(req, res) {
           case "PagamentoBoletoItau":
             forma_pagamento = 30;
             break;
+          case "PagamentoFaturaBoletoItau":
+            forma_pagamento = 30;
+            break;
           case "PagamentoBoletoOutroBancoParaItau":
+            forma_pagamento = 31;
+            break;
+          case "PagamentoFaturaBoletoOutroBancoParaItau":
             forma_pagamento = 31;
             break;
           case "PagamentoTEDOutroTitular":
@@ -484,9 +555,8 @@ module.exports = function exportRemessa(req, res) {
 
         let registroLote = 1;
         for (const pagamento of formaPagamento) {
-          const [rowVencimento] = await conn.execute(
-            `
-            SELECT
+          let query = `
+          SELECT
               tv.id as id_vencimento,  
               fb.codigo as cod_banco_favorecido,
               forn.agencia,
@@ -508,10 +578,42 @@ module.exports = function exportRemessa(req, res) {
             LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
             LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
             WHERE tv.id = ?
-          `,
-            [pagamento.id_vencimento]
-          );
+          `;
+          if (
+            key === "PagamentoFaturaBoletoItau" ||
+            key === "PagamentoFaturaBoletoOutroBancoParaItau"
+          ) {
+            query = `
+            SELECT
+              ccf.id as id_vencimento,  
+              fb.codigo as cod_banco_favorecido,
+              forn.agencia,
+              forn.dv_agencia,
+              forn.conta,
+              forn.dv_conta,
+              forn.favorecido as favorecido_nome,
+              DATE_FORMAT(ccf.data_prevista, '%d/%m/%Y') as data_pagamento,
+              DATE_FORMAT(ccf.data_prevista, '%d/%m/%Y') as data_vencimento,
+              ccf.valor as valor_pagamento,
+              forn.cnpj_favorecido as favorecido_cnpj,
+              ccf.cod_barras as cod_barras_tv
+            FROM fin_cartoes_corporativos_faturas ccf
+            LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
+            LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
+            LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
+            WHERE ccf.id = ?
+            `;
+          }
+
+          const [rowVencimento] = await conn.execute(query, [
+            pagamento.id_vencimento,
+          ]);
+
           const vencimento = rowVencimento && rowVencimento[0];
+
+          const isFatura =
+            key === "PagamentoFaturaBoletoItau" ||
+            key === "PagamentoFaturaBoletoOutroBancoParaItau";
           // console.log(vencimento);
           //* Verifica se é cpf ou cnpj
           if (!vencimento.favorecido_cnpj) {
@@ -559,7 +661,9 @@ module.exports = function exportRemessa(req, res) {
             key !== "PagamentoBoletoOutroBancoParaItau" &&
             key !== "PagamentoPIXQRCode" &&
             key !== "PagamentoTributosCodBarras" &&
-            key !== "PagamentoBoletoImpostos"
+            key !== "PagamentoBoletoImpostos" &&
+            key !== "PagamentoFaturaBoletoItau" &&
+            key !== "PagamentoFaturaBoletoOutroBancoParaItau"
           ) {
             const segmentoA = createSegmentoA({
               ...vencimento,
@@ -567,7 +671,6 @@ module.exports = function exportRemessa(req, res) {
               num_registro_lote: registroLote,
               //* Quando um pagamento é do tipo PIX Transferência o código câmara é 009
               cod_camara: key === "PagamentoPIX" && 9,
-              vencimento: vencimento.id_vencimento,
               agencia: agencia.join(""),
               ident_transferencia: key === "PagamentoPIX" && "04", //^^ Verificar se está correto
               cod_banco_favorecido:
@@ -628,6 +731,9 @@ module.exports = function exportRemessa(req, res) {
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
               cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
+              id_vencimento: isFatura
+                ? `F${vencimento.id_vencimento}`
+                : vencimento.id_vencimento,
             });
             registroLote++;
             const segmentoJ52 = createSegmentoJ52({
@@ -746,7 +852,8 @@ module.exports = function exportRemessa(req, res) {
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);
 
-      await conn.commit();
+      // await conn.commit();
+      await conn.rollback();
       resolve();
     } catch (error) {
       logger.error({
