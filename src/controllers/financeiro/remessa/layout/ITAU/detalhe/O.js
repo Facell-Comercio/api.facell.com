@@ -169,7 +169,7 @@ module.exports = [
     default: new Array(15).fill(" ").join(""),
   },
   {
-    field: "codigos_ocorrencias",
+    field: "ocorrencias",
     startPos: 231,
     endPos: 240,
     length: 10,
