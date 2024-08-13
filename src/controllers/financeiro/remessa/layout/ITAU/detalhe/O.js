@@ -145,7 +145,7 @@ module.exports = [
     default: new Array(3).fill(" ").join(""),
   },
   {
-    field: "vencimento",
+    field: "id_vencimento",
     startPos: 175,
     endPos: 194,
     length: 20,
