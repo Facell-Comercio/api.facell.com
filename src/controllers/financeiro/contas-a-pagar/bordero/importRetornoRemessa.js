@@ -42,6 +42,7 @@ module.exports = async function importRetornoRemessa(req) {
             const segmentos = lote.detalhe?.filter(
               (d) =>
                 d.cod_seg_registro_lote === "A" ||
+                d.cod_seg_registro_lote === "O" ||
                 d.cod_seg_registro_lote === "J"
             );
             if (!segmentos || !segmentos.length) {
@@ -83,8 +84,6 @@ module.exports = async function importRetornoRemessa(req) {
                 if (vencimento.status === "pago") {
                   throw new Error(`Vencimento já constava como pago`);
                 }
-
-                
 
                 const ocorrenciasErro = ocorrencias.filter(
                   (e) => e != "00" && e != "BD"
