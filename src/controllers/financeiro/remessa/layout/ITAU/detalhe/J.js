@@ -55,7 +55,7 @@ module.exports = [
     endPos: 61,
     length: 44,
     required: true,
-    type: "numeric",
+    type: "aplhanumeric",
     default: new Array(44).fill(0).join(""),
   },
   {

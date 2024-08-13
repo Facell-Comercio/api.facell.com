@@ -35,15 +35,15 @@ module.exports = function exportRemessa(req, res) {
       if (!id_bordero) {
         throw new Error("ID do Borderô não indicado!");
       }
-      let whereVenvimentos = ` tb.id_bordero = ? `;
+      let whereVencimentos = ` tb.id_bordero = ? `;
 
       if (itens && itens.length > 0) {
-        whereVenvimentos += ` AND tv.id IN('${itens
+        whereVencimentos += ` AND tv.id IN('${itens
           .map((item) => item.id_vencimento)
           .join("','")}')`;
       }
       await conn.beginTransaction();
-      // console.log({whereVenvimentos});
+      // console.log({whereVencimentos});
       // * DADOS DO BORDERÔ, CONTA BANCÁRIA, ETC:
       const [rowsBordero] = await conn.execute(
         `
@@ -103,13 +103,14 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 5
         AND forn.cnpj <> f.cnpj
         AND fb.codigo = 341
         AND (forn.id_tipo_conta = 1 OR forn.id_tipo_conta IS NULL)
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -129,13 +130,14 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 5
         AND forn.cnpj <> f.cnpj
         AND fb.codigo = 341
         AND forn.id_tipo_conta = 2
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -155,13 +157,14 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 5
         AND forn.cnpj = f.cnpj
         AND fb.codigo = 341
         AND (forn.id_tipo_conta = 1 OR forn.id_tipo_conta IS NULL)
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -181,12 +184,13 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 5
         AND forn.cnpj <> f.cnpj
         AND fb.codigo <> 341
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -206,12 +210,13 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 5
         AND forn.cnpj = f.cnpj
         AND fb.codigo <> 341
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -231,10 +236,11 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 4
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -254,11 +260,12 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
         AND (LEFT(COALESCE(dda.cod_barras, ''), 3) = 341 OR LEFT(COALESCE(tv.cod_barras, ''), 3) = 341)
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -277,11 +284,12 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
         AND (LEFT(dda.cod_barras, 3) <> 341 OR LEFT(tv.cod_barras, 3) <> 341)
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -301,10 +309,11 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 8
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
       `,
             [id_bordero]
           )
@@ -324,10 +333,11 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 10
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
   `,
             [id_bordero]
           )
@@ -347,10 +357,11 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
-        WHERE ${whereVenvimentos}
+        WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 11
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
+        AND tv.id_fatura IS NULL
   `,
             [id_bordero]
           )

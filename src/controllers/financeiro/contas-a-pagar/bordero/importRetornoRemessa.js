@@ -39,11 +39,12 @@ module.exports = async function importRetornoRemessa(req) {
           }
           for (const lote of lotes) {
             // Passagem pelos segmentos G
+
             const segmentos = lote.detalhe?.filter(
               (d) =>
                 d.cod_seg_registro_lote === "A" ||
                 d.cod_seg_registro_lote === "O" ||
-                d.cod_seg_registro_lote === "J"
+                (d.cod_seg_registro_lote === "J" && d.registro_cod != "52")
             );
 
             if (!segmentos || !segmentos.length) {
@@ -53,6 +54,7 @@ module.exports = async function importRetornoRemessa(req) {
               const id_vencimento = parseInt(
                 String(segmento.id_vencimento).trim()
               );
+
               const ocorrencias =
                 String(segmento.ocorrencias)
                   .trim()
