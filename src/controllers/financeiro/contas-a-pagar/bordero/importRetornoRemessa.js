@@ -4,6 +4,8 @@ const fs = require("fs/promises");
 const { logger } = require("../../../../../logger");
 const { remessaToObject } = require("../../remessa/to-object");
 const constants = require("../../remessa/layout/ITAU/constants");
+const { normalizeNumberOnly } = require("../../../../helpers/mask");
+const { pagarVencimento, pagarFatura } = require("./pagamentoItens");
 
 module.exports = async function importRetornoRemessa(req) {
   return new Promise(async (resolve, reject) => {
@@ -20,6 +22,7 @@ module.exports = async function importRetornoRemessa(req) {
 
       let sequencial_arquivo = 1;
       const pagamentos = [];
+
       for (const file of files) {
         const filePath = file?.path;
         try {
@@ -44,17 +47,13 @@ module.exports = async function importRetornoRemessa(req) {
               (d) =>
                 d.cod_seg_registro_lote === "A" ||
                 d.cod_seg_registro_lote === "O" ||
-                (d.cod_seg_registro_lote === "J" && d.registro_cod != "52")
+                (d.cod_seg_registro_lote === "J" && d.codigo_registro != "52")
             );
-
             if (!segmentos || !segmentos.length) {
               continue;
             }
             for (const segmento of segmentos) {
-              const id_vencimento = parseInt(
-                String(segmento.id_vencimento).trim()
-              );
-
+              const id_vencimento = String(segmento.id_vencimento).trim();
               const ocorrencias =
                 String(segmento.ocorrencias)
                   .trim()
@@ -66,28 +65,10 @@ module.exports = async function importRetornoRemessa(req) {
                 status: "sucesso",
               };
               try {
-                const [rowVencimento] = await conn.execute(
-                  `
-                  SELECT 
-                    tv.id, tv.id_titulo, tv.status, tv.valor
-                  FROM fin_cp_titulos_vencimentos tv
-                  LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
-                  WHERE tv.id = ? AND bi.id_bordero = ?
-                  `,
-                  [id_vencimento, id_bordero]
-                );
-                const vencimento = rowVencimento && rowVencimento[0];
-
-                //* Verificando a existencia do vencimento
-                if (!vencimento) {
-                  throw new Error(`Vencimento não encontrado no sistema`);
-                }
-
-                //* Verificando se o status do vencimento é pago
-                if (vencimento.status === "pago") {
-                  throw new Error(`Vencimento já constava como pago`);
-                }
-
+                const isFatura = id_vencimento[0] === "F";
+                const updatedTable = isFatura
+                  ? "fin_cartoes_corporativos_faturas"
+                  : "fin_cp_titulos_vencimentos";
                 const ocorrenciasErro = ocorrencias.filter(
                   (e) => e != "00" && e != "BD"
                 );
@@ -95,25 +76,25 @@ module.exports = async function importRetornoRemessa(req) {
                   const erros = ocorrenciasErro.map((erro) => {
                     return CodigosOcorrencias[erro];
                   });
-                  //* Inicando que o vencimento pode ser incluso na remessa novamente
+                  //* Inicando que o item pode ser incluso na remessa novamente
                   await conn.execute(
                     `
                       UPDATE fin_cp_bordero_itens
                       SET remessa = ?
-                      WHERE id_vencimento = ?
+                      WHERE ${isFatura ? "id_fatura = ?" : "id_vencimento = ?"}
                       AND id_bordero = ?
                     `,
-                    [false, vencimento.id, id_bordero]
+                    [false, normalizeNumberOnly(id_vencimento), id_bordero]
                   );
 
-                  //* Atualizando dados informativos sobre o vencimento
+                  //* Atualizando dados informativos sobre o item
                   await conn.execute(
                     `
-                      UPDATE fin_cp_titulos_vencimentos 
+                      UPDATE ${updatedTable} 
                       SET status = "erro", obs = ? 
                       WHERE id = ?
                       `,
-                    [erros.join(", "), vencimento.id]
+                    [erros.join(", "), normalizeNumberOnly(id_vencimento)]
                   );
 
                   if (ocorrenciasErro.length > 1) {
@@ -125,9 +106,9 @@ module.exports = async function importRetornoRemessa(req) {
                 if (ocorrencias[0] === "BD") {
                   await conn.execute(
                     `
-                      UPDATE fin_cp_titulos_vencimentos SET status = "programado" WHERE id = ?
+                      UPDATE ${updatedTable} SET status = "programado" WHERE id = ?
                       `,
-                    [vencimento.id]
+                    [normalizeNumberOnly(id_vencimento)]
                   );
                   pagamento.status = "programado";
                 }
@@ -139,41 +120,33 @@ module.exports = async function importRetornoRemessa(req) {
                     segmento.data_real_efetivacao_pgto ||
                     segmento.data_pagamento;
 
-                  await conn.execute(
-                    `
-                        UPDATE fin_cp_titulos_vencimentos 
-                        SET status = "pago", valor = ?, valor_pago = ?, 
-                        tipo_baixa = "PADRÃO", data_pagamento = ?, 
-                        obs="PAGAMENTO REALIZADO NO RETORNO DA REMESSA" WHERE id = ?
-                        `,
-                    [valorPago, valorPago, dataPagamento, vencimento.id]
-                  );
+                  const item = {
+                    id_vencimento: isFatura
+                      ? normalizeNumberOnly(id_vencimento)
+                      : id_vencimento,
+                    tipo: isFatura ? "fatura" : "vencimento",
+                    tipo_baixa: "PADRÃO",
+                    valor_pago: valorPago,
+                    valor_total: valorPago,
+                    remessa: 1,
+                  };
 
-                  // * Obtém os vencimentos não pagos do titulo
-                  const [vencimentosNaoPagos] = await conn.execute(
-                    `
-                          SELECT 
-                            tv.id 
-                          FROM fin_cp_titulos_vencimentos tv
-                          WHERE tv.id_titulo = ? 
-                          AND tv.data_pagamento IS NULL
-                        `,
-                    [vencimento.id_titulo]
-                  );
-
-                  if (vencimentosNaoPagos.length === 0) {
-                    // ^ Se todos os vencimentos estiverem pagos muda o status do titulo para pago
-                    await conn.execute(
-                      `UPDATE fin_cp_titulos SET id_status = 5 WHERE id = ?`,
-                      [vencimento.id_titulo]
-                    );
-                  }
-                  if (vencimentosNaoPagos.length > 0) {
-                    // ^ Se houverem vencimentos ainda não pagos no título muda o status do titulo para pago parcial
-                    await conn.execute(
-                      `UPDATE fin_cp_titulos SET id_status = 4 WHERE id = ?`,
-                      [vencimento.id_titulo]
-                    );
+                  if (isFatura) {
+                    pagarFatura({
+                      user: req.user,
+                      conn,
+                      fatura: item,
+                      data_pagamento: dataPagamento,
+                      obs: "PAGAMENTO REALIZADO NO RETORNO DA REMESSA",
+                    });
+                  } else {
+                    pagarVencimento({
+                      user: req.user,
+                      conn,
+                      vencimento: item,
+                      data_pagamento: dataPagamento,
+                      obs: "PAGAMENTO REALIZADO NO RETORNO DA REMESSA",
+                    });
                   }
                 }
               } catch (error) {
