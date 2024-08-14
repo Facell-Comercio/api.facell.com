@@ -18,6 +18,12 @@ module.exports = async (req) => {
         SELECT 
           dc.*,
           COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias,
+          (dc.valor_dinheiro - dc.valor_retiradas) as total_dinheiro,
+          (dc.valor_cartao_real - dc.valor_cartao) as divergencia_cartao,
+          (dc.valor_recarga_real - dc.valor_recarga) as divergencia_recarga,
+          (dc.valor_pitzi_real - dc.valor_pitzi) as divergencia_pitzi,
+          (dc.valor_pix_banco - dc.valor_pix) as divergencia_pix,
+          (dc.valor_tradein_utilizado - dc.valor_tradein) as divergencia_tradein,
           f.nome as filial
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
