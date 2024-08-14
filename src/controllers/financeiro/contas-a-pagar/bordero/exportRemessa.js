@@ -657,13 +657,12 @@ module.exports = function exportRemessa(req, res) {
           }
           //* O segmento A só é gerado se o tipo de pagamento não é boleto ou pix qr code
           if (
-            key !== "PagamentoBoletoItau" &&
-            key !== "PagamentoBoletoOutroBancoParaItau" &&
-            key !== "PagamentoPIXQRCode" &&
-            key !== "PagamentoTributosCodBarras" &&
-            key !== "PagamentoBoletoImpostos" &&
-            key !== "PagamentoFaturaBoletoItau" &&
-            key !== "PagamentoFaturaBoletoOutroBancoParaItau"
+            key === "PagamentoPIX" ||
+            key === "PagamentoTEDOutroTitular" ||
+            key === "PagamentoTEDMesmoTitular" ||
+            key === "PagamentoCorrenteItau" ||
+            key === "PagamentoPoupancaItau" ||
+            key === "PagamentoCorrenteMesmaTitularidade"
           ) {
             const segmentoA = createSegmentoA({
               ...vencimento,
@@ -681,7 +680,9 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoA);
             qtde_registros++;
             qtde_registros_arquivo++;
-          } else if (
+          }
+
+          if (
             key === "PagamentoBoletoImpostos" ||
             key === "PagamentoTributosCodBarras"
           ) {
@@ -695,7 +696,9 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoO);
             qtde_registros++;
             qtde_registros_arquivo++;
-          } else if (key === "PagamentoPIXQRCode") {
+          }
+
+          if (key === "PagamentoPIXQRCode") {
             //* Pagamento PIX QR Code
             const segmentoJ = createSegmentoJ({
               ...vencimento,
@@ -722,7 +725,14 @@ module.exports = function exportRemessa(req, res) {
             arquivo.push(segmentoJ52Pix);
             qtde_registros += 2;
             qtde_registros_arquivo += 2;
-          } else {
+          }
+
+          if (
+            key === "PagamentoBoletoItau" ||
+            key === "PagamentoBoletoOutroBancoParaItau" ||
+            key === "PagamentoFaturaBoletoItau" ||
+            key === "PagamentoFaturaBoletoOutroBancoParaItau"
+          ) {
             //* Pagamento Boleto
             //todo Adicionar os valores de sacado e cedente
             const segmentoJ = createSegmentoJ({
@@ -810,10 +820,6 @@ module.exports = function exportRemessa(req, res) {
             `,
             [true, vencimento.id_vencimento]
           );
-
-          // await conn.rollback();
-
-          // console.log(true, vencimento.id_vencimento);
         }
         qtde_registros++;
         qtde_registros_arquivo++;
@@ -852,8 +858,8 @@ module.exports = function exportRemessa(req, res) {
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);
 
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
+      // await conn.rollback();
       resolve();
     } catch (error) {
       logger.error({

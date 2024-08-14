@@ -49,7 +49,6 @@ module.exports = async function importRetornoRemessa(req) {
                 d.cod_seg_registro_lote === "O" ||
                 (d.cod_seg_registro_lote === "J" && d.codigo_registro != "52")
             );
-            // console.log(segmentos);
             if (!segmentos || !segmentos.length) {
               continue;
             }
