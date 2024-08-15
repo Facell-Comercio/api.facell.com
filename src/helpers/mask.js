@@ -140,10 +140,9 @@ function normalizeCodigoBarras(text) {
 function normalizeCodigoBarras48(linhaDigitavel) {
   if (!linhaDigitavel) return null;
 
-  if (linhaDigitavel.length == 44) return linhaDigitavel;
-
   // Remove pontos e espaços
-  let linhaDigitavelSemPontuacao = String(linhaDigitavel).replace(/[ .]/g, "");
+  let linhaDigitavelSemPontuacao = normalizeNumberOnly(linhaDigitavel);
+  if (linhaDigitavelSemPontuacao.length == 44) return linhaDigitavel;
 
   if (linhaDigitavelSemPontuacao.length !== 48) {
     throw new Error("A linha digitável deve ter 48 caracteres.");
