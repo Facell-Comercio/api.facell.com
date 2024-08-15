@@ -52,7 +52,7 @@ module.exports = function getOne(req) {
               FROM fin_cartoes_corporativos_faturas ccf
               WHERE ccf.id_cartao = ?
               ORDER BY 
-                ccf.id DESC
+                ccf.data_vencimento DESC
               LIMIT ? OFFSET ?
               `,
         [id, pageSize, offset]
