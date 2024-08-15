@@ -251,8 +251,7 @@ module.exports = function update(req) {
         // * Persistir o rateio
         for (const item_rateio of itens_rateio) {
           const valorRateio = parseFloat(item_rateio.valor);
-          console.log({valorRateio, teste: valorRateio.toFixed(4)});
-          
+
           if (!valorRateio) {
             throw new Error(
               `O Rateio não possui Valor! Rateio: ${JSON.stringify(
@@ -347,8 +346,7 @@ module.exports = function update(req) {
             const saldo = valor_previsto - valor_total_consumo;
             if (contaOrcamentoAtiva && saldo < valorRateio) {
               throw new Error(
-                `Saldo insuficiente para ${item_rateio.centro_custo} + ${
-                  item_rateio.plano_conta
+                `Saldo insuficiente para ${item_rateio.centro_custo} + ${item_rateio.plano_conta
                 }. Necessário ${normalizeCurrency(valorRateio - saldo)}`
               );
             }
@@ -440,6 +438,7 @@ module.exports = function update(req) {
           // }
 
           //* Início - Lógica de Cartões /////////////////
+          let fatura = null;
           let id_fatura = null;
           if (isCartao) {
             //* Consulta alguns dados do cartão e data de vencimento
@@ -465,27 +464,7 @@ module.exports = function update(req) {
                             `,
               [id_cartao, startOfDay(vencimento.data_vencimento)]
             );
-            const fatura = rowFaturas && rowFaturas[0];
-
-            //* Caso exista uma fatura -> Atualiza o valor
-            if (fatura) {
-              //* Verifica se a fatura está fechada
-              if (fatura.closed) {
-                throw new Error(
-                  `A fatura de data vencimento ${normalizeDate(
-                    startOfDay(vencimento.data_vencimento)
-                  )} já está fechada!`
-                );
-              }
-              const valor =
-                parseFloat(fatura.valor) + parseFloat(vencimento.valor);
-              await conn.execute(
-                `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
-                                `,
-                [valor.toFixed(2), fatura.id]
-              );
-              id_fatura = fatura.id;
-            }
+            fatura = rowFaturas && rowFaturas[0];
 
             //* Caso não exista uma fatura -> Cria uma nova
             if (!fatura) {
@@ -498,7 +477,7 @@ module.exports = function update(req) {
                   id_cartao,
                   startOfDay(vencimento.data_vencimento),
                   startOfDay(vencimento.data_prevista),
-                  vencimentos[0].valor,
+                  vencimento.valor,
                 ]
               );
               if (!result.insertId) {
@@ -507,8 +486,20 @@ module.exports = function update(req) {
               id_fatura = result.insertId;
             }
           }
-          //* Fim - Lógica de Cartões /////////////////
+          if (isCartao && fatura) {
+            id_fatura = fatura.id
+            //^ Verifica se a fatura está fechada
+            if (fatura.closed) {
+              throw new Error(
+                `A fatura de data vencimento ${normalizeDate(
+                  startOfDay(vencimento.data_vencimento)
+                )} já está fechada!`
+              );
+            }
+          }
+          //~ Fim - Lógica de Cartões /////////////////
 
+          // * Insert do vencimento:
           await conn.execute(
             `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code, id_fatura) VALUES (?,?,?,?,?,?,?)`,
             [
@@ -521,6 +512,7 @@ module.exports = function update(req) {
               id_fatura,
             ]
           );
+          
         }
       }
       //~ Fim de manipulação de vencimentos //////////////////////

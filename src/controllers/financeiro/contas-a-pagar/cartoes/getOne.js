@@ -44,11 +44,15 @@ module.exports = function getOne(req) {
       const [rowVencimentosEmFatura] = await conn.execute(
         `
               SELECT 
-                  *
-              FROM fin_cartoes_corporativos_faturas
-              WHERE id_cartao = ?
+                  ccf.*,
+                  COALESCE((SELECT sum(tv.valor) FROM fin_cp_titulos_vencimentos tv WHERE tv.id_fatura = ccf.id),0) as valor_total,
+                  COALESCE((SELECT sum(tv.valor) FROM fin_cp_titulos_vencimentos tv 
+                  INNER JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+                  WHERE tv.id_fatura = ccf.id AND t.id_status >= 3),0) as valor_aprovado
+              FROM fin_cartoes_corporativos_faturas ccf
+              WHERE ccf.id_cartao = ?
               ORDER BY 
-                id DESC
+                ccf.id DESC
               LIMIT ? OFFSET ?
               `,
         [id, pageSize, offset]

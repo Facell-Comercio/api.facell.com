@@ -425,12 +425,6 @@ module.exports = function insertOne(req) {
                 )} já está fechada!`
               );
             }
-            const valor =
-              parseFloat(fatura.valor) + parseFloat(vencimento.valor);
-            await conn.execute(
-              `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ? `,
-              [valor, fatura.id]
-            );
             id_fatura = fatura.id;
           }
 
@@ -446,7 +440,7 @@ module.exports = function insertOne(req) {
                 id_cartao,
                 startOfDay(vencimento.data_vencimento),
                 startOfDay(vencimento.data_prevista),
-                vencimentos[0].valor,
+                vencimento.valor,
               ]
             );
             if (!result.insertId) {
