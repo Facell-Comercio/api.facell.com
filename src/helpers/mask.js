@@ -115,15 +115,13 @@ function removeSpecialCharactersAndAccents(str) {
 function normalizeCodigoBarras(text) {
   if (!text) return null;
 
-  let textoLimpo = String(text)
-    .trim()
-    .replace(/[\s.-]/g, "");
+  let textoLimpo = normalizeNumberOnly(text);
 
   if (textoLimpo.length === 44) {
-    return text;
+    return textoLimpo;
   }
   if (textoLimpo.length !== 47) {
-    return null;
+    throw new Error(`Línha digitável deve possuir 47 caracteres, ou o código de barras possuir 44 caracteres! Recebido ${text.length} caracteres!`)
   }
   const parte1 = textoLimpo.substring(0, 4);
   const parte3 = textoLimpo.substring(4, 9);
@@ -137,22 +135,22 @@ function normalizeCodigoBarras(text) {
 /**
  * Função que transforma linha digitável em Código de Barras
  * */
-function normalizeCodigoBarras48(linhaDigitavel) {
-  if (!linhaDigitavel) return null;
+function normalizeCodigoBarras48(texto) {
+  if (!texto) return null;
 
   // Remove pontos e espaços
-  let linhaDigitavelSemPontuacao = normalizeNumberOnly(linhaDigitavel);
-  if (linhaDigitavelSemPontuacao.length == 44) return linhaDigitavelSemPontuacao;
+  let textoTratado = normalizeNumberOnly(texto);
+  if (textoTratado.length == 44) return textoTratado;
 
-  if (linhaDigitavelSemPontuacao.length !== 48) {
-    throw new Error("A linha digitável deve ter 48 caracteres.");
+  if (textoTratado.length !== 48) {
+    throw new Error(`A linha digitável deve ter 48 caracteres, ou o código de barras possuir 44 caracteres! Recebido ${textoTratado.length} caracteres.`);
   }
 
   // Extrai campos da linha digitável
-  let campo1 = linhaDigitavelSemPontuacao.substring(0, 11);
-  let campo2 = linhaDigitavelSemPontuacao.substring(12, 23);
-  let campo3 = linhaDigitavelSemPontuacao.substring(24, 35);
-  let campo4 = linhaDigitavelSemPontuacao.substring(36, 47);
+  let campo1 = textoTratado.substring(0, 11);
+  let campo2 = textoTratado.substring(12, 23);
+  let campo3 = textoTratado.substring(24, 35);
+  let campo4 = textoTratado.substring(36, 47);
 
   // Combina campos para formar o código de barras
   let codigoBarras =
