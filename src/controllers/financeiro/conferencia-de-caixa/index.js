@@ -1,3 +1,6 @@
 module.exports = {
-    importCaixasDatasys: require("./metodos/import")
-}
+  getFiliais: require("./metodos/getFiliais"),
+  getAll: require("./metodos/getAll"),
+  getOne: require("./metodos/getOne"),
+  importCaixasDatasys: require("./metodos/import"),
+};
