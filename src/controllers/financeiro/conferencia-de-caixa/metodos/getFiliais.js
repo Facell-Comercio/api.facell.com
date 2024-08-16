@@ -42,7 +42,7 @@ module.exports = async (req) => {
       resolve(filiais);
     } catch (error) {
       logger.error({
-        module: "COMERCIAL",
+        module: "FINANCEIRO",
         origin: "CONFERÊNCIA DE CAIXA",
         method: "GET_FILIAIS",
         data: { message: error.message, stack: error.stack, name: error.name },

@@ -72,12 +72,13 @@ module.exports = async (req) => {
         `
         SELECT 
           dc.*,
-          COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias
+          COUNT(dco.id) as ocorrencias
         FROM datasys_caixas dc
         LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data = dc.data
         ${where}
         
         GROUP BY dc.id
+        ORDER BY dc.data ASC
         ${limit}
         `,
         params
@@ -90,7 +91,7 @@ module.exports = async (req) => {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "COMERCIAL",
+        module: "FINANCEIRO",
         origin: "CONFERÊNCIA DE CAIXA",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
