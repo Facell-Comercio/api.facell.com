@@ -1,5 +1,5 @@
 const { startOfDay } = require("date-fns");
-const { logger } = require("../../../../../logger");
+const { logger } = require("../../../../../../logger");
 
 module.exports = async ({ conn, data_caixa, id_filial }) => {
   return new Promise(async (resolve, reject) => {
@@ -21,7 +21,7 @@ module.exports = async ({ conn, data_caixa, id_filial }) => {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONFERÊNCIA DE CAIXA",
+        origin: "CONFERÊNCIA_DE_CAIXA",
         method: "GET_CAIXA_ANTERIOR",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

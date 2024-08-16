@@ -1,5 +1,5 @@
-const { db } = require("../../../../../mysql");
-const { logger } = require("../../../../../logger");
+const { db } = require("../../../../../../mysql");
+const { logger } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 
 module.exports = async (req) => {
@@ -50,8 +50,8 @@ module.exports = async (req) => {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "BORDERO",
-        method: "INSERT",
+        origin: "CONFERÊNCIA_DE_CAIXA",
+        method: "INSERT_DEPOSITO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();

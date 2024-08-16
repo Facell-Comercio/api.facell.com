@@ -1,7 +1,7 @@
 const router = require("express").Router();
 
 const contasPagar = require("./contas-pagar");
-const conferenciaDeCaixa = require("./conferencia-de-caixa");
+const controleDeCaixa = require("./controle-de-caixa");
 
 const orcamento = require("./orcamento");
 
@@ -22,7 +22,7 @@ const tarifas = require("./conciliacao-bancaria/conciliacao/config/tarifas-padra
 router.use("/contas-a-pagar", contasPagar);
 
 // Conferência de caixa
-router.use("/conferencia-de-caixa", conferenciaDeCaixa);
+router.use("/controle-de-caixa", controleDeCaixa);
 
 // Orçamento
 router.use("/orcamento", orcamento);

@@ -1,6 +1,6 @@
 const { startOfDay } = require("date-fns");
-const { logger } = require("../../../../../logger");
-const { db } = require("../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { db } = require("../../../../../../mysql");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -42,7 +42,7 @@ module.exports = async (req) => {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONFERÊNCIA DE CAIXA",
+        origin: "CONFERÊNCIA_DE_CAIXA",
         method: "GET_ALL_OCORRENCIAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

@@ -50,7 +50,7 @@ module.exports = [
     default: 0,
   },
   {
-    field: "codido_registro",
+    field: "codigo_registro",
     startPos: 18,
     endPos: 19,
     length: 2,

@@ -1,5 +1,5 @@
-const { logger } = require("../../../../../logger");
-const { db } = require("../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { db } = require("../../../../../../mysql");
 const getCaixaAnterior = require("./getCaixaAnterior");
 
 module.exports = async (req) => {
@@ -66,7 +66,7 @@ module.exports = async (req) => {
       );
 
       const saldo_atual =
-        parseFloat(caixaAnterior ? caixaAnterior.saldo : 0) +
+        parseFloat(caixaAnterior.saldo) +
         parseFloat(caixa.valor_dinheiro) -
         (parseFloat(caixa.valor_retiradas) +
           rowsDepositosCaixa.reduce(
@@ -76,7 +76,7 @@ module.exports = async (req) => {
 
       resolve({
         ...caixa,
-        saldo_anterior: caixaAnterior ? caixaAnterior.saldo : 0,
+        saldo_anterior: caixaAnterior.saldo,
         saldo_atual,
         movimentos_caixa: rowsMovimentoCaixa,
         qtde_movimentos_caixa: rowsMovimentoCaixa && rowsMovimentoCaixa.length,
@@ -86,7 +86,7 @@ module.exports = async (req) => {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONFERÊNCIA DE CAIXA",
+        origin: "CONFERÊNCIA_DE_CAIXA",
         method: "GET_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
