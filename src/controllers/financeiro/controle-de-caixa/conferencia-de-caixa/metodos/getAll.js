@@ -1,5 +1,5 @@
-const { logger } = require("../../../../../logger");
-const { db } = require("../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { db } = require("../../../../../../mysql");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -54,6 +54,13 @@ module.exports = async (req) => {
     let conn;
     try {
       conn = await db.getConnection();
+      const [rowsFiliais] = await conn.execute(
+        `
+        SELECT nome FROM filiais WHERE id = ?
+      `,
+        [id_filial]
+      );
+      const filial = rowsFiliais && rowsFiliais[0];
       const [rowsCaixas] = await conn.execute(
         ` SELECT COUNT(dc.id) as total 
           FROM datasys_caixas dc
@@ -68,16 +75,18 @@ module.exports = async (req) => {
         params.push(pageSize);
         params.push(offset);
       }
+
       const [caixas] = await conn.execute(
         `
         SELECT 
           dc.*,
-          COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias
+          COUNT(dco.id) as ocorrencias
         FROM datasys_caixas dc
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data = dc.data
+        LEFT JOIN datasys_caixas_ocorrencias dco ON (dco.id_filial = dc.id_filial AND dco.data = dc.data)
         ${where}
         
         GROUP BY dc.id
+        ORDER BY dc.data ASC
         ${limit}
         `,
         params
@@ -86,12 +95,14 @@ module.exports = async (req) => {
         rows: caixas,
         pageCount: Math.ceil(totalCaixas / pageSize),
         rowCount: totalCaixas,
+
+        filial: filial && filial.nome,
       };
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: "COMERCIAL",
-        origin: "CONFERÊNCIA DE CAIXA",
+        module: "FINANCEIRO",
+        origin: "CONFERÊNCIA_DE_CAIXA",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

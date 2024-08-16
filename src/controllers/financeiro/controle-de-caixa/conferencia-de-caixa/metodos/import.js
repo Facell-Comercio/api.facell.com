@@ -1,8 +1,8 @@
 const { formatDate } = require("date-fns");
-const { logger } = require("../../../../../logger");
-const {db} = require("../../../../../mysql");
-const createDateArrayFromRange = require("../../../../helpers/createDateArrayFromRange");
-const { getMovimentoCaixa } = require("../../../datasys/api/index");
+const { logger } = require("../../../../../../logger");
+const {db} = require("../../../../../../mysql");
+const createDateArrayFromRange = require("../../../../../helpers/createDateArrayFromRange");
+const { getMovimentoCaixa } = require("../../../../datasys/api/index");
 
 async function checkSeRecarga({conn, pedido, grupo_economico}){
     return new Promise(async(resolve, reject)=>{
@@ -194,7 +194,7 @@ module.exports = async (req)=>{
             await conn.rollback()
             reject(error)
             logger.error({
-                module: 'DATASYS', origin: 'CAIXAS', method: 'IMPORT',
+                module: 'FINANCEIRO', origin: 'CONFERÊNCIA_DE_CAIXA', method: 'IMPORT',
                 data: { message: error.message, stack: error.stack, name: error.name }
               })
         }finally{

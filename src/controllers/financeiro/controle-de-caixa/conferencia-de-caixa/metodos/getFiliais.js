@@ -1,5 +1,5 @@
-const { logger } = require("../../../../../logger");
-const { db } = require("../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { db } = require("../../../../../../mysql");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -42,8 +42,8 @@ module.exports = async (req) => {
       resolve(filiais);
     } catch (error) {
       logger.error({
-        module: "COMERCIAL",
-        origin: "CONFERÊNCIA DE CAIXA",
+        module: "FINANCEIRO",
+        origin: "CONFERÊNCIA_DE_CAIXA",
         method: "GET_FILIAIS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

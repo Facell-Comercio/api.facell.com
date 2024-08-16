@@ -3,8 +3,8 @@ const {
   getOne,
   getFiliais,
   importCaixasDatasys,
-} = require("../../../controllers/financeiro/conferencia-de-caixa");
-const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
+} = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
+const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 const router = require("express").Router();
 
