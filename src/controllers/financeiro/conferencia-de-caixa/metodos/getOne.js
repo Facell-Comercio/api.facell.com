@@ -66,7 +66,7 @@ module.exports = async (req) => {
       );
 
       const saldo_atual =
-        parseFloat(caixaAnterior.saldo) +
+        parseFloat(caixaAnterior ? caixaAnterior.saldo : 0) +
         parseFloat(caixa.valor_dinheiro) -
         (parseFloat(caixa.valor_retiradas) +
           rowsDepositosCaixa.reduce(
@@ -76,7 +76,7 @@ module.exports = async (req) => {
 
       resolve({
         ...caixa,
-        saldo_anterior: caixaAnterior.saldo,
+        saldo_anterior: caixaAnterior ? caixaAnterior.saldo : 0,
         saldo_atual,
         movimentos_caixa: rowsMovimentoCaixa,
         qtde_movimentos_caixa: rowsMovimentoCaixa && rowsMovimentoCaixa.length,

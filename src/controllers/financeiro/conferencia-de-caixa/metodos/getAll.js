@@ -54,6 +54,13 @@ module.exports = async (req) => {
     let conn;
     try {
       conn = await db.getConnection();
+      const [rowsFiliais] = await conn.execute(
+        `
+        SELECT nome FROM filiais WHERE id = ?
+      `,
+        [id_filial]
+      );
+      const filial = rowsFiliais && rowsFiliais[0];
       const [rowsCaixas] = await conn.execute(
         ` SELECT COUNT(dc.id) as total 
           FROM datasys_caixas dc
@@ -68,13 +75,14 @@ module.exports = async (req) => {
         params.push(pageSize);
         params.push(offset);
       }
+
       const [caixas] = await conn.execute(
         `
         SELECT 
           dc.*,
           COUNT(dco.id) as ocorrencias
         FROM datasys_caixas dc
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data = dc.data
+        LEFT JOIN datasys_caixas_ocorrencias dco ON (dco.id_filial = dc.id_filial AND dco.data = dc.data)
         ${where}
         
         GROUP BY dc.id
@@ -87,6 +95,8 @@ module.exports = async (req) => {
         rows: caixas,
         pageCount: Math.ceil(totalCaixas / pageSize),
         rowCount: totalCaixas,
+
+        filial: filial && filial.nome,
       };
       resolve(objResponse);
     } catch (error) {
