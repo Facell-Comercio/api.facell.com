@@ -89,7 +89,7 @@ module.exports = async (req) => {
                 {
                     id_user: req.user.id,
                     relatorio: 'PIX-ITAU',
-                    descricao: ` ${rows.length} linhas importadas!`
+                    descricao: ` ${formattedData.length} linhas importadas!`
                 })
 
             const result = true

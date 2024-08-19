@@ -63,7 +63,7 @@ module.exports = async (req) => {
                     nsu_origem: row['Nsu Origem'],
                     nsu_referencia: row['Nsu/Referencia'],
                 }
-                console.log(obj);
+                // console.log(obj);
 
                 await conn.execute(`INSERT IGNORE fin_vendas_recarga 
                     (
