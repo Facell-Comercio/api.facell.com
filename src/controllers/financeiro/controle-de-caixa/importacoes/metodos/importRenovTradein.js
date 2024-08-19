@@ -3,6 +3,7 @@ const fs = require('fs').promises;
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const { formatDate } = require('date-fns');
+const { excelDateToJSDate } = require('../../../../../helpers/mask');
 
 module.exports = async (req) => {
     return new Promise(async (resolve, reject) => {
@@ -41,6 +42,8 @@ module.exports = async (req) => {
                 if (!filial) {
                     throw new Error(`Filial não localizada pelo Nome: ${row['Nome da empresa']}`)
                 }
+                const data_criacao = row['Criado em'] && excelDateToJSDate(row['Criado em'])
+                const data_uso = row['Data de uso'] && excelDateToJSDate(row['Data de uso'])
 
 
                 const obj = {
@@ -50,14 +53,14 @@ module.exports = async (req) => {
                     imei2: row['Imei2'] || null,
                     descricao: row['Descrição'] || null,
                     nome_vendedor: row['Nome do vendedor'] || null,
-                    data: formatDate(row['Criado em'], 'yyyy-MM-dd'),
-                    hora: formatDate(row['Criado em'], 'HH:mm:ss'),
+                    data: formatDate(data_criacao, 'yyyy-MM-dd'),
+                    hora: formatDate(data_criacao, 'HH:mm:ss'),
                     status: row['Situacao do voucher'],
                     valor: row['Valor do voucher'],
-                    data_uso: row['Data de uso'] ? formatDate(row['Data de uso'], 'yyyy-MM-dd') : null,
-                    hora_uso: row['Data de uso'] ? formatDate(row['Data de uso'], 'HH:mm:ss') : null,
+                    data_uso: data_uso ? formatDate(data_uso, 'yyyy-MM-dd') : null,
+                    hora_uso: data_uso ? formatDate(data_uso, 'HH:mm:ss') : null,
                 }
-                console.log(obj);
+                // console.log(obj);
 
                 await conn.execute(`INSERT INTO renov_tradein 
                     (
@@ -71,7 +74,8 @@ module.exports = async (req) => {
                         hora,
                         status,
                         valor,
-                        data_uso
+                        data_uso,
+                        hora_uso
 
                     ) VALUES 
                     (
@@ -85,19 +89,28 @@ module.exports = async (req) => {
                         :hora,
                         :status,
                         :valor,
-                        :data_uso
+                        :data_uso,
+                        :hora_uso
                     )
                         ON DUPLICATE KEY UPDATE
-                        valor=VALUES(valor),
                         valor = VALUES(valor),
                         status = VALUES(status),
                         data_uso = VALUES(data_uso),
+                        hora_uso = VALUES(hora_uso),
                         imei = VALUES(imei),
                         imei2 = VALUES(imei2)
 
                         `, obj)
                 i++;
             }
+
+            // * Insert em log de importações de relatórios:
+            await conn.execute(`INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`, 
+                {
+                    id_user: req.user.id,
+                    relatorio: 'RENOV-TRADEIN',
+                    descricao: ` ${rows.length} linhas importadas!`
+                })
 
             const result = true
 

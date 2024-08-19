@@ -19,14 +19,14 @@ module.exports = async (req) => {
             const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const data = XLSX.utils.sheet_to_json(worksheet, { 
-                header: 1, 
+            const data = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
                 range: 5,
             });
 
             const headers = data[0];
             const rows = data.slice(1);
-            
+
             const formattedData = rows.map(row => {
                 let rowData = {};
                 headers.forEach((header, index) => {
@@ -47,17 +47,17 @@ module.exports = async (req) => {
                 if (!txid) continue;
                 const txidFilial = txid.substring(0, 13);
                 const tipoTransacao = row['TIPO DE TRANSAÇÃO'];
-                if(tipoTransacao == 'Transferência') continue;
+                if (tipoTransacao == 'Transferência') continue;
 
                 const [rowFilial] = await conn.execute(`SELECT id FROM filiais WHERE txid = :txid `, { txid: txidFilial })
                 const filial = rowFilial && rowFilial[0]
                 if (!filial) {
                     throw new Error(`Filial não localizada pelo TXID: ${txidFilial}`)
-                }   
+                }
                 const devolucao = row['TIPO DE TRANSAÇÃO'] == 'Devolução' ? 1 : 0;
-                const valor = devolucao 
-                ? (parseFloat(row['Débito'].replace(',', '.')) * -1).toFixed(2) 
-                : parseFloat(row['Crédito'].replace(',', '.'));
+                const valor = devolucao
+                    ? (parseFloat(row['Débito'].replace(',', '.')) * -1).toFixed(2)
+                    : parseFloat(row['Crédito'].replace(',', '.'));
 
                 const dataVenda = row['Data'].split('/').reverse().join('-')
                 const obj = {
@@ -69,7 +69,7 @@ module.exports = async (req) => {
                     banco: 'BRADESCO',
                 }
                 // console.log(obj);
-                
+
                 await conn.execute(`INSERT IGNORE fin_vendas_pix 
                     (
                         txid,
@@ -90,7 +90,13 @@ module.exports = async (req) => {
                     )`, obj)
 
             }
-
+            // * Insert em log de importações de relatórios:
+            await conn.execute(`INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (id_user, relatorio, descricao)`,
+                {
+                    id_user: req.user.id,
+                    relatorio: 'PIX-BRADESCO',
+                    descricao: ` ${rows.length} linhas importadas!`
+                })
             const result = true
 
             await conn.commit()
@@ -107,7 +113,7 @@ module.exports = async (req) => {
             if (filePath) {
                 try {
                     await fs.unlink(filePath)
-                } catch (err) {}
+                } catch (err) { }
             }
         }
     })

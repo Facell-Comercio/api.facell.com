@@ -30,24 +30,24 @@ module.exports = async (req) => {
                 });
                 return rowData;
             });
-            
-            if(!formattedData || formattedData.length === 0){
+
+            if (!formattedData || formattedData.length === 0) {
                 throw new Error('Arquivo vazio!')
             }
-            
+
             conn = await db.getConnection()
             conn.config.namedPlaceholders = true
-            
-            for(const row of formattedData){
+
+            for (const row of formattedData) {
                 const cnpj = row['CPF/CNPJ do estabelecimento'].replace(/[^a-zA-Z0-9]/g, '')
-                const [rowFilial] = await conn.execute(`SELECT id FROM filiais WHERE cnpj = :cnpj `, {cnpj})
+                const [rowFilial] = await conn.execute(`SELECT id FROM filiais WHERE cnpj = :cnpj `, { cnpj })
                 const filial = rowFilial && rowFilial[0]
-                if(!filial){
+                if (!filial) {
                     throw new Error(`Filial não localizada pelo CNPJ: ${cnpj}`)
                 }
 
                 const dataVenda = row['Data da venda'].split('/').reverse().join('-')
-                const obj ={
+                const obj = {
                     id_filial: filial.id,
                     estabelecimento: row['Estabelecimento'],
                     data_venda: dataVenda,
@@ -66,7 +66,7 @@ module.exports = async (req) => {
                     adquirente: 'CIELO',
                 }
                 // console.log(obj);
-                
+
                 await conn.execute(`INSERT IGNORE fin_vendas_cartao 
                     (
                         id_filial,
@@ -104,9 +104,16 @@ module.exports = async (req) => {
                         :num_maquina,
                         :adquirente
                     )`, obj)
-                
+
             }
-            
+            // * Insert em log de importações de relatórios:
+            await conn.execute(`INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (id_user, relatorio, descricao)`,
+                {
+                    id_user: req.user.id,
+                    relatorio: 'CIELO-VENDAS',
+                    descricao: ` ${rows.length} linhas importadas!`
+                })
+
             const result = true
 
             await conn.commit()

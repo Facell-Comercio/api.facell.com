@@ -5,15 +5,28 @@ const upload = multer({storage: localTempStorage})
 
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 const {
+  getLogsImportRelatorio,
   importCieloVendas,
   importPitziVendas,
   importPixBradesco,
   importPixItau,
   importCrediario,
   importRenovTradein,
-  importRecargaRvCellcard
+  importRecargaRvCellcard,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 
+router.get(
+  "/",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getLogsImportRelatorio(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
 
 router.post(
   "/import-cielo-vendas",

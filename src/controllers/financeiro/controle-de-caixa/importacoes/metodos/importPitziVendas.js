@@ -56,7 +56,7 @@ module.exports = async (req) => {
                             const data = dataEhora && dataEhora[0] && dataEhora[0].split('/').reverse().join('-') + ' ' + dataEhora[1]
 
                             const id_seguro = row['Order ID'] && parseInt(row['Order ID']) || null;
-                            if(!id_seguro){
+                            if (!id_seguro) {
                                 throw new Error(`Order ID não informado em linha ${i}`)
                             }
 
@@ -81,7 +81,7 @@ module.exports = async (req) => {
                                 cpf_cliente: row['CPF do Cliente']?.substring(0, 15) || null,
                             }
                             // console.log(obj);
-                            
+
                             await conn.execute(`INSERT IGNORE pitzi_vendas 
                                 (
                                     id_seguro,
@@ -126,6 +126,13 @@ module.exports = async (req) => {
                                 )`, obj)
                         }
 
+                        // * Insert em log de importações de relatórios:
+                        await conn.execute(`INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (id_user, relatorio, descricao)`,
+                            {
+                                id_user: req.user.id,
+                                relatorio: 'PITZI-VENDAS',
+                                descricao: ` ${rows.length} linhas importadas!`
+                            })
 
                         await conn.commit()
                         resolve(true)

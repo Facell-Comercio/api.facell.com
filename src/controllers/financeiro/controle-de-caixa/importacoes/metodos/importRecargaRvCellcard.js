@@ -57,7 +57,7 @@ module.exports = async (req) => {
                     custo: row['Custo'],
                     valor: row['Face'],
                     serie_pin: row['Série PIN'],
-                    gsm: row['Fone'] && row['Fone'].replace('-','') || null,
+                    gsm: row['Fone'] && row['Fone'].replace('-', '') || null,
                     status: row['Status Transação'],
                     serie_terminal: row['Série Terminal'],
                     nsu_origem: row['Nsu Origem'],
@@ -102,7 +102,13 @@ module.exports = async (req) => {
 
                 i++;
             }
-
+            // * Insert em log de importações de relatórios:
+            await conn.execute(`INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (id_user, relatorio, descricao)`,
+                {
+                    id_user: req.user.id,
+                    relatorio: 'RECARGA-RVCELLCARD',
+                    descricao: ` ${rows.length} linhas importadas!`
+                })
             const result = true
 
             await conn.commit()

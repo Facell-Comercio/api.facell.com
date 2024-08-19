@@ -19,15 +19,15 @@ module.exports = async (req) => {
             const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const data = XLSX.utils.sheet_to_json(worksheet, { 
-                header: 1, 
+            const data = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
                 range: "A18:Y300000",
             });
 
             const headers = data[0];
             const rows = data.slice(1);
-            
-            const formattedData = rows.filter(r=>r[0] !== undefined).map(row => {
+
+            const formattedData = rows.filter(r => r[0] !== undefined).map(row => {
                 let rowData = {};
                 headers.forEach((header, index) => {
                     rowData[header] = row[index];
@@ -63,7 +63,7 @@ module.exports = async (req) => {
                     devolucao: devolucao,
                     banco: 'ITAU',
                 }
-                
+
                 await conn.execute(`INSERT IGNORE fin_vendas_pix 
                     (
                         txid,
@@ -84,6 +84,13 @@ module.exports = async (req) => {
                     )`, obj)
 
             }
+            // * Insert em log de importações de relatórios:
+            await conn.execute(`INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (id_user, relatorio, descricao)`,
+                {
+                    id_user: req.user.id,
+                    relatorio: 'PIX-ITAU',
+                    descricao: ` ${rows.length} linhas importadas!`
+                })
 
             const result = true
 
@@ -101,7 +108,7 @@ module.exports = async (req) => {
             if (filePath) {
                 try {
                     await fs.unlink(filePath)
-                } catch (err) {}
+                } catch (err) { }
             }
         }
     })
