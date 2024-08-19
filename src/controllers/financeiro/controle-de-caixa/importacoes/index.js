@@ -6,4 +6,5 @@ module.exports = {
   importPixItau: require("./metodos/importPixItau"),
   importPitziVendas: require("./metodos/importPitziVendas"),
   importRenovTradein: require("./metodos/importRenovTradein"),
+  importRecargaRvCellcard: require("./metodos/importRecargaRvCellcard"),
 };
