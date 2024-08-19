@@ -40,7 +40,11 @@ module.exports = async (req) => {
             const [rows] = await conn.execute(`SELECT lir.*, u.nome as usuario
                 FROM log_import_relatorio lir 
                 LEFT JOIN users u ON u.id = lir.id_user
-                WHERE ${where} ${limit}`, params);
+                WHERE ${where}
+                ORDER BY lir.id DESC
+                ${limit}
+                
+                `, params);
 
             const objResponse = {
                 rows: rows,
