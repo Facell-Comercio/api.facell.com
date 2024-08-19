@@ -80,7 +80,7 @@ module.exports = async (req) => {
                                 nome_cliente: row['translation missing: pt-BR.reports.partner_manager.store_orders.customer_name']?.substring(0, 150) || null,
                                 cpf_cliente: row['CPF do Cliente']?.substring(0, 15) || null,
                             }
-                            console.log(obj);
+                            // console.log(obj);
                             
                             await conn.execute(`INSERT IGNORE pitzi_vendas 
                                 (

@@ -35,7 +35,6 @@ module.exports = async (req) => {
                 throw new Error('Arquivo vazio!')
             }
             
-            
             conn = await db.getConnection()
             conn.config.namedPlaceholders = true
             
@@ -66,7 +65,7 @@ module.exports = async (req) => {
                     num_maquina: row['Número da máquina'],
                     adquirente: 'CIELO',
                 }
-                console.log(obj);
+                // console.log(obj);
                 
                 await conn.execute(`INSERT IGNORE fin_vendas_cartao 
                     (
