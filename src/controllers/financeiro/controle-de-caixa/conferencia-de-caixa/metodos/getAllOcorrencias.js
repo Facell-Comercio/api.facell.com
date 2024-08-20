@@ -11,15 +11,24 @@ module.exports = async (req) => {
     }
     const { filters } = req.query;
 
-    const { id_filial, data_caixa } = filters || {};
+    const params = [];
 
+    const { id_filial, data_caixa, nao_resolvidas } = filters || {};
+    let where = " WHERE 1=1 ";
     let conn;
     try {
       if (!id_filial) {
         throw new Error("É necessário informar o filial!");
+      } else {
+        where += " AND dco.id_filial =? ";
+        params.push(id_filial);
       }
-      if (!data_caixa) {
-        throw new Error("É necessário informar a data do caixa!");
+      if (data_caixa) {
+        where += " AND dco.data_caixa = ? ";
+        params.push(startOfDay(data_caixa));
+      }
+      if (parseInt(nao_resolvidas)) {
+        where += " AND NOT dco.resolvida ";
       }
 
       conn = await db.getConnection();
@@ -30,9 +39,9 @@ module.exports = async (req) => {
           u.nome as user_criador
         FROM datasys_caixas_ocorrencias dco
         LEFT JOIN users u ON u.id = id_user_criador
-        WHERE dco.id_filial = ? AND dco.data = ?
+        ${where}
         `,
-        [id_filial, startOfDay(data_caixa)]
+        params
       );
 
       resolve({

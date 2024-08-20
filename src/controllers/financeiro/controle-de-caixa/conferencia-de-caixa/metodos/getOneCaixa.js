@@ -29,7 +29,7 @@ module.exports = async (req) => {
           f.id_matriz, f.nome as filial
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data = dc.data
+        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
         WHERE dc.id = ?
         `,
         [id]
@@ -65,8 +65,18 @@ module.exports = async (req) => {
         [id]
       );
 
+      const [historico] = await conn.execute(
+        `
+        SELECT 
+          dch.*
+        FROM datasys_caixas_historico dch
+        WHERE dch.id_caixa = ?
+        `,
+        [id]
+      );
+
       const saldo_atual =
-        parseFloat(caixaAnterior.saldo) +
+        parseFloat(caixaAnterior?.saldo || "0") +
         parseFloat(caixa.valor_dinheiro) -
         (parseFloat(caixa.valor_retiradas) +
           rowsDepositosCaixa.reduce(
@@ -76,12 +86,12 @@ module.exports = async (req) => {
 
       resolve({
         ...caixa,
-        saldo_anterior: caixaAnterior.saldo,
+        saldo_anterior: caixaAnterior?.saldo || 0,
         saldo_atual,
         movimentos_caixa: rowsMovimentoCaixa,
-        qtde_movimentos_caixa: rowsMovimentoCaixa && rowsMovimentoCaixa.length,
         depositos_caixa: rowsDepositosCaixa,
         qtde_depositos_caixa: rowsDepositosCaixa && rowsDepositosCaixa.length,
+        historico,
       });
     } catch (error) {
       logger.error({

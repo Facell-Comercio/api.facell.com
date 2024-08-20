@@ -6,11 +6,11 @@ module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const {
       id,
-      id_caixa,
-      id_conta_bancaria,
-      valor,
-      comprovante,
-      data_deposito,
+      id_user_criador,
+      id_filial,
+      data_ocorrencia,
+      data_caixa,
+      descricao,
     } = req.body;
 
     const conn = await db.getConnection();
@@ -20,10 +20,15 @@ module.exports = async (req) => {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
-      if (!id_caixa) {
-        throw new Error("É necessário informar o caixa!");
-      }
-      if (!(id_conta_bancaria && valor && comprovante && data_deposito)) {
+      if (
+        !(
+          id_user_criador &&
+          id_filial &&
+          data_ocorrencia &&
+          data_caixa &&
+          descricao
+        )
+      ) {
         throw new Error("Todos os campos são obrigatórios!");
       }
       await conn.beginTransaction();
@@ -31,40 +36,39 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         `
         SELECT id, status FROM datasys_caixas
-        WHERE id = ?
+        WHERE id_filial = ? AND data = ?
         AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
       `,
-        [id_caixa]
+        [id_filial, startOfDay(data_caixa)]
       );
 
       if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error("Não poder ser inseridos depósitos nesse caixa");
+        throw new Error("O caixa selecionado já foi baixado");
       }
 
       const [result] = await conn.execute(
-        `INSERT INTO datasys_caixas_depositos (id_caixa, id_conta_bancaria, data_deposito, comprovante, valor) VALUES (?,?,?,?,?);`,
+        `INSERT INTO datasys_caixas_ocorrencias (id_user_criador, id_filial, data_ocorrencia, data_caixa, descricao) VALUES (?,?,?,?,?);`,
         [
-          id_caixa,
-          id_conta_bancaria,
-          startOfDay(data_deposito),
-          comprovante,
-          parseFloat(valor),
+          id_user_criador,
+          id_filial,
+          startOfDay(data_ocorrencia),
+          startOfDay(data_caixa),
+          descricao,
         ]
       );
 
       const newId = result.insertId;
       if (!newId) {
-        throw new Error("Falha ao inserir o depósito!");
+        throw new Error("Falha ao inserir a ocorrência!");
       }
 
       await conn.commit();
-      // await conn.rollback();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
-        method: "INSERT_DEPOSITO",
+        method: "INSERT_OCORRÊNCIA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       await conn.rollback();

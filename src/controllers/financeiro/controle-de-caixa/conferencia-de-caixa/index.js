@@ -1,12 +1,19 @@
 module.exports = {
   getFiliais: require("./metodos/getFiliais"),
-  getAll: require("./metodos/getAll"),
+  getAllCaixas: require("./metodos/getAllCaixas"),
   getAllOcorrencias: require("./metodos/getAllOcorrencias"),
-  getOne: require("./metodos/getOne"),
+
+  getOneCaixa: require("./metodos/getOneCaixa"),
   getOneDeposito: require("./metodos/getOneDeposito"),
   getOneOcorrencia: require("./metodos/getOneOcorrencia"),
-  importCaixasDatasys: require("./metodos/import"),
-  insertOneDeposito: require("./metodos/insertOneDeposito"),
+
   updateDeposito: require("./metodos/updateDeposito"),
+  updateOcorrencia: require("./metodos/updateOcorrencia"),
+
+  insertOneDeposito: require("./metodos/insertOneDeposito"),
+  insertOneOcorrencia: require("./metodos/insertOneOcorrencia"),
+
+  importCaixasDatasys: require("./metodos/import"),
+  changeStatusCaixa: require("./metodos/changeStatusCaixa"),
   deleteDeposito: require("./metodos/deleteDeposito"),
 };

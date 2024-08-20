@@ -26,6 +26,19 @@ module.exports = async (req) => {
       }
       await conn.beginTransaction();
 
+      const [rowsCaixas] = await conn.execute(
+        `
+        SELECT id, status FROM datasys_caixas
+        WHERE id = ?
+        AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
+      `,
+        [id_caixa]
+      );
+
+      if (rowsCaixas && rowsCaixas.length > 0) {
+        throw new Error("Os depósitos não podem ser atualizados nesse caixa");
+      }
+
       await conn.execute(
         `UPDATE datasys_caixas_depositos SET id_caixa = ?, id_conta_bancaria = ?, data_deposito = ?, comprovante = ?, valor = ? WHERE id = ?;`,
         [
