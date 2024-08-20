@@ -27,12 +27,12 @@ module.exports = async (req) => {
           SUM(dc.status = 'A CONFERIR') as a_conferir,
           SUM(dc.status = 'CONFERIDO / BAIXA PENDENTE') as baixa_pendente,
           SUM(dc.status = 'BAIXADO / PENDENTE DATASYS') as baixa_datasys_pendente,
-          SUM(dco.resolvida = 0) as ocorrencias,
+          COUNT(dco.id) as ocorrencias,
           SUM(dc.divergente) as divergentes,
           f.nome as filial
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data = dc.data
+        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
         ${where}
         
         GROUP BY dc.id_filial

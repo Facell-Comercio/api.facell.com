@@ -47,9 +47,9 @@ module.exports = async (req) => {
     if (divergentes && Number(divergentes)) {
       where += ` AND dc.divergente = 1 `;
     }
-    // if (nao_resolvidos && Number(nao_resolvidos)) {
-    //   where += ` AND dc.divergentes = 1 `;
-    // }
+    if (nao_resolvidos && Number(nao_resolvidos)) {
+      where += ` AND dco.resolvida = 0 `;
+    }
 
     let conn;
     try {
@@ -64,7 +64,7 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         ` SELECT COUNT(dc.id) as total 
           FROM datasys_caixas dc
-          LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data = dc.data
+          LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
           ${where}
           `,
         params
@@ -82,7 +82,7 @@ module.exports = async (req) => {
           dc.*,
           COUNT(dco.id) as ocorrencias
         FROM datasys_caixas dc
-        LEFT JOIN datasys_caixas_ocorrencias dco ON (dco.id_filial = dc.id_filial AND dco.data = dc.data)
+        LEFT JOIN datasys_caixas_ocorrencias dco ON (dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data)
         ${where}
         
         GROUP BY dc.id
