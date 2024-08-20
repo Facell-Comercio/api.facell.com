@@ -16,6 +16,7 @@ module.exports = {
   insertOneOcorrencia: require("./metodos/insertOneOcorrencia"),
 
   importCaixasDatasys: require("./metodos/import"),
+  cruzarRelatorios: require("./metodos/cruzarRelatorios"),
   changeStatusCaixa: require("./metodos/changeStatusCaixa"),
   deleteDeposito: require("./metodos/deleteDeposito"),
 };
