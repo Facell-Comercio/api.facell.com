@@ -30,12 +30,8 @@ module.exports = async ({ cnpj, data, grupo_economico }) => {
     const MovimentoCaixaResponse = soapBody?.['MovimentoCaixaResponse'];
     const MovimentoCaixaResult = MovimentoCaixaResponse?.['MovimentoCaixaResult'];
     const newDataSet = MovimentoCaixaResult?.['NewDataSet'];
-    const table = newDataSet?.['Table'];
-
-    if (!table) {
-      throw new Error('Propriedade "Table" não encontrada');
-    }
-
+    const table = newDataSet?.['Table'] || [];
+  
     return table;
   } catch (error) {
     logger.error({

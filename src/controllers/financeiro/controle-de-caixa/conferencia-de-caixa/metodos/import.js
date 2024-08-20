@@ -17,7 +17,7 @@ async function checkSeRecarga({conn, pedido, grupo_economico}){
     })
 }
 
-async function processarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_economico}){
+async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_economico}){
     return new Promise(async(resolve, reject)=>{
         try {
             if(!(movimento && movimento.length > 0)){
@@ -170,6 +170,10 @@ module.exports = async (req)=>{
             
             const result = []
             for(const data of datas){
+                const movimento = await getMovimentoCaixa({cnpj: filial.cnpj, data, grupo_economico: filial.grupo_economico})
+                if(!movimento || movimento.length == 0){
+                    continue;
+                }
                 const [rowCaixaBanco] = await conn.execute(`SELECT id FROM datasys_caixas WHERE id_filial = ? AND data = ?`, [id_filial, data])
                 const caixaBanco = rowCaixaBanco && rowCaixaBanco[0]
                 let id_caixa = caixaBanco && caixaBanco['id'];
@@ -182,16 +186,17 @@ module.exports = async (req)=>{
                     id_caixa = insertedCaixa.insertId;
                 }
 
-                const movimento = await getMovimentoCaixa({cnpj: filial.cnpj, data, grupo_economico: filial.grupo_economico})
-
-                const caixa = await processarCaixa({conn, id_caixa, id_filial, data, grupo_economico: filial.grupo_economico, movimento: movimento.filter(mov=>mov.LOJA == filial.cnpj)})
+                
+                // console.log({id_filial, data, movimento: movimento.length});
+                
+                const caixa = await importarCaixa({conn, id_caixa, id_filial, data, grupo_economico: filial.grupo_economico, movimento: movimento.filter(mov=>mov.LOJA == filial.cnpj)})
                 result.push(caixa)
             }
             
             await conn.commit()
             resolve(result)
         } catch (error) {
-            await conn.rollback()
+            if(conn) await conn.rollback();
             reject(error)
             logger.error({
                 module: 'FINANCEIRO', origin: 'CONFERÊNCIA_DE_CAIXA', method: 'IMPORT',

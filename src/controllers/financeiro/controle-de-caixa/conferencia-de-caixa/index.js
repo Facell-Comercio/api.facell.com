@@ -6,6 +6,7 @@ module.exports = {
   getOneDeposito: require("./metodos/getOneDeposito"),
   getOneOcorrencia: require("./metodos/getOneOcorrencia"),
   importCaixasDatasys: require("./metodos/import"),
+  importCaixasPorMatriz: require("./metodos/importCaixasPorMatriz"),
   insertOneDeposito: require("./metodos/insertOneDeposito"),
   updateDeposito: require("./metodos/updateDeposito"),
   deleteDeposito: require("./metodos/deleteDeposito"),
