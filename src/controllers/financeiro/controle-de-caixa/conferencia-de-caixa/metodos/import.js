@@ -122,6 +122,7 @@ async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_
                     valor_cartao = :valor_cartao,
                     valor_dinheiro = :valor_dinheiro,
                     valor_retiradas = :valor_retiradas,
+                    valor_devolucoes = :valor_devolucoes,
                     valor_recarga = :valor_recarga,
                     valor_pix = :valor_pix,
                     valor_pitzi = :valor_pitzi,
@@ -131,8 +132,9 @@ async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_
                 {
                     valor_cartao,
                     valor_dinheiro,
-                    valor_recarga,
                     valor_retiradas,
+                    valor_devolucoes,
+                    valor_recarga,
                     valor_pitzi,
                     valor_pix,
                     valor_tradein,
