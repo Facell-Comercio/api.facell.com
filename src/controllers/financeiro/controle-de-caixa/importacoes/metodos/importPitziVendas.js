@@ -53,7 +53,7 @@ module.exports = async (req) => {
                             const tipo_plano = PITZI_TIPOS_PLANOS.find(p => p.id == row['ID do Plano'])
 
                             const dataEhora = row['Vendido em'].split(' ')
-                            const data = dataEhora && dataEhora[0] && dataEhora[0].split('/').reverse().join('-') + ' ' + dataEhora[1]
+                            const data = dataEhora && dataEhora[0] && dataEhora[0].split('/').reverse().join('-')
 
                             const id_seguro = row['Order ID'] && parseInt(row['Order ID']) || null;
                             if (!id_seguro) {
@@ -67,6 +67,7 @@ module.exports = async (req) => {
                                 id_filial: filial.id,
                                 loja: lojaPitzi,
                                 data: data,
+                                hora: dataEhora && dataEhora[1] || null,
                                 modelo_produto: row['Modelo do aparelho'] || null,
                                 valor: row['Preço do plano'],
                                 forma_pagto: row['Forma de Pagamento']?.substring(0, 150) || '',
@@ -90,6 +91,7 @@ module.exports = async (req) => {
                                     id_filial,
                                     loja,
                                     data,
+                                    hora,
                                     modelo_produto,
                                     valor,
                                     nome_vendedor,
@@ -111,6 +113,7 @@ module.exports = async (req) => {
                                     :id_filial,
                                     :loja,
                                     :data,
+                                    :hora,
                                     :modelo_produto,
                                     :valor,
                                     :nome_vendedor,

@@ -29,6 +29,7 @@ async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_
             
             let valor_cartao = 0;
             let valor_dinheiro = 0;
+            let valor_devolucoes = 0;
             let valor_retiradas = 0;
             let valor_pix = 0;
             let valor_pitzi = 0;
@@ -59,13 +60,17 @@ async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_
                 if(forma_pgto == 'DINHEIRO'){
                     if(tipo_operacao == 'VENDA'){
                         // * Dinheiro
-                        valor_dinheiro += valor
-                    }else if(tipo_operacao == 'DEVOLUÇÃO'){
-                        valor_dinheiro -= valor
-                    }else{
+                        if(!historico.includes('CANCELAMENTO')){
+                            valor_dinheiro += valor
+                        }
+                    }
+                    if(tipo_operacao.includes('DESPESA')){
                         // ! Despesa
                         valor_retiradas += valor
                     }
+                }
+                if(tipo_operacao == 'DEVOLUÇÃO'){
+                    valor_devolucoes += valor
                 }
 
                 if(forma_pgto == 'CARTÃO'){
@@ -117,6 +122,7 @@ async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_
                     valor_cartao = :valor_cartao,
                     valor_dinheiro = :valor_dinheiro,
                     valor_retiradas = :valor_retiradas,
+                    valor_devolucoes = :valor_devolucoes,
                     valor_recarga = :valor_recarga,
                     valor_pix = :valor_pix,
                     valor_pitzi = :valor_pitzi,
@@ -126,8 +132,9 @@ async function importarCaixa({conn, id_caixa, id_filial, data, movimento, grupo_
                 {
                     valor_cartao,
                     valor_dinheiro,
-                    valor_recarga,
                     valor_retiradas,
+                    valor_devolucoes,
+                    valor_recarga,
                     valor_pitzi,
                     valor_pix,
                     valor_tradein,
