@@ -88,7 +88,7 @@ module.exports = function importAgregadores(req) {
               tipo_agregacao
             )
           ) {
-            throw new Error("Dados insuficientes");
+            throw new Error("PREENCHA TODOS OS CAMPOS OBRIGATÓRIOS");
           }
           if (id) {
             await conn.execute(
@@ -154,7 +154,12 @@ module.exports = function importAgregadores(req) {
                 tipo_agregacao,
 
                 id_filial
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON DUPLICATE KEY UPDATE
+            proporcional = VALUES(proporcional),
+            metas_agregadas = VALUES(metas_agregadas),
+            tipo_agregacao = VALUES(tipo_agregacao) 
+            `,
               [
                 startOfMonth(excelDateToJSDate(ref)),
                 startOfMonth(excelDateToJSDate(ciclo)),
@@ -176,6 +181,7 @@ module.exports = function importAgregadores(req) {
               ]
             );
             const newId = result.insertId;
+            
             if (!newId) {
               throw new Error(`Agregador não inserido`);
             }

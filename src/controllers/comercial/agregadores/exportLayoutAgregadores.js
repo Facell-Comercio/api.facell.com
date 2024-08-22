@@ -158,7 +158,6 @@ module.exports = function exportLayoutAgregadores(req, res) {
         }
         const metas_agregadas =
           agregador.metas_agregadas && agregador.metas_agregadas.split(";");
-        console.log(metas_agregadas);
 
         const [rowsMetas] = await conn.execute(`
           SELECT 
@@ -174,12 +173,12 @@ module.exports = function exportLayoutAgregadores(req, res) {
             SUM(fm.wttx) as wttx,
             SUM(fm.live) as live
           FROM facell_metas fm
-          WHERE ${
+          WHERE fm.ref = ? AND ${
             metas_agregadas
-              ? `fm.cpf IN (${metas_agregadas.join(",")})`
+              ? `fm.cpf IN ('${metas_agregadas.join("','")}')`
               : "1<>1"
           }
-          `);
+          `, [agregador.ref]);
 
         const metas = rowsMetas && rowsMetas[0];
         agregadores.push({

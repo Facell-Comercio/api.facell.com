@@ -60,7 +60,7 @@ module.exports = function getOne(req) {
         FROM facell_metas fm
         LEFT JOIN filiais f ON f.id = fm.id_filial
         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-        WHERE ${metas ? `fm.cpf IN (${metas.join(",")})` : "1<>1"}
+        WHERE ${metas ? `fm.cpf IN ('${metas.join("','")}')` : "1<>1"}
         `);
 
       resolve({ ...agregador, metas: rowsMetas });
