@@ -2,6 +2,7 @@ const { startOfDay } = require("date-fns");
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const getCaixaAnterior = require("./getCaixaAnterior");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -85,38 +86,11 @@ module.exports = async (req) => {
         }
         //~ FIM - Validação de regra de negócio para a baixa de caixa
 
-        //~ INÍCIO - Calculando saldo
-        const caixaAnterior = await getCaixaAnterior({
-          conn,
-          id_filial: caixa.id_filial,
-          data_caixa: caixa.data,
-        });
-        const [rowsDepositosCaixa] = await conn.execute(
-          `
-          SELECT 
-            dcd.id, cc.descricao as conta_bancaria, dcd.comprovante, 
-            dcd.valor, dcd.data_deposito
-          FROM datasys_caixas_depositos dcd
-          LEFT JOIN fin_contas_bancarias cc ON cc.id = dcd.id_conta_bancaria
-          WHERE dcd.id_caixa = ?
-          `,
-          [id]
-        );
-        const saldo_atual =
-          parseFloat(caixaAnterior?.saldo || "0") +
-          parseFloat(caixa.valor_dinheiro) -
-          (parseFloat(caixa.valor_retiradas) +
-            rowsDepositosCaixa.reduce(
-              (acc, row) => acc + parseFloat(row.valor),
-              0
-            ));
-        //~ FIM - Calculando saldo
-
         await conn.execute(
           `
-          UPDATE datasys_caixas SET status = 'BAIXADO / PENDENTE DATASYS', saldo = ? WHERE id = ?
+          UPDATE datasys_caixas SET status = 'BAIXADO / PENDENTE DATASYS' WHERE id = ?
         `,
-          [parseFloat(saldo_atual).toFixed(2), id]
+          [id]
         );
         await conn.execute(
           `
@@ -127,6 +101,11 @@ module.exports = async (req) => {
         `,
           [id, `Caixa CONFIRMADO por ${user.nome.toUpperCase()}`]
         );
+        console.log("Atualizando saldo...");
+        await updateSaldo({
+          conn,
+          id_caixa: id,
+        });
       }
       //* FIM - CONFIRMAÇÃO DE CAIXA
 

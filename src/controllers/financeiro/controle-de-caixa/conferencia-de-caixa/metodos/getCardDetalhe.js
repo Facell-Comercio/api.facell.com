@@ -67,7 +67,7 @@ module.exports = async (req) => {
               { label: "status", type: "string" },
             ],
             where: "WHERE fvr.data = ? AND fvr.id_filial = ? ",
-            whereMovimento: "AND dci.forma_pagamento LIKE 'RECARGA'",
+            whereMovimento: "AND dci.recarga",
           },
           pitzi: {
             table: "pitzi_vendas pv",
@@ -96,7 +96,7 @@ module.exports = async (req) => {
             ],
             where: "WHERE fvp.data_venda = ? AND fvp.id_filial = ? ",
             whereMovimento:
-              "AND dci.forma_pagamento LIKE 'PIX - TRANSFERENCIA'",
+              "AND (dci.forma_pagamento LIKE 'PIX - TRANSFERENCIA' OR dci.forma_pagamento LIKE 'PIX')",
           },
           tradein: {
             table: "renov_tradein rt",

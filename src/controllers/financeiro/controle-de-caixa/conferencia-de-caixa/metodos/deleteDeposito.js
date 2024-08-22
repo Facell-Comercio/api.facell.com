@@ -17,10 +17,20 @@ module.exports = async (req) => {
       }
       conn = await db.getConnection();
       await conn.beginTransaction();
+
+      const [rowsDepositosCaixa] = await conn.execute(
+        "SELECT valor, id_caixa FROM datasys_caixas_depositos WHERE id = ?",
+        [id]
+      );
+      const deposito = rowsDepositosCaixa && rowsDepositosCaixa[0];
+      await conn.execute(
+        "UPDATE datasys_caixas SET saldo = saldo + ? WHERE id = ?",
+        [parseFloat(deposito.valor).toFixed(2), deposito.id_caixa]
+      );
+
       await conn.execute(`DELETE FROM datasys_caixas_depositos WHERE id = ?`, [
         id,
       ]);
-      console.log("DELETADO");
 
       await conn.commit();
       resolve({ message: "Sucesso!" });

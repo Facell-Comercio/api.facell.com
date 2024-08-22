@@ -6,22 +6,18 @@ function isDivergent(valor_datasys, valor_real, divergente) {
   //^ Se já for divergente retorna true, senão realiza a verificação dos valores
   return (
     divergente ||
-    parseFloat(valor_datasys).toFixed(2) !== parseFloat(valor_real).toFixed(2)
+    parseFloat(valor_datasys || "0").toFixed(2) !==
+      parseFloat(valor_real || "0").toFixed(2)
   );
 }
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
     const { id_filial, data_caixa } = req.body;
 
     let conn;
     try {
-      conn = await db.getConnection();
+      conn = req.conn || (await db.getConnection());
       let divergente = false;
       const [rowsCaixas] = await conn.execute(
         `
@@ -31,7 +27,7 @@ module.exports = async (req) => {
         FROM datasys_caixas dc
         WHERE dc.id_filial = ? AND dc.data = ?
         `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_filial, data_caixa]
       );
       const caixa = rowsCaixas && rowsCaixas[0];
 
@@ -40,7 +36,7 @@ module.exports = async (req) => {
         `
         SELECT SUM(valor_venda) as valor_cartao_real FROM fin_vendas_cartao WHERE id_filial = ? AND data_venda = ?
       `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_filial, data_caixa]
       );
       const vendasCartoes = rowsVendasCartoes && rowsVendasCartoes[0];
 
@@ -56,7 +52,7 @@ module.exports = async (req) => {
         `
         SELECT SUM(valor) as valor_recarga_real FROM fin_vendas_recarga WHERE id_filial = ? AND data = ?
       `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_filial, data_caixa]
       );
       const vendasRecarga = rowsVendasRecarga && rowsVendasRecarga[0];
 
@@ -72,7 +68,7 @@ module.exports = async (req) => {
         `
         SELECT SUM(valor) as valor_pix_banco FROM fin_vendas_pix WHERE id_filial = ? AND data_venda = ?
       `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_filial, data_caixa]
       );
       const vendasPix = rowsVendasPix && rowsVendasPix[0];
 
@@ -88,7 +84,7 @@ module.exports = async (req) => {
         `
         SELECT SUM(valor) as valor_pitzi_real FROM pitzi_vendas WHERE id_filial = ? AND data = ?
       `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_filial, data_caixa]
       );
       const vendasPitzi = rowsVendasPitzi && rowsVendasPitzi[0];
 
@@ -104,7 +100,7 @@ module.exports = async (req) => {
         `
         SELECT SUM(valor) as valor_tradein_utilizado FROM renov_tradein WHERE status = 'UTILIZADO' AND id_filial = ? AND data = ?
       `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_filial, data_caixa]
       );
       const vendasTradein = rowsVendasTradein && rowsVendasTradein[0];
 
@@ -135,7 +131,7 @@ module.exports = async (req) => {
           parseFloat(vendasTradein.valor_tradein_utilizado || "0").toFixed(2),
           divergente,
           id_filial,
-          startOfDay(data_caixa),
+          data_caixa,
         ]
       );
 

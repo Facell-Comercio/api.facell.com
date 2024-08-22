@@ -1,20 +1,23 @@
-const { formatDate } = require("date-fns");
+const { formatDate, startOfDay } = require("date-fns");
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const createDateArrayFromRange = require("../../../../../helpers/createDateArrayFromRange");
 const { getMovimentoCaixa } = require("../../../../datasys/api/index");
+const getCaixaAnterior = require("./getCaixaAnterior");
+const updateSaldo = require("./updateSaldo");
+const cruzarRelatorios = require("./cruzarRelatorios");
 
-async function checkSeRecarga({ conn, pedido, grupo_economico }) {
+async function getValorRecarga({ conn, pedido, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
       const datasys_vendas =
         grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
       const [rowsVenda] = await conn.execute(
-        `SELECT id FROM ${datasys_vendas} WHERE grupoEstoque = 'RECARGA ELETRONICA' AND numeroPedido = ? `,
+        `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} WHERE grupoEstoque = 'RECARGA ELETRONICA' AND numeroPedido = ? `,
         [pedido]
       );
-      const isRecarga = rowsVenda && rowsVenda.length > 0;
-      resolve(isRecarga);
+      const valor = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
+      resolve(valor);
     } catch (error) {
       reject(error);
     }
@@ -62,10 +65,10 @@ async function importarCaixa({
         const credito_debito =
           (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null;
 
-        let isRecarga = false;
+        let valorRecarga = 0;
         if (tipo_operacao == "VENDA" && !historico.includes("CANCELAMENTO")) {
           try {
-            isRecarga = await checkSeRecarga({
+            valorRecarga = await getValorRecarga({
               conn,
               pedido: pedido.replace("PV", ""),
               grupo_economico,
@@ -75,6 +78,13 @@ async function importarCaixa({
           }
         }
 
+        if (
+          tipo_operacao.includes("VENDA") &&
+          valorRecarga > 0 &&
+          !historico.includes("CANCELAMENTO")
+        ) {
+          valor_recarga += valorRecarga;
+        }
         if (forma_pgto == "DINHEIRO") {
           if (tipo_operacao == "VENDA") {
             // * Dinheiro
@@ -91,24 +101,32 @@ async function importarCaixa({
           valor_devolucoes += valor;
         }
 
-        if (forma_pgto == "CARTÃO") {
+        if (forma_pgto == "CARTÃO" && !historico.includes("CANCELAMENTO")) {
           valor_cartao += valor;
         }
 
-        if (forma_pgto == "TRADEIN" || forma_pgto == "TRADE IN") {
+        if (
+          (forma_pgto == "TRADEIN" || forma_pgto == "TRADE IN") &&
+          !historico.includes("CANCELAMENTO")
+        ) {
           valor_tradein += valor;
         }
 
-        if (forma_pgto.includes("PIX")) {
+        if (
+          forma_pgto.includes("PIX") &&
+          !historico.includes("CANCELAMENTO") &&
+          !forma_pgto.includes("PITZI")
+        ) {
           valor_pix += valor;
         }
-        if (forma_pgto.includes("PITZI")) {
+        if (
+          forma_pgto.includes("PITZI") &&
+          !historico.includes("CANCELAMENTO")
+        ) {
           valor_pitzi += valor;
         }
 
-        if (tipo_operacao.includes("VENDA") && isRecarga) {
-          valor_recarga += valor;
-        }
+        const isRecarga = valorRecarga > 0;
 
         // * Insere o item do caixa:
         await conn.execute(
@@ -121,8 +139,9 @@ async function importarCaixa({
                     historico,
                     credito_debito,
                     operador,
-                    valor
-                ) VALUES (?,?,?,?,?,?,?,?,?)`,
+                    valor,
+                    recarga
+                ) VALUES (?,?,?,?,?,?,?,?,?,?)`,
           [
             id_caixa,
             formatDate(item.DATA_MOVIMENTO, "yyyy-MM-dd hh:mm:ss"),
@@ -133,6 +152,7 @@ async function importarCaixa({
             credito_debito,
             item.OPERADOR,
             valor.toFixed(4),
+            isRecarga,
           ]
         );
       }
@@ -140,17 +160,16 @@ async function importarCaixa({
       // * Atualiza o caixa:
       await conn.execute(
         `UPDATE datasys_caixas 
-                SET 
-                    valor_cartao = :valor_cartao,
-                    valor_dinheiro = :valor_dinheiro,
-                    valor_retiradas = :valor_retiradas,
-                    valor_devolucoes = :valor_devolucoes,
-                    valor_recarga = :valor_recarga,
-                    valor_pix = :valor_pix,
-                    valor_pitzi = :valor_pitzi,
-                    valor_tradein = :valor_tradein
-
-                WHERE id = :id_caixa`,
+          SET 
+              valor_cartao = :valor_cartao,
+              valor_dinheiro = :valor_dinheiro,
+              valor_retiradas = :valor_retiradas,
+              valor_devolucoes = :valor_devolucoes,
+              valor_recarga = :valor_recarga,
+              valor_pix = :valor_pix,
+              valor_pitzi = :valor_pitzi,
+              valor_tradein = :valor_tradein
+          WHERE id = :id_caixa`,
         {
           valor_cartao,
           valor_dinheiro,
@@ -163,6 +182,19 @@ async function importarCaixa({
           id_caixa,
         }
       );
+
+      await updateSaldo({
+        conn,
+        id_caixa,
+      });
+
+      await cruzarRelatorios({
+        conn,
+        body: {
+          id_filial,
+          data_caixa: data,
+        },
+      });
 
       resolve({ id_caixa, id_filial, data, status: "OK", message: "OK" });
     } catch (error) {

@@ -17,7 +17,7 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         `
         SELECT 
-          dc.*,
+          dc.*, dc.saldo as saldo_atual,
           COUNT(dco.id) as ocorrencias,
           COALESCE(SUM(dco.resolvida = 1),0) as ocorrencias_resolvidas,
           (dc.valor_dinheiro - dc.valor_retiradas) as total_dinheiro,
@@ -76,15 +76,6 @@ module.exports = async (req) => {
         [id]
       );
 
-      const saldo_atual =
-        parseFloat(caixaAnterior?.saldo || "0") +
-        parseFloat(caixa.valor_dinheiro) -
-        (parseFloat(caixa.valor_retiradas) +
-          rowsDepositosCaixa.reduce(
-            (acc, row) => acc + parseFloat(row.valor),
-            0
-          ));
-
       const caixa_anterior_fechado =
         caixaAnterior?.status === "BAIXADO NO DATASYS" ||
         caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS";
@@ -92,7 +83,6 @@ module.exports = async (req) => {
       resolve({
         ...caixa,
         saldo_anterior: caixaAnterior?.saldo || 0,
-        saldo_atual,
         movimentos_caixa: rowsMovimentoCaixa,
         depositos_caixa: rowsDepositosCaixa,
         qtde_depositos_caixa: rowsDepositosCaixa && rowsDepositosCaixa.length,

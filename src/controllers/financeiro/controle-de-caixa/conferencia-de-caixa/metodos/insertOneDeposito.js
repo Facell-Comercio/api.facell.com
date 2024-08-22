@@ -57,6 +57,13 @@ module.exports = async (req) => {
         throw new Error("Falha ao inserir o depósito!");
       }
 
+      await conn.execute(
+        `
+        UPDATE datasys_caixas SET saldo = saldo - ? WHERE id = ?
+      `,
+        [parseFloat(valor).toFixed(2), id_caixa]
+      );
+
       await conn.commit();
       // await conn.rollback();
       resolve({ message: "Sucesso" });

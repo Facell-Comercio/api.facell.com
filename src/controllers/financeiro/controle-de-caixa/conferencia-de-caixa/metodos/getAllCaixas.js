@@ -62,10 +62,16 @@ module.exports = async (req) => {
       );
       const filial = rowsFiliais && rowsFiliais[0];
       const [rowsCaixas] = await conn.execute(
-        ` SELECT COUNT(dc.id) as total 
-          FROM datasys_caixas dc
-          LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
-          ${where}
+        ` 
+          SELECT COUNT(*) AS total
+          FROM (
+            SELECT 
+              dc.id
+            FROM datasys_caixas dc
+            LEFT JOIN datasys_caixas_ocorrencias dco ON (dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data)
+            ${where}
+            GROUP BY dc.id
+          ) AS subconsulta
           `,
         params
       );
@@ -91,6 +97,7 @@ module.exports = async (req) => {
         `,
         params
       );
+
       const objResponse = {
         rows: caixas,
         pageCount: Math.ceil(totalCaixas / pageSize),
