@@ -26,6 +26,7 @@ module.exports = async (req) => {
           (dc.valor_pitzi_real - dc.valor_pitzi) as divergencia_pitzi,
           (dc.valor_pix_banco - dc.valor_pix) as divergencia_pix,
           (dc.valor_tradein_utilizado - dc.valor_tradein) as divergencia_tradein,
+          (dc.valor_crediario_real - dc.valor_crediario) as divergencia_crediario,
           f.id_matriz, f.nome as filial
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
@@ -84,6 +85,10 @@ module.exports = async (req) => {
             0
           ));
 
+      const caixa_anterior_fechado =
+        caixaAnterior?.status === "BAIXADO NO DATASYS" ||
+        caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS";
+
       resolve({
         ...caixa,
         saldo_anterior: caixaAnterior?.saldo || 0,
@@ -92,6 +97,7 @@ module.exports = async (req) => {
         depositos_caixa: rowsDepositosCaixa,
         qtde_depositos_caixa: rowsDepositosCaixa && rowsDepositosCaixa.length,
         historico,
+        caixa_anterior_fechado,
       });
     } catch (error) {
       logger.error({

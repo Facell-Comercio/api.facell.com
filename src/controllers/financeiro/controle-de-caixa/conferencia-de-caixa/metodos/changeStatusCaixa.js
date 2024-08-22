@@ -19,7 +19,8 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         `
         SELECT 
-          dc.status, dc.data,
+          dc.status, dc.data, dc.id_filial,
+          dc.valor_dinheiro, dc.valor_retiradas,
           COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias_nao_resolvidas
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
@@ -84,11 +85,38 @@ module.exports = async (req) => {
         }
         //~ FIM - Validação de regra de negócio para a baixa de caixa
 
+        //~ INÍCIO - Calculando saldo
+        const caixaAnterior = await getCaixaAnterior({
+          conn,
+          id_filial: caixa.id_filial,
+          data_caixa: caixa.data,
+        });
+        const [rowsDepositosCaixa] = await conn.execute(
+          `
+          SELECT 
+            dcd.id, cc.descricao as conta_bancaria, dcd.comprovante, 
+            dcd.valor, dcd.data_deposito
+          FROM datasys_caixas_depositos dcd
+          LEFT JOIN fin_contas_bancarias cc ON cc.id = dcd.id_conta_bancaria
+          WHERE dcd.id_caixa = ?
+          `,
+          [id]
+        );
+        const saldo_atual =
+          parseFloat(caixaAnterior?.saldo || "0") +
+          parseFloat(caixa.valor_dinheiro) -
+          (parseFloat(caixa.valor_retiradas) +
+            rowsDepositosCaixa.reduce(
+              (acc, row) => acc + parseFloat(row.valor),
+              0
+            ));
+        //~ FIM - Calculando saldo
+
         await conn.execute(
           `
-          UPDATE datasys_caixas SET status = 'BAIXADO / PENDENTE DATASYS' WHERE id = ?
+          UPDATE datasys_caixas SET status = 'BAIXADO / PENDENTE DATASYS', saldo = ? WHERE id = ?
         `,
-          [id]
+          [parseFloat(saldo_atual).toFixed(2), id]
         );
         await conn.execute(
           `
@@ -142,8 +170,8 @@ module.exports = async (req) => {
       }
       //* FIM - DESCONFIRMAÇÃO DE CAIXA
 
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
+      // await conn.rollback();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({

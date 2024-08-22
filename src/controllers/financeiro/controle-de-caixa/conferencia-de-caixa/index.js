@@ -18,5 +18,6 @@ module.exports = {
   importCaixasDatasys: require("./metodos/import"),
   cruzarRelatorios: require("./metodos/cruzarRelatorios"),
   changeStatusCaixa: require("./metodos/changeStatusCaixa"),
+  getCardDetalhe: require("./metodos/getCardDetalhe"),
   deleteDeposito: require("./metodos/deleteDeposito"),
 };
