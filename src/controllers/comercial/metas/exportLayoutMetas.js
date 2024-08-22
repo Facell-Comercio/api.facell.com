@@ -119,7 +119,7 @@ module.exports = function exportLayoutMetas(req, res) {
                 fm.fixo,
                 fm.wttx,
                 fm.live
-              FROM facell_metas fm
+              FROM metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}

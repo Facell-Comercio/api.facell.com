@@ -88,7 +88,7 @@ module.exports = function update(req) {
       //* Validação de permissão de edição
       const [rowsMetas] = await conn.execute(
         `
-        SELECT id_filial FROM facell_metas WHERE id = ?
+        SELECT id_filial FROM metas WHERE id = ?
         `,
         [id]
       );
@@ -106,7 +106,7 @@ module.exports = function update(req) {
       }
 
       await conn.execute(
-        `UPDATE facell_metas SET
+        `UPDATE metas SET
           ref = ?,
           ciclo = ?,
           data_inicial = ?,

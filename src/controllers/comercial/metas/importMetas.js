@@ -110,7 +110,7 @@ module.exports = function importMetas(req) {
 
           if (id) {
             await conn.execute(
-              `UPDATE facell_metas SET
+              `UPDATE metas SET
                 ref =  ?,
                 ciclo =  ?,
                 data_inicial =  ?,
@@ -172,7 +172,7 @@ module.exports = function importMetas(req) {
             );
           } else {
             const [result] = await conn.execute(
-              `INSERT INTO facell_metas (
+              `INSERT INTO metas (
                 ref,
                 ciclo,
                 data_inicial,

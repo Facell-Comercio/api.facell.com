@@ -38,7 +38,7 @@ module.exports = function getOne(req) {
                 (fa.proporcional * 100) as proporcional,
                 f.nome as filial,
                 gp.id as id_grupo_economico, gp.nome as grupo_econômico
-              FROM facell_agregadores fa
+              FROM metas_agregadores fa
               LEFT JOIN filiais f ON f.id = fa.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
@@ -57,7 +57,7 @@ module.exports = function getOne(req) {
         fm.*,
         f.nome as filial,
         gp.nome as grupo_economico
-        FROM facell_metas fm
+        FROM metas fm
         LEFT JOIN filiais f ON f.id = fm.id_filial
         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
         WHERE ${metas ? `fm.cpf IN ('${metas.join("','")}')` : "1<>1"}

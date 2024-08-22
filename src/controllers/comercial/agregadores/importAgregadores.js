@@ -92,7 +92,7 @@ module.exports = function importAgregadores(req) {
           }
           if (id) {
             await conn.execute(
-              `UPDATE facell_agregadores SET
+              `UPDATE metas_agregadores SET
                 ref =  ?,
                 ciclo =  ?,
                 data_inicial =  ?,
@@ -136,7 +136,7 @@ module.exports = function importAgregadores(req) {
             );
           } else {
             const [result] = await conn.execute(
-              `INSERT INTO facell_agregadores (
+              `INSERT INTO metas_agregadores (
                 ref,
                 ciclo,
                 data_inicial,

@@ -83,7 +83,7 @@ module.exports = function getAll(req) {
               FROM (
                 SELECT 
                   fa.id
-                FROM facell_agregadores fa
+                FROM metas_agregadores fa
                 LEFT JOIN filiais f ON f.id = fa.id_filial
                 LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
                 ${where}
@@ -107,7 +107,7 @@ module.exports = function getAll(req) {
                 fa.*,
                 f.nome as filial,
                 gp.nome as grupo_economico
-              FROM facell_agregadores fa
+              FROM metas_agregadores fa
               LEFT JOIN filiais f ON f.id = fa.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}

@@ -85,7 +85,7 @@ module.exports = function getComparison(req) {
           SELECT
             fm.*,
             f.nome as filial_nome
-          FROM facell_metas fm
+          FROM metas fm
           LEFT JOIN filiais f ON f.id = fm.id_filial
           ${where}
           AND fm.cargo = "FILIAL"
@@ -109,7 +109,7 @@ module.exports = function getComparison(req) {
               SUM(fm.fixo) as fixo,
               SUM(fm.wttx) as wttx,
               SUM(fm.live) as live
-            FROM facell_metas fm
+            FROM metas fm
             WHERE fm.id_filial =?
             AND MONTH(fm.ref) =?
             AND YEAR(fm.ref) =?

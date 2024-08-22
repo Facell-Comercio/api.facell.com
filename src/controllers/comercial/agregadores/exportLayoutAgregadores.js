@@ -106,7 +106,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
       //           fa.data_final,
       //           fa.proporcional,
       //           fa.tipo_agregacao
-      //         FROM facell_agregadores fa
+      //         FROM metas_agregadores fa
       //         LEFT JOIN filiais f ON f.id = fa.id_filial
       //         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
       //         ${where}
@@ -118,7 +118,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
         `
               SELECT 
                 fa.id
-              FROM facell_agregadores fa
+              FROM metas_agregadores fa
               LEFT JOIN filiais f ON f.id = fa.id_filial
               ${where}
               ORDER BY fa.id DESC
@@ -145,7 +145,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
             fa.proporcional,
             fa.tipo_agregacao,
             fa.metas_agregadas
-          FROM facell_agregadores fa
+          FROM metas_agregadores fa
           LEFT JOIN filiais f ON f.id = fa.id_filial
           LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
           WHERE fa.id =?
@@ -172,7 +172,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
             SUM(fm.fixo) as fixo,
             SUM(fm.wttx) as wttx,
             SUM(fm.live) as live
-          FROM facell_metas fm
+          FROM metas fm
           WHERE fm.ref = ? AND ${
             metas_agregadas
               ? `fm.cpf IN ('${metas_agregadas.join("','")}')`
