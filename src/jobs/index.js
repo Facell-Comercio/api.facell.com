@@ -1,6 +1,7 @@
 const { logger } = require('../../logger')
 
 require('./processos/files')
+require('./processos/datasys')
 
 function iniciarJobs(){
     logger.info({
