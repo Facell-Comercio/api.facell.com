@@ -19,6 +19,7 @@ module.exports = {
   cruzarRelatorios: require("./metodos/cruzarRelatorios"),
   cruzarRelatoriosLote: require("./metodos/cruzarRelatoriosLote"),
   changeStatusCaixa: require("./metodos/changeStatusCaixa"),
+  changeValueFieldCaixa: require("./metodos/changeValueFieldCaixa"),
   getCardDetalhe: require("./metodos/getCardDetalhe"),
   deleteDeposito: require("./metodos/deleteDeposito"),
 };

@@ -120,7 +120,7 @@ module.exports = async (req) => {
       }
       // * Insert em log de importações de relatórios:
       await conn.execute(
-        `INSERT INTO log_import_relatorio (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`,
+        `INSERT INTO logs_import_relatorio (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`,
         {
           id_user: req.user.id,
           relatorio: "CIELO-VENDAS",

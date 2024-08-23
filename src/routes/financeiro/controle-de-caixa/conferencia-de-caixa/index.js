@@ -12,6 +12,7 @@ const {
   updateOcorrencia,
   insertOneOcorrencia,
   changeStatusCaixa,
+  changeValueFieldCaixa,
   cruzarRelatorios,
   getCardDetalhe,
   cruzarRelatoriosLote,
@@ -182,6 +183,19 @@ router.put(
   async (req, res) => {
     try {
       const result = await changeStatusCaixa(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.put(
+  "/change-value",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await changeValueFieldCaixa(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });

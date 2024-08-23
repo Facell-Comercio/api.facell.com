@@ -27,7 +27,7 @@ module.exports = async (req) => {
                 where += ` AND lir.relatorio IN('${relatorios.join("','")}')`
             }
 
-            const [rowQtdeTotal] = await conn.execute(`SELECT COUNT(*) AS qtde FROM log_import_relatorio lir
+            const [rowQtdeTotal] = await conn.execute(`SELECT COUNT(*) AS qtde FROM logs_import_relatorio lir
                 LEFT JOIN users u ON u.id = lir.id_user
                 WHERE ${where}`, params);
             const qtdeTotal =
@@ -38,7 +38,7 @@ module.exports = async (req) => {
             params.push(offset);
 
             const [rows] = await conn.execute(`SELECT lir.*, u.nome as usuario
-                FROM log_import_relatorio lir 
+                FROM logs_import_relatorio lir 
                 LEFT JOIN users u ON u.id = lir.id_user
                 WHERE ${where}
                 ORDER BY lir.id DESC

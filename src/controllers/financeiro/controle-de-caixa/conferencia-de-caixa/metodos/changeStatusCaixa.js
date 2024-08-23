@@ -72,12 +72,13 @@ module.exports = async (req) => {
           LIMIT 1`,
           [startOfDay(caixa.data)]
         );
-        const statusCaixaAnterior =
-          rowCaixaAnterior && rowCaixaAnterior[0] && rowCaixaAnterior[0].status;
+
+        const caixaAnterior = rowCaixaAnterior && rowCaixaAnterior[0];
+
         if (
-          !(
-            statusCaixaAnterior === "BAIXADO NO DATASYS" ||
-            statusCaixaAnterior === "BAIXADO / PENDENTE DATASYS"
+          caixaAnterior && (
+            caixaAnterior['status'] === "BAIXADO NO DATASYS" ||
+            caixaAnterior['status'] === "BAIXADO / PENDENTE DATASYS"
           )
         ) {
           throw new Error(

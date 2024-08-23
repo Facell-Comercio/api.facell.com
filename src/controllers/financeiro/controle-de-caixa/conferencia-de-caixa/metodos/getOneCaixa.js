@@ -17,7 +17,8 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         `
         SELECT 
-          dc.*, dc.saldo as saldo_atual,
+          dc.*, dc.saldo_anterior, dc.saldo as saldo_atual,
+          CASE WHEN dc.status = 'BAIXADO / PENDENTE DATASYS' || dc.status = 'BAIXADO NO DATASYS' THEN 1 ELSE 0 END as caixa_confirmado,
           dc.manual,
           COUNT(dco.id) as ocorrencias,
           COALESCE(SUM(dco.resolvida = 1),0) as ocorrencias_resolvidas,
@@ -73,17 +74,22 @@ module.exports = async (req) => {
           dch.*
         FROM datasys_caixas_historico dch
         WHERE dch.id_caixa = ?
+        ORDER BY id DESC
         `,
         [id]
       );
 
-      const caixa_anterior_fechado =
+      const caixa_anterior_fechado = !caixaAnterior ? true : (
         caixaAnterior?.status === "BAIXADO NO DATASYS" ||
-        caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS";
+        caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS");
+
+      const saldo_anterior = caixa.saldo_anterior || caixaAnterior?.saldo || 0;
+      const saldo_atual = parseFloat(caixa.saldo_atual) + parseFloat(saldo_anterior);
 
       resolve({
         ...caixa,
-        saldo_anterior: caixaAnterior?.saldo || 0,
+        saldo_anterior: saldo_anterior,
+        saldo_atual: saldo_atual,
         movimentos_caixa: rowsMovimentoCaixa,
         depositos_caixa: rowsDepositosCaixa,
         qtde_depositos_caixa: rowsDepositosCaixa && rowsDepositosCaixa.length,
