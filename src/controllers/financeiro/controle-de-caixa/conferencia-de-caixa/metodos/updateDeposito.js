@@ -1,6 +1,7 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -39,18 +40,6 @@ module.exports = async (req) => {
         throw new Error("Os depósitos não podem ser atualizados nesse caixa");
       }
 
-      const [rowsDepositosCaixa] = await conn.execute(
-        "SELECT valor as valor_anterior FROM datasys_caixas_depositos WHERE id = ?",
-        [id]
-      );
-      const deposito = rowsDepositosCaixa && rowsDepositosCaixa[0];
-      const diferenca = deposito.valor_anterior - valor;
-
-      await conn.execute(
-        "UPDATE datasys_caixas SET saldo = saldo + ? WHERE id = ?",
-        [parseFloat(diferenca), id_caixa]
-      );
-
       await conn.execute(
         `UPDATE datasys_caixas_depositos SET id_caixa = ?, id_conta_bancaria = ?, data_deposito = ?, comprovante = ?, valor = ? WHERE id = ?;`,
         [
@@ -62,6 +51,7 @@ module.exports = async (req) => {
           id,
         ]
       );
+      await updateSaldo({conn, id_caixa})
 
       await conn.commit();
       // await conn.rollback();

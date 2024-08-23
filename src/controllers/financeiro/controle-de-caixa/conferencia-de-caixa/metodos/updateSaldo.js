@@ -34,7 +34,7 @@ module.exports = async ({ conn, id_caixa }) => {
       );
 
       const saldo_atual =
-        parseFloat(caixaAnterior?.saldo || "0") +
+        parseFloat(caixaAnterior && caixaAnterior.saldo > 0 ? caixaAnterior.saldo : "0") +
         parseFloat(caixa.valor_dinheiro) -
         (parseFloat(caixa.valor_retiradas) +
           rowsDepositosCaixa.reduce(
@@ -46,7 +46,7 @@ module.exports = async ({ conn, id_caixa }) => {
         `
         UPDATE datasys_caixas SET saldo = ? WHERE id = ?
       `,
-        [parseFloat(saldo_atual).toFixed(2), id_caixa]
+        [saldo_atual.toFixed(2), id_caixa]
       );
 
       resolve({ message: "Sucesso" });

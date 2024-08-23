@@ -88,7 +88,7 @@ module.exports = async (req) => {
 
       resolve({
         ...caixa,
-        saldo_anterior: saldo_anterior,
+        saldo_anterior: saldo_anterior < 0 ? 0 : saldo_anterior,
         saldo_atual: saldo_atual,
         movimentos_caixa: rowsMovimentoCaixa,
         depositos_caixa: rowsDepositosCaixa,

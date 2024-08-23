@@ -1,5 +1,6 @@
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -18,19 +19,15 @@ module.exports = async (req) => {
       conn = await db.getConnection();
       await conn.beginTransaction();
 
-      const [rowsDepositosCaixa] = await conn.execute(
-        "SELECT valor, id_caixa FROM datasys_caixas_depositos WHERE id = ?",
-        [id]
-      );
-      const deposito = rowsDepositosCaixa && rowsDepositosCaixa[0];
-      await conn.execute(
-        "UPDATE datasys_caixas SET saldo = saldo + ? WHERE id = ?",
-        [parseFloat(deposito.valor).toFixed(2), deposito.id_caixa]
-      );
-
+      const [rowDeposito] = await conn.execute(`SELECT id, id_caixa FROM datasys_caixas_depositos WHERE id = ?`,[id])
+      const deposito = rowDeposito && rowDeposito[0];
+      if(!deposito){
+        throw new Error('Depósito não localizado!')
+      }
       await conn.execute(`DELETE FROM datasys_caixas_depositos WHERE id = ?`, [
         id,
       ]);
+      await updateSaldo({conn, id_caixa: deposito.id_caixa})
 
       await conn.commit();
       resolve({ message: "Sucesso!" });

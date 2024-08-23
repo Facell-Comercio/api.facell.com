@@ -1,6 +1,7 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -57,12 +58,7 @@ module.exports = async (req) => {
         throw new Error("Falha ao inserir o depósito!");
       }
 
-      await conn.execute(
-        `
-        UPDATE datasys_caixas SET saldo = saldo - ? WHERE id = ?
-      `,
-        [parseFloat(valor).toFixed(2), id_caixa]
-      );
+      await updateSaldo({conn, id_caixa})
 
       await conn.commit();
       // await conn.rollback();
