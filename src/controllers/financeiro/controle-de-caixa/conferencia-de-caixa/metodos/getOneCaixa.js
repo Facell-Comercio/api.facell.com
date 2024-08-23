@@ -18,6 +18,7 @@ module.exports = async (req) => {
         `
         SELECT 
           dc.*, dc.saldo as saldo_atual,
+          dc.manual,
           COUNT(dco.id) as ocorrencias,
           COALESCE(SUM(dco.resolvida = 1),0) as ocorrencias_resolvidas,
           (dc.valor_dinheiro - dc.valor_retiradas) as total_dinheiro,
