@@ -5,6 +5,7 @@ const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
+    let filePath
     let conn;
     try {
       const { file } = req;
@@ -13,8 +14,8 @@ module.exports = async (req) => {
       if (!file) {
         throw new Error("Falha no upload do arquivo, tente novamente!");
       }
-
-      const fileBuffer = await fs.readFile(file.path);
+      filePath = file.path
+      const fileBuffer = await fs.readFile(filePath);
       const workbook = XLSX.read(fileBuffer, { type: "buffer" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
@@ -141,6 +142,11 @@ module.exports = async (req) => {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
     } finally {
+      if (filePath) {
+        try {
+          await fs.unlink(filePath)
+        } catch (err) { }
+      }
       if (conn) conn.release();
     }
   });
