@@ -17,6 +17,8 @@ const {
   cruzarRelatorios,
   getCardDetalhe,
   cruzarRelatoriosLote,
+  getAllTransacoesCredit,
+  insertMultiDepositoExtrato,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -88,6 +90,19 @@ router.get(
 );
 
 router.get(
+  "/transacoes-credit",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getAllTransacoesCredit(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.get(
   "/:id",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
@@ -145,6 +160,19 @@ router.post(
   async (req, res) => {
     try {
       const result = await insertOneDeposito(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/multi-depositos-extratos",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await insertMultiDepositoExtrato(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });

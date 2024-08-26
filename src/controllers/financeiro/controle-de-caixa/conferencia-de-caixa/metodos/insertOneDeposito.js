@@ -5,17 +5,18 @@ const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
+    let {
       id,
       id_caixa,
       id_conta_bancaria,
       valor,
       comprovante,
       data_deposito,
+      conn,
     } = req.body;
 
-    const conn = await db.getConnection();
     try {
+      conn = conn || (await db.getConnection());
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
@@ -58,11 +59,11 @@ module.exports = async (req) => {
         throw new Error("Falha ao inserir o depósito!");
       }
 
-      await updateSaldo({conn, id_caixa})
+      await updateSaldo({ conn, id_caixa });
 
       await conn.commit();
       // await conn.rollback();
-      resolve({ message: "Sucesso" });
+      resolve({ id: newId });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
@@ -70,10 +71,10 @@ module.exports = async (req) => {
         method: "INSERT_DEPOSITO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
-      conn.release();
+      if (conn) conn.release();
     }
   });
 };

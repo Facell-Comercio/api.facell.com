@@ -17,7 +17,7 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         `
         SELECT 
-          dc.*, dc.saldo_anterior, dc.saldo as saldo_atual,
+          dc.*, dc.saldo_inicial, dc.saldo as saldo_atual,
           CASE WHEN dc.status = 'BAIXADO / PENDENTE DATASYS' || dc.status = 'BAIXADO NO DATASYS' THEN 1 ELSE 0 END as caixa_confirmado,
           dc.manual,
           COUNT(dco.id) as ocorrencias,
@@ -60,7 +60,7 @@ module.exports = async (req) => {
         `
         SELECT 
           dcd.id, cc.descricao as conta_bancaria, dcd.comprovante, 
-          dcd.valor, dcd.data_deposito
+          dcd.valor, dcd.data_deposito, dcd.id_conta_bancaria
         FROM datasys_caixas_depositos dcd
         LEFT JOIN fin_contas_bancarias cc ON cc.id = dcd.id_conta_bancaria
         WHERE dcd.id_caixa = ?
@@ -79,17 +79,19 @@ module.exports = async (req) => {
         [id]
       );
 
-      const caixa_anterior_fechado = !caixaAnterior ? true : (
-        caixaAnterior?.status === "BAIXADO NO DATASYS" ||
-        caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS");
+      const caixa_anterior_fechado = !caixaAnterior
+        ? true
+        : caixaAnterior?.status === "BAIXADO NO DATASYS" ||
+          caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS";
 
-      const saldo_anterior = caixa.saldo_anterior || caixaAnterior?.saldo || 0;
-      const saldo_atual = parseFloat(caixa.saldo_atual)
+      const saldo_inicial = caixa?.saldo_inicial || caixaAnterior?.saldo || 0;
+      const saldo_atual = parseFloat(caixa.saldo_atual);
 
       resolve({
         ...caixa,
-        saldo_anterior: saldo_anterior < 0 ? 0 : saldo_anterior,
+        saldo_inicial: saldo_inicial < 0 ? 0 : saldo_inicial,
         saldo_atual: saldo_atual,
+        suprimento_caixa: saldo_atual > 0 ? null : Math.abs(saldo_atual),
         movimentos_caixa: rowsMovimentoCaixa,
         depositos_caixa: rowsDepositosCaixa,
         qtde_depositos_caixa: rowsDepositosCaixa && rowsDepositosCaixa.length,

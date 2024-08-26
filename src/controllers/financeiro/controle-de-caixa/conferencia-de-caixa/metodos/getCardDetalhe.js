@@ -1,3 +1,4 @@
+const { formatDate } = require("date-fns");
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 
@@ -22,8 +23,9 @@ module.exports = async (req) => {
       const [rowsCaixas] = await conn.execute(
         `
         SELECT 
-          dc.id_filial, dc.data
+          dc.id_filial, dc.data, f.id_grupo_economico, f.nome as filial
         FROM datasys_caixas dc
+        LEFT JOIN filiais f ON f.id = dc.id_filial
         WHERE dc.id = ?
         `,
         [id_caixa]
@@ -124,17 +126,42 @@ module.exports = async (req) => {
       `,
         [caixa.data, caixa.id_filial]
       );
-      const [rowsMovimentoCaixa] = await conn.execute(
-        `
-        SELECT
+
+      let rowsMovimentoCaixa = [];
+      if (type === "recarga") {
+        if (!(caixa.id_grupo_economico == 1 || caixa.id_grupo_economico == 9)) {
+          throw new Error("Este grupo econômico não pode realizar recargas!");
+        }
+        const tabela_recarga =
+          caixa.id_grupo_economico == 1
+            ? "datasys_vendas"
+            : "datasys_vendas_fort";
+        [rowsMovimentoCaixa] = await conn.execute(
+          `
+          SELECT
+            dv.dataPedido as data, dv.numeroPedido as documento,
+            dv.tipoPedido as tipo_operacao, dv.descricao as historico, dv.valorCaixa as valor
+          FROM ${tabela_recarga} dv
+          WHERE dv.grupoEstoque = "RECARGA ELETRONICA"
+          AND dv.tipoPedido = "Venda"
+          AND DATE_FORMAT(dv.dataPedido,'%Y-%m-%d') = ?
+          AND dv.filial = ?
+          `,
+          [formatDate(caixa.data, "yyyy-MM-dd"), caixa.filial]
+        );
+      } else {
+        [rowsMovimentoCaixa] = await conn.execute(
+          `
+          SELECT
           dci.id, dci.data, dci.documento, dci.forma_pagamento,
           dci.tipo_operacao, dci.historico, dci.valor
-        FROM datasys_caixas_itens dci
-        WHERE dci.id_caixa = ?
-        ${tiposMap.get(type).whereMovimento}
-        `,
-        [id_caixa]
-      );
+          FROM datasys_caixas_itens dci
+          WHERE dci.id_caixa = ?
+          ${tiposMap.get(type).whereMovimento}
+          `,
+          [id_caixa]
+        );
+      }
 
       const obj = {
         movimento_caixa: rowsMovimentoCaixa,

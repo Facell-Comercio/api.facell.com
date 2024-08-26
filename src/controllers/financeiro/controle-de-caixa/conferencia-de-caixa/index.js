@@ -14,6 +14,7 @@ module.exports = {
   importCaixasDatasys: require("./metodos/import"),
   importCaixasPorMatriz: require("./metodos/importCaixasPorMatriz"),
   insertOneDeposito: require("./metodos/insertOneDeposito"),
+  insertMultiDepositoExtrato: require("./metodos/insertMultiDepositoExtrato"),
   insertOneOcorrencia: require("./metodos/insertOneOcorrencia"),
 
   importCaixasDatasys: require("./metodos/import"),
@@ -23,4 +24,5 @@ module.exports = {
   changeValueFieldCaixa: require("./metodos/changeValueFieldCaixa"),
   getCardDetalhe: require("./metodos/getCardDetalhe"),
   deleteDeposito: require("./metodos/deleteDeposito"),
+  getAllTransacoesCredit: require("./metodos/getAllTransacoesCredit"),
 };
