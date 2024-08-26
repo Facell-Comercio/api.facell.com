@@ -31,6 +31,7 @@ function getAll(req) {
       descricao,
       active,
       id_matriz,
+      onlyDatasys,
     } = filters || {};
     var where = ` WHERE 1=1 `;
     const params = [];
@@ -50,6 +51,9 @@ function getAll(req) {
       where += `AND f.id IN(${contas_bancarias_habilitadas.join(",")}) `;
     }
 
+    if(onlyDatasys){
+      where += ` AND sequencial_datasys IS NOT NULL `
+    }
     if (id_filial) {
       where += ` AND f.id = ? `;
       params.push(id_filial);

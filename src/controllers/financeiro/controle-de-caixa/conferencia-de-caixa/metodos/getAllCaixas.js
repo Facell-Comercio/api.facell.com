@@ -3,11 +3,6 @@ const { db } = require("../../../../../../mysql");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
     const { filters, pagination } = req.query;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,

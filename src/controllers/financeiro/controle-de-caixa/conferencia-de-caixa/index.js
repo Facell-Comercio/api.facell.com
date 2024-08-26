@@ -1,5 +1,6 @@
 module.exports = {
   getFiliais: require("./metodos/getFiliais"),
+  getCaixasToRobot: require("./metodos/getCaixasToRobot"),
   getAllCaixas: require("./metodos/getAllCaixas"),
   getAllOcorrencias: require("./metodos/getAllOcorrencias"),
 

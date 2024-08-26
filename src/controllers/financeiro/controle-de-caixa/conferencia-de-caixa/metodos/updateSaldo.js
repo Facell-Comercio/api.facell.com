@@ -8,7 +8,7 @@ module.exports = async ({ conn, id_caixa }) => {
       const [rowCaixas] = await conn.execute(
         `
         SELECT 
-          dc.id_filial, dc.data, dc.valor_dinheiro, dc.valor_retiradas
+          dc.id_filial, dc.data, dc.valor_dinheiro, dc.valor_retiradas, dc.saldo_anterior
         FROM datasys_caixas dc
         WHERE id = ?
         `,
@@ -33,8 +33,9 @@ module.exports = async ({ conn, id_caixa }) => {
         [id_caixa]
       );
 
+      const saldo_anterior = caixa.saldo_anterior || caixaAnterior && caixaAnterior.saldo > 0 && caixaAnterior.saldo || '0';
       const saldo_atual =
-        parseFloat(caixaAnterior && caixaAnterior.saldo > 0 ? caixaAnterior.saldo : "0") +
+        parseFloat(saldo_anterior) +
         parseFloat(caixa.valor_dinheiro) -
         (parseFloat(caixa.valor_retiradas) +
           rowsDepositosCaixa.reduce(

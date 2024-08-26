@@ -84,7 +84,7 @@ module.exports = async (req) => {
         caixaAnterior?.status === "BAIXADO / PENDENTE DATASYS");
 
       const saldo_anterior = caixa.saldo_anterior || caixaAnterior?.saldo || 0;
-      const saldo_atual = parseFloat(caixa.saldo_atual) + parseFloat(saldo_anterior);
+      const saldo_atual = parseFloat(caixa.saldo_atual)
 
       resolve({
         ...caixa,

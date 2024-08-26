@@ -8,6 +8,7 @@ const {
   insertOneDeposito,
   updateDeposito,
   deleteDeposito,
+  getCaixasToRobot,
   getAllCaixas,
   updateOcorrencia,
   insertOneOcorrencia,
@@ -40,6 +41,19 @@ router.get(
   async (req, res) => {
     try {
       const result = await getFiliais(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.get(
+  "/to-robot",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getCaixasToRobot(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });

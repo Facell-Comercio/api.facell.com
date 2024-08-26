@@ -76,7 +76,7 @@ module.exports = async (req) => {
         const caixaAnterior = rowCaixaAnterior && rowCaixaAnterior[0];
 
         if (
-          caixaAnterior && (
+          caixaAnterior && !(
             caixaAnterior['status'] === "BAIXADO NO DATASYS" ||
             caixaAnterior['status'] === "BAIXADO / PENDENTE DATASYS"
           )
