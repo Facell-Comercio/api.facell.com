@@ -170,9 +170,10 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await conn.execute(
         `
-            SELECT *
-            FROM grupos_economicos
-            WHERE id = ?
+            SELECT g.*, f.nome as filial
+            FROM grupos_economicos g
+            LEFT JOIN filiais f ON f.id = g.id_matriz
+            WHERE g.id = ?
             `,
         [id]
       );
@@ -266,7 +267,7 @@ function update(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, nome, apelido } = req.body;
+    const { id, nome, apelido, id_matriz, orcamento } = req.body;
     const conn = await db.getConnection();
     try {
       conn.beginTransaction();
@@ -275,13 +276,20 @@ function insertOne(req) {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
-      let campos = "nome";
-      let values = "";
-      let params = [nome];
+      if(!id_matriz){
+        throw new Error('Preencha o id_matriz!')
+      }
+      if(!apelido){
+        throw new Error('Preencha o apelido!')
+      }
+      if(!nome){
+        throw new Error('Preencha o nome!')
+      }
+      console.log(req.body);
+      
+      const query = `INSERT INTO grupos_economicos (nome, apelido, id_matriz, orcamento) VALUES (?, ?, ?, ?);`;
 
-      const query = `INSERT INTO grupos_economicos (${campos}) VALUES (?);`;
-
-      await conn.execute(query, params);
+      await conn.execute(query, [nome, apelido, id_matriz, orcamento]);
       await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
