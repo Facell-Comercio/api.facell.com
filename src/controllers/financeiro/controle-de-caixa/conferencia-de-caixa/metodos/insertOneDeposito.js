@@ -1,32 +1,48 @@
 const { db } = require("../../../../../../mysql");
-const { logger } = require("../../../../../../logger");
+const {
+  logger,
+} = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    let {
+    const {
       id,
       id_caixa,
       id_conta_bancaria,
       valor,
       comprovante,
       data_deposito,
-      conn,
+      conn_recebida,
     } = req.body;
 
+    let conn;
     try {
-      conn = conn || (await db.getConnection());
+      conn =
+        conn_recebida ||
+        (await db.getConnection());
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
       if (!id_caixa) {
-        throw new Error("É necessário informar o caixa!");
+        throw new Error(
+          "É necessário informar o caixa!"
+        );
       }
-      if (!(id_conta_bancaria && valor && comprovante && data_deposito)) {
-        throw new Error("Todos os campos são obrigatórios!");
+      if (
+        !(
+          id_conta_bancaria &&
+          valor &&
+          comprovante &&
+          data_deposito
+        )
+      ) {
+        throw new Error(
+          "Todos os campos são obrigatórios!"
+        );
       }
       await conn.beginTransaction();
 
@@ -40,7 +56,9 @@ module.exports = async (req) => {
       );
 
       if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error("Não poder ser inseridos depósitos nesse caixa");
+        throw new Error(
+          "Não poder ser inseridos depósitos nesse caixa"
+        );
       }
 
       const [result] = await conn.execute(
@@ -56,12 +74,16 @@ module.exports = async (req) => {
 
       const newId = result.insertId;
       if (!newId) {
-        throw new Error("Falha ao inserir o depósito!");
+        throw new Error(
+          "Falha ao inserir o depósito!"
+        );
       }
 
       await updateSaldo({ conn, id_caixa });
 
-      await conn.commit();
+      if (!conn_recebida) {
+        await conn.commit();
+      }
       // await conn.rollback();
       resolve({ id: newId });
     } catch (error) {
@@ -69,7 +91,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "INSERT_DEPOSITO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       if (conn) await conn.rollback();
       reject(error);

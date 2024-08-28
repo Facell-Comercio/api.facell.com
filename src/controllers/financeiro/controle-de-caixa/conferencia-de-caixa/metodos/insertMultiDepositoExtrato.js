@@ -1,5 +1,7 @@
 const { db } = require("../../../../../../mysql");
-const { logger } = require("../../../../../../logger");
+const {
+  logger,
+} = require("../../../../../../logger");
 const insertOneDeposito = require("./insertOneDeposito");
 
 module.exports = async (req) => {
@@ -12,7 +14,9 @@ module.exports = async (req) => {
       await conn.beginTransaction();
       for (const extrato of extratos) {
         if (!id_caixa) {
-          throw new Error("É necessário informar o caixa!");
+          throw new Error(
+            "É necessário informar o caixa!"
+          );
         }
         if (
           !(
@@ -22,16 +26,19 @@ module.exports = async (req) => {
             extrato.data_transacao
           )
         ) {
-          throw new Error("Todos os campos são obrigatórios!");
+          throw new Error(
+            "Todos os campos são obrigatórios!"
+          );
         }
         const { id } = await insertOneDeposito({
           body: {
             id_caixa,
-            id_conta_bancaria: extrato.id_conta_bancaria,
+            id_conta_bancaria:
+              extrato.id_conta_bancaria,
             valor: extrato.valor,
             comprovante: extrato.documento,
             data_deposito: extrato.data_transacao,
-            conn,
+            conn_recebida: conn,
           },
         });
         await conn.execute(
@@ -50,7 +57,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "INSERT_MULTI_DEPOSITO_EXTRATO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       if (conn) await conn.rollback();
       reject(error);
