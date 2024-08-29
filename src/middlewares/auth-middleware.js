@@ -10,11 +10,14 @@ function authMiddleware(req, res, next) {
     req.headers.Authorization;
   const compressedToken =
     authHeader && authHeader.split(" ")[1];
+
+  //^ Realiza a descompressão do token
   const token = zlib
     .gunzipSync(
       Buffer.from(compressedToken, "base64")
     )
     .toString();
+  // console.log("DESCOMPRIMIDO", token.length);
 
   if (!token) {
     return res.status(401).json({
@@ -24,11 +27,11 @@ function authMiddleware(req, res, next) {
   }
 
   try {
-    // Verificar e decodificar o token JWT
     const decoded = jwt.verify(
       token,
       process.env.SECRET
     );
+
     req.user = decoded.user; // Adicionar informações do usuário ao objeto de solicitação
     next();
   } catch (error) {

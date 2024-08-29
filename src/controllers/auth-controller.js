@@ -116,7 +116,9 @@ async function login(req) {
       });
       user.senha = "";
 
+      //^ Gera um token JWT comprimido
       const token = await gerarToken({ user });
+      // console.log("COMPRIMIDO", token.length);
 
       resolve({ token, user });
     } catch (error) {
@@ -137,6 +139,7 @@ async function login(req) {
 
 async function gerarToken({ user }) {
   try {
+    //^ Gera um token JWT
     const token = jwt.sign(
       {
         user: user,
@@ -146,9 +149,11 @@ async function gerarToken({ user }) {
       },
       process.env.SECRET
     );
+    //^ Devolve um token comprimido
     return zlib
       .gzipSync(token)
-      .toString("base64");
+      .toString("base64")
+      .trim();
   } catch (error) {
     logger.error({
       module: "ROOT",
@@ -221,14 +226,10 @@ function validarToken(req) {
       const user = await getOne({
         params: { id: req.user.id },
       });
-      const compressedToken = await gerarToken({
+      const token = await gerarToken({
         user,
       });
-      const token = zlib
-        .gunzipSync(
-          Buffer.from(compressedToken, "base64")
-        )
-        .toString();
+
       resolve(token);
     } catch (error) {
       reject(error);
