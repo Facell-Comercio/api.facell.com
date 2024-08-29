@@ -8,14 +8,8 @@ function authMiddleware(req, res, next) {
   const authHeader =
     req.headers.authorization ||
     req.headers.Authorization;
-  const compressedToken =
+  const token =
     authHeader && authHeader.split(" ")[1];
-  const token = zlib
-    .gunzipSync(
-      Buffer.from(compressedToken, "base64")
-    )
-    .toString();
-
   if (!token) {
     return res.status(401).json({
       message:
