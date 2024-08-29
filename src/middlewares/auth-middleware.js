@@ -1,4 +1,3 @@
-const zlib = require("zlib");
 const jwt = require("jsonwebtoken");
 const { logger } = require("../../logger");
 require("dotenv");

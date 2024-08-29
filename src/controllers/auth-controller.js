@@ -5,7 +5,6 @@ const {
 } = require("@paralleldrive/cuid2");
 
 const bcrypt = require("bcrypt");
-const zlib = require("zlib");
 const jwt = require("jsonwebtoken");
 const { logger } = require("../../logger");
 const {
@@ -116,9 +115,7 @@ async function login(req) {
       });
       user.senha = "";
 
-      //^ Gera um token JWT comprimido
       const token = await gerarToken({ user });
-      // console.log("COMPRIMIDO", token.length);
 
       resolve({ token, user });
     } catch (error) {
@@ -139,7 +136,6 @@ async function login(req) {
 
 async function gerarToken({ user }) {
   try {
-    //^ Gera um token JWT
     const token = jwt.sign(
       {
         user: user,
@@ -149,11 +145,7 @@ async function gerarToken({ user }) {
       },
       process.env.SECRET
     );
-    //^ Devolve um token comprimido
-    return zlib
-      .gzipSync(token)
-      .toString("base64")
-      .trim();
+    return token;
   } catch (error) {
     logger.error({
       module: "ROOT",
