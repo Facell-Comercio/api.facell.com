@@ -27,17 +27,14 @@ todo Adaptado para ser multibancos
 */
 module.exports = function exportRemessa(req, res) {
   return new Promise(async (resolve, reject) => {
-    const { id_bordero, codigo_banco, isPix, itens } = req.body;
-
+    const { id_bordero, isPix, itens } = req.body;
+    
     let conn;
     try {
       conn = await db.getConnection();
 
       if (!id_bordero) {
         throw new Error("ID do Borderô não indicado!");
-      }
-      if(!(codigo_banco && String(codigo_banco).length === 3)){
-        throw new Error(`Código do banco não informado ou inválido: ${codigo_banco}!`)
       }
 
       const idsVencimentos =
@@ -75,7 +72,9 @@ module.exports = function exportRemessa(req, res) {
           f.razao as empresa_nome, f.logradouro as endereco_empresa,
           f.numero as endereco_num, f.complemento as endereco_compl,
           f.municipio as cidade, f.cep, f.uf,
-          cb.descricao as conta_bancaria, b.data_pagamento, fb.codigo as codigo_bancario
+          cb.descricao as conta_bancaria, b.data_pagamento, 
+          UPPER(RPAD(fb.nome, 30, ' ')) as nome_banco,
+          LPAD(fb.codigo, 3, '0') as codigo_banco
         FROM fin_cp_bordero b
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
         LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -85,12 +84,18 @@ module.exports = function exportRemessa(req, res) {
         [id_bordero]
       );
       const borderoData = rowsBordero && rowsBordero[0];
+      if(!borderoData){
+        throw new Error('Bordero não localizado!')
+      }
+
+      const nome_banco = borderoData['nome_banco']
+      const codigo_banco = borderoData['codigo_banco']
 
       //* Verifica se é CPF ou CNPJ
       const empresa_tipo_insc = borderoData.cnpj_empresa.length === 11 ? 1 : 2;
 
       // ^ Verificação de permissão de geração de remessa~
-      // if (+borderoData.codigo_bancario !== 341) {
+      // if (+borderoData.codigo_banco !== 341) {
       //   throw new Error(
       //     "A Remessa não pode ser gerada por não ser do banco Itaú"
       //   );
@@ -472,6 +477,7 @@ module.exports = function exportRemessa(req, res) {
       const headerArquivo = createHeaderArquivo({
         ...borderoData,
         banco: codigo_banco,
+        nome_banco: nome_banco,
         empresa_tipo_insc,
         arquivo_data_geracao: formatDate(dataCriacao, "ddMMyyyy"),
         arquivo_hora_geracao: formatDate(dataCriacao, "HHmmss"),
