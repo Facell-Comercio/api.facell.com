@@ -223,7 +223,7 @@ module.exports = [
     endPos: 230,
     length: 8,
     required: false,
-    default: new Array(8).fill(" ").join(""),
+    default: "01      ",
   },
   {
     field: "codigos_ocorrencias",
