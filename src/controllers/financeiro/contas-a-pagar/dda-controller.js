@@ -8,13 +8,23 @@ const {
   normalizeCodigoBarras,
 } = require("../remessa/to-string/masks");
 
+function ensureArray(data) {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    return data;
+  }
+  // Converte o objeto de volta para um array
+  return Object.keys(data).map(
+    (key) => data[key]
+  );
+}
+
 async function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
-      const { filters, pagination } = req.body;
+      const { filters, pagination } = req.query;
 
-      // console.log(req.query)
       const { pageIndex, pageSize } =
         pagination || {
           pageIndex: 0,
@@ -77,10 +87,10 @@ async function getAll(req) {
         }
       }
 
-      if (filiais_list) {
-        where += ` AND f.id IN(${filiais_list.join(
-          ","
-        )}) `;
+      if (ensureArray(filiais_list)) {
+        where += ` AND f.id IN(${ensureArray(
+          filiais_list
+        ).join(",")}) `;
       }
 
       const offset = pageIndex * pageSize;
@@ -298,16 +308,18 @@ async function autoVincularDDA() {
     try {
       await conn.beginTransaction();
 
-      const [boletos] =
-        await conn.execute(`SELECT 
-                id, 
-                cnpj_filial, 
-                cnpj_fornecedor, 
-                valor 
-                FROM fin_dda WHERE id_vencimento is NULL`);
+      log;
+      const [boletos] = await conn.execute(`
+        SELECT 
+          id, cnpj_filial, cnpj_fornecedor, valor
+        FROM fin_dda WHERE id_vencimento IS NULL AND id_fatura IS NULL
+      `);
+
       for (const boleto of boletos) {
         boleto.vinculado = false;
         boleto.id_vencimento = null;
+        boleto.id_fatura = null;
+        boleto.mensagem = null;
 
         const params = [
           boleto.valor,
@@ -318,27 +330,49 @@ async function autoVincularDDA() {
         const [rowVencimento] =
           await conn.execute(
             `SELECT
-                    v.id, 
-                    v.valor,
-                    f.cnpj as cnpj_filial,
-                    ff.cnpj as cnpj_fornecedor
-                    
-                    FROM fin_cp_titulos_vencimentos v 
-                    INNER JOIN fin_cp_titulos t ON t.id = v.id_titulo
-                    LEFT JOIN fin_dda dda ON dda.id_vencimento = v.id 
-                    LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
-                    LEFT JOIN filiais f ON f.id = t.id_filial
-                    WHERE 
-                        dda.id_vencimento IS NULL
-                        AND v.valor = ?
-                        AND f.cnpj = ?
-                        AND ff.cnpj = ?
-                    LIMIT 1
-                    `,
+              v.id, v.valor, f.cnpj as cnpj_filial, ff.cnpj as cnpj_fornecedor
+            FROM fin_cp_titulos_vencimentos v 
+            INNER JOIN fin_cp_titulos t ON t.id = v.id_titulo
+            LEFT JOIN fin_dda dda ON dda.id_vencimento = v.id 
+            LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
+            LEFT JOIN filiais f ON f.id = t.id_filial
+            WHERE 
+                dda.id_vencimento IS NULL
+                AND dda.id_fatura IS NULL
+                AND v.valor = ?
+                AND f.cnpj = ?
+                AND ff.cnpj = ?
+            LIMIT 1
+            `,
             params
           );
         const vencimento =
           rowVencimento && rowVencimento[0];
+
+        const [rowFatura] = await conn.execute(
+          `SELECT
+              ccf.id, ccf.valor, f.cnpj as cnpj_filial, ff.cnpj as cnpj_fornecedor
+            FROM fin_cartoes_corporativos_faturas ccf
+            LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
+            LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id 
+            LEFT JOIN fin_fornecedores ff ON ff.id = cc.id_fornecedor
+            LEFT JOIN filiais f ON f.id = cc.id_matriz
+            WHERE
+                dda.id_vencimento IS NULL
+                AND dda.id_fatura IS NULL
+                AND ccf.valor = ?
+                AND f.cnpj = ?
+                AND ff.cnpj = ?
+            LIMIT 1
+            `,
+          params
+        );
+        const fatura = rowFatura && rowFatura[0];
+
+        if (vencimento && fatura) {
+          boleto.mensagem = `O DDA de id ${boleto.id} pode ser vinculado tanto com um boleto como com uma fatura`;
+          continue;
+        }
         if (vencimento) {
           await conn.execute(
             `UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`,
@@ -347,6 +381,14 @@ async function autoVincularDDA() {
           (boleto.vinculado = true),
             (boleto.id_vencimento =
               vencimento.id);
+        }
+        if (fatura) {
+          await conn.execute(
+            `UPDATE fin_dda SET id_fatura = ? WHERE id = ?`,
+            [fatura.id, boleto.id]
+          );
+          (boleto.vinculado = true),
+            (boleto.id_fatura = fatura.id);
         }
 
         // console.log({
@@ -403,9 +445,14 @@ async function limparDDA() {
 
 async function vincularDDA(req) {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
+    let conn;
     try {
-      const { id_vencimento, id_dda } = req.body;
+      conn = await db.getConnection();
+      const {
+        id_vencimento,
+        id_forma_pagamento,
+        id_dda,
+      } = req.body;
       if (!id_vencimento) {
         throw new Error(
           "ID do vencimento não informado!"
@@ -416,25 +463,52 @@ async function vincularDDA(req) {
           "ID do DDA não informado!"
         );
       }
-
-      // ^ Verificar se o Vencimento existe
-      const [rowVencimento] = await conn.execute(
-        `SELECT id FROM fin_cp_titulos_vencimentos WHERE id = ?`,
-        [id_vencimento]
-      );
-      if (
-        rowVencimento &&
-        !rowVencimento.length
-      ) {
+      if (!id_forma_pagamento) {
         throw new Error(
-          `Vencimento de ID ${id_vencimento} não existe!`
+          "ID da forma de pagamento não informado!"
         );
+      }
+
+      const isFatura = id_forma_pagamento === 6;
+      const columnName = isFatura
+        ? "id_fatura"
+        : "id_vencimento";
+
+      // ^ Verificar se o Vencimento ou a fatura existe
+      if (isFatura) {
+        const [rowVencimento] =
+          await conn.execute(
+            `SELECT id FROM fin_cartoes_corporativos_faturas WHERE id = ?`,
+            [id_vencimento]
+          );
+        if (
+          rowVencimento &&
+          !rowVencimento.length
+        ) {
+          throw new Error(
+            `Fatura de ID ${id_vencimento} não existe!`
+          );
+        }
+      } else {
+        const [rowVencimento] =
+          await conn.execute(
+            `SELECT id FROM fin_cp_titulos_vencimentos WHERE id = ? AND id_fatura IS NULL`,
+            [id_vencimento]
+          );
+        if (
+          rowVencimento &&
+          !rowVencimento.length
+        ) {
+          throw new Error(
+            `Vencimento de ID ${id_vencimento} não existe!`
+          );
+        }
       }
 
       // ^ Verificar se vencimento já foi vinculado
       const [rowVencimentosVinculados] =
         await conn.execute(
-          `SELECT id, cod_barras FROM fin_dda WHERE id_vencimento = ?`,
+          `SELECT id, cod_barras FROM fin_dda WHERE ${columnName} = ?`,
           [id_vencimento]
         );
       if (
@@ -442,15 +516,21 @@ async function vincularDDA(req) {
         rowVencimentosVinculados.length > 0
       ) {
         throw new Error(
-          `Vencimento de ID ${id_vencimento} já foi vinculado com o DDA ID: ${rowVencimentosVinculados[0]["id"]}, código de barras: ${rowVencimentosVinculados[0]["cod_barras"]}!`
+          `${
+            isFatura ? "Fatura" : "Vencimento"
+          } de ID ${id_vencimento} já foi vinculado com o DDA ID: ${
+            rowVencimentosVinculados[0]["id"]
+          }, código de barras: ${
+            rowVencimentosVinculados[0][
+              "cod_barras"
+            ]
+          }!`
         );
       }
 
       //^ Verificar se o registro no DDA já consta vinculado
       const [rowDDA] = await conn.execute(
-        `SELECT id, id_vencimento FROM fin_dda 
-             WHERE   
-                id = ?`,
+        `SELECT id, id_vencimento, id_fatura FROM fin_dda WHERE id = ?`,
         [id_dda]
       );
 
@@ -460,17 +540,24 @@ async function vincularDDA(req) {
         );
       }
       const DDAbanco = rowDDA && rowDDA[0];
-      // console.log({DDAbanco})
       //^ Se tem ID Vencimento no DDA então já está vinculado:
-      if (DDAbanco.id_vencimento) {
+      if (
+        isFatura
+          ? DDAbanco.id_fatura
+          : DDAbanco.id_vencimento
+      ) {
         throw new Error(
-          `Registro ${id_dda} do DDA já consta como vinculado, não deu para vincular com o id_vencimento ${DDAbanco.id_vencimento}`
+          `Registro ${id_dda} do DDA já consta como vinculado, não deu para vincular com o ${columnName} ${
+            isFatura
+              ? DDAbanco.id_forma_pagamento
+              : DDAbanco.id_vencimento
+          }`
         );
       }
 
       // * Vinculação
       await conn.execute(
-        `UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`,
+        `UPDATE fin_dda SET ${columnName} = ? WHERE id = ?`,
         [id_vencimento, id_dda]
       );
       resolve(true);
@@ -505,9 +592,7 @@ async function desvincularDDA(req) {
 
       // ^ Obter o DDA
       const [rowDDA] = await conn.execute(
-        `SELECT id, id_vencimento FROM fin_dda 
-             WHERE   
-                id = ?`,
+        `SELECT id, id_vencimento, id_fatura FROM fin_dda WHERE id = ?`,
         [id_dda]
       );
 
@@ -539,6 +624,29 @@ async function desvincularDDA(req) {
         // * Desvinculação
         await conn.execute(
           `UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`,
+          [null, id_dda]
+        );
+      }
+      if (DDAbanco.id_fatura) {
+        //^ Obter a Fatura:
+        const [rowFatura] = await conn.execute(
+          `SELECT id, status FROM fin_cartoes_corporativos_faturas WHERE id = ?`,
+          [DDAbanco.id_fatura]
+        );
+        const fatura = rowFatura && rowFatura[0];
+        if (
+          fatura &&
+          (fatura.status == "pago" ||
+            fatura.status == "programado")
+        ) {
+          throw new Error(
+            `Fatura ${fatura.id} já consta como pago ou já foi programado para pagamento!`
+          );
+        }
+
+        // * Desvinculação
+        await conn.execute(
+          `UPDATE fin_dda SET id_fatura = ? WHERE id = ?`,
           [null, id_dda]
         );
       }
