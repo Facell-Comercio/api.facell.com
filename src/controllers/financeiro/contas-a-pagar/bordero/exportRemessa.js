@@ -275,7 +275,7 @@ module.exports = function exportRemessa(req, res) {
           )
           .then(([rows]) => rows),
 
-        //* Pagamento Boleto Itaú
+        //* Pagamento Boleto Mesmo Banco
         conn
           .execute(
             `
@@ -291,15 +291,15 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
         WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
-        AND (LEFT(COALESCE(dda.cod_barras, ''), 3) = ? OR LEFT(COALESCE(tv.cod_barras, ''), 3) = ?)
+        AND LEFT(COALESCE(COALESCE(dda.cod_barras, tv.cod_barras), '000'), 3) = ?
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
         AND tv.id_fatura IS NULL
       `,
-            [id_bordero, codigo_banco, codigo_banco]
+            [id_bordero, codigo_banco]
           )
           .then(([rows]) => rows),
-        //* Pagamento Boleto Fatura Itaú
+        //* Pagamento Boleto Fatura Mesmo Banco
         conn
           .execute(
             `
@@ -312,15 +312,16 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
         LEFT JOIN filiais f ON f.id = cc.id_matriz
         LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
+        LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
         WHERE ${whereFaturas}
-        AND LEFT(ccf.cod_barras, 3) = ?
+        AND LEFT(COALESCE(COALESCE(dda.cod_barras, ccf.cod_barras), '000'), 3) = ?
         AND ccf.data_pagamento IS NULL
         AND (ccf.status = "erro" OR ccf.status = "pendente")
       `,
             [id_bordero, codigo_banco]
           )
           .then(([rows]) => rows),
-        //* Pagamento Boleto Outro Banco Para Itaú
+        //* Pagamento Boleto Outro Banco
         conn
           .execute(
             `
@@ -336,15 +337,15 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
         WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
-        AND (LEFT(dda.cod_barras, 3) <> ? OR LEFT(tv.cod_barras, 3) <> ?)
+        AND LEFT(COALESCE(dda.cod_barras, tv.cod_barras), 3) <> ?
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
         AND tv.id_fatura IS NULL
       `,
-            [id_bordero, codigo_banco, codigo_banco]
+            [id_bordero, codigo_banco]
           )
           .then(([rows]) => rows),
-        //* Pagamento Boleto Fatura Outro Banco Para Itaú
+        //* Pagamento Boleto Fatura Outro Banco
         conn
           .execute(
             `
@@ -357,8 +358,9 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
         LEFT JOIN filiais f ON f.id = cc.id_matriz
         LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
+        LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
         WHERE ${whereFaturas}
-        AND LEFT(ccf.cod_barras, 3) <> ?
+        AND LEFT(COALESCE(dda.cod_barras, ccf.cod_barras), 3) <> ?
         AND ccf.data_pagamento IS NULL
         AND (ccf.status = "erro" OR ccf.status = "pendente")
       `,
