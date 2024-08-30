@@ -321,7 +321,7 @@ module.exports = function exportRemessa(req, res) {
             [id_bordero, codigo_banco]
           )
           .then(([rows]) => rows),
-        //* Pagamento Boleto Outro Banco
+        //* Pagamento Boleto Outros Bancos
         conn
           .execute(
             `
@@ -337,7 +337,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
         WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
-        AND LEFT(COALESCE(dda.cod_barras, tv.cod_barras), 3) <> ?
+        AND LEFT(COALESCE(COALESCE(dda.cod_barras, tv.cod_barras), '000'), 3) <> ?
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
         AND tv.id_fatura IS NULL
@@ -345,7 +345,7 @@ module.exports = function exportRemessa(req, res) {
             [id_bordero, codigo_banco]
           )
           .then(([rows]) => rows),
-        //* Pagamento Boleto Fatura Outro Banco
+        //* Pagamento Boleto Fatura Outros Bancos
         conn
           .execute(
             `
@@ -584,8 +584,9 @@ module.exports = function exportRemessa(req, res) {
               forn.cnpj_favorecido as favorecido_cnpj,
               t.id_tipo_chave_pix,
               t.chave_pix,
-              tv.qr_code, tv.cod_barras as cod_barras_tv,
-              dda.cod_barras
+              tv.qr_code, 
+              COALESCE(dda.cod_barras, tv.cod_barras) as cod_barras
+              
             FROM fin_cp_titulos t
             LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo = t.id
             LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
@@ -610,11 +611,12 @@ module.exports = function exportRemessa(req, res) {
               DATE_FORMAT(ccf.data_prevista, '%d/%m/%Y') as data_vencimento,
               ccf.valor as valor_pagamento,
               forn.cnpj_favorecido as favorecido_cnpj,
-              ccf.cod_barras as cod_barras_tv
+              COALESCE(dda.cod_barras, ccf.cod_barras) as cod_barras
             FROM fin_cartoes_corporativos_faturas ccf
             LEFT JOIN fin_cartoes_corporativos cc ON cc.id = ccf.id_cartao
             LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
             LEFT JOIN fin_bancos fb ON fb.id = forn.id_banco
+            LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
             WHERE ccf.id = ?
             `;
           }
@@ -706,7 +708,7 @@ module.exports = function exportRemessa(req, res) {
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
-              cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
+              cod_barras: vencimento.cod_barras,
               nome_concessionaria: vencimento.favorecido_nome,
             });
             arquivo.push(segmentoO);
@@ -759,7 +761,7 @@ module.exports = function exportRemessa(req, res) {
               banco: codigo_banco,
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
-              cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
+              cod_barras: vencimento.cod_barras,
               id_vencimento: isFatura
                 ? `F${vencimento.id_vencimento}`
                 : vencimento.id_vencimento,
