@@ -45,7 +45,9 @@ async function updateSenha(req) {
 
 async function login(req) {
   return new Promise(async (resolve, reject) => {
+    let conn
     try {
+      conn = await db.getConnection();
       const { email, senha } = req.body;
       if (!email) {
         throw new Error("Preencha o email!");
@@ -55,7 +57,7 @@ async function login(req) {
         throw new Error("Preencha a senha!");
       }
 
-      const [rowUserBanco] = await db.execute(
+      const [rowUserBanco] = await conn.execute(
         `SELECT u.id, u.email, u.senha, u.senha_temporaria FROM users u WHERE active = 1 AND email = ?`,
         [email]
       );
@@ -99,6 +101,8 @@ async function login(req) {
         data: { message: error.message, stack: error.stack, name: error.name, },
       });
       reject(error);
+    }finally{
+      if(conn) conn.release()
     }
   });
 }
