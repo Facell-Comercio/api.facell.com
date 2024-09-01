@@ -11,8 +11,9 @@ require("dotenv");
 
 async function updateSenha(req) {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
+    let conn;
     try {
+      conn = await db.getConnection();
       const { senha, confirmaSenha, id } = req.body.params;
 
       if (senha !== confirmaSenha) {
@@ -38,7 +39,7 @@ async function updateSenha(req) {
       });
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }
@@ -128,8 +129,9 @@ async function gerarToken({user}){
 
 async function recuperarSenha(req) {
   return new Promise(async (resolve) => {
-    const conn = await db.getConnection();
+    let conn
     try {
+      conn = await db.getConnection();
       const { email } = req.body;
 
       if (!email) {
@@ -157,7 +159,8 @@ async function recuperarSenha(req) {
         hash_senha_temporaria,
         user.id,
       ]);
-
+      
+      resolve(true);
     } catch (error) {
       logger.error({
         module: "ROOT",
@@ -170,8 +173,7 @@ async function recuperarSenha(req) {
         },
       });
     } finally {
-      conn.release();
-      resolve();
+      if(conn) conn.release();
     }
   });
 }
