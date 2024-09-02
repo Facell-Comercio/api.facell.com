@@ -1,5 +1,7 @@
 const { startOfDay } = require("date-fns");
-const { logger } = require("../../../../../../logger");
+const {
+  logger,
+} = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
@@ -33,7 +35,9 @@ module.exports = async (req) => {
       const caixa = rowsCaixas && rowsCaixas[0];
 
       if (caixa.status === "BAIXADO NO DATASYS") {
-        throw new Error(`Nenhuma ação pode ser realizada nesse caixa`);
+        throw new Error(
+          `Nenhuma ação pode ser realizada nesse caixa`
+        );
       }
 
       //* INÍCIO - CONFIRMAÇÃO DE CAIXA
@@ -51,34 +55,46 @@ module.exports = async (req) => {
             descricao
           ) VALUES (?,?)
         `,
-          [id, `Caixa CONFERIDO por ${user.nome.toUpperCase()}`]
+          [
+            id,
+            `Caixa CONFERIDO por ${user.nome.toUpperCase()}`,
+          ]
         );
       }
       //* FIM - CONFIRMAÇÃO DE CAIXA
 
       //* INÍCIO - CONFERÊNCIA DE CAIXA
       if (action === "confirmar") {
-        if (Number(caixa.ocorrencias_nao_resolvidas) > 0) {
+        if (
+          Number(
+            caixa.ocorrencias_nao_resolvidas
+          ) > 0
+        ) {
           throw new Error(
             `Há ${caixa.ocorrencias_nao_resolvidas} ocorrências não resolvidas!`
           );
         }
 
         //~ INÍCIO - Validação de regra de negócio para a baixa de caixa
-        const [rowCaixaAnterior] = await conn.execute(
-          `SELECT status FROM datasys_caixas 
+        const [rowCaixaAnterior] =
+          await conn.execute(
+            `SELECT status FROM datasys_caixas 
           WHERE data < ? 
           ORDER BY data DESC
           LIMIT 1`,
-          [startOfDay(caixa.data)]
-        );
+            [startOfDay(caixa.data)]
+          );
 
-        const caixaAnterior = rowCaixaAnterior && rowCaixaAnterior[0];
+        const caixaAnterior =
+          rowCaixaAnterior && rowCaixaAnterior[0];
 
         if (
-          caixaAnterior && !(
-            caixaAnterior['status'] === "BAIXADO NO DATASYS" ||
-            caixaAnterior['status'] === "BAIXADO / PENDENTE DATASYS"
+          caixaAnterior &&
+          !(
+            caixaAnterior["status"] ===
+              "BAIXADO NO DATASYS" ||
+            caixaAnterior["status"] ===
+              "BAIXADO / PENDENTE DATASYS"
           )
         ) {
           throw new Error(
@@ -100,9 +116,12 @@ module.exports = async (req) => {
             descricao
           ) VALUES (?,?)
         `,
-          [id, `Caixa CONFIRMADO por ${user.nome.toUpperCase()}`]
+          [
+            id,
+            `Caixa CONFIRMADO por ${user.nome.toUpperCase()}`,
+          ]
         );
-        console.log("Atualizando saldo...");
+        // console.log("Atualizando saldo...");
         await updateSaldo({
           conn,
           id_caixa: id,
@@ -113,18 +132,23 @@ module.exports = async (req) => {
       //* INÍCIO - DESCONFIRMAÇÃO DE CAIXA
       if (action === "desconfirmar") {
         //~ INÍCIO - Validação de regra de negócio para a desconfirmação de caixa
-        const [rowCaixaSeguinte] = await conn.execute(
-          `SELECT status, data FROM datasys_caixas 
+        const [rowCaixaSeguinte] =
+          await conn.execute(
+            `SELECT status, data FROM datasys_caixas 
           WHERE data > ? 
           ORDER BY data ASC
           LIMIT 1`,
-          [startOfDay(caixa.data)]
-        );
+            [startOfDay(caixa.data)]
+          );
         const statusCaixaSeguinte =
-          rowCaixaSeguinte && rowCaixaSeguinte[0] && rowCaixaSeguinte[0].status;
+          rowCaixaSeguinte &&
+          rowCaixaSeguinte[0] &&
+          rowCaixaSeguinte[0].status;
         if (
-          statusCaixaSeguinte === "BAIXADO NO DATASYS" ||
-          statusCaixaSeguinte === "BAIXADO / PENDENTE DATASYS"
+          statusCaixaSeguinte ===
+            "BAIXADO NO DATASYS" ||
+          statusCaixaSeguinte ===
+            "BAIXADO / PENDENTE DATASYS"
         ) {
           throw new Error(
             "Ação não permitida pois já foi realizada a confirmação do caixa seguinte"
@@ -145,7 +169,10 @@ module.exports = async (req) => {
             descricao
             ) VALUES (?,?)
             `,
-          [id, `Caixa DESCONFIRMADO por ${user.nome.toUpperCase()}`]
+          [
+            id,
+            `Caixa DESCONFIRMADO por ${user.nome.toUpperCase()}`,
+          ]
         );
       }
       //* FIM - DESCONFIRMAÇÃO DE CAIXA
@@ -158,7 +185,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "CHANGE_STATUS_CAIXA",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       reject(error);
       if (conn) await conn.rollback();

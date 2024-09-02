@@ -1,7 +1,11 @@
-const { logger } = require("../../../../../logger");
+const {
+  logger,
+} = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 
-module.exports = function getAllFaturasBordero(req) {
+module.exports = function getAllFaturasBordero(
+  req
+) {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
@@ -19,10 +23,11 @@ module.exports = function getAllFaturasBordero(req) {
         closedFatura,
         orderBy,
       } = req.query;
-      const { pageIndex, pageSize } = pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+      const { pageIndex, pageSize } =
+        pagination || {
+          pageIndex: 0,
+          pageSize: 15,
+        };
       const {
         id_matriz,
         id_filial,
@@ -38,7 +43,9 @@ module.exports = function getAllFaturasBordero(req) {
       } = filters || {};
 
       let where = ` WHERE 1=1 `;
-      let order = orderBy || " ORDER BY ccf.data_prevista ASC ";
+      let order =
+        orderBy ||
+        " ORDER BY ccf.data_prevista ASC ";
       const params = [];
 
       if (id_vencimento) {
@@ -127,22 +134,32 @@ module.exports = function getAllFaturasBordero(req) {
       }
 
       // Filtra com base no status de pagamento
-      if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
-        where += ` AND ccf.status IN ('${enabledStatusPgto.join("','")}')`;
+      if (
+        enabledStatusPgto !== undefined &&
+        enabledStatusPgto.length > 0
+      ) {
+        where += ` AND ccf.status IN ('${enabledStatusPgto.join(
+          "','"
+        )}')`;
       }
 
       if (tipo_data && range_data) {
-        const { from: data_de, to: data_ate } = range_data;
+        const { from: data_de, to: data_ate } =
+          range_data;
         if (data_de && data_ate) {
           where += ` AND ccf.${tipo_data} BETWEEN '${
             data_de.split("T")[0]
           }' AND '${data_ate.split("T")[0]}'  `;
         } else {
           if (data_de) {
-            where += ` AND ccf.${tipo_data} >= '${data_de.split("T")[0]}' `;
+            where += ` AND ccf.${tipo_data} >= '${
+              data_de.split("T")[0]
+            }' `;
           }
           if (data_ate) {
-            where += ` AND ccf.${tipo_data} <= '${data_ate.split("T")[0]}' `;
+            where += ` AND ccf.${tipo_data} <= '${
+              data_ate.split("T")[0]
+            }' `;
           }
         }
       }
@@ -160,6 +177,7 @@ module.exports = function getAllFaturasBordero(req) {
             LEFT JOIN filiais f ON f.id = fcc.id_matriz
             LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
             LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
+            LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
             LEFT JOIN fin_conciliacao_bancaria_itens cbi 
               ON cbi.id_item = ccf.id
               AND cbi.tipo = 'fatura'
@@ -169,9 +187,13 @@ module.exports = function getAllFaturasBordero(req) {
         params
       );
 
-      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal =
+        (rowQtdeTotal &&
+          rowQtdeTotal[0]["qtde"]) ||
+        0;
 
-      const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
+      const offset =
+        pageIndex > 0 ? pageSize * pageIndex : 0;
       params.push(pageSize);
       params.push(offset);
 
@@ -197,7 +219,8 @@ module.exports = function getAllFaturasBordero(req) {
             6 as id_forma_pagamento,
             bi.remessa,
             cbi.id as conciliado,
-            cbi.id_conciliacao as id_conciliacao
+            cbi.id_conciliacao as id_conciliacao,
+            dda.id as id_dda
           FROM fin_cartoes_corporativos_faturas ccf
           LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
@@ -206,6 +229,7 @@ module.exports = function getAllFaturasBordero(req) {
           LEFT JOIN filiais f ON f.id = fcc.id_matriz
           LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
           LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
+          LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
           LEFT JOIN fin_conciliacao_bancaria_itens cbi 
             ON cbi.id_item = ccf.id
             AND cbi.tipo = 'fatura'
@@ -218,7 +242,9 @@ module.exports = function getAllFaturasBordero(req) {
 
       const objResponse = {
         rows,
-        pageCount: Math.ceil(qtdeTotal / pageSize),
+        pageCount: Math.ceil(
+          qtdeTotal / pageSize
+        ),
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
@@ -227,7 +253,11 @@ module.exports = function getAllFaturasBordero(req) {
         module: "FINANCEIRO",
         origin: "CARTÕES",
         method: "GET_ALL_FATURAS_BORDERO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       reject(error);
     } finally {
