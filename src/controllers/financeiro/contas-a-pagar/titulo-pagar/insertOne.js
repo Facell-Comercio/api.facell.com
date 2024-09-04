@@ -2,6 +2,7 @@ const {
   format,
   startOfDay,
   addMonths,
+  formatDate,
 } = require("date-fns");
 const { db } = require("../../../../../mysql");
 const {
@@ -527,13 +528,14 @@ module.exports = function insertOne(req) {
 
           //* Caso exista uma fatura -> Atualiza o valor
           if (fatura) {
+            
             //* Verifica se a fatura está fechada
             if (fatura.closed) {
               throw new Error(
-                `A fatura de data vencimento ${normalizeDate(
+                `A fatura de data vencimento ${formatDate(
                   startOfDay(
                     vencimento.data_vencimento
-                  )
+                  ), 'dd/MM/yyyy'
                 )} já está fechada!`
               );
             }
