@@ -122,7 +122,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -149,7 +149,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -176,7 +176,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -203,7 +203,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -229,7 +229,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -255,7 +255,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -279,7 +279,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -303,7 +303,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           ccf.id as id_vencimento
         FROM fin_cartoes_corporativos_faturas ccf
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = ccf.id
@@ -325,7 +325,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -349,7 +349,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           ccf.id as id_vencimento
         FROM fin_cartoes_corporativos_faturas ccf
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_fatura = ccf.id
@@ -371,7 +371,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -395,7 +395,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -419,7 +419,7 @@ module.exports = function exportRemessa(req, res) {
         conn
           .execute(
             `
-        SELECT
+        SELECT DISTINCT
           tv.id as id_vencimento
         FROM fin_cp_titulos_vencimentos tv
         LEFT JOIN fin_cp_bordero_itens tb ON tb.id_vencimento = tv.id
@@ -570,7 +570,7 @@ module.exports = function exportRemessa(req, res) {
         let registroLote = 1;
         for (const pagamento of formaPagamento) {
           let query = `
-          SELECT
+          SELECT DISTINCT
               tv.id as id_vencimento,  
               fb.codigo as cod_banco_favorecido,
               forn.agencia,
@@ -599,7 +599,7 @@ module.exports = function exportRemessa(req, res) {
             key === "PagamentoFaturaBoletoOutroBancoParaItau"
           ) {
             query = `
-            SELECT
+            SELECT DISTINCT
               ccf.id as id_vencimento,  
               fb.codigo as cod_banco_favorecido,
               forn.agencia,
