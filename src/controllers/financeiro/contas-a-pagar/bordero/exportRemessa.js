@@ -291,6 +291,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
         WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
+        AND COALESCE(dda.cod_barras, tv.cod_barras) IS NOT NULL
         AND LEFT(COALESCE(COALESCE(dda.cod_barras, tv.cod_barras), '000'), 3) = ?
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
@@ -314,6 +315,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
         WHERE ${whereFaturas}
+        AND COALESCE(dda.cod_barras, ccf.cod_barras) IS NOT NULL
         AND LEFT(COALESCE(COALESCE(dda.cod_barras, ccf.cod_barras), '000'), 3) = ?
         AND ccf.data_pagamento IS NULL
         AND (ccf.status = "erro" OR ccf.status = "pendente")
@@ -337,6 +339,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_dda dda ON dda.id_vencimento = tv.id
         WHERE ${whereVencimentos}
         AND t.id_forma_pagamento = 1
+        AND COALESCE(dda.cod_barras, tv.cod_barras) IS NOT NULL
         AND LEFT(COALESCE(COALESCE(dda.cod_barras, tv.cod_barras), '000'), 3) <> ?
         AND tv.data_pagamento IS NULL
         AND (tv.status = "erro" OR tv.status = "pendente")
@@ -360,6 +363,7 @@ module.exports = function exportRemessa(req, res) {
         LEFT JOIN fin_fornecedores forn ON forn.id = cc.id_fornecedor
         LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
         WHERE ${whereFaturas}
+        AND COALESCE(dda.cod_barras, ccf.cod_barras) IS NOT NULL
         AND LEFT(COALESCE(dda.cod_barras, ccf.cod_barras), 3) <> ?
         AND ccf.data_pagamento IS NULL
         AND (ccf.status = "erro" OR ccf.status = "pendente")
