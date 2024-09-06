@@ -166,13 +166,31 @@ function normalizeCodigoBarras48(texto) {
  * Função que extrai URL / Chave de endereçamento do PIX Copia e Cola
  * */
 function normalizeURLChaveEnderecamentoPIX(qr_code) {
-  const qr = qr_code.trim();
-  if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
-    throw new Error("Chave PIX não identificada");
+  if(!qr_code){
+    throw new Error("QR Code não informado!")
   }
-  const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
-  const caracteres = parseInt(etapa1[1].substring(2, 4)) + 4;
-  return etapa1[1].substring(4, caracteres);
+  // const qr = qr_code.trim();
+  // if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
+  //   throw new Error("Chave PIX não identificada");
+  // }
+  // const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
+  // const caracteres = parseInt(etapa1[1].substring(2, 4)) + 4;
+  // return etapa1[1].substring(4, caracteres);
+
+  // Verifica se o QR Code contém a URL do PSP (indicativo de QR dinâmico)
+  if (qr.toLowerCase().includes("pix.bpp.com.br")) {
+    const urlStart = qr.toLowerCase().indexOf("pix.bpp.com.br");
+    const etapa1 = qr.substring(urlStart);
+    const tamanhoUrl = parseInt(etapa1.substring(17, 21)); // Extrai o tamanho da URL
+    return etapa1.substring(21, 21 + tamanhoUrl); // Retorna a URL completa
+  } else if (qr.toLowerCase().includes("br.gov.bcb.pix")) {
+    // Caso seja um QR estático
+    const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
+    const tamanhoChave = parseInt(etapa1[1].substring(2, 4)) + 4;
+    return etapa1[1].substring(4, tamanhoChave); // Retorna a chave de endereçamento
+  } else {
+    throw new Error("Chave PIX ou URL não identificada");
+  }
 }
 
 function excelDateToJSDate(serial) {
