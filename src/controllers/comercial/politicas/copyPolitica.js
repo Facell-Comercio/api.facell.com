@@ -148,7 +148,7 @@ module.exports = (req) => {
       logger.error({
         module: "COMERCIAL",
         origin: "POLÍTICAS",
-        method: "INSERT_ONE",
+        method: "COPY_POLITICA",
         data: {
           message: error.message,
           stack: error.stack,
