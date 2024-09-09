@@ -1,25 +1,28 @@
 const router = require("express").Router();
-const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 const {
   getAll,
   getOne,
-  insertCargoPolitica,
-  update,
-  removeCargoPolitica,
   getOneModelo,
-  updateModelo,
-  insertModelo,
   getOneModeloItem,
-  updateModeloItem,
+
+  insertCargoPolitica,
   insertModeloItem,
+  insertModelo,
+
+  updateModelo,
+  updateModeloItem,
+
+  removeCargoPolitica,
+  insertOne,
+  copyPolitica,
 } = require("../../../../controllers/comercial/politicas-controller");
+const checkUserPermissionMiddleware = require("../../../../middlewares/permission-middleware");
 
 router.get(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
-    "VISUALIZAR_POLITICAS",
     "MASTER",
   ]),
   async (req, res) => {
@@ -36,9 +39,8 @@ router.get(
 
 router.get(
   "/politica",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
-    "VISUALIZAR_POLITICAS",
     "MASTER",
   ]),
   async (req, res) => {
@@ -55,9 +57,8 @@ router.get(
 
 router.get(
   "/modelos/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
-    "VISUALIZAR_POLITICAS",
     "MASTER",
   ]),
   async (req, res) => {
@@ -74,9 +75,8 @@ router.get(
 
 router.get(
   "/modelos/itens/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
-    "VISUALIZAR_POLITICAS",
     "MASTER",
   ]),
   async (req, res) => {
@@ -92,8 +92,44 @@ router.get(
 );
 
 router.post(
+  "/",
+  checkUserPermissionMiddleware([
+    "GERENCIAR_POLITICAS",
+    "MASTER",
+  ]),
+  async (req, res) => {
+    try {
+      const result = await insertOne(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res
+        .status(400)
+        .json({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/copy",
+  checkUserPermissionMiddleware([
+    "GERENCIAR_POLITICAS",
+    "MASTER",
+  ]),
+  async (req, res) => {
+    try {
+      const result = await copyPolitica(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res
+        .status(400)
+        .json({ message: error.message });
+    }
+  }
+);
+
+router.post(
   "/cargos",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),
@@ -113,7 +149,7 @@ router.post(
 
 router.post(
   "/modelos",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),
@@ -131,7 +167,7 @@ router.post(
 
 router.post(
   "/modelos/itens",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),
@@ -149,7 +185,7 @@ router.post(
 
 router.put(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),
@@ -167,7 +203,7 @@ router.put(
 
 router.put(
   "/modelos",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),
@@ -185,7 +221,7 @@ router.put(
 
 router.put(
   "/modelos/itens",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),
@@ -203,7 +239,7 @@ router.put(
 
 router.delete(
   "/cargos/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
+  checkUserPermissionMiddleware([
     "GERENCIAR_POLITICAS",
     "MASTER",
   ]),

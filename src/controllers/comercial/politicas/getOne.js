@@ -6,26 +6,25 @@ module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     let { id } = req.query;
 
-    const { user } = req;
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
-
     let conn;
     try {
       conn = await db.getConnection();
-
       if (!id) {
-        const [rowLastPolitica] =
-          await conn.execute(`
+        const [rowCurrentPolitica] =
+          await conn.execute(
+            `
           SELECT * FROM comissao_politica
+          WHERE ref <= ?
           ORDER BY ref DESC
           LIMIT 1
-        `);
-        const lastPolitica =
-          rowLastPolitica && rowLastPolitica[0];
-        id = lastPolitica.id;
+        `,
+            [new Date()]
+          );
+
+        const currentPolitica =
+          rowCurrentPolitica &&
+          rowCurrentPolitica[0];
+        id = currentPolitica.id;
       }
       const [rowsPolitica] = await conn.execute(
         `
@@ -49,7 +48,8 @@ module.exports = (req) => {
           cpc.id,
           cc.cargo as nome,
           ce.descricao as escalonamento,
-          cpc.id_escalonamento
+          cpc.id_escalonamento,
+          cpc.id_cargo
         FROM comissao_politica_cargos cpc
         LEFT JOIN comissao_cargos cc ON cc.id = cpc.id_cargo
         LEFT JOIN comissao_escalonamentos ce ON ce.id = cpc.id_escalonamento
@@ -128,6 +128,18 @@ module.exports = (req) => {
             item.escalonamento_itens =
               itensEscalonamento;
           }
+
+          //* Recupera todas as filiais relacionadas a esse modelo
+          const [rowFiliais] = await conn.execute(
+            `
+              SELECT *
+              FROM comissao_politica_modelos_filiais
+              WHERE id_modelo =?
+            `,
+            [modelo.id]
+          );
+
+          modelo.filiais = rowFiliais;
           modelo.itens = rowItensModelos;
         }
         cargo.modelos = modelos;
