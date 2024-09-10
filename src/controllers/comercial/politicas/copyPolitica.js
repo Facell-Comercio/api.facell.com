@@ -29,19 +29,6 @@ module.exports = (req) => {
           "Ano de referência não informado!"
         );
       }
-      const dataAtual = new Date();
-      if (
-        new Date(year, month - 1, 1) <
-        new Date(
-          dataAtual.getFullYear(),
-          dataAtual.getMonth(),
-          1
-        )
-      ) {
-        throw new Error(
-          "Período de referência inferior ao atual!"
-        );
-      }
       if (!current_id) {
         throw new Error(
           "ID da política atual não informado!"
@@ -50,6 +37,22 @@ module.exports = (req) => {
 
       conn = await db.getConnection();
       await conn.beginTransaction();
+
+      //* Valida se a data da nova política não é anterior à data da última política cadastrada
+      const [rowUltimaPolitica] =
+        await conn.execute(
+          "SELECT ref FROM comissao_politica ORDER BY ref DESC LIMIT 1"
+        );
+      const ultimaPolitica =
+        rowUltimaPolitica && rowUltimaPolitica[0];
+      if (
+        ultimaPolitica.ref >=
+        new Date(year, month - 1, 1)
+      ) {
+        throw new Error(
+          "A data da política não pode ser anterior ou igual à data da última política cadastrada!"
+        );
+      }
 
       //* Coleta todos os dados da política atual
       const currentPolitica = await getOne({

@@ -30,7 +30,11 @@ module.exports = (req) => {
       const item = rowItens && rowItens[0];
       const [itensEscalonamento] =
         await conn.execute(
-          "SELECT * FROM comissao_politica_itens_escalonamento WHERE id_item_politica = ? ORDER BY percentual ASC",
+          `SELECT *, ROUND(valor * ${
+            item.tipo_premiacao === "percentual"
+              ? 100
+              : 1
+          },2) as valor FROM comissao_politica_itens_escalonamento WHERE id_item_politica = ? ORDER BY percentual ASC`,
           [id]
         );
       const objResponse = {

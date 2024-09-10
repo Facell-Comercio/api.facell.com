@@ -27,20 +27,21 @@ module.exports = (req) => {
           "Ano de referência não informado!"
         );
       }
-      const dataAtual = new Date();
+      conn = await db.getConnection();
+      const [rowUltimaPolitica] =
+        await conn.execute(
+          "SELECT ref FROM comissao_politica ORDER BY ref DESC LIMIT 1"
+        );
+      const ultimaPolitica =
+        rowUltimaPolitica && rowUltimaPolitica[0];
       if (
-        new Date(year, month - 1, 1) <
-        new Date(
-          dataAtual.getFullYear(),
-          dataAtual.getMonth(),
-          1
-        )
+        ultimaPolitica.ref >=
+        new Date(year, month - 1, 1)
       ) {
         throw new Error(
-          "Período de referência inferior ao atual!"
+          "A data da política não pode ser anterior ou igual à data da última política cadastrada!"
         );
       }
-      conn = await db.getConnection();
 
       const [result] = await conn.execute(
         `INSERT INTO comissao_politica (ref, descricao) VALUES (?,?)`,
@@ -52,7 +53,6 @@ module.exports = (req) => {
           "Houve algum erro na criação de uma nova política"
         );
       }
-
       resolve({
         message: "Sucesso",
         new_id_politica: newId,
