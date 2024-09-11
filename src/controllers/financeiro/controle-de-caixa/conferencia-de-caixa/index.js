@@ -2,6 +2,7 @@ module.exports = {
   getFiliais: require("./metodos/getFiliais"),
   getCaixasToRobot: require("./metodos/getCaixasToRobot"),
   getAllCaixas: require("./metodos/getAllCaixas"),
+  getAllTransacoesCredit: require("./metodos/getAllTransacoesCredit"),
   getAllOcorrencias: require("./metodos/getAllOcorrencias"),
   getAllAjustes: require("./metodos/getAllAjustes"),
 
@@ -15,18 +16,19 @@ module.exports = {
 
   importCaixasDatasys: require("./metodos/import"),
   importCaixasPorMatriz: require("./metodos/importCaixasPorMatriz"),
+  importCaixasDatasys: require("./metodos/import"),
 
   insertOneDeposito: require("./metodos/insertOneDeposito"),
   insertMultiDepositoExtrato: require("./metodos/insertMultiDepositoExtrato"),
   insertOneOcorrencia: require("./metodos/insertOneOcorrencia"),
   insertOneAjuste: require("./metodos/insertOneAjuste"),
 
-  importCaixasDatasys: require("./metodos/import"),
   cruzarRelatorios: require("./metodos/cruzarRelatorios"),
   cruzarRelatoriosLote: require("./metodos/cruzarRelatoriosLote"),
   changeStatusCaixa: require("./metodos/changeStatusCaixa"),
   changeValueFieldCaixa: require("./metodos/changeValueFieldCaixa"),
   getCardDetalhe: require("./metodos/getCardDetalhe"),
+
   deleteDeposito: require("./metodos/deleteDeposito"),
-  getAllTransacoesCredit: require("./metodos/getAllTransacoesCredit"),
+  deleteAjuste: require("./metodos/deleteAjuste"),
 };
