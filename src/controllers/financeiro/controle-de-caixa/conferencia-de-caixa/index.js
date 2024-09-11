@@ -13,6 +13,7 @@ module.exports = {
 
   updateDeposito: require("./metodos/updateDeposito"),
   updateOcorrencia: require("./metodos/updateOcorrencia"),
+  updateAjuste: require("./metodos/updateAjuste"),
 
   importCaixasDatasys: require("./metodos/import"),
   importCaixasPorMatriz: require("./metodos/importCaixasPorMatriz"),
