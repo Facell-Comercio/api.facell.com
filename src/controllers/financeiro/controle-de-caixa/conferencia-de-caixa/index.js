@@ -3,10 +3,12 @@ module.exports = {
   getCaixasToRobot: require("./metodos/getCaixasToRobot"),
   getAllCaixas: require("./metodos/getAllCaixas"),
   getAllOcorrencias: require("./metodos/getAllOcorrencias"),
+  getAllAjustes: require("./metodos/getAllAjustes"),
 
   getOneCaixa: require("./metodos/getOneCaixa"),
   getOneDeposito: require("./metodos/getOneDeposito"),
   getOneOcorrencia: require("./metodos/getOneOcorrencia"),
+  getOneAjuste: require("./metodos/getOneAjuste"),
 
   updateDeposito: require("./metodos/updateDeposito"),
   updateOcorrencia: require("./metodos/updateOcorrencia"),
