@@ -22,6 +22,7 @@ const {
   getOneAjuste,
   getAllAjustes,
   insertOneAjuste,
+  deleteAjuste,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -487,6 +488,25 @@ router.delete(
   async (req, res) => {
     try {
       const result = await deleteDeposito(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res
+        .status(400)
+        .send({ message: error.message });
+    }
+  }
+);
+
+router.delete(
+  "/ajustes/:id",
+  checkUserAuthorization(
+    "FINANCEIRO",
+    "OR",
+    "MASTER"
+  ),
+  async (req, res) => {
+    try {
+      const result = await deleteAjuste(req);
       res.status(200).send(result);
     } catch (error) {
       res
