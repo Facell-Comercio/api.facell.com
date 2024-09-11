@@ -16,13 +16,12 @@ module.exports = async (req) => {
     let conn;
     try {
       conn = await db.getConnection();
-      console.log(filters);
 
       const [ajustes] = await conn.execute(
         `
         SELECT 
           dca.*,
-          u.nome as user_criador
+          u.nome as user
         FROM datasys_caixas_ajustes dca
         LEFT JOIN users u ON u.id = id_user
         WHERE dca.id_caixa = ?
