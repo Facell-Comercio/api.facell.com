@@ -23,6 +23,7 @@ const {
   getAllAjustes,
   insertOneAjuste,
   deleteAjuste,
+  updateAjuste,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -368,6 +369,25 @@ router.put(
   async (req, res) => {
     try {
       const result = await updateOcorrencia(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res
+        .status(400)
+        .send({ message: error.message });
+    }
+  }
+);
+
+router.put(
+  "/ajustes",
+  checkUserAuthorization(
+    "FINANCEIRO",
+    "OR",
+    "MASTER"
+  ),
+  async (req, res) => {
+    try {
+      const result = await updateAjuste(req);
       res.status(200).send(result);
     } catch (error) {
       res
