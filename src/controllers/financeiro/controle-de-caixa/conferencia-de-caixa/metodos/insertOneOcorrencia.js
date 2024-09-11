@@ -1,5 +1,7 @@
 const { db } = require("../../../../../../mysql");
-const { logger } = require("../../../../../../logger");
+const {
+  logger,
+} = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 
 module.exports = async (req) => {
@@ -29,7 +31,9 @@ module.exports = async (req) => {
           descricao
         )
       ) {
-        throw new Error("Todos os campos são obrigatórios!");
+        throw new Error(
+          "Todos os campos são obrigatórios!"
+        );
       }
       await conn.beginTransaction();
 
@@ -43,7 +47,9 @@ module.exports = async (req) => {
       );
 
       if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error("O caixa selecionado já foi baixado");
+        throw new Error(
+          "O caixa selecionado já foi baixado"
+        );
       }
 
       const [result] = await conn.execute(
@@ -59,7 +65,9 @@ module.exports = async (req) => {
 
       const newId = result.insertId;
       if (!newId) {
-        throw new Error("Falha ao inserir a ocorrência!");
+        throw new Error(
+          "Falha ao inserir a ocorrência!"
+        );
       }
 
       await conn.commit();
@@ -69,9 +77,13 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "INSERT_OCORRÊNCIA",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
       conn.release();

@@ -8,44 +8,45 @@ module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const {
       id,
-      id_user_criador,
-      id_user_resolvedor,
-      id_filial,
-      data_ocorrencia,
-      data_caixa,
-      descricao,
-      resolvida,
+      id_caixa,
+      valor,
+      entrada,
+      saida,
+      obs,
+      tipo_ajuste,
     } = req.body;
 
+    const user = req.user;
     const conn = await db.getConnection();
     try {
-      if (!id) {
-        throw new Error("ID não informado!");
+      if (id) {
+        throw new Error(
+          "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
+        );
       }
       if (
         !(
-          id_user_criador &&
-          id_filial &&
-          data_ocorrencia &&
-          data_caixa &&
-          descricao &&
-          resolvida
+          id_caixa &&
+          valor &&
+          entrada &&
+          saida &&
+          obs &&
+          tipo_ajuste
         )
       ) {
         throw new Error(
           "Todos os campos são obrigatórios!"
         );
       }
-
       await conn.beginTransaction();
 
       const [rowsCaixas] = await conn.execute(
         `
         SELECT id, status FROM datasys_caixas
-        WHERE id_filial = ? AND data = ?
+        WHERE id = ?
         AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
       `,
-        [id_filial, startOfDay(data_caixa)]
+        [id_caixa]
       );
 
       if (rowsCaixas && rowsCaixas.length > 0) {
@@ -54,23 +55,33 @@ module.exports = async (req) => {
         );
       }
 
-      await conn.execute(
-        `UPDATE datasys_caixas_ocorrencias
-          SET id_user_criador = ?, id_user_resolvedor = ?,
-          id_filial = ?, data_ocorrencia = ?,
-          data_caixa = ?, descricao = ?, resolvida = ?
-        WHERE id = ?;`,
+      const [result] = await conn.execute(
+        `INSERT INTO datasys_caixas_ajustes (
+          id_caixa,
+          id_user,
+          tipo_ajuste,
+          saida,
+          entrada,
+          valor,
+          obs
+        ) VALUES (?,?,?,?,?,?,?);`,
         [
-          id_user_criador,
-          id_user_resolvedor || null,
-          id_filial,
-          startOfDay(data_ocorrencia),
-          startOfDay(data_caixa),
-          descricao,
-          resolvida,
-          id,
+          id_caixa,
+          user.id,
+          tipo_ajuste,
+          saida,
+          entrada,
+          valor,
+          obs,
         ]
       );
+
+      const newId = result.insertId;
+      if (!newId) {
+        throw new Error(
+          "Falha ao inserir o ajuste!"
+        );
+      }
 
       await conn.commit();
       resolve({ message: "Sucesso" });
@@ -78,7 +89,7 @@ module.exports = async (req) => {
       logger.error({
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
-        method: "UPDATE_OCORRÊNCIA",
+        method: "INSERT_AJUSTE",
         data: {
           message: error.message,
           stack: error.stack,

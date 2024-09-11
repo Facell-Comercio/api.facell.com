@@ -21,6 +21,7 @@ const {
   insertMultiDepositoExtrato,
   getOneAjuste,
   getAllAjustes,
+  insertOneAjuste,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -309,6 +310,25 @@ router.post(
       const result = await insertOneOcorrencia(
         req
       );
+      res.status(200).send(result);
+    } catch (error) {
+      res
+        .status(400)
+        .send({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/ajustes",
+  checkUserAuthorization(
+    "FINANCEIRO",
+    "OR",
+    "MASTER"
+  ),
+  async (req, res) => {
+    try {
+      const result = await insertOneAjuste(req);
       res.status(200).send(result);
     } catch (error) {
       res

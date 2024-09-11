@@ -1,5 +1,7 @@
 const { db } = require("../../../../../../mysql");
-const { logger } = require("../../../../../../logger");
+const {
+  logger,
+} = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 const updateSaldo = require("./updateSaldo");
 
@@ -20,10 +22,21 @@ module.exports = async (req) => {
         throw new Error("ID não informado!");
       }
       if (!id_caixa) {
-        throw new Error("É necessário informar o caixa!");
+        throw new Error(
+          "É necessário informar o caixa!"
+        );
       }
-      if (!(id_conta_bancaria && valor && comprovante && data_deposito)) {
-        throw new Error("Todos os campos são obrigatórios!");
+      if (
+        !(
+          id_conta_bancaria &&
+          valor &&
+          comprovante &&
+          data_deposito
+        )
+      ) {
+        throw new Error(
+          "Todos os campos são obrigatórios!"
+        );
       }
       await conn.beginTransaction();
 
@@ -37,7 +50,9 @@ module.exports = async (req) => {
       );
 
       if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error("Os depósitos não podem ser atualizados nesse caixa");
+        throw new Error(
+          "Os depósitos não podem ser atualizados nesse caixa"
+        );
       }
 
       await conn.execute(
@@ -51,7 +66,7 @@ module.exports = async (req) => {
           id,
         ]
       );
-      await updateSaldo({conn, id_caixa})
+      await updateSaldo({ conn, id_caixa });
 
       await conn.commit();
       // await conn.rollback();
@@ -61,9 +76,13 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "UPDATE_DEPOSITO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
       conn.release();
