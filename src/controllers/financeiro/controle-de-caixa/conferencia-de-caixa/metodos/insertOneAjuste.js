@@ -1,27 +1,13 @@
 const { db } = require("../../../../../../mysql");
-const {
-  logger,
-} = require("../../../../../../logger");
+const { logger } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 const aplicarAjuste = require("./aplicarAjuste");
-const {
-  checkUserDepartment,
-} = require("../../../../../helpers/checkUserDepartment");
-const {
-  checkUserPermission,
-} = require("../../../../../helpers/checkUserPermission");
+const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      id_caixa,
-      valor,
-      entrada,
-      saida,
-      obs,
-      tipo_ajuste,
-    } = req.body;
+    const { id, id_caixa, valor, entrada, saida, obs, tipo_ajuste } = req.body;
 
     const user = req.user;
     const conn = await db.getConnection();
@@ -31,18 +17,8 @@ module.exports = async (req) => {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
-      if (
-        !(
-          id_caixa &&
-          valor &&
-          (entrada || saida) &&
-          obs &&
-          tipo_ajuste
-        )
-      ) {
-        throw new Error(
-          "Todos os campos são obrigatórios!"
-        );
+      if (!(id_caixa && valor && (entrada || saida) && obs && tipo_ajuste)) {
+        throw new Error("Todos os campos são obrigatórios!");
       }
       await conn.beginTransaction();
 
@@ -56,20 +32,13 @@ module.exports = async (req) => {
       );
 
       if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error(
-          "O caixa selecionado já foi baixado"
-        );
+        throw new Error("O caixa selecionado já foi baixado");
       }
 
       const aprovado =
         tipo_ajuste === "transferencia" ||
         (tipo_ajuste !== "transferencia" &&
-          (checkUserDepartment(
-            req,
-            "FINANCEIRO",
-            true
-          ) ||
-            checkUserPermission(req, "MASTER")));
+          (checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER")));
 
       const [result] = await conn.execute(
         `INSERT INTO datasys_caixas_ajustes (
@@ -82,23 +51,12 @@ module.exports = async (req) => {
           aprovado,
           obs
         ) VALUES (?,?,?,?,?,?,?,?);`,
-        [
-          id_caixa,
-          user.id,
-          tipo_ajuste,
-          saida || null,
-          entrada || null,
-          valor,
-          aprovado,
-          obs,
-        ]
+        [id_caixa, user.id, tipo_ajuste, saida || null, entrada || null, valor, aprovado, obs]
       );
 
       const newId = result.insertId;
       if (!newId) {
-        throw new Error(
-          "Falha ao inserir o ajuste!"
-        );
+        throw new Error("Falha ao inserir o ajuste!");
       }
 
       if (aprovado) {
