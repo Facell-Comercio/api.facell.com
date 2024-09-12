@@ -3,6 +3,13 @@ const {
   logger,
 } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
+const aplicarAjuste = require("./aplicarAjuste");
+const {
+  checkUserDepartment,
+} = require("../../../../../helpers/checkUserDepartment");
+const {
+  checkUserPermission,
+} = require("../../../../../helpers/checkUserPermission");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -28,8 +35,7 @@ module.exports = async (req) => {
         !(
           id_caixa &&
           valor &&
-          entrada &&
-          saida &&
+          (entrada || saida) &&
           obs &&
           tipo_ajuste
         )
@@ -55,6 +61,16 @@ module.exports = async (req) => {
         );
       }
 
+      const aprovado =
+        tipo_ajuste === "transferencia" ||
+        (tipo_ajuste !== "transferencia" &&
+          (checkUserDepartment(
+            req,
+            "FINANCEIRO",
+            true
+          ) ||
+            checkUserPermission(req, "MASTER")));
+
       const [result] = await conn.execute(
         `INSERT INTO datasys_caixas_ajustes (
           id_caixa,
@@ -63,15 +79,17 @@ module.exports = async (req) => {
           saida,
           entrada,
           valor,
+          aprovado,
           obs
-        ) VALUES (?,?,?,?,?,?,?);`,
+        ) VALUES (?,?,?,?,?,?,?,?);`,
         [
           id_caixa,
           user.id,
           tipo_ajuste,
-          saida,
-          entrada,
+          saida || null,
+          entrada || null,
           valor,
+          aprovado,
           obs,
         ]
       );
@@ -81,6 +99,14 @@ module.exports = async (req) => {
         throw new Error(
           "Falha ao inserir o ajuste!"
         );
+      }
+
+      if (aprovado) {
+        await aplicarAjuste({
+          conn,
+          id_ajuste: newId,
+          req,
+        });
       }
 
       await conn.commit();

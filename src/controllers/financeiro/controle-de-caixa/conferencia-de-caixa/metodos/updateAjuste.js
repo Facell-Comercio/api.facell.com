@@ -2,6 +2,14 @@ const { db } = require("../../../../../../mysql");
 const {
   logger,
 } = require("../../../../../../logger");
+const aplicarAjuste = require("./aplicarAjuste");
+const desfazerAjuste = require("./desfazerAjuste");
+const {
+  checkUserDepartment,
+} = require("../../../../../helpers/checkUserDepartment");
+const {
+  checkUserPermission,
+} = require("../../../../../helpers/checkUserPermission");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -25,8 +33,7 @@ module.exports = async (req) => {
         !(
           id_caixa &&
           tipo_ajuste &&
-          saida &&
-          entrada &&
+          (saida || entrada) &&
           valor &&
           obs &&
           aprovado !== undefined
@@ -54,6 +61,20 @@ module.exports = async (req) => {
         );
       }
 
+      const [rowsAjustesAnteriores] =
+        await conn.execute(
+          `
+        SELECT * FROM datasys_caixas_ajustes
+        WHERE id = ?;
+      `,
+          [id]
+        );
+      const ajusteAnterior =
+        rowsAjustesAnteriores &&
+        rowsAjustesAnteriores[0];
+      const ajustadoAntes =
+        ajusteAnterior.aprovado;
+
       await conn.execute(
         `
         UPDATE datasys_caixas_ajustes
@@ -61,19 +82,37 @@ module.exports = async (req) => {
         WHERE id = ?;`,
         [
           tipo_ajuste,
-          saida,
-          entrada,
+          saida || null,
+          entrada || null,
           valor,
           obs,
-          aprovado,
+          ajustadoAntes &&
+          !(
+            checkUserDepartment(
+              req,
+              "FINANCEIRO",
+              true
+            ) ||
+            checkUserPermission(req, "MASTER")
+          )
+            ? false
+            : aprovado,
           id,
         ]
       );
 
-      console.log(aprovado, typeof aprovado);
-
-      if (aprovado) {
-        //Função de aprovado
+      if (!ajustadoAntes && aprovado) {
+        await aplicarAjuste({
+          conn,
+          id_ajuste: id,
+          req,
+        });
+      }
+      if (ajustadoAntes && aprovado) {
+        await desfazerAjuste({
+          conn,
+          id_ajuste: id,
+        });
       }
 
       await conn.commit();
