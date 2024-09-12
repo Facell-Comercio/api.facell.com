@@ -74,6 +74,22 @@ module.exports = async (req) => {
         rowsAjustesAnteriores[0];
       const ajustadoAntes =
         ajusteAnterior.aprovado;
+      const confirmarParaAjustar =
+        ajustadoAntes &&
+        !(
+          checkUserDepartment(
+            req,
+            "FINANCEIRO",
+            true
+          ) || checkUserPermission(req, "MASTER")
+        );
+
+      if (ajustadoAntes) {
+        await desfazerAjuste({
+          conn,
+          id_ajuste: id,
+        });
+      }
 
       await conn.execute(
         `
@@ -86,32 +102,16 @@ module.exports = async (req) => {
           entrada || null,
           valor,
           obs,
-          ajustadoAntes &&
-          !(
-            checkUserDepartment(
-              req,
-              "FINANCEIRO",
-              true
-            ) ||
-            checkUserPermission(req, "MASTER")
-          )
-            ? false
-            : aprovado,
+          confirmarParaAjustar ? false : aprovado,
           id,
         ]
       );
 
-      if (!ajustadoAntes && aprovado) {
+      if (!confirmarParaAjustar && aprovado) {
         await aplicarAjuste({
           conn,
           id_ajuste: id,
           req,
-        });
-      }
-      if (ajustadoAntes && aprovado) {
-        await desfazerAjuste({
-          conn,
-          id_ajuste: id,
         });
       }
 
