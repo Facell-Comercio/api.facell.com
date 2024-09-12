@@ -1,40 +1,22 @@
-const {
-  formatDate,
-  startOfDay,
-} = require("date-fns");
-const {
-  logger,
-} = require("../../../../../../logger");
+const { formatDate, startOfDay } = require("date-fns");
+const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const createDateArrayFromRange = require("../../../../../helpers/createDateArrayFromRange");
-const {
-  getMovimentoCaixa,
-} = require("../../../../datasys/api/index");
+const { getMovimentoCaixa } = require("../../../../datasys/api/index");
 const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
 const aplicarAjuste = require("./aplicarAjuste");
 
-async function getValorRecarga({
-  conn,
-  pedido,
-  grupo_economico,
-}) {
+async function getValorRecarga({ conn, pedido, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
-      const datasys_vendas =
-        grupo_economico == "FACELL"
-          ? "datasys_vendas"
-          : "datasys_vendas_fort";
+      const datasys_vendas = grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
       const [rowsVenda] = await conn.execute(
         `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} WHERE grupoEstoque = 'RECARGA ELETRONICA' AND numeroPedido = ? `,
         [pedido]
       );
-      const valor =
-        (rowsVenda &&
-          rowsVenda[0] &&
-          rowsVenda[0].valor) ||
-        0;
+      const valor = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
       resolve(valor);
     } catch (error) {
       reject(error);
@@ -42,20 +24,11 @@ async function getValorRecarga({
   });
 }
 
-async function importarCaixa({
-  conn,
-  id_caixa,
-  id_filial,
-  data,
-  movimento,
-  grupo_economico,
-}) {
+async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
       if (!(movimento && movimento.length > 0)) {
-        throw new Error(
-          "Movimento de caixa vazio"
-        );
+        throw new Error("Movimento de caixa vazio");
       }
       if (!id_caixa) {
         throw new Error("id_caixa não recebido!");
@@ -76,28 +49,13 @@ async function importarCaixa({
       for (const item of movimento) {
         const valor = parseFloat(item.VALOR || 0);
         const pedido = item.DOCUMENTO;
-        const forma_pgto =
-          (item.FORMA_PGTO &&
-            item.FORMA_PGTO.toUpperCase()) ||
-          "";
-        const tipo_operacao =
-          (item.TIPO_OPERACAO &&
-            item.TIPO_OPERACAO.toUpperCase()) ||
-          "";
-        const historico =
-          (item.HISTORICO &&
-            item.HISTORICO.toUpperCase()) ||
-          "";
-        const credito_debito =
-          (item.CREDITO_DEBITO &&
-            item.CREDITO_DEBITO.toUpperCase()) ||
-          null;
+        const forma_pgto = (item.FORMA_PGTO && item.FORMA_PGTO.toUpperCase()) || "";
+        const tipo_operacao = (item.TIPO_OPERACAO && item.TIPO_OPERACAO.toUpperCase()) || "";
+        const historico = (item.HISTORICO && item.HISTORICO.toUpperCase()) || "";
+        const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null;
 
         let valorRecarga = 0;
-        if (
-          tipo_operacao == "VENDA" &&
-          !historico.includes("CANCELAMENTO")
-        ) {
+        if (tipo_operacao == "VENDA" && !historico.includes("CANCELAMENTO")) {
           try {
             valorRecarga = await getValorRecarga({
               conn,
@@ -119,9 +77,7 @@ async function importarCaixa({
         if (forma_pgto == "DINHEIRO") {
           if (tipo_operacao == "VENDA") {
             // * Dinheiro
-            if (
-              !historico.includes("CANCELAMENTO")
-            ) {
+            if (!historico.includes("CANCELAMENTO")) {
               valor_dinheiro += valor;
             }
           }
@@ -134,16 +90,12 @@ async function importarCaixa({
           valor_devolucoes += valor;
         }
 
-        if (
-          forma_pgto == "CARTÃO" &&
-          !historico.includes("CANCELAMENTO")
-        ) {
+        if (forma_pgto == "CARTÃO" && !historico.includes("CANCELAMENTO")) {
           valor_cartao += valor;
         }
 
         if (
-          (forma_pgto == "TRADEIN" ||
-            forma_pgto == "TRADE IN") &&
+          (forma_pgto == "TRADEIN" || forma_pgto == "TRADE IN") &&
           !historico.includes("CANCELAMENTO")
         ) {
           valor_tradein += valor;
@@ -156,10 +108,7 @@ async function importarCaixa({
         ) {
           valor_pix += valor;
         }
-        if (
-          forma_pgto.includes("PITZI") &&
-          !historico.includes("CANCELAMENTO")
-        ) {
+        if (forma_pgto.includes("PITZI") && !historico.includes("CANCELAMENTO")) {
           valor_pitzi += valor;
         }
 
@@ -181,10 +130,7 @@ async function importarCaixa({
                 ) VALUES (?,?,?,?,?,?,?,?,?,?)`,
           [
             id_caixa,
-            formatDate(
-              item.DATA_MOVIMENTO,
-              "yyyy-MM-dd hh:mm:ss"
-            ),
+            formatDate(item.DATA_MOVIMENTO, "yyyy-MM-dd hh:mm:ss"),
             pedido,
             forma_pgto,
             tipo_operacao,
@@ -262,9 +208,7 @@ module.exports = async (req) => {
       const { id_filial, range_datas } = req.body;
       // ^ Validações
       if (!id_filial) {
-        throw new Error(
-          "ID Filial não informado!"
-        );
+        throw new Error("ID Filial não informado!");
       }
       if (!range_datas) {
         throw new Error("Período não informado!");
@@ -279,50 +223,37 @@ module.exports = async (req) => {
       );
       const filial = rowFilial && rowFilial[0];
       if (!filial) {
-        throw new Error(
-          "Filial não localizada no sistema!"
-        );
+        throw new Error("Filial não localizada no sistema!");
       }
 
       await conn.beginTransaction();
-      const datas =
-        createDateArrayFromRange(range_datas);
+      const datas = createDateArrayFromRange(range_datas);
 
       const result = [];
       for (const data of datas) {
-        const movimento = await getMovimentoCaixa(
-          {
-            cnpj: filial.cnpj,
-            data,
-            grupo_economico:
-              filial.grupo_economico,
-          }
-        );
+        const movimento = await getMovimentoCaixa({
+          cnpj: filial.cnpj,
+          data,
+          grupo_economico: filial.grupo_economico,
+        });
         if (!movimento || movimento.length == 0) {
           continue;
         }
-        const [rowCaixaBanco] =
-          await conn.execute(
-            `SELECT id FROM datasys_caixas WHERE id_filial = ? AND data = ?`,
-            [id_filial, data]
-          );
-        const caixaBanco =
-          rowCaixaBanco && rowCaixaBanco[0];
-        let id_caixa =
-          caixaBanco && caixaBanco["id"];
+        const [rowCaixaBanco] = await conn.execute(
+          `SELECT id FROM datasys_caixas WHERE id_filial = ? AND data = ?`,
+          [id_filial, data]
+        );
+        const caixaBanco = rowCaixaBanco && rowCaixaBanco[0];
+        let id_caixa = caixaBanco && caixaBanco["id"];
         if (id_caixa) {
           // ! Remover todos os itens do caixa:
-          await conn.execute(
-            `DELETE FROM datasys_caixas_itens WHERE id_caixa = ?`,
-            [id_caixa]
-          );
+          await conn.execute(`DELETE FROM datasys_caixas_itens WHERE id_caixa = ?`, [id_caixa]);
         } else {
           // Inserir o novo caixa vazio no sistema:
-          const [insertedCaixa] =
-            await conn.execute(
-              `INSERT INTO datasys_caixas (id_filial, data) VALUES (?,?)`,
-              [id_filial, data]
-            );
+          const [insertedCaixa] = await conn.execute(
+            `INSERT INTO datasys_caixas (id_filial, data) VALUES (?,?)`,
+            [id_filial, data]
+          );
           id_caixa = insertedCaixa.insertId;
         }
 
@@ -334,12 +265,11 @@ module.exports = async (req) => {
           id_filial,
           data,
           grupo_economico: filial.grupo_economico,
-          movimento: movimento.filter(
-            (mov) => mov.LOJA == filial.cnpj
-          ),
+          movimento: movimento.filter((mov) => mov.LOJA == filial.cnpj),
         });
         result.push(caixa);
 
+        //* Pega todos os ajustes e aplica os que estiverem aprovados
         const [rowsAjustes] = await conn.execute(
           "SELECT id FROM datasys_caixas_ajustes WHERE id_caixa = ?",
           [id_caixa]

@@ -1,28 +1,13 @@
 const { db } = require("../../../../../../mysql");
-const {
-  logger,
-} = require("../../../../../../logger");
-const aplicarAjuste = require("./aplicarAjuste");
+const { logger } = require("../../../../../../logger");
 const desfazerAjuste = require("./desfazerAjuste");
-const {
-  checkUserDepartment,
-} = require("../../../../../helpers/checkUserDepartment");
-const {
-  checkUserPermission,
-} = require("../../../../../helpers/checkUserPermission");
+const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const aprovarAjuste = require("./aprovarAjuste");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      id_caixa,
-      tipo_ajuste,
-      saida,
-      entrada,
-      valor,
-      obs,
-      aprovado,
-    } = req.body;
+    const { id, id_caixa, tipo_ajuste, saida, entrada, valor, obs, aprovado } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -30,22 +15,17 @@ module.exports = async (req) => {
         throw new Error("ID não informado!");
       }
       if (
-        !(
-          id_caixa &&
-          tipo_ajuste &&
-          (saida || entrada) &&
-          valor &&
-          obs &&
-          aprovado !== undefined
-        )
+        !(id_caixa && tipo_ajuste && (saida || entrada) && valor && obs && aprovado !== undefined)
       ) {
-        throw new Error(
-          "Todos os campos são obrigatórios!"
-        );
+        throw new Error("Todos os campos são obrigatórios!");
+      }
+      if (entrada === saida) {
+        throw new Error("Entrada e saída não podem ser iguais!");
       }
 
       await conn.beginTransaction();
 
+      //* Pega o caixa para validar se já foi baixado ou não
       const [rowsCaixas] = await conn.execute(
         `
         SELECT id, status FROM datasys_caixas
@@ -54,35 +34,21 @@ module.exports = async (req) => {
       `,
         [id_caixa]
       );
-
       if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error(
-          "O caixa selecionado já foi baixado"
-        );
+        throw new Error("O caixa selecionado já foi baixado");
       }
 
-      const [rowsAjustesAnteriores] =
-        await conn.execute(
-          `
-        SELECT * FROM datasys_caixas_ajustes
-        WHERE id = ?;
-      `,
-          [id]
-        );
-      const ajusteAnterior =
-        rowsAjustesAnteriores &&
-        rowsAjustesAnteriores[0];
+      //* Verifica se o ajuste atual já foi aprovado ou não
+      const [rowsAjustesAnteriores] = await conn.execute(
+        "SELECT * FROM datasys_caixas_ajustes WHERE id = ?;",
+        [id]
+      );
       const ajustadoAntes =
-        ajusteAnterior.aprovado;
-      const confirmarParaAjustar =
-        ajustadoAntes &&
-        !(
-          checkUserDepartment(
-            req,
-            "FINANCEIRO",
-            true
-          ) || checkUserPermission(req, "MASTER")
-        );
+        rowsAjustesAnteriores && rowsAjustesAnteriores[0] && rowsAjustesAnteriores[0].aprovado;
+
+      //* Verifica se o usuário é um gestor do financeiro ou master
+      const gestorOuMaster =
+        checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER");
 
       if (ajustadoAntes) {
         await desfazerAjuste({
@@ -96,22 +62,17 @@ module.exports = async (req) => {
         UPDATE datasys_caixas_ajustes
           SET tipo_ajuste = ?, saida = ?, entrada = ?, valor = ?, obs = ?, aprovado = ?
         WHERE id = ?;`,
-        [
-          tipo_ajuste,
-          saida || null,
-          entrada || null,
-          valor,
-          obs,
-          confirmarParaAjustar ? false : aprovado,
-          id,
-        ]
+        [tipo_ajuste, saida || null, entrada || null, valor, obs, false, id]
       );
 
-      if (!confirmarParaAjustar && aprovado) {
-        await aplicarAjuste({
-          conn,
-          id_ajuste: id,
-          req,
+      //* Se o usúario é gestor ou master, ou se é uma transferência aprova o ajuste
+      if (gestorOuMaster || tipo_ajuste === "transferencia") {
+        await aprovarAjuste({
+          body: {
+            conn,
+            id_ajuste: id,
+            req_externo: req,
+          },
         });
       }
 

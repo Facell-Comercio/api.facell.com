@@ -32,4 +32,6 @@ module.exports = {
 
   deleteDeposito: require("./metodos/deleteDeposito"),
   deleteAjuste: require("./metodos/deleteAjuste"),
+
+  aprovarAjuste: require("./metodos/aprovarAjuste"),
 };

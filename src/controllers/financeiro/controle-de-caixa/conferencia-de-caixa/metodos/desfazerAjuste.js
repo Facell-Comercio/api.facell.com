@@ -1,6 +1,4 @@
-const {
-  logger,
-} = require("../../../../../../logger");
+const { logger } = require("../../../../../../logger");
 
 module.exports = async ({ conn, id_ajuste }) => {
   return new Promise(async (resolve, reject) => {
@@ -9,8 +7,7 @@ module.exports = async ({ conn, id_ajuste }) => {
         "SELECT * FROM datasys_caixas_ajustes WHERE id = ?",
         [id_ajuste]
       );
-      const ajuste =
-        rowsAjustes && rowsAjustes[0];
+      const ajuste = rowsAjustes && rowsAjustes[0];
 
       if (ajuste.saida) {
         await conn.execute(
@@ -24,6 +21,17 @@ module.exports = async ({ conn, id_ajuste }) => {
       }
 
       if (ajuste.entrada) {
+        const [rowsCaixas] = await conn.execute(
+          `SELECT ${ajuste.entrada} as valor FROM datasys_caixas WHERE id = ?`,
+          [ajuste.id_caixa]
+        );
+        const caixaValorEntrada = rowsCaixas && rowsCaixas[0] && rowsCaixas[0].valor;
+
+        //* (DUPLA VALIDAÇÃO) - Valida se há saldo para retirada
+        if (parseFloat(caixaValorEntrada) < parseFloat(ajuste.valor)) {
+          throw new Error("Saldo insuficiente para retirada!");
+        }
+
         await conn.execute(
           `
           UPDATE datasys_caixas
