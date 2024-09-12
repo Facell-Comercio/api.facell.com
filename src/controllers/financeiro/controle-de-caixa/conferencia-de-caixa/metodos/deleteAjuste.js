@@ -2,6 +2,7 @@ const {
   logger,
 } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
+const desfazerAjuste = require("./desfazerAjuste");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -20,11 +21,14 @@ module.exports = async (req) => {
       conn = await db.getConnection();
       await conn.beginTransaction();
 
+      await desfazerAjuste({
+        conn,
+        id_ajuste: id,
+      });
       await conn.execute(
         `DELETE FROM datasys_caixas_ajustes WHERE id = ?`,
         [id]
       );
-      // await updateSaldo({conn, id_caixa: deposito.id_caixa})
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
