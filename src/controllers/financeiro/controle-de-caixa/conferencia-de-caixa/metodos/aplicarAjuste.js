@@ -58,6 +58,9 @@ module.exports = async ({ conn, id_ajuste, req }) => {
       }
       await updateSaldo({ conn, id_caixa: ajuste.id_caixa });
 
+      // Vamos aproveitar para atualizar o saldo do caixa, vai que o valor em dinheiro foi mexido:
+      await updateSaldo({ conn, id_caixa })
+
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
