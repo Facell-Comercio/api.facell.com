@@ -3,7 +3,6 @@ const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const createDateArrayFromRange = require("../../../../../helpers/createDateArrayFromRange");
 const { getMovimentoCaixa } = require("../../../../datasys/api/index");
-const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
 const aplicarAjuste = require("./aplicarAjuste");

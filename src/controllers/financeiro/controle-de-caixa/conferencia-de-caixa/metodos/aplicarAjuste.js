@@ -1,6 +1,7 @@
 const { logger } = require("../../../../../../logger");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async ({ conn, id_ajuste, req }) => {
   return new Promise(async (resolve, reject) => {
@@ -50,6 +51,9 @@ module.exports = async ({ conn, id_ajuste, req }) => {
           [ajuste.valor, ajuste.id_caixa]
         );
       }
+
+      // Vamos aproveitar para atualizar o saldo do caixa, vai que o valor em dinheiro foi mexido:
+      await updateSaldo({ conn, id_caixa })
 
       resolve({ message: "Sucesso" });
     } catch (error) {

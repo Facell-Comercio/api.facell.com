@@ -1,10 +1,14 @@
 const { startOfDay } = require("date-fns");
 const { logger } = require("../../../../../../logger");
-const getCaixaAnterior = require("./getCaixaAnterior");
+// const getCaixaAnterior = require("./getCaixaAnterior");
 
+// Responsabilidade:
+// Atualizar o Saldo do Caixa com base em:
+  // (Entradas + Ajuste Manual) - (Retiradas + Ajuste Manual + Depósitos + Participação em Boletos)
 module.exports = async ({ conn, id_caixa }) => {
   return new Promise(async (resolve, reject) => {
     try {
+      // Obtem dados do Caixa
       const [rowCaixas] = await conn.execute(
         `
         SELECT 
@@ -16,12 +20,14 @@ module.exports = async ({ conn, id_caixa }) => {
       );
       const caixa = rowCaixas && rowCaixas[0];
 
-      const caixaAnterior = await getCaixaAnterior({
-        conn,
-        id_filial: caixa.id_filial,
-        data_caixa: startOfDay(caixa.data),
-      });
+      // Obtem dados do Caixa anterior
+      // const caixaAnterior = await getCaixaAnterior({
+      //   conn,
+      //   id_filial: caixa.id_filial,
+      //   data_caixa: startOfDay(caixa.data),
+      // });
 
+      // ^ Obtem os Depósitos do caixa:
       const [rowsDepositosCaixa] = await conn.execute(
         `
         SELECT 
@@ -32,19 +38,35 @@ module.exports = async ({ conn, id_caixa }) => {
         `,
         [id_caixa]
       );
+      const valor_depositos = rowsDepositosCaixa.reduce(
+        (acc, row) => acc + parseFloat(row.valor),
+        0
+      )
 
-      const saldo_anterior =
-        caixa.saldo_anterior ||
-        (caixaAnterior && caixaAnterior.saldo > 0 && caixaAnterior.saldo) ||
-        "0";
+      const [rowsBoletosCaixa] = await conn.execute(
+        `
+        SELECT 
+          bc.valor
+        FROM datasys_caixas_boletos_caixas bc
+        WHERE bc.id_caixa = ?
+        `,
+        [id_caixa]
+      );
+      const valor_em_boleto = rowsBoletosCaixa.reduce(
+        (acc, row) => acc + parseFloat(row.valor),
+        0
+      )
+
+      // Calcula o saldo anterior:
+      // const saldo_anterior =
+      //   caixa.saldo_anterior ||
+      //   (caixaAnterior && caixaAnterior.saldo > 0 && caixaAnterior.saldo) ||
+      //   "0";
+
+      // Calula o saldo atual:
       const saldo_atual =
-        parseFloat(saldo_anterior) +
-        parseFloat(caixa.valor_dinheiro) -
-        (parseFloat(caixa.valor_retiradas) +
-          rowsDepositosCaixa.reduce(
-            (acc, row) => acc + parseFloat(row.valor),
-            0
-          ));
+        // parseFloat(saldo_anterior) +
+        parseFloat(caixa.valor_dinheiro) - (parseFloat(caixa.valor_retiradas) + valor_depositos + valor_em_boleto);
 
       await conn.execute(
         `
