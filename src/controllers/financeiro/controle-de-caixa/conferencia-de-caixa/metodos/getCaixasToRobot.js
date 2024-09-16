@@ -5,19 +5,18 @@ module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const { filters } = req.query;
 
-    const { id_filial, id_grupo_economico } =
-      filters || {};
+    const { id_filial, id_grupo_economico } = filters || {};
 
     const paramsFiliais = [];
-    let whereFiliais = ''
+    let whereFiliais = "";
 
-    if (id_grupo_economico && id_grupo_economico !== 'all') {
-      whereFiliais += ' AND g.id = ?'
-      paramsFiliais.push(id_grupo_economico)
+    if (id_grupo_economico && id_grupo_economico !== "all") {
+      whereFiliais += " AND g.id = ?";
+      paramsFiliais.push(id_grupo_economico);
     }
-    if (id_filial && id_filial !== 'all') {
-      whereFiliais += ' AND f.id = ?'
-      paramsFiliais.push(id_filial)
+    if (id_filial && id_filial !== "all") {
+      whereFiliais += " AND f.id = ?";
+      paramsFiliais.push(id_filial);
     }
     let conn;
     try {
@@ -37,17 +36,18 @@ module.exports = async (req) => {
       for (const filialBanco of rowsFiliais) {
         let filial = {
           filial: filialBanco,
-        }
+        };
         const [caixas] = await conn.execute(
           `
           SELECT 
             caixa.*
           FROM datasys_caixas caixa
           WHERE 
-            caixa.status = 'BAIXADO / PENDENTE DATASYS'
+            caixa.status = 'CONFIRMADO'
             AND caixa.id_filial = ${filialBanco.id}
           ORDER BY caixa.data ASC
-          `);
+          `
+        );
 
         filial.caixas = caixas;
 
@@ -73,11 +73,10 @@ module.exports = async (req) => {
           caixa.depositos = depositos;
         }
 
-        if(filial.caixas){
-          filiais.push(filial)
+        if (filial.caixas) {
+          filiais.push(filial);
         }
       }
-
 
       resolve(filiais);
     } catch (error) {
