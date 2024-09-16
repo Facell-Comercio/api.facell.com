@@ -12,7 +12,7 @@ module.exports = async ({ conn, id_caixa }) => {
       const [rowCaixas] = await conn.execute(
         `
         SELECT 
-          dc.id_filial, dc.data, dc.valor_dinheiro, dc.valor_retiradas, dc.saldo_anterior
+          dc.id_filial, dc.data, dc.valor_dinheiro, dc.valor_despesas, dc.saldo_anterior
         FROM datasys_caixas dc
         WHERE id = ?
         `,
@@ -66,7 +66,7 @@ module.exports = async ({ conn, id_caixa }) => {
       // Calula o saldo atual:
       const saldo_atual =
         // parseFloat(saldo_anterior) +
-        parseFloat(caixa.valor_dinheiro) - (parseFloat(caixa.valor_retiradas) + valor_depositos + valor_em_boleto);
+        parseFloat(caixa.valor_dinheiro) - (parseFloat(caixa.valor_despesas) + valor_depositos + valor_em_boleto);
 
       await conn.execute(
         `

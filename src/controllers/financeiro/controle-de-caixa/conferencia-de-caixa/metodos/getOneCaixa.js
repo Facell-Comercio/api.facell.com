@@ -25,7 +25,7 @@ module.exports = async (req) => {
           COUNT(dco.id) as ocorrencias,
           COUNT(dca.id) as ajustes,
           COALESCE(SUM(dco.resolvida = 1),0) as ocorrencias_resolvidas,
-          (dc.valor_dinheiro - dc.valor_retiradas) as total_dinheiro,
+          (dc.valor_dinheiro - dc.valor_despesas) as total_dinheiro,
           (dc.valor_cartao_real - dc.valor_cartao) as divergencia_cartao,
           (dc.valor_recarga_real - dc.valor_recarga) as divergencia_recarga,
           (dc.valor_pitzi_real - dc.valor_pitzi) as divergencia_pitzi,

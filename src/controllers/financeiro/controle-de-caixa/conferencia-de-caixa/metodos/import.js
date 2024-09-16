@@ -36,7 +36,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
       let valor_cartao = 0;
       let valor_dinheiro = 0;
       let valor_devolucoes = 0;
-      let valor_retiradas = 0;
+      let valor_despesas = 0;
       let valor_pix = 0;
       let valor_pitzi = 0;
 
@@ -82,7 +82,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
           }
           if (tipo_operacao.includes("DESPESA")) {
             // ! Despesa
-            valor_retiradas += valor;
+            valor_despesas += valor;
           }
         }
         if (tipo_operacao == "DEVOLUÇÃO") {
@@ -148,7 +148,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
           SET 
               valor_cartao = :valor_cartao,
               valor_dinheiro = :valor_dinheiro,
-              valor_retiradas = :valor_retiradas,
+              valor_despesas = :valor_despesas,
               valor_devolucoes = :valor_devolucoes,
               valor_recarga = :valor_recarga,
               valor_pix = :valor_pix,
@@ -158,7 +158,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
         {
           valor_cartao,
           valor_dinheiro,
-          valor_retiradas,
+          valor_despesas,
           valor_devolucoes,
           valor_recarga,
           valor_pitzi,
