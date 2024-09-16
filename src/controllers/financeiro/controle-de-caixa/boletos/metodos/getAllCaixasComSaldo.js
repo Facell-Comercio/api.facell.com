@@ -5,9 +5,9 @@ module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
-      const { id_filial } = req.query;
+      const { id_filial, conn_externa } = req.query;
 
-      conn = await db.getConnection();
+      conn = conn_externa || (await db.getConnection());
 
       if (!id_filial) {
         throw new Error("ID da filial não informado!");
@@ -16,7 +16,7 @@ module.exports = async (req) => {
       const [rowTotalDisponivel] = await conn.execute(
         `
         SELECT SUM(saldo) AS total_disponivel FROM datasys_caixas
-        WHERE status <> 'A CONFERIR'
+        WHERE status = 'CONFIRMADO'
         AND saldo > 0
         AND id_filial = ?`,
         [id_filial]
@@ -30,7 +30,7 @@ module.exports = async (req) => {
       const [rows] = await conn.execute(
         `SELECT *
         FROM datasys_caixas
-        WHERE status <> 'A CONFERIR' AND saldo > 0
+        WHERE status = 'CONFIRMADO' AND saldo > 0
         AND id_filial = ?
         ORDER BY data ASC`,
         [id_filial]
