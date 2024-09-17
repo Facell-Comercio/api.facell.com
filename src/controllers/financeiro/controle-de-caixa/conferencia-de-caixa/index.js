@@ -17,6 +17,7 @@ module.exports = {
 
   importCaixasDatasys: require("./metodos/import"),
   importCaixasPorMatriz: require("./metodos/importCaixasPorMatriz"),
+  importCaixasPorPeriodo: require("./metodos/importCaixasPorPeriodo"),
   importCaixasDatasys: require("./metodos/import"),
 
   insertOneDeposito: require("./metodos/insertOneDeposito"),

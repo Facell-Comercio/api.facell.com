@@ -2,13 +2,15 @@ const { logger } = require('../../../../../../logger');
 const { db } = require('../../../../../../mysql');
 const importarCaixas = require('./import');
 
-module.exports = ({id_matriz, range_datas})=>{
+module.exports = (req)=>{
     return new Promise(async(resolve, reject)=>{
         let conn;
         try {
             conn = await db.getConnection();
+            const { body } = req;
+            const { range_datas } = body || {}
 
-            const [filiais] = await conn.execute(`SELECT id FROM filiais WHERE id_matriz = ? and active = 1 AND tim_cod_sap IS NOT NULL`,[id_matriz]);
+            const [filiais] = await conn.execute(`SELECT id FROM filiais WHERE active = 1 and tim_cod_sap IS NOT NULL`);
             for(const filial of filiais){
                 await importarCaixas({body: { id_filial: filial.id, range_datas}})
             }
@@ -16,7 +18,7 @@ module.exports = ({id_matriz, range_datas})=>{
         } catch (error) {
             reject(error)
             logger.error({
-                module: 'FINANCEIRO', origin: 'CONFERÊNCIA_DE_CAIXA', method: 'IMPORT_CAIXAS_MATRIZ',
+                module: 'FINANCEIRO', origin: 'CONFERÊNCIA_DE_CAIXA', method: 'IMPORT_CAIXAS_POR_PERIODO',
                 data: { message: error.message, stack: error.stack, name: error.name }
               })
         } finally{

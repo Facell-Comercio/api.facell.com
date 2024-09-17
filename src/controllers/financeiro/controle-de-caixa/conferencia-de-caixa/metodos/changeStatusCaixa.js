@@ -22,7 +22,7 @@ module.exports = async (req) => {
         `
         SELECT 
           dc.status, dc.data, dc.id_filial,
-          dc.valor_dinheiro, dc.valor_retiradas,
+          dc.valor_dinheiro, dc.valor_despesas,
           COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias_nao_resolvidas
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
