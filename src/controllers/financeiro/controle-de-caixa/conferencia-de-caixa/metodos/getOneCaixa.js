@@ -20,10 +20,11 @@ module.exports = async (req) => {
           dc.*, dc.saldo_anterior, dc.saldo as saldo_atual,
           CASE WHEN dc.status = 'CONFIRMADO' || dc.status = 'CONFIRMADO' THEN 1 ELSE 0 END as caixa_confirmado,
           dc.manual,
+          SUM(dcd.valor) as valor_depositos, SUM(dcbc.valor) as valor_boletos,
           COUNT(dco.id) as ocorrencias,
           COUNT(dca.id) as ajustes,
           COALESCE(SUM(dco.resolvida = 1),0) as ocorrencias_resolvidas,
-          (dc.valor_dinheiro - dc.valor_retiradas) as total_dinheiro,
+          (dc.valor_dinheiro - dc.valor_despesas) as total_dinheiro,
           (dc.valor_cartao_real - dc.valor_cartao) as divergencia_cartao,
           (dc.valor_recarga_real - dc.valor_recarga) as divergencia_recarga,
           (dc.valor_pitzi_real - dc.valor_pitzi) as divergencia_pitzi,
@@ -35,6 +36,8 @@ module.exports = async (req) => {
         LEFT JOIN filiais f ON f.id = dc.id_filial
         LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
         LEFT JOIN datasys_caixas_ajustes dca ON dca.id_caixa = dc.id
+        LEFT JOIN datasys_caixas_depositos dcd ON dcd.id_caixa = dc.id
+        LEFT JOIN datasys_caixas_boletos_caixas dcbc ON dcbc.id_caixa = dc.id
         WHERE dc.id = ?
         `,
         [id]
@@ -70,6 +73,17 @@ module.exports = async (req) => {
         [id]
       );
 
+      const [rowsBoletosCaixa] = await conn.execute(
+        `
+        SELECT 
+          dcb.id, dcb.data, dcb.status, dcb.valor as valor_boleto, dcbc.valor as saldo_utilizado
+        FROM datasys_caixas_boletos_caixas dcbc
+        LEFT JOIN datasys_caixas_boletos dcb ON dcb.id = dcbc.id_boleto
+        WHERE dcbc.id_caixa = ? AND dcb.status <> "cancelado"
+        `,
+        [id]
+      );
+
       const [historico] = await conn.execute(
         `
         SELECT 
@@ -85,17 +99,13 @@ module.exports = async (req) => {
         ? true
         : caixaAnterior?.status === "CONFIRMADO" || caixaAnterior?.status === "CONFIRMADO";
 
-      const saldo_anterior = caixa?.saldo_anterior || caixaAnterior?.saldo || 0;
-      const saldo_atual = parseFloat(caixa.saldo_atual);
-
       resolve({
         ...caixa,
-        saldo_anterior: saldo_anterior < 0 ? 0 : saldo_anterior,
-        saldo_atual: saldo_atual,
-        suprimento_caixa: saldo_atual > 0 ? null : Math.abs(saldo_atual),
         movimentos_caixa: rowsMovimentoCaixa,
         depositos_caixa: rowsDepositosCaixa,
         qtde_depositos_caixa: rowsDepositosCaixa && rowsDepositosCaixa.length,
+        boletos_caixa: rowsBoletosCaixa,
+        qtde_boletos_caixa: rowsBoletosCaixa && rowsBoletosCaixa.length,
         historico,
         caixa_anterior_fechado,
       });

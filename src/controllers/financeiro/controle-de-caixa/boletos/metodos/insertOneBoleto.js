@@ -55,7 +55,7 @@ module.exports = async (req) => {
           await conn.execute(
             `INSERT INTO datasys_caixas_boletos_caixas
             (id_boleto, id_caixa, valor) VALUES(?,?,?)`,
-            [id_boleto, caixa.id, valorLiquidado.toFixed(2)]
+            [id_boleto, caixa.id, parseFloat(valorLiquidado).toFixed(2)]
           );
         } else {
           break; //* Se o valor for menor ou igual a zero para a iteração
