@@ -13,10 +13,13 @@ module.exports = async ({ conn, id_ajuste }) => {
         await conn.execute(
           `
           UPDATE datasys_caixas
-            SET ${ajuste.saida} = ${ajuste.saida} + ?
+            SET ${ajuste.saida} = ${ajuste.saida} + ?,
+            ${ajuste.saida === "valor_dinheiro" && `valor_despesas = valor_despesas - ?`}
             WHERE id = ?;
         `,
-          [ajuste.valor, ajuste.id_caixa]
+          ajuste.saida === "valor_dinheiro"
+            ? [ajuste.valor, ajuste.valor, ajuste.id_caixa]
+            : [ajuste.valor, ajuste.id_caixa]
         );
       }
 

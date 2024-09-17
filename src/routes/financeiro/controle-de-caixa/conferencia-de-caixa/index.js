@@ -25,6 +25,8 @@ const {
   deleteAjuste,
   updateAjuste,
   aprovarAjuste,
+  getCardDetalheDinheiro,
+  lancamentoDespesa,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -87,6 +89,19 @@ router.get("/cards", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async
     res.status(400).send({ message: error.message });
   }
 });
+
+router.get(
+  "/cards/dinheiro",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await getCardDetalheDinheiro(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
 
 router.get(
   "/transacoes-credit",
@@ -205,6 +220,19 @@ router.post("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), as
     res.status(400).send({ message: error.message });
   }
 });
+
+router.post(
+  "/lancamento-despesa",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await lancamentoDespesa(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
 
 router.put("/depositos", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
