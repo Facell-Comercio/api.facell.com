@@ -1,7 +1,5 @@
 const { formatDate } = require("date-fns");
-const {
-  logger,
-} = require("../../../../../../logger");
+const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 
 module.exports = async (req) => {
@@ -17,14 +15,10 @@ module.exports = async (req) => {
     try {
       conn = await db.getConnection();
       if (!id_caixa) {
-        throw new Error(
-          "Id do caixa é obrigatório"
-        );
+        throw new Error("Id do caixa é obrigatório");
       }
       if (!type) {
-        throw new Error(
-          "Tipo de detalhe é obrigatório"
-        );
+        throw new Error("Tipo de detalhe é obrigatório");
       }
       const [rowsCaixas] = await conn.execute(
         `
@@ -84,10 +78,8 @@ module.exports = async (req) => {
                 type: "string",
               },
             ],
-            where:
-              "WHERE fvc.data_venda = ? AND fvc.id_filial = ? ",
-            whereMovimento:
-              "AND dci.forma_pagamento LIKE 'CARTÃO'",
+            where: "WHERE fvc.data_venda = ? AND fvc.id_filial = ? ",
+            whereMovimento: "AND dci.forma_pagamento LIKE 'CARTÃO'",
             tipoAjuste: "valor_cartao",
           },
           recarga: {
@@ -107,14 +99,12 @@ module.exports = async (req) => {
               },
               { label: "status", type: "string" },
             ],
-            where:
-              "WHERE fvr.data = ? AND fvr.id_filial = ? ",
+            where: "WHERE fvr.data = ? AND fvr.id_filial = ? ",
             whereMovimento: "AND dci.recarga",
           },
           pitzi: {
             table: "pitzi_vendas pv",
-            forma_pgto:
-              "SEGURO PITZI PROVI - CARTAO",
+            forma_pgto: "SEGURO PITZI PROVI - CARTAO",
             datatabaseColumns: `pv.valor, pv.tipo_plano, pv.id_seguro, pv.cpf_cliente, pv.cancelada`,
             tableColumns: [
               {
@@ -140,10 +130,8 @@ module.exports = async (req) => {
                 type: "boolean",
               },
             ],
-            where:
-              "WHERE pv.data = ? AND pv.id_filial = ? ",
-            whereMovimento:
-              "AND dci.forma_pagamento LIKE CONCAT('%','PITZI','%')",
+            where: "WHERE pv.data = ? AND pv.id_filial = ? ",
+            whereMovimento: "AND dci.forma_pagamento LIKE CONCAT('%','PITZI','%')",
             tipoAjuste: "valor_pitzi",
           },
           pix: {
@@ -163,8 +151,7 @@ module.exports = async (req) => {
               },
               { label: "txid", type: "string" },
             ],
-            where:
-              "WHERE fvp.data_venda = ? AND fvp.id_filial = ? ",
+            where: "WHERE fvp.data_venda = ? AND fvp.id_filial = ? ",
             whereMovimento:
               "AND (dci.forma_pagamento LIKE 'PIX - TRANSFERENCIA' OR dci.forma_pagamento LIKE 'PIX')",
             tipoAjuste: "valor_pix",
@@ -186,10 +173,8 @@ module.exports = async (req) => {
               { label: "status", type: "string" },
               { label: "data_uso", type: "date" },
             ],
-            where:
-              "WHERE rt.data = ? AND rt.id_filial = ? ",
-            whereMovimento:
-              "AND dci.forma_pagamento LIKE 'TRADEIN'",
+            where: "WHERE rt.data = ? AND rt.id_filial = ? ",
+            whereMovimento: "AND dci.forma_pagamento LIKE 'TRADEIN'",
             tipoAjuste: "valor_tradein",
           },
           // crediario: rowsPagamentoBoletoItau,
@@ -208,20 +193,11 @@ module.exports = async (req) => {
 
       let rowsMovimentoCaixa = [];
       if (type === "recarga") {
-        if (
-          !(
-            caixa.id_grupo_economico == 1 ||
-            caixa.id_grupo_economico == 9
-          )
-        ) {
-          throw new Error(
-            "Este grupo econômico não pode realizar recargas!"
-          );
+        if (!(caixa.id_grupo_economico == 1 || caixa.id_grupo_economico == 9)) {
+          throw new Error("Este grupo econômico não pode realizar recargas!");
         }
         const tabela_recarga =
-          caixa.id_grupo_economico == 1
-            ? "datasys_vendas"
-            : "datasys_vendas_fort";
+          caixa.id_grupo_economico == 1 ? "datasys_vendas" : "datasys_vendas_fort";
         [rowsMovimentoCaixa] = await conn.execute(
           `
           SELECT
@@ -233,10 +209,7 @@ module.exports = async (req) => {
           AND DATE_FORMAT(dv.dataPedido,'%Y-%m-%d') = ?
           AND dv.filial = ?
           `,
-          [
-            formatDate(caixa.data, "yyyy-MM-dd"),
-            caixa.filial,
-          ]
+          [formatDate(caixa.data, "yyyy-MM-dd"), caixa.filial]
         );
       } else {
         [rowsMovimentoCaixa] = await conn.execute(
@@ -259,9 +232,7 @@ module.exports = async (req) => {
             }' THEN valor * -1 ELSE valor * 1 END valor
           FROM datasys_caixas_ajustes
           WHERE id_caixa = ?
-          AND (entrada = '${
-            tiposMap.get(type).tipoAjuste
-          }' OR saida = '${
+          AND (entrada = '${tiposMap.get(type).tipoAjuste}' OR saida = '${
             tiposMap.get(type).tipoAjuste
           }')
           AND aprovado

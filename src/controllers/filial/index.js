@@ -19,10 +19,9 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap } =
-      filters || {
-        termo: null,
-      };
+    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap, isLojaTim } = filters || {
+      termo: null,
+    };
 
     var where = ` WHERE f.active = 1 `;
     const params = [];
@@ -72,6 +71,9 @@ function getAll(req) {
         where += ` AND NOT f.tim_cod_sap IS NULL`;
       }
     }
+    if (isLojaTim) {
+      where += ` AND f.tim_cod_sap IS NOT NULL`;
+    }
     if (id_matriz !== undefined && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;
       params.push(id_matriz);
@@ -88,8 +90,7 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       if (limit) {
         params.push(pageSize);
@@ -267,10 +268,7 @@ function update(req) {
 
       params.push(id);
       // Atualização de dados do usuário
-      await conn.execute(
-        `UPDATE filiais SET ${set.join(",")} WHERE id = ?`,
-        params
-      );
+      await conn.execute(`UPDATE filiais SET ${set.join(",")} WHERE id = ?`, params);
 
       await conn.commit();
 
@@ -412,9 +410,7 @@ function insertOne(req) {
         params.push(uf);
       }
 
-      const query = `INSERT INTO filiais (${campos.join(
-        ","
-      )}) VALUES (${values.join(",")});`;
+      const query = `INSERT INTO filiais (${campos.join(",")}) VALUES (${values.join(",")});`;
 
       await conn.execute(query, params);
       await conn.commit();

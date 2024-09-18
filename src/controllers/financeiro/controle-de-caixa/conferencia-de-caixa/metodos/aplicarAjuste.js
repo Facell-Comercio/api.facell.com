@@ -11,7 +11,6 @@ module.exports = async ({ conn, id_ajuste, req }) => {
         [id_ajuste]
       );
       const ajuste = rowsAjustes && rowsAjustes[0];
-
       if (
         ajuste.tipo_ajuste !== "transferencia" &&
         !(checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER"))
@@ -34,10 +33,13 @@ module.exports = async ({ conn, id_ajuste, req }) => {
         await conn.execute(
           `
           UPDATE datasys_caixas
-            SET ${ajuste.saida} = ${ajuste.saida} - ?
+            SET ${ajuste.saida} = ${ajuste.saida} - ?,
+            ${ajuste.saida === "valor_dinheiro" && `valor_despesas = valor_despesas + ?`}
             WHERE id = ?;
         `,
-          [ajuste.valor, ajuste.id_caixa]
+          ajuste.saida === "valor_dinheiro"
+            ? [ajuste.valor, ajuste.valor, ajuste.id_caixa]
+            : [ajuste.valor, ajuste.id_caixa]
         );
       }
 
@@ -51,6 +53,7 @@ module.exports = async ({ conn, id_ajuste, req }) => {
           [ajuste.valor, ajuste.id_caixa]
         );
       }
+      await updateSaldo({ conn, id_caixa: ajuste.id_caixa });
 
       // Vamos aproveitar para atualizar o saldo do caixa, vai que o valor em dinheiro foi mexido:
       await updateSaldo({ conn, id_caixa })

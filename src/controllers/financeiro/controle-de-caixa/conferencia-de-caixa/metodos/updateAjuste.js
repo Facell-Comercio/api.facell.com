@@ -30,7 +30,7 @@ module.exports = async (req) => {
         `
         SELECT id, status FROM datasys_caixas
         WHERE id = ?
-        AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
+        AND (status = 'CONFIRMADO' OR status = 'CONFIRMADO')
       `,
         [id_caixa]
       );

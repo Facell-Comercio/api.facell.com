@@ -30,9 +30,11 @@ module.exports = {
   changeStatusCaixa: require("./metodos/changeStatusCaixa"),
   changeValueFieldCaixa: require("./metodos/changeValueFieldCaixa"),
   getCardDetalhe: require("./metodos/getCardDetalhe"),
+  getCardDetalheDinheiro: require("./metodos/getCardDetalheDinheiro"),
 
   deleteDeposito: require("./metodos/deleteDeposito"),
   deleteAjuste: require("./metodos/deleteAjuste"),
 
   aprovarAjuste: require("./metodos/aprovarAjuste"),
+  lancamentoDespesa: require("./metodos/lancamentoDespesa"),
 };

@@ -25,23 +25,15 @@ function pagarTituloPorVencimento({ user, conn, vencimento }) {
       let status = "PAGO";
       if (vencimentosNaoPagos.length === 0) {
         // * ALTERA STATUS DO TÍTULO PARA - PAGO
-        await conn.execute(
-          `UPDATE fin_cp_titulos SET id_status = 5 WHERE id = ?`,
-          [id_titulo]
-        );
+        await conn.execute(`UPDATE fin_cp_titulos SET id_status = 5 WHERE id = ?`, [id_titulo]);
       }
       if (vencimentosNaoPagos.length > 0) {
         // * ALTERA STATUS DO TÍTULO PARA - PAGO PARCIAL
-        await conn.execute(
-          `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-          [4, id_titulo]
-        );
+        await conn.execute(`UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`, [4, id_titulo]);
         status = "PAGO PARCIALMENTE";
       }
       // * INCLUI REGISTRO NO HISTÓRICO DO TÍTULO:
-      const historico = `${status} POR: ${normalizeFirstAndLastName(
-        user.nome
-      )}.`;
+      const historico = `${status} POR: ${normalizeFirstAndLastName(user.nome)}.`;
       await conn.execute(
         `INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
         [id_titulo, historico]
@@ -105,18 +97,13 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento, obs }) {
       );
 
       //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
-      if (
-        vencimento.tipo_baixa === "COM DESCONTO" ||
-        vencimento.tipo_baixa === "COM ACRÉSCIMO"
-      ) {
+      if (vencimento.tipo_baixa === "COM DESCONTO" || vencimento.tipo_baixa === "COM ACRÉSCIMO") {
         const [itens_rateio] = await conn.execute(
           `SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?`,
           [vencimentoBanco.id_titulo]
         );
         // Aqui obtemos a diferença entre valor pago e valor do vencimento
-        const diferenca =
-          parseFloat(vencimento.valor_pago) -
-          parseFloat(vencimento.valor_total);
+        const diferenca = parseFloat(vencimento.valor_pago) - parseFloat(vencimento.valor_total);
         // Aqui geramos a diferença que será acrescida ou descontada de cada item rateio:
         const difAplicada = diferenca / (itens_rateio?.length || 1);
         // Aplicamos a diferença nos itens
@@ -127,9 +114,7 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento, obs }) {
       }
 
       if (vencimento.tipo_baixa === "PARCIAL") {
-        const valor =
-          parseFloat(vencimento.valor_total) -
-          parseFloat(vencimento.valor_pago);
+        const valor = parseFloat(vencimento.valor_total) - parseFloat(vencimento.valor_pago);
 
         if (!vencimento.data_prevista_parcial) {
           throw new Error(
@@ -268,16 +253,12 @@ function pagamentoItens(req) {
 
       // * PAGAMENTO DOS VENCIMENTOS
       await Promise.all(
-        vencimentos.map((vencimento) =>
-          pagarVencimento({ user, conn, vencimento, data_pagamento })
-        )
+        vencimentos.map((vencimento) => pagarVencimento({ user, conn, vencimento, data_pagamento }))
       );
 
       // * PAGAMENTO DAS FATURAS
       await Promise.all(
-        faturas.map((fatura) =>
-          pagarFatura({ user, conn, fatura, data_pagamento })
-        )
+        faturas.map((fatura) => pagarFatura({ user, conn, fatura, data_pagamento }))
       );
 
       await conn.commit();
