@@ -33,8 +33,11 @@ module.exports = async ({ conn, id_ajuste, req }) => {
         await conn.execute(
           `
           UPDATE datasys_caixas
-            SET ${ajuste.saida} = ${ajuste.saida} - ?,
-            ${ajuste.saida === "valor_dinheiro" && `valor_despesas = valor_despesas + ?`}
+            SET ${
+              ajuste.saida === "valor_dinheiro"
+                ? `valor_despesas = valor_despesas + ?`
+                : `${ajuste.saida} = ${ajuste.saida} - ?`
+            }
             WHERE id = ?;
         `,
           ajuste.saida === "valor_dinheiro"
