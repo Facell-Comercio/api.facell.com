@@ -4,7 +4,6 @@ const { db } = require("../../../../../../mysql");
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const { id } = req.body;
-    console.log(req.body, req.params, req.query);
     let conn;
     try {
       conn = await db.getConnection();

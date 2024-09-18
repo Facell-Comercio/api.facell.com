@@ -1,6 +1,7 @@
 const { logger } = require("../../../../../../logger");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async ({ conn, id_ajuste, req }) => {
   return new Promise(async (resolve, reject) => {
@@ -10,7 +11,6 @@ module.exports = async ({ conn, id_ajuste, req }) => {
         [id_ajuste]
       );
       const ajuste = rowsAjustes && rowsAjustes[0];
-      console.log("AJUSTE", ajuste);
       if (
         ajuste.tipo_ajuste !== "transferencia" &&
         !(checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER"))
@@ -53,6 +53,7 @@ module.exports = async ({ conn, id_ajuste, req }) => {
           [ajuste.valor, ajuste.id_caixa]
         );
       }
+      await updateSaldo({ conn, id_caixa: ajuste.id_caixa });
 
       resolve({ message: "Sucesso" });
     } catch (error) {

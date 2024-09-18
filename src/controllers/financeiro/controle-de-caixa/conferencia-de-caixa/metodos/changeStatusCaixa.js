@@ -21,18 +21,36 @@ module.exports = async (req) => {
         `
         SELECT 
           dc.status, dc.data, dc.id_filial,
-          dc.valor_dinheiro, dc.valor_retiradas,
-          COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias_nao_resolvidas,
-          dc.divergente, COUNT(dco.id) as qtde_ocorrencias
+          dc.valor_dinheiro, dc.valor_despesas,
+          (
+            SELECT COUNT(*)
+            FROM datasys_caixas_ocorrencias ocorrencias
+            WHERE ocorrencias.id_filial = dc.id_filial
+              AND ocorrencias.data_caixa = dc.data
+              AND ocorrencias.resolvida = 1
+          ) AS ocorrencias_resolvidas,
+          (
+            SELECT COUNT(*)
+            FROM datasys_caixas_ocorrencias ocorrencias
+            WHERE ocorrencias.id_filial = dc.id_filial
+              AND ocorrencias.data_caixa = dc.data
+              AND ocorrencias.resolvida = 0
+          ) AS ocorrencias_nao_resolvidas,
+          (
+            SELECT COUNT(dci.id) 
+            FROM datasys_caixas_itens dci 
+            WHERE dci.id_caixa = dc.id
+              AND dci.tipo_operacao LIKE 'DESPESAS%'
+              AND dci.id_cp_titulo IS NULL
+          ) AS despesas_nao_lancadas,
+          dc.divergente
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
         WHERE dc.id = ?
         `,
         [id]
       );
       const caixa = rowsCaixas && rowsCaixas[0];
-
       //* INÍCIO - CONFERÊNCIA DE CAIXA
       if (action === "conferir") {
         await conn.execute(
@@ -61,8 +79,18 @@ module.exports = async (req) => {
         }
 
         //~~ Validação de divergências + ocorrências
-        if (caixa.divergente && !caixa.qtde_ocorrencias) {
+        if (caixa.divergente && !caixa.ocorrencias_resolvidas) {
           throw new Error("Registre uma ocorrência pois o caixa é divergente!");
+        }
+
+        const despesas_nao_lancadas = Number(caixa.despesas_nao_lancadas);
+        //~~ Validação de despesas não lançadas
+        if (despesas_nao_lancadas > 0) {
+          throw new Error(
+            `Não é possível confirmar o caixa pois há ${despesas_nao_lancadas} ${
+              despesas_nao_lancadas === 1 ? "despesa não lançada" : "despesas não lançadas"
+            }!`
+          );
         }
 
         await conn.execute(

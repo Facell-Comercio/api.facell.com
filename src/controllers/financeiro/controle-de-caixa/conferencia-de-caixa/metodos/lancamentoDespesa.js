@@ -55,7 +55,6 @@ module.exports = async (req) => {
         WHERE id_titulo = ?`,
         [id_titulo]
       );
-      console.log(rowsVencimentos);
       for (const vencimento of rowsVencimentos) {
         await conn.execute(
           "INSERT INTO fin_cp_bordero_itens (id_vencimento, id_bordero) VALUES(?,?)",
