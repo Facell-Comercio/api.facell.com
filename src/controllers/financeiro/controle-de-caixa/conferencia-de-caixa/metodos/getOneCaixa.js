@@ -16,14 +16,42 @@ module.exports = async (req) => {
       conn = await db.getConnection();
       const [rowsCaixas] = await conn.execute(
         `
-        SELECT 
+        SELECT
           dc.*, dc.saldo_anterior, dc.saldo as saldo_atual,
           CASE WHEN dc.status = 'CONFIRMADO' || dc.status = 'CONFIRMADO' THEN 1 ELSE 0 END as caixa_confirmado,
           dc.manual,
-          SUM(dcd.valor) as valor_depositos, SUM(dcbc.valor) as valor_boletos,
-          COUNT(dco.id) as ocorrencias,
-          COUNT(dca.id) as ajustes,
-          COALESCE(SUM(dco.resolvida = 1),0) as ocorrencias_resolvidas,
+
+          (
+            SELECT SUM(dcd.valor)
+            FROM datasys_caixas_depositos dcd
+            WHERE dcd.id_caixa = dc.id
+          ) AS valor_depositos,
+          (
+            SELECT SUM(dcbc.valor)
+            FROM datasys_caixas_boletos_caixas dcbc
+            INNER JOIN datasys_caixas_boletos dcb ON dcb.id = dcbc.id_boleto
+            WHERE dcbc.id_caixa = dc.id
+              AND dcb.status <> 'cancelado'
+          ) AS valor_boletos,
+          (
+            SELECT COUNT(dca.id)
+            FROM datasys_caixas_ajustes dca
+            WHERE dca.id_caixa = dc.id
+          ) AS ajustes,
+          (
+            SELECT COUNT(*)
+            FROM datasys_caixas_ocorrencias ocorrencias
+            WHERE ocorrencias.id_filial = dc.id_filial
+              AND ocorrencias.data_caixa = dc.data
+          ) AS ocorrencias,
+          (
+            SELECT COUNT(*)
+            FROM datasys_caixas_ocorrencias ocorrencias
+            WHERE ocorrencias.id_filial = dc.id_filial
+              AND ocorrencias.data_caixa = dc.data
+              AND ocorrencias.resolvida = 1
+          ) AS ocorrencias_resolvidas,
+
           (dc.valor_dinheiro - dc.valor_despesas) as total_dinheiro,
           (dc.valor_cartao_real - dc.valor_cartao) as divergencia_cartao,
           (dc.valor_recarga_real - dc.valor_recarga) as divergencia_recarga,
@@ -34,10 +62,6 @@ module.exports = async (req) => {
           f.id_matriz, f.nome as filial
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
-        LEFT JOIN datasys_caixas_ajustes dca ON dca.id_caixa = dc.id
-        LEFT JOIN datasys_caixas_depositos dcd ON dcd.id_caixa = dc.id
-        LEFT JOIN datasys_caixas_boletos_caixas dcbc ON dcbc.id_caixa = dc.id
         WHERE dc.id = ?
         `,
         [id]

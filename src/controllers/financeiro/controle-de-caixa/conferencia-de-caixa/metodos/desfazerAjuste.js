@@ -1,4 +1,5 @@
 const { logger } = require("../../../../../../logger");
+const updateSaldo = require("./updateSaldo");
 
 module.exports = async ({ conn, id_ajuste }) => {
   return new Promise(async (resolve, reject) => {
@@ -44,6 +45,8 @@ module.exports = async ({ conn, id_ajuste }) => {
           [ajuste.valor, ajuste.id_caixa]
         );
       }
+
+      await updateSaldo({ conn, id_caixa: ajuste.id_caixa });
 
       resolve({ message: "Sucesso" });
     } catch (error) {
