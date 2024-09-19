@@ -28,10 +28,37 @@ app.use(
     exposedHeaders: ["Content-Disposition"],
   })
 );
+
 // const configureSocketModule = require('./src/socket/socket')
 app.use("/", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/temp", express.static(path.join(__dirname, "public", "temp")));
+
+const Boleto = require('node-boleto').Boleto;
+
+app.get('/boleto/:id', (req, res) => {
+  const boletoId = req.params.id;
+  console.log(boletoId);
+  
+  var boleto = new Boleto({
+    'banco': "santander", // nome do banco dentro da pasta 'banks'
+    'data_emissao': new Date(),
+    'data_vencimento': new Date(new Date().getTime() + 5 * 24 * 3600 * 1000), // 5 dias futuramente
+    'valor': 1500, // R$ 15,00 (valor em centavos)
+    'nosso_numero': "1234567",
+    'numero_documento': "123123",
+    'cedente': "Pagar.me Pagamentos S/A",
+    'cedente_cnpj': "18727053000174", // sem pontos e traços
+    'agencia': "3978",
+    'codigo_cedente': "6404154", // PSK (código da carteira)
+    'carteira': "102"
+  });
+
+  boleto.renderHTML(function(html){
+    res.send(html);
+  })
+  // Envia o HTML para o cliente
+});
 
 const router = require("./src/routes/router");
 app.use(router);
