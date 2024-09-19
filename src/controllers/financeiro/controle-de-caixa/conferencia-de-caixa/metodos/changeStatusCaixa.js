@@ -1,7 +1,6 @@
 const { startOfDay } = require("date-fns");
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
-const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {

@@ -28,7 +28,7 @@ function createUploadsPath(texto) {
   const partes = texto.split(/[\\/]/);
   const fileName = partes[partes.length - 1]?.trim();
   if (!fileName) return null;
-  return path.join(process.env.BASE_DIR, "public", "uploads", fileName);
+  return path.join(process.cwd(), "public", "uploads", fileName);
 }
 
 function zipFiles({ items }) {
@@ -122,7 +122,7 @@ function zipFiles({ items }) {
 
 async function clearTempFolder() {
   try {
-    const BASE_DIR = process.env.BASE_DIR;
+    const BASE_DIR = process.cwd();
     if (!BASE_DIR) {
       throw new Error(`BASE_DIR Empty: ${BASE_DIR}`);
     }
@@ -214,13 +214,13 @@ function moverArquivoTempParaUploads(url) {
     if (urlContemTemp(url)) {
       const nomeArquivo = url.split("/").pop(); // Captura o nome do arquivo da URL
       const origem = path.join(
-        process.env.BASE_DIR,
+        process.cwd(),
         "public",
         "temp",
         nomeArquivo
       );
       const destino = path.join(
-        process.env.BASE_DIR,
+        process.cwd(),
         "public",
         "uploads",
         nomeArquivo
@@ -290,7 +290,7 @@ function createFilePathFromUrl(url) {
       const partes = isTemp ? url.split("temp/") : url.split("uploads/");
       const fileName = partes[1];
 
-      const BASE_DIR = process.env.BASE_DIR;
+      const BASE_DIR = process.cwd();
       const newPath = isTemp
         ? path.join(BASE_DIR, "public", "temp", fileName)
         : path.join(BASE_DIR, "public", "uploads", fileName);

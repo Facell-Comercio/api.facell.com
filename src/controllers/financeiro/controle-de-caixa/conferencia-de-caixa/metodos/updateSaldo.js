@@ -39,7 +39,7 @@ module.exports = async ({ conn, id_caixa }) => {
         [id_caixa]
       );
       const valor_depositos =
-        rowsDepositosCaixa && rowsDepositosCaixa[0] && rowsDepositosCaixa[0].valor;
+        rowsDepositosCaixa && rowsDepositosCaixa[0] && rowsDepositosCaixa[0].valor || 0;
       const [rowsBoletosCaixa] = await conn.execute(
         `
         SELECT 
@@ -51,7 +51,7 @@ module.exports = async ({ conn, id_caixa }) => {
         `,
         [id_caixa]
       );
-      const valor_em_boleto = rowsBoletosCaixa && rowsBoletosCaixa[0] && rowsBoletosCaixa[0].valor;
+      const valor_em_boleto = rowsBoletosCaixa && rowsBoletosCaixa[0] && rowsBoletosCaixa[0].valor || 0;
 
       // Calcula o saldo anterior:
       // const saldo_anterior =
@@ -69,8 +69,8 @@ module.exports = async ({ conn, id_caixa }) => {
       // Calula o saldo atual:
       const saldo_atual =
         // parseFloat(saldo_anterior) +
-        parseFloat(caixa.valor_dinheiro) -
-        (parseFloat(caixa.valor_despesas) +
+        parseFloat(caixa.valor_dinheiro || 0) -
+        (parseFloat(caixa.valor_despesas || 0) +
           parseFloat(valor_depositos) +
           parseFloat(valor_em_boleto));
 

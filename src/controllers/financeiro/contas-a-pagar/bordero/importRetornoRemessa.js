@@ -2,8 +2,8 @@ const { db } = require("../../../../../mysql");
 const fs = require("fs/promises");
 
 const { logger } = require("../../../../../logger");
-const { remessaToObject } = require("../../remessa/to-object");
-const constants = require("../../remessa/layout/ITAU/constants");
+const { remessaToObject } = require("../../remessa/CNAB240/to-object");
+const constants = require("../../remessa/CNAB240/layout/ITAU/constants");
 const { normalizeNumberOnly } = require("../../../../helpers/mask");
 const { pagarVencimento, pagarFatura } = require("./pagamentoItens");
 

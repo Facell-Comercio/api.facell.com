@@ -1,4 +1,4 @@
-const { normalizeDate } = require("../../../../helpers/mask");
+const { normalizeDate } = require("../../../../../helpers/mask");
 
 // function removeSpecialCharactersAndAccents(text) {
 //   return text

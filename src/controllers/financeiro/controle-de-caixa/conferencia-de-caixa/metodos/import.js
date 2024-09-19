@@ -3,7 +3,6 @@ const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const createDateArrayFromRange = require("../../../../../helpers/createDateArrayFromRange");
 const { getMovimentoCaixa } = require("../../../../datasys/api/index");
-const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
 const aplicarAjuste = require("./aplicarAjuste");
@@ -147,6 +146,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
       await conn.execute(
         `UPDATE datasys_caixas 
           SET 
+              status = 'A CONFERIR',
               valor_cartao = :valor_cartao,
               valor_dinheiro = :valor_dinheiro,
               valor_despesas = :valor_despesas,

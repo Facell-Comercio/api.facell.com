@@ -173,6 +173,15 @@ router.post("/import", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), asy
   }
 });
 
+router.post("/import-por-periodo", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
+  try {
+    const result = await importCaixasPorPeriodo(req);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(400).send({ message: error.message });
+  }
+});
+
 router.post(
   "/depositos",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
