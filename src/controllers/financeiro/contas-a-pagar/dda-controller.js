@@ -3,10 +3,10 @@ const { logger } = require("../../../../logger");
 const fs = require("fs/promises");
 const {
   remessaToObject,
-} = require("../remessa/to-object");
+} = require("../remessa/CNAB240/to-object");
 const {
   normalizeCodigoBarras,
-} = require("../remessa/to-string/masks");
+} = require("../remessa/CNAB240/to-string/masks");
 
 function ensureArray(data) {
   if (!data) return null;
