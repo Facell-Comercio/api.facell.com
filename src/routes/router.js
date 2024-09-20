@@ -22,6 +22,7 @@ const {
   removerRateio,
   subirAnexosParaDrive,
 } = require("../controllers/testes-controller");
+const { visualizarBoletoCaixa } = require("../controllers/financeiro/controle-de-caixa/boletos");
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')
@@ -38,12 +39,15 @@ router.post("/operacao-teste", async (req, res) => {
   }
 });
 
+// ^ Rotas públicas
 router.get("/", (req, res) => {
   res.status(200).json({ msg: "Sucesso!" });
 });
 router.use("/auth", authRouter);
 router.use("/testes", testes);
+router.get("/visualizar.boleto.caixa", visualizarBoletoCaixa)
 
+// ^ Rotas privadas:
 router.use("/", authMiddleware);
 
 router.use("/upload", uploadRouter);

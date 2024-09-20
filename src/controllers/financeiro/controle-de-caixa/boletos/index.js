@@ -1,4 +1,6 @@
 module.exports = {
+  visualizarBoletoCaixa: require("./metodos/visualizarBoleto"),
+  
   getAllBoletos: require("./metodos/getAllBoletos"),
   getAllCaixasComSaldo: require("./metodos/getAllCaixasComSaldo"),
 
