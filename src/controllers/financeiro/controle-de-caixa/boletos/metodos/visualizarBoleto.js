@@ -1,6 +1,8 @@
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
+const { normalizeCnpjNumber } = require("../../../../../helpers/mask");
 const Boleto = require('../../../../../services/boleto').Boleto;
+const formatters = require('../../../../../services/boleto/helper/formatters');
 
 module.exports = async (req, res) => {
     const { id } = req.query;
@@ -24,16 +26,28 @@ module.exports = async (req, res) => {
             boleto.data_vencimento, 
             boleto.num_carteira,
             CASE WHEN boleto.status = "emitido" AND boleto.data_vencimento < CURDATE() THEN "atrasado" ELSE boleto.status END as status,
-            f.razao as razao_social,
-            f.cnpj as cnpj_filial,
+            
+            recebedor.razao as razao_social,
+            recebedor.cnpj as cnpj_filial,
             RIGHT(LPAD(cb.agencia, 4), 4) as agencia_bancaria,
             CAST(cb.conta AS INT) AS conta_bancaria,
             CAST(cb.dv_conta AS INT) AS dv_conta_bancaria,
-            banco.codigo as codigo_banco
+            banco.codigo as codigo_banco,
+            
+            pagador.razao as pagador_razao,
+            pagador.cnpj as pagador_cnpj,
+            pagador.logradouro as pagador_logradouro,
+            pagador.numero as pagador_numero,
+            pagador.complemento as pagador_complemento,
+            pagador.bairro as pagador_bairro,
+            pagador.municipio as pagador_municipio,
+            pagador.uf as pagador_uf,
+            pagador.cep as pagador_cep
 
         FROM datasys_caixas_boletos boleto
         LEFT JOIN fin_contas_bancarias cb ON cb.id = boleto.id_conta_bancaria
-        LEFT JOIN filiais f ON f.id = cb.id_filial
+        LEFT JOIN filiais recebedor ON recebedor.id = cb.id_filial
+        LEFT JOIN filiais pagador ON pagador.id = boleto.id_filial
         LEFT JOIN fin_bancos banco ON banco.id = cb.id_banco
         WHERE boleto.id = ?
         `,
@@ -65,6 +79,18 @@ module.exports = async (req, res) => {
         let agencia = dadosBoleto.agencia_bancaria
         let codigo_cedente = `${dadosBoleto.conta_bancaria}${dadosBoleto.dv_conta_bancaria || 0}`
 
+        let pagador = formatters.generateTextPagadorBoleto({
+            razao: dadosBoleto['pagador_razao'], 
+            cnpj: dadosBoleto['pagador_cnpj'], 
+            logradouro: dadosBoleto['pagador_logradouro'], 
+            numero: dadosBoleto['pagador_numero'], 
+            complemento: dadosBoleto['pagador_complemento'], 
+            bairro: dadosBoleto['pagador_bairro'], 
+            municipio: dadosBoleto['pagador_municipio'], 
+            uf: dadosBoleto['pagador_uf'],
+            cep: dadosBoleto['pagador_cep'],
+        });
+
         // console.log({
         //     nome_banco,
         //     data_emissao,
@@ -90,7 +116,8 @@ module.exports = async (req, res) => {
             'cedente_cnpj': cedente_cnpj, // sem pontos e traços
             'agencia': agencia, // 4 dígitos
             'codigo_cedente': codigo_cedente, // conta bancária + dv_conta
-            'carteira': carteira // Código carteia 109 exemplo
+            'carteira': carteira, // Código carteia 109 exemplo,
+            'pagador': pagador
         });
 
         boleto.renderHTML(function (html) {

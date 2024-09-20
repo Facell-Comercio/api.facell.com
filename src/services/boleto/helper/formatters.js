@@ -1,5 +1,6 @@
 const escapeXML = require('ejs').escapeXML
 const moment = require('moment')
+const { normalizeCnpjNumber } = require('../../../helpers/mask')
 
 exports.capitalize = function (string) {
   return string.charAt(0).toUpperCase() + string.slice(1)
@@ -106,4 +107,19 @@ exports.removeTrailingZeros = function (string) {
 
 exports.htmlString = function (str) {
   return str ? escapeXML(str).replace(/\n/g, '<br/>') : str
+}
+
+
+exports.generateTextPagadorBoleto = function ({
+  razao, cnpj, logradouro, numero, complemento, bairro, municipio, uf, cep
+}) {
+  let texto = ''
+  texto += `${razao || ''}${cnpj ? ' - ': ''}${cnpj ? normalizeCnpjNumber(cnpj) : ''}`;
+  if(logradouro || numero || complemento || bairro){
+    texto += `\n${logradouro || ''}${numero ? ', ': ''}${numero || ''}${complemento ? ', ': ''}${complemento || ''}${bairro ? ', ': ''}${bairro || ''}`;
+  }
+  if(municipio || uf || cep){
+    texto += `\n${municipio || ''}${uf ? ' - ': ''}${uf || ''}${cep ? ' - ': ''}${cep || ''}`
+  }
+  return texto;
 }
