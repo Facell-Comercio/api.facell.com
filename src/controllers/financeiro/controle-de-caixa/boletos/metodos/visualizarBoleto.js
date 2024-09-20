@@ -32,8 +32,8 @@ module.exports = async (req, res) => {
             banco.codigo as codigo_banco
 
         FROM datasys_caixas_boletos boleto
-        LEFT JOIN filiais f ON f.id = boleto.id_filial
         LEFT JOIN fin_contas_bancarias cb ON cb.id = boleto.id_conta_bancaria
+        LEFT JOIN filiais f ON f.id = cb.id_filial
         LEFT JOIN fin_bancos banco ON banco.id = cb.id_banco
         WHERE boleto.id = ?
         `,
@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
 
         const banco = bancos_validos.find(bv => bv.codigo == dadosBoleto.codigo_banco)
         if (!banco) {
-            throw new Error(`Banco de código ${dadosBoleto.codigo_banco}, não permitido para visualização!`)
+            throw new Error(`Banco de código ${dadosBoleto.codigo_banco} não permitido para visualização!`)
         }
 
         let nome_banco = banco.nome;
