@@ -9,4 +9,6 @@ module.exports = {
   insertOneBoleto: require("./metodos/insertOneBoleto"),
 
   cancelarBoleto: require("./metodos/cancelarBoleto"),
+
+  exportRemessaBoleto: require("./metodos/exportRemessaBoleto"),
 };
