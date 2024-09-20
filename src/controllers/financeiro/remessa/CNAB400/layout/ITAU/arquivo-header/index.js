@@ -84,7 +84,7 @@ module.exports = [
     length: 8,
     required: true,
     type: "alphanumeric",
-    default: new Array(2).fill(0).join(""),
+    default: new Array(2).fill(" ").join(""),
   },
   {
     field: "empresa_nome",
