@@ -7,6 +7,7 @@ const {
   insertOneBoleto,
   getOneBoleto,
   cancelarBoleto,
+  exportRemessaBoleto,
 } = require("../../../../controllers/financeiro/controle-de-caixa/boletos");
 
 router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
@@ -57,5 +58,17 @@ router.put("/cancelar", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), as
     res.status(400).send({ message: error.message });
   }
 });
+
+router.post(
+  "/export-remessa",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const response = await exportRemessaBoleto(req, res);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
 
 module.exports = router;
