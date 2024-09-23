@@ -186,7 +186,7 @@ function uploadFile(req) {
                     }
                 } catch (error) { }
             }
-            // const filePath = path.join(process.env.BASE_DIR, 'public', 'temp',req.file.path);
+
             const filePath = path.join(process.cwd(), file.path);
             const mimetype = file.mimetype
             const fileMetadata = {
