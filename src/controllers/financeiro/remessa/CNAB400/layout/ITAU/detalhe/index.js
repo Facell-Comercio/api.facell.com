@@ -381,7 +381,7 @@ module.exports = [
     endPos: 393,
     length: 2,
     type: "numeric",
-    default: "05",
+    default: "03",
   },
   {
     field: "brancos",
