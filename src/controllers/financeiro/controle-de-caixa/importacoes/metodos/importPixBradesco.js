@@ -49,20 +49,16 @@ module.exports = async (req) => {
         const tipoTransacao = row["TIPO DE TRANSAÇÃO"];
         if (tipoTransacao == "Transferência") continue;
 
-        const [rowFilial] = await conn.execute(
-          `SELECT id FROM filiais WHERE txid = :txid `,
-          { txid: txidFilial }
-        );
+        const [rowFilial] = await conn.execute(`SELECT id FROM filiais WHERE txid = :txid `, {
+          txid: txidFilial,
+        });
         const filial = rowFilial && rowFilial[0];
         if (!filial) {
           throw new Error(`Filial não localizada pelo TXID: ${txidFilial}`);
         }
         const devolucao = row["TIPO DE TRANSAÇÃO"] == "Devolução" ? 1 : 0;
         const valor = devolucao
-          ? (
-              parseFloat(row["Débito"].replace(/\./g, "").replace(",", ".")) *
-              -1
-            ).toFixed(2)
+          ? (parseFloat(row["Débito"].replace(/\./g, "").replace(",", ".")) * -1).toFixed(2)
           : parseFloat(row["Crédito"].replace(/\./g, "").replace(",", "."));
 
         const dataVenda = row["Data"].split("/").reverse().join("-");
@@ -101,7 +97,7 @@ module.exports = async (req) => {
       }
       // * Insert em log de importações de relatórios:
       await conn.execute(
-        `INSERT INTO logs_import_relatorio (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`,
+        `INSERT INTO logs_movimento_arquivos (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`,
         {
           id_user: req.user.id,
           relatorio: "PIX-BRADESCO",

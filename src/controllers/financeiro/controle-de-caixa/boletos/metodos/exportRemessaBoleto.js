@@ -10,14 +10,9 @@ const { logger } = require("../../../../../../logger");
 const { addDiasUteis } = require("../../../remessa/CNAB400/helper");
 const { removeSpecialCharactersAndAccents } = require("../../../../../helpers/mask");
 
-// Boletos - Export Remessa (Button)
-//  --- Select grupo economico
-// 	-- Filtro boletos (aguardando emissao)
-// 	-- Gerar remessa
-
 module.exports = async (req, res) => {
   return new Promise(async (resolve, reject) => {
-    const { id_grupo_economico, id_conta_bancaria } = req.body;
+    const { id_grupo_economico, id_conta_bancaria, id_boleto } = req.body;
 
     let conn;
     try {
@@ -67,14 +62,13 @@ module.exports = async (req, res) => {
           f.cep, f.uf
         FROM datasys_caixas_boletos db
         LEFT JOIN filiais f ON f.id = db.id_filial
-        WHERE f.id_grupo_economico = ?
+        WHERE ${id_boleto ? "db.id = ?" : "f.id_grupo_economico = ?"}
         AND f.tim_cod_sap IS NOT NULL
-        AND db.status = 'aguardando_emissao'
+        AND (db.status = 'aguardando_emissao' OR db.status = 'erro')
       `,
-        [id_grupo_economico]
+        [id_boleto || id_grupo_economico]
       );
 
-      // console.timeEnd("FORMA DE PAGAMENTO");// TESTANDO PERFORMANCE
       const arquivo = [];
 
       let num_sequencial = 1;
@@ -93,7 +87,7 @@ module.exports = async (req, res) => {
           ...matriz,
           ...boleto,
           data_emissao,
-          data_vencimento: addDiasUteis(data_emissao, 5),
+          data_vencimento: addDiasUteis(data_emissao, 3),
           num_sequencial,
           uso_empresa: boleto.id,
           nosso_numero: boleto.id,
@@ -107,10 +101,21 @@ module.exports = async (req, res) => {
         ]);
       }
 
+      // * Insert em log de importações de relatórios:
+      await conn.execute(
+        `INSERT INTO logs_movimento_arquivos (id_user, relatorio, descricao ) VALUES (?,?,?)`,
+        [
+          req.user.id,
+          "EXPORT_REMESSA_BOLETO_CAIXA",
+          `Foram exportados ${boletos.length} boletos para o grupo econômico ${matriz.grupo_economico}!`,
+        ]
+      );
+
       ++num_sequencial;
       const trailerArquivo = createTrailerArquivo({
         num_sequencial,
       });
+
       arquivo.push(trailerArquivo);
 
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
