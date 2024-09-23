@@ -5,14 +5,7 @@ const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      id_caixa,
-      id_conta_bancaria,
-      valor,
-      comprovante,
-      data_deposito,
-    } = req.body;
+    const { id, id_caixa, id_conta_bancaria, valor, comprovante, data_deposito } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -31,7 +24,7 @@ module.exports = async (req) => {
         `
         SELECT id, status FROM datasys_caixas
         WHERE id = ?
-        AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
+        AND (status = 'CONFIRMADO' OR status = 'CONFIRMADO')
       `,
         [id_caixa]
       );
@@ -42,16 +35,9 @@ module.exports = async (req) => {
 
       await conn.execute(
         `UPDATE datasys_caixas_depositos SET id_caixa = ?, id_conta_bancaria = ?, data_deposito = ?, comprovante = ?, valor = ? WHERE id = ?;`,
-        [
-          id_caixa,
-          id_conta_bancaria,
-          startOfDay(data_deposito),
-          comprovante,
-          parseFloat(valor),
-          id,
-        ]
+        [id_caixa, id_conta_bancaria, startOfDay(data_deposito), comprovante, parseFloat(valor), id]
       );
-      await updateSaldo({conn, id_caixa})
+      await updateSaldo({ conn, id_caixa });
 
       await conn.commit();
       // await conn.rollback();
@@ -61,9 +47,13 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "UPDATE_DEPOSITO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
       conn.release();

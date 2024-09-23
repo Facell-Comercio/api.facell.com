@@ -5,18 +5,12 @@ const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    let {
-      id,
-      id_caixa,
-      id_conta_bancaria,
-      valor,
-      comprovante,
-      data_deposito,
-      conn,
-    } = req.body;
+    const { id, id_caixa, id_conta_bancaria, valor, comprovante, data_deposito, conn_recebida } =
+      req.body;
 
+    let conn;
     try {
-      conn = conn || (await db.getConnection());
+      conn = conn_recebida || (await db.getConnection());
       if (id) {
         throw new Error(
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
@@ -34,7 +28,7 @@ module.exports = async (req) => {
         `
         SELECT id, status FROM datasys_caixas
         WHERE id = ?
-        AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
+        AND (status = 'CONFIRMADO' OR status = 'CONFIRMADO')
       `,
         [id_caixa]
       );
@@ -45,13 +39,7 @@ module.exports = async (req) => {
 
       const [result] = await conn.execute(
         `INSERT INTO datasys_caixas_depositos (id_caixa, id_conta_bancaria, data_deposito, comprovante, valor) VALUES (?,?,?,?,?);`,
-        [
-          id_caixa,
-          id_conta_bancaria,
-          startOfDay(data_deposito),
-          comprovante,
-          parseFloat(valor),
-        ]
+        [id_caixa, id_conta_bancaria, startOfDay(data_deposito), comprovante, parseFloat(valor)]
       );
 
       const newId = result.insertId;
@@ -61,7 +49,9 @@ module.exports = async (req) => {
 
       await updateSaldo({ conn, id_caixa });
 
-      await conn.commit();
+      if (!conn_recebida) {
+        await conn.commit();
+      }
       // await conn.rollback();
       resolve({ id: newId });
     } catch (error) {
@@ -69,7 +59,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "INSERT_DEPOSITO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       if (conn) await conn.rollback();
       reject(error);

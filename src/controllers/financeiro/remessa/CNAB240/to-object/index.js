@@ -1,4 +1,4 @@
-const { logger } = require("../../../../../logger");
+const { logger } = require("../../../../../../logger");
 const rules = require("../layout/rules");
 const {
   checkTipoRegistroRemessa,

@@ -29,6 +29,7 @@ function createUploadsPath(texto) {
   const fileName = partes[partes.length - 1]?.trim();
   if (!fileName) return null;
   return path.join(process.cwd(), "public", "uploads", fileName);
+  return path.join(process.cwd(), "public", "uploads", fileName);
 }
 
 function zipFiles({ items }) {
@@ -211,11 +212,13 @@ function moverArquivoTempParaUploads(url) {
       const nomeArquivo = url.split("/").pop(); // Captura o nome do arquivo da URL
       const origem = path.join(
         process.cwd(),
+        process.cwd(),
         "public",
         "temp",
         nomeArquivo
       );
       const destino = path.join(
+        process.cwd(),
         process.cwd(),
         "public",
         "uploads",

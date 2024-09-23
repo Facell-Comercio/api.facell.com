@@ -15,8 +15,8 @@ const {
   createSegmentoJ,
   createSegmentoJ52Pix,
   createSegmentoJ52,
-} = require("../../remessa/to-string/itau");
-const { normalizeValue } = require("../../remessa/to-string/masks");
+} = require("../../remessa/CNAB240/to-string/itau");
+const { normalizeValue } = require("../../remessa/CNAB240/to-string/masks");
 const { logger } = require("../../../../../logger");
 
 module.exports = function exportRemessaOLD(req, res) {

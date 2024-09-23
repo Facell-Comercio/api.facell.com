@@ -3,15 +3,14 @@ const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const createDateArrayFromRange = require("../../../../../helpers/createDateArrayFromRange");
 const { getMovimentoCaixa } = require("../../../../datasys/api/index");
-const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
+const aplicarAjuste = require("./aplicarAjuste");
 
 async function getValorRecarga({ conn, pedido, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
-      const datasys_vendas =
-        grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
+      const datasys_vendas = grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
       const [rowsVenda] = await conn.execute(
         `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} WHERE grupoEstoque = 'RECARGA ELETRONICA' AND numeroPedido = ? `,
         [pedido]
@@ -24,14 +23,7 @@ async function getValorRecarga({ conn, pedido, grupo_economico }) {
   });
 }
 
-async function importarCaixa({
-  conn,
-  id_caixa,
-  id_filial,
-  data,
-  movimento,
-  grupo_economico,
-}) {
+async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
       if (!(movimento && movimento.length > 0)) {
@@ -44,7 +36,7 @@ async function importarCaixa({
       let valor_cartao = 0;
       let valor_dinheiro = 0;
       let valor_devolucoes = 0;
-      let valor_retiradas = 0;
+      let valor_despesas = 0;
       let valor_pix = 0;
       let valor_pitzi = 0;
 
@@ -56,14 +48,10 @@ async function importarCaixa({
       for (const item of movimento) {
         const valor = parseFloat(item.VALOR || 0);
         const pedido = item.DOCUMENTO;
-        const forma_pgto =
-          (item.FORMA_PGTO && item.FORMA_PGTO.toUpperCase()) || "";
-        const tipo_operacao =
-          (item.TIPO_OPERACAO && item.TIPO_OPERACAO.toUpperCase()) || "";
-        const historico =
-          (item.HISTORICO && item.HISTORICO.toUpperCase()) || "";
-        const credito_debito =
-          (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null;
+        const forma_pgto = (item.FORMA_PGTO && item.FORMA_PGTO.toUpperCase()) || "";
+        const tipo_operacao = (item.TIPO_OPERACAO && item.TIPO_OPERACAO.toUpperCase()) || "";
+        const historico = (item.HISTORICO && item.HISTORICO.toUpperCase()) || "";
+        const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null;
 
         let valorRecarga = 0;
         if (tipo_operacao == "VENDA" && !historico.includes("CANCELAMENTO")) {
@@ -94,7 +82,7 @@ async function importarCaixa({
           }
           if (tipo_operacao.includes("DESPESA")) {
             // ! Despesa
-            valor_retiradas += valor;
+            valor_despesas += valor;
           }
         }
         if (tipo_operacao == "DEVOLUÇÃO") {
@@ -119,10 +107,7 @@ async function importarCaixa({
         ) {
           valor_pix += valor;
         }
-        if (
-          forma_pgto.includes("PITZI") &&
-          !historico.includes("CANCELAMENTO")
-        ) {
+        if (forma_pgto.includes("PITZI") && !historico.includes("CANCELAMENTO")) {
           valor_pitzi += valor;
         }
 
@@ -161,9 +146,10 @@ async function importarCaixa({
       await conn.execute(
         `UPDATE datasys_caixas 
           SET 
+              status = 'A CONFERIR',
               valor_cartao = :valor_cartao,
               valor_dinheiro = :valor_dinheiro,
-              valor_retiradas = :valor_retiradas,
+              valor_despesas = :valor_despesas,
               valor_devolucoes = :valor_devolucoes,
               valor_recarga = :valor_recarga,
               valor_pix = :valor_pix,
@@ -173,7 +159,7 @@ async function importarCaixa({
         {
           valor_cartao,
           valor_dinheiro,
-          valor_retiradas,
+          valor_despesas,
           valor_devolucoes,
           valor_recarga,
           valor_pitzi,
@@ -196,7 +182,13 @@ async function importarCaixa({
         },
       });
 
-      resolve({ id_caixa, id_filial, data, status: "OK", message: "OK" });
+      resolve({
+        id_caixa,
+        id_filial,
+        data,
+        status: "OK",
+        message: "OK",
+      });
     } catch (error) {
       reject({
         id_caixa,
@@ -255,10 +247,7 @@ module.exports = async (req) => {
         let id_caixa = caixaBanco && caixaBanco["id"];
         if (id_caixa) {
           // ! Remover todos os itens do caixa:
-          await conn.execute(
-            `DELETE FROM datasys_caixas_itens WHERE id_caixa = ?`,
-            [id_caixa]
-          );
+          await conn.execute(`DELETE FROM datasys_caixas_itens WHERE id_caixa = ?`, [id_caixa]);
         } else {
           // Inserir o novo caixa vazio no sistema:
           const [insertedCaixa] = await conn.execute(
@@ -279,6 +268,19 @@ module.exports = async (req) => {
           movimento: movimento.filter((mov) => mov.LOJA == filial.cnpj),
         });
         result.push(caixa);
+
+        //* Pega todos os ajustes e aplica os que estiverem aprovados
+        const [rowsAjustes] = await conn.execute(
+          "SELECT id FROM datasys_caixas_ajustes WHERE id_caixa = ?",
+          [id_caixa]
+        );
+        for (const ajuste of rowsAjustes) {
+          await aplicarAjuste({
+            conn,
+            id_ajuste: ajuste.id,
+            req,
+          });
+        }
       }
 
       await conn.commit();
@@ -290,7 +292,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "IMPORT",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
     } finally {
       if (conn) conn.release();

@@ -6,8 +6,7 @@ function isDivergent(valor_datasys, valor_real, divergente) {
   //^ Se já for divergente retorna true, senão realiza a verificação dos valores
   return (
     divergente ||
-    parseFloat(valor_datasys || "0").toFixed(2) !==
-      parseFloat(valor_real || "0").toFixed(2)
+    parseFloat(valor_datasys || "0").toFixed(2) !== parseFloat(valor_real || "0").toFixed(2)
   );
 }
 
@@ -31,7 +30,7 @@ module.exports = async (req) => {
           dc.valor_pitzi, dc.valor_tradein, dc.valor_crediario
         FROM datasys_caixas dc
         WHERE (dc.status LIKE CONCAT("%","A CONFERIR","%")
-        OR dc.status LIKE CONCAT("%","CONFERIDO / BAIXA PENDENTE","%"))
+        OR dc.status LIKE CONCAT("%","CONFERIDO","%"))
         `
       );
 
@@ -48,11 +47,7 @@ module.exports = async (req) => {
           const vendasCartoes = rowsVendasCartoes && rowsVendasCartoes[0];
 
           //~ Valida se é divergente ou não
-          divergente = isDivergent(
-            caixa.valor_cartao,
-            vendasCartoes.valor_cartao_real,
-            divergente
-          );
+          divergente = isDivergent(caixa.valor_cartao, vendasCartoes.valor_cartao_real, divergente);
 
           //* Validação de vendas recarga
           const [rowsVendasRecarga] = await conn.execute(
@@ -80,11 +75,7 @@ module.exports = async (req) => {
           const vendasPix = rowsVendasPix && rowsVendasPix[0];
 
           //~ Valida se é divergente ou não
-          divergente = isDivergent(
-            caixa.valor_pix,
-            vendasPix.valor_pix_banco,
-            divergente
-          );
+          divergente = isDivergent(caixa.valor_pix, vendasPix.valor_pix_banco, divergente);
 
           //* Validação de vendas do Pitzi
           const [rowsVendasPitzi] = await conn.execute(
@@ -96,11 +87,7 @@ module.exports = async (req) => {
           const vendasPitzi = rowsVendasPitzi && rowsVendasPitzi[0];
 
           //~ Valida se é divergente ou não
-          divergente = isDivergent(
-            caixa.valor_pitzi,
-            vendasPitzi.valor_pitzi_real,
-            divergente
-          );
+          divergente = isDivergent(caixa.valor_pitzi, vendasPitzi.valor_pitzi_real, divergente);
 
           //* Validação de vendas do Tradein
           const [rowsVendasTradein] = await conn.execute(
@@ -135,9 +122,7 @@ module.exports = async (req) => {
               parseFloat(vendasRecarga.valor_recarga_real || "0").toFixed(2),
               parseFloat(vendasPix.valor_pix_banco || "0").toFixed(2),
               parseFloat(vendasPitzi.valor_pitzi_real || "0").toFixed(2),
-              parseFloat(vendasTradein.valor_tradein_utilizado || "0").toFixed(
-                2
-              ),
+              parseFloat(vendasTradein.valor_tradein_utilizado || "0").toFixed(2),
               divergente,
               caixa.id_filial,
               startOfDay(caixa.data_caixa),

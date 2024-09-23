@@ -28,8 +28,11 @@ app.use(
     exposedHeaders: ["Content-Disposition"],
   })
 );
+
 // const configureSocketModule = require('./src/socket/socket')
+// ^ Rotas públicas de arquivos estáticos:
 app.use("/", express.static(path.join(__dirname, "public")));
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/temp", express.static(path.join(__dirname, "public", "temp")));
 
