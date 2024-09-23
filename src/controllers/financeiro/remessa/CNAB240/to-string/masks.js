@@ -1,4 +1,4 @@
-const { normalizeDate } = require("../../../../../helpers/mask");
+const { normalizeDate, normalizeNumberOnly } = require("../../../../../helpers/mask");
 
 // function removeSpecialCharactersAndAccents(text) {
 //   return text
@@ -7,16 +7,10 @@ const { normalizeDate } = require("../../../../../helpers/mask");
 //     .replace(/[^a-zA-Z0-9 ]/g, ""); // Remove caracteres especiais
 // }
 
-function removeSpecialCharactersAndAccents(
-  text,
-  allowedSpecialCharacters = ""
-) {
+function removeSpecialCharactersAndAccents(text, allowedSpecialCharacters = "") {
   // Cria uma expressão regular dinâmica para incluir os caracteres permitidos
   const allowedCharactersRegex = new RegExp(
-    `[^a-zA-Z0-9 ${allowedSpecialCharacters.replace(
-      /[-/\\^$*+?.()|[\]{}]/g,
-      "\\$&"
-    )}]`,
+    `[^a-zA-Z0-9 ${allowedSpecialCharacters.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}]`,
     "g"
   );
 
@@ -70,20 +64,15 @@ function normalizeValue(value, type, maxLength, format, allowedCharacter) {
       .replace(".", "")
       .padStart(maxLength, "0");
   } else if (type === "numeric") {
-    return String(value || 0).padStart(maxLength, "0");
+    return String(normalizeNumberOnly(value) || 0).padStart(maxLength, "0");
   } else if (type === "date") {
-    return String(normalizeDate(value, "ddMMyyyy"))
-      .replaceAll("/", "")
-      .padStart(maxLength, "0");
+    return String(normalizeDate(value, "ddMMyyyy")).replaceAll("/", "").padStart(maxLength, "0");
   } else if (format === "any") {
     return String(value || "")
       .padEnd(maxLength, " ")
       .slice(0, maxLength);
   } else {
-    return removeSpecialCharactersAndAccents(
-      String(value || ""),
-      allowedCharacter || ""
-    )
+    return removeSpecialCharactersAndAccents(String(value || ""), allowedCharacter || "")
       .padEnd(maxLength, " ")
       .slice(0, maxLength);
   }

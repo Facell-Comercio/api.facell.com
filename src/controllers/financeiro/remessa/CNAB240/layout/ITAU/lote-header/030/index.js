@@ -161,8 +161,8 @@ module.exports = [
   },
   {
     field: "historico_cc",
-    startPos: 103,
-    endPos: 132,
+    startPos: 133,
+    endPos: 142,
     length: 10,
     required: false,
     type: "alphanumeric",

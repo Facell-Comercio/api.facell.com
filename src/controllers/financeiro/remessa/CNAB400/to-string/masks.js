@@ -1,5 +1,5 @@
 const { formatDate } = require("date-fns/format");
-const { normalizeDate } = require("../../../../../helpers/mask");
+const { normalizeDate, normalizeNumberOnly } = require("../../../../../helpers/mask");
 
 function removeSpecialCharactersAndAccents(text, allowedSpecialCharacters = "") {
   // Cria uma expressão regular dinâmica para incluir os caracteres permitidos
@@ -58,7 +58,7 @@ function normalizeValue(value, type, maxLength, format, allowedCharacter) {
       .replace(".", "")
       .padStart(maxLength, "0");
   } else if (type === "numeric") {
-    return String(value || 0).padStart(maxLength, "0");
+    return String(normalizeNumberOnly(value) || 0).padStart(maxLength, "0");
   } else if (type === "date") {
     return String(formatDate(value, "ddMMyy")).replaceAll("/", "").padStart(maxLength, "0");
   } else if (format === "any") {
