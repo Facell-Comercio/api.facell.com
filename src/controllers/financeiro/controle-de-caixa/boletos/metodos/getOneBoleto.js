@@ -9,7 +9,7 @@ module.exports = async (req) => {
       conn = await db.getConnection();
       const [rowsBoletos] = await conn.execute(
         `SELECT 
-          dcb.*, f.nome as filial,
+          dcb.*, f.nome as filial, f.id_grupo_economico,
           CASE WHEN dcb.status = "emitido" AND dcb.data_vencimento < CURDATE() THEN "atrasado" ELSE dcb.status END as status
         FROM datasys_caixas_boletos dcb
         LEFT JOIN filiais f ON f.id = dcb.id_filial

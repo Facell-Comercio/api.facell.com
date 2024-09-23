@@ -1,5 +1,5 @@
 const checkTipoRegistroRemessa = (linha) => {
-  return linha?.substring(7, 8);
+  return linha?.substring(0, 1);
 };
 const checkIsPixByLoteRemessa = (linha) => {
   //* Verifica se a forma de pagamento é referente a PIX
@@ -50,8 +50,8 @@ function formatarCampoRemessa({ valor, type, format }) {
   if (type === "date") {
     let dia = parseInt(valor.substring(0, 2));
     let mes = parseInt(valor.substring(2, 4));
-    let ano = parseInt(valor.substring(4, 8));
-    return new Date(ano, mes - 1, dia);
+    let ano = parseInt(valor.substring(4, 6));
+    return new Date(2000 + ano, mes - 1, dia);
   }
   if (type === "alphanumeric") {
     return valor.trim() || null;

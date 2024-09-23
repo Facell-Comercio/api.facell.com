@@ -1,3 +1,5 @@
+const importRetornoRemessaBoleto = require("./metodos/importRetornoRemessaBoleto");
+
 module.exports = {
   visualizarBoletoCaixa: require("./metodos/visualizarBoleto"),
   
@@ -9,6 +11,7 @@ module.exports = {
 
   cancelarBoleto: require("./metodos/cancelarBoleto"),
 
+  importRetornoRemessaBoleto: require("./metodos/importRetornoRemessaBoleto"),
   exportRemessaBoleto: require("./metodos/exportRemessaBoleto"),
 
   insertOneReceptoresBoletos: require("./metodos/insertOneReceptoresBoletos"),
