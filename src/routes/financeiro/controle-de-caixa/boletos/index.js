@@ -7,8 +7,11 @@ const {
   insertOneBoleto,
   getOneBoleto,
   cancelarBoleto,
-  exportRemessaBoleto,
+  exportRemessaBoleto
 } = require("../../../../controllers/financeiro/controle-de-caixa/boletos");
+
+const routerReceptores = require('./receptores-router')
+router.use('/receptores', routerReceptores)
 
 router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {

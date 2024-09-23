@@ -68,7 +68,7 @@ module.exports = async (req) => {
       logger.error({
         module: "FINANCEIRO",
         origin: "CONFERENCIA_DE_CAIXA",
-        method: "LIQUIDAR_CAIXAS",
+        method: "INSERT_ONE_BOLETO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
