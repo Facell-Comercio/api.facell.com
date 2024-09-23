@@ -19,7 +19,6 @@ const {
   cruzarRelatoriosLote,
   getAllTransacoesCredit,
   insertMultiDepositoExtrato,
-  getOneAjuste,
   getAllAjustes,
   insertOneAjuste,
   deleteAjuste,
@@ -28,14 +27,6 @@ const {
   getCardDetalheDinheiro,
   lancamentoDespesa,
   importCaixasPorPeriodo,
-  getOneAjuste,
-  getAllAjustes,
-  insertOneAjuste,
-  deleteAjuste,
-  updateAjuste,
-  aprovarAjuste,
-  getCardDetalheDinheiro,
-  lancamentoDespesa,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
@@ -142,7 +133,6 @@ router.get("/cards", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async
 });
 
 router.get(
-  "/cards/dinheiro",
   "/cards/dinheiro",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
