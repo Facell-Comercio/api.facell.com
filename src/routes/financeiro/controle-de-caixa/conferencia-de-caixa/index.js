@@ -148,7 +148,6 @@ router.get(
   async (req, res) => {
     try {
       const result = await getCardDetalheDinheiro(req);
-      const result = await getCardDetalheDinheiro(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -225,23 +224,11 @@ router.get(
   }
 );
 
-router.post("/import", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await importCaixasDatasys(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.post(
-  "/import-por-periodo",
 router.get(
   "/ajustes/:id",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await importCaixasPorPeriodo(req);
       const result = await getOneAjuste(req);
       res.status(200).send(result);
     } catch (error) {
@@ -259,14 +246,40 @@ router.post("/import", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), asy
   }
 });
 
-router.post("/import-por-periodo", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
+router.post(
+  "/import-por-periodo",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await importCaixasPorPeriodo(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.post("/import", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await importCaixasPorPeriodo(req);
+    const result = await importCaixasDatasys(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
   }
 });
+
+router.post(
+  "/import-por-periodo",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  async (req, res) => {
+    try {
+      const result = await importCaixasPorPeriodo(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
 
 router.post(
   "/depositos",
@@ -316,8 +329,6 @@ router.post("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), as
   }
 });
 
-router.post(
-  "/lancamento-despesa",
 router.post("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
     const result = await insertOneAjuste(req);
@@ -332,7 +343,6 @@ router.post(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await lancamentoDespesa(req);
       const result = await lancamentoDespesa(req);
       res.status(200).send(result);
     } catch (error) {
