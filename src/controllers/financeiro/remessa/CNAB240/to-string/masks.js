@@ -64,7 +64,7 @@ function normalizeValue(value, type, maxLength, format, allowedCharacter) {
       .replace(".", "")
       .padStart(maxLength, "0");
   } else if (type === "numeric") {
-    return String(normalizeNumberOnly(value) || 0).padStart(maxLength, "0");
+    return normalizeNumberOnly(String(value || 0)).padStart(maxLength, "0");
   } else if (type === "date") {
     return String(normalizeDate(value, "ddMMyyyy")).replaceAll("/", "").padStart(maxLength, "0");
   } else if (format === "any") {
