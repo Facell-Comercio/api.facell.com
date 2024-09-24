@@ -15,6 +15,9 @@ const {
 const { localTempStorage } = require("../../../../libs/multer");
 const upload = multer({ storage: localTempStorage });
 
+const receptoresRouter = require('./receptores-router')
+router.use('/receptores', receptoresRouter)
+
 router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
     const result = await getAllBoletos(req);
