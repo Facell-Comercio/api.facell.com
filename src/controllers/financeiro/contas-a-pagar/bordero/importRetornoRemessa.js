@@ -3,7 +3,7 @@ const fs = require("fs/promises");
 
 const { logger } = require("../../../../../logger");
 const { remessaToObject } = require("../../remessa/CNAB240/to-object");
-const constants = require("../../remessa/CNAB240/layout/ITAU/constants");
+const constants = require("../../remessa/CNAB240/layout/constants");
 const { normalizeNumberOnly } = require("../../../../helpers/mask");
 const { pagarVencimento, pagarFatura } = require("./pagamentoItens");
 

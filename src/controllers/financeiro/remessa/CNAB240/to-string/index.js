@@ -1,11 +1,11 @@
-const { ITAU } = require("../layout/rules");
+const rules = require("../layout/rules");
 const {
   normalizeValue,
   removeSpecialCharactersAndAccents,
 } = require("./masks");
 
 function createHeaderArquivo(params) {
-  const headerModel = ITAU.arquivoHeader;
+  const headerModel = rules.arquivoHeader;
 
   return headerModel
     .map((h) => {
@@ -36,7 +36,7 @@ function createHeaderArquivo(params) {
 }
 
 function createHeaderLote(params, versao = "040") {
-  const headerModel = ITAU.loteHeader[versao];
+  const headerModel = rules.loteHeader[versao];
   return headerModel
     .map((h) => {
       if (
@@ -66,7 +66,7 @@ function createHeaderLote(params, versao = "040") {
 }
 
 function createSegmentoA(params) {
-  const segmentoModel = ITAU.detalhe.A;
+  const segmentoModel = rules.detalhe.pagamento.A;
   return segmentoModel
     .map((h) => {
       if (
@@ -88,7 +88,7 @@ function createSegmentoA(params) {
 }
 
 function createSegmentoB(params) {
-  const segmentoModel = ITAU.detalhe.B;
+  const segmentoModel = rules.detalhe.pagamento.B;
 
   return segmentoModel
     .map((h) => {
@@ -122,7 +122,7 @@ function createSegmentoB(params) {
 }
 
 function createSegmentoO(params) {
-  const segmentoModel = ITAU.detalhe.O;
+  const segmentoModel = rules.detalhe.pagamento.O;
 
   return segmentoModel
     .map((h) => {
@@ -144,7 +144,7 @@ function createSegmentoO(params) {
 }
 
 function createSegmentoJ(params) {
-  const segmentoModel = ITAU.detalhe.J;
+  const segmentoModel = rules.detalhe.pagamento.J;
   return segmentoModel
     .map((h) => {
       if (
@@ -164,7 +164,7 @@ function createSegmentoJ(params) {
 }
 
 function createSegmentoJ52(params) {
-  const segmentoModel = ITAU.detalhe["J-52"];
+  const segmentoModel = rules.detalhe.pagamento["J-52"];
 
   return segmentoModel
     .map((h) => {
@@ -185,7 +185,7 @@ function createSegmentoJ52(params) {
 }
 
 function createSegmentoJ52Pix(params) {
-  const segmentoModel = ITAU.detalhe["J-52-PIX"];
+  const segmentoModel = rules.detalhe.pagamento["J-52-PIX"];
 
   return segmentoModel
     .map((h) => {
@@ -208,7 +208,7 @@ function createSegmentoJ52Pix(params) {
 }
 
 function createTrailerLote(params) {
-  const trailerModel = ITAU.loteTrailer;
+  const trailerModel = rules.loteTrailer;
 
   return trailerModel
     .map((h) => {
@@ -228,7 +228,7 @@ function createTrailerLote(params) {
 }
 
 function createTrailerArquivo(params) {
-  const trailerModel = ITAU.arquivoTrailer;
+  const trailerModel = rules.arquivoTrailer;
   return trailerModel
     .map((h) => {
       if (

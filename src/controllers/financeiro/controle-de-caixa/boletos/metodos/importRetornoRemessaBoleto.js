@@ -4,7 +4,7 @@ require("dotenv").config();
 
 const { logger } = require("../../../../../../logger");
 const { remessaToObject } = require("../../../remessa/CNAB400/to-object");
-const constants = require("../../../remessa/CNAB400/layout/ITAU/constants");
+const constants = require("../../../remessa/CNAB400/layout/constants");
 const { enviarEmail } = require("../../../../../helpers/email");
 const { normalizeDate, normalizeCurrency } = require("../../../../../helpers/mask");
 const { formatDate } = require("date-fns");

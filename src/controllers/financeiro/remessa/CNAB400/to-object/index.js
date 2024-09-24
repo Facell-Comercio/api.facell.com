@@ -8,18 +8,18 @@ const remessaToObject = (txt) => {
       if (!txt) {
         throw new Error("Arquivo de texto não recebidos por parâmetro!");
       }
-      const codigo_banco = txt.substring(76, 79);
+      // const codigo_banco = txt.substring(76, 79);
 
-      const banco = rules.bancosValidos.find((banco) => banco.codigo == codigo_banco);
-      if (!banco) {
-        throw new Error(
-          `A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`
-        );
-      }
-      const layoutArquivoHeader = rules[banco.nome].arquivoHeader;
-      const layoutArquivoTrailer = rules[banco.nome].arquivoTrailer;
+      // const banco = rules.bancosValidos.find((banco) => banco.codigo == codigo_banco);
+      // if (!banco) {
+      //   throw new Error(
+      //     `A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`
+      //   );
+      // }
+      const layoutArquivoHeader = rules.arquivoHeader;
+      const layoutArquivoTrailer = rules.arquivoTrailer;
 
-      const layoutDetathe = rules.ITAU.retorno;
+      const layoutDetathe = rules.retorno;
 
       const result = {
         arquivoHeader: {},

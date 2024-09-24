@@ -16,7 +16,7 @@ const {
   createSegmentoJ52Pix,
   createSegmentoJ52,
   createSegmentoO,
-} = require("../../remessa/CNAB240/to-string/itau");
+} = require("../../remessa/CNAB240/to-string");
 const { normalizeValue } = require("../../remessa/CNAB240/to-string/masks");
 const { logger } = require("../../../../../logger");
 

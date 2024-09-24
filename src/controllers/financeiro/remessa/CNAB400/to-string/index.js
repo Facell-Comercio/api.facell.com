@@ -1,8 +1,8 @@
-const { ITAU } = require("../layout/rules");
+const rules = require("../layout/rules");
 const { normalizeValue, removeSpecialCharactersAndAccents } = require("./masks");
 
 function createHeaderArquivo(params) {
-  const headerModel = ITAU.arquivoHeader;
+  const headerModel = rules.arquivoHeader;
 
   return headerModel
     .map((h) => {
@@ -24,7 +24,7 @@ function createHeaderArquivo(params) {
 }
 
 function createDetalheArquivo(params) {
-  const segmentoModel = ITAU.detalhe;
+  const segmentoModel = rules.detalhe;
   return segmentoModel
     .map((h) => {
       if (h.required && params[h.field] === undefined && h.default === undefined) {
@@ -38,7 +38,7 @@ function createDetalheArquivo(params) {
     .join("");
 }
 function createTrailerArquivo(params) {
-  const trailerModel = ITAU.arquivoTrailer;
+  const trailerModel = rules.arquivoTrailer;
   return trailerModel
     .map((h) => {
       if (h.required && params[h.field] === undefined && h.default === undefined) {

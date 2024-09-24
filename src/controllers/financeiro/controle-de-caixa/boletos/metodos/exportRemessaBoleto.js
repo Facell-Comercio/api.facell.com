@@ -5,7 +5,7 @@ const {
   createHeaderArquivo,
   createDetalheArquivo,
   createTrailerArquivo,
-} = require("../../../remessa/CNAB400/to-string/itau");
+} = require("../../../remessa/CNAB400/to-string");
 const { logger } = require("../../../../../../logger");
 const { addDiasUteis } = require("../../../remessa/CNAB400/helper");
 const { removeSpecialCharactersAndAccents } = require("../../../../../helpers/mask");

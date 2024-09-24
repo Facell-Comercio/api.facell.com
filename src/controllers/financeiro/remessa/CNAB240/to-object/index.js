@@ -8,26 +8,26 @@ const {
 } = require("./util");
 
 const versoesLoteHeader = ["022", "030", "040"];
-const remessaToObject = (txt) => {
+const remessaToObject = (txt, tipo_retorno='pagamento') => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!txt) {
         throw new Error("Arquivo de texto não recebidos por parâmetro!");
       }
-      const codigo_banco = txt.substring(0, 3);
+      // const codigo_banco = txt.substring(0, 3);
 
-      const banco = rules.bancosValidos.find(
-        (banco) => banco.codigo == codigo_banco
-      );
-      if (!banco) {
-        throw new Error(
-          `A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`
-        );
-      }
-      const layoutArquivoHeader = rules[banco.nome].arquivoHeader;
-      const layoutArquivoTrailer = rules[banco.nome].arquivoTrailer;
+      // const banco = rules.bancosValidos.find(
+      //   (banco) => banco.codigo == codigo_banco
+      // );
+      // if (!banco) {
+      //   throw new Error(
+      //     `A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`
+      //   );
+      // }
+      const layoutArquivoHeader = rules.arquivoHeader;
+      const layoutArquivoTrailer = rules.arquivoTrailer;
 
-      const layoutLoteTrailer = rules[banco.nome].loteTrailer;
+      const layoutLoteTrailer = rules.loteTrailer;
 
       const result = {
         arquivoHeader: {},
@@ -65,7 +65,7 @@ const remessaToObject = (txt) => {
             const versao = versoesLoteHeader.includes(versaoTxt)
               ? versaoTxt
               : "040";
-            const layoutLoteHeader = rules[banco.nome].loteHeader[versao];
+            const layoutLoteHeader = rules.loteHeader[versao];
 
             if (lote !== 0) {
               result.lotes.push({
@@ -90,7 +90,7 @@ const remessaToObject = (txt) => {
           }
           if (tipo_registro == 3) {
             const segmento = checkTipoSegmentoDetalhe(linha, isPix);
-            const layoutDetalhe = rules[banco.nome]["detalhe"][segmento];
+            const layoutDetalhe = rules["detalhe"][tipo_retorno][segmento];
             if (!layoutDetalhe) {
               continue;
             }

@@ -1,6 +1,6 @@
 const normalizeNumberOnly = (value) => {
   if (!value) return "";
-  return value.replace(/[\D]/g, "");
+  return String(value).replace(/[\D]/g, "");
 };
 
 const normalizePhoneNumber = (value) => {
