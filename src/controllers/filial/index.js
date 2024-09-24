@@ -71,7 +71,7 @@ function getAll(req) {
         where += ` AND NOT f.tim_cod_sap IS NULL`;
       }
     }
-    if (isLojaTim) {
+    if (isLojaTim !== undefined) {
       where += ` AND f.tim_cod_sap IS NOT NULL`;
     }
     if (id_matriz !== undefined && id_matriz !== "all") {
