@@ -23,19 +23,19 @@ module.exports = async (req) => {
       const [filiais] = await conn.execute(
         `
         SELECT 
-          dc.id_filial,
-          SUM(dc.status = 'A CONFERIR') as a_conferir,
-          SUM(dc.status = 'CONFERIDO') as baixa_pendente,
-          SUM(dc.status = 'CONFIRMADO') as baixa_datasys_pendente,
+          f.nome as filial,
+          f.id as id_filial,
+          SUM(CASE WHEN dc.status = 'A CONFERIR' THEN 1 ELSE 0 END) AS a_conferir,
+          SUM(CASE WHEN dc.status = 'CONFERIDO' THEN 1 ELSE 0 END) AS baixa_pendente,
           COUNT(dco.id) as ocorrencias,
-          SUM(dc.divergente) as divergentes,
-          f.nome as filial
-        FROM datasys_caixas dc
-        LEFT JOIN filiais f ON f.id = dc.id_filial
+          SUM(CASE WHEN dc.divergente = TRUE THEN 1 ELSE 0 END) AS divergentes
+
+        FROM filiais f
+        LEFT JOIN datasys_caixas dc ON dc.id_filial = f.id AND dc.status IN ('A CONFERIR', 'CONFERIDO')
         LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
         ${where}
         
-        GROUP BY dc.id_filial
+        GROUP BY f.id
         `
       );
 
