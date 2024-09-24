@@ -177,7 +177,34 @@ module.exports = async (req) => {
             whereMovimento: "AND dci.forma_pagamento LIKE 'TRADEIN'",
             tipoAjuste: "valor_tradein",
           },
-          // crediario: rowsPagamentoBoletoItau,
+          crediario: {
+            table: "fin_vendas_crediario fvc",
+            forma_pgto: "CREDIÁRIO",
+            datatabaseColumns: `fvc.valor_crediario as valor, fvc.data, fvc.descricao_produto as descricao, fvc.nome_vendedor, fvc.nome_cliente`,
+            tableColumns: [
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
+              { label: "data", type: "date" },
+              {
+                label: "descricao",
+                type: "string",
+              },
+              {
+                label: "nome_vendedor",
+                type: "string",
+              },
+              {
+                label: "nome_cliente",
+                type: "string",
+              },
+            ],
+            where: "WHERE fvc.data = ? AND fvc.id_filial = ? ",
+            whereMovimento: "AND dci.forma_pagamento LIKE 'CREDIARIO'",
+            tipoAjuste: "valor_crediario",
+          },
         })
       );
 
