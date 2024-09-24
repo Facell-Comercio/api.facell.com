@@ -4,7 +4,7 @@ const getAllCaixasComSaldo = require("./getAllCaixasComSaldo");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const id_receptor = req.query.id;
+    const id_receptor = req.query.id_receptor;
 
     let conn;
     try {

@@ -24,9 +24,10 @@ module.exports = async (req) => {
         throw new Error("Este boleto já foi pago.");
       }
 
-      await conn.execute(`UPDATE datasys_caixas_boletos SET status = 'cancelado' WHERE id = ?`, [
-        id,
-      ]);
+      await conn.execute(
+        `UPDATE datasys_caixas_boletos SET status = 'cancelado', id_user_cancelamento = ?, data_cancelamento = ? WHERE id = ?`,
+        [req.user.id, new Date(), id]
+      );
       const [caixas] = await conn.execute(
         `
         SELECT valor, id_caixa

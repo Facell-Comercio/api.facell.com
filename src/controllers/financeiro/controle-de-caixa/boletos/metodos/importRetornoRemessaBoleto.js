@@ -40,28 +40,32 @@ module.exports = async (req) => {
           for (const detalhe of detalhes) {
             const id_boleto = detalhe.nosso_numero;
             const cod_ocorrencia = detalhe.cod_ocorrencia;
-            const { data_vencimento, num_doc, nosso_numero } = detalhe;
+            const { data_vencimento, num_doc, nosso_numero, num_carteira } = detalhe;
             const obs = constants.CodigosOcorrencias[cod_ocorrencia];
             let obj = {
               sequencial_arquivo: detalhe.sequencial_arquivo,
               obs,
             };
 
+            await conn.execute(
+              `
+              UPDATE datasys_caixas_boletos SET
+                data_emissao = ?,
+                data_vencimento = ?,
+                documento = ?,
+                nosso_numero = ?,
+                num_carteira = ?,
+                obs = ?
+              WHERE id = ?
+              `,
+              [data_emissao, data_vencimento, num_doc, nosso_numero, num_carteira, obs, id_boleto]
+            );
+
             if (cod_ocorrencia === 2) {
               await conn.execute(
-                `
-                UPDATE datasys_caixas_boletos SET
-                  status = 'emitido',
-                  data_emissao = ?,
-                  data_vencimento = ?,
-                  documento = ?,
-                  nosso_numero = ?,
-                  obs = ?
-                WHERE id = ?
-                `,
-                [data_emissao, data_vencimento, num_doc, nosso_numero, obs, id_boleto]
+                "UPDATE datasys_caixas_boletos SET status = 'emitido' WHERE id = ?",
+                [id_boleto]
               );
-
               const [rowsBoletos] = await conn.execute(
                 `
                 SELECT dcb.*, dcrb.email, f.nome as filial FROM datasys_caixas_receptores_boletos dcrb
@@ -79,40 +83,29 @@ module.exports = async (req) => {
                   process.env.NODE_ENV === "production"
                     ? `https://api.facell.com/visualizar.boleto.caixa?id=${boleto.id}`
                     : `http://localhost:7000/visualizar.boleto.caixa?id=${boleto.id}`;
-                await enviarEmail({
-                  destinatarios: [emails],
-                  assunto: `Novo Boleto Emitido - ${normalizeCurrency(
-                    boleto.valor
-                  )} - Vencimento ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}`,
-                  corpo_html: `
-                    <p>Valor: ${normalizeCurrency(boleto.valor)}<br/>
-                    Data de emissão:  ${formatDate(boleto.data_emissao, "dd/MM/yyyy")}<br/>
-                    Data de vencimento: ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}<br/>
-                    Link para visualizar o boleto:</p>
-                    <a href='${link}'>${link}</a>
-                  `,
-                });
+                // await enviarEmail({
+                //   destinatarios: [emails],
+                //   assunto: `Novo Boleto Emitido - ${normalizeCurrency(
+                //     boleto.valor
+                //   )} - Vencimento ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}`,
+                //   corpo_html: `
+                //     <p>Valor: ${normalizeCurrency(boleto.valor)}<br/>
+                //     Data de emissão:  ${formatDate(boleto.data_emissao, "dd/MM/yyyy")}<br/>
+                //     Data de vencimento: ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}<br/>
+                //     Link para visualizar o boleto:</p>
+                //     <a href='${link}'>${link}</a>
+                //   `,
+                // });
               }
 
               obj = { ...obj, status: "emitido" };
             } else if ([6, 8, 9, 10].includes(cod_ocorrencia)) {
-              await conn.execute(
-                `
-                UPDATE datasys_caixas_boletos SET
-                  status = 'pago',
-                  data_emissao = ?,
-                  data_vencimento = ?,
-                  documento = ?,
-                  nosso_numero = ?,
-                  obs = ?
-                WHERE id = ?
-                `,
-                [data_emissao, data_vencimento, num_doc, nosso_numero, obs, id_boleto]
-              );
+              await conn.execute("UPDATE datasys_caixas_boletos SET status = 'pago' WHERE id = ?", [
+                id_boleto,
+              ]);
               obj = { ...obj, status: "pago" };
             } else {
-              await conn.execute("UPDATE datasys_caixas_boletos SET obs = ? WHERE id = ?", [
-                obs,
+              await conn.execute("UPDATE datasys_caixas_boletos SET status = 'erro' WHERE id = ?", [
                 id_boleto,
               ]);
               obj = {
