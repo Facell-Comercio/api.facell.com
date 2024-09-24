@@ -39,6 +39,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
       let valor_despesas = 0;
       let valor_pix = 0;
       let valor_pitzi = 0;
+      let valor_crediario = 0;
 
       // CRUZAR COM VENDAS PELO PEDIDO (SEM PV) + GRUPO ESTOQUE = 'RECARGA ELETRONICA'
       let valor_recarga = 0;
@@ -110,6 +111,9 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
         if (forma_pgto.includes("PITZI") && !historico.includes("CANCELAMENTO")) {
           valor_pitzi += valor;
         }
+        if (forma_pgto.includes("CREDIARIO") && !historico.includes("CANCELAMENTO")) {
+          valor_crediario += valor;
+        }
 
         const isRecarga = valorRecarga > 0;
 
@@ -154,7 +158,8 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
               valor_recarga = :valor_recarga,
               valor_pix = :valor_pix,
               valor_pitzi = :valor_pitzi,
-              valor_tradein = :valor_tradein
+              valor_tradein = :valor_tradein,
+              valor_crediario = :valor_crediario
           WHERE id = :id_caixa`,
         {
           valor_cartao,
@@ -166,6 +171,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
           valor_pix,
           valor_tradein,
           id_caixa,
+          valor_crediario,
         }
       );
 
