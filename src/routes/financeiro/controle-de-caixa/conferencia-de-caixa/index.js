@@ -1,48 +1,11 @@
-const {
-  getOneCaixa,
-  getFiliais,
-  importCaixasDatasys,
-  getAllOcorrencias,
-  getOneDeposito,
-  getOneOcorrencia,
-  insertOneDeposito,
-  updateDeposito,
-  deleteDeposito,
-  getCaixasToRobot,
-  getAllCaixas,
-  updateOcorrencia,
-  insertOneOcorrencia,
-  changeStatusCaixa,
-  changeValueFieldCaixa,
-  cruzarRelatorios,
-  getCardDetalhe,
-  cruzarRelatoriosLote,
-  getAllTransacoesCredit,
-  insertMultiDepositoExtrato,
-  getAllAjustes,
-  insertOneAjuste,
-  deleteAjuste,
-  updateAjuste,
-  aprovarAjuste,
-  getCardDetalheDinheiro,
-  lancamentoDespesa,
-  importCaixasPorPeriodo,
-} = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
+const caixasController = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
 
 const router = require("express").Router();
 
 router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await getAllCaixas(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await getAllCaixas(req);
+    const result = await caixasController.getAllCaixas(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -51,15 +14,7 @@ router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req
 
 router.get("/filiais", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await getFiliais(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-router.get("/filiais", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await getFiliais(req);
+    const result = await caixasController.getAllFiliaisCaixas(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -68,15 +23,7 @@ router.get("/filiais", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), asy
 
 router.get("/to-robot", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await getCaixasToRobot(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-router.get("/to-robot", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await getCaixasToRobot(req);
+    const result = await caixasController.getCaixasToRobot(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -88,7 +35,7 @@ router.get(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getAllOcorrencias(req);
+      const result = await caixasController.getAllOcorrencias(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -98,7 +45,7 @@ router.get(
 
 router.get("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await getAllAjustes(req);
+    const result = await caixasController.getAllAjustes(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -107,25 +54,7 @@ router.get("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), asy
 
 router.get("/cards", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await getCardDetalhe(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.get("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await getAllAjustes(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.get("/cards", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await getCardDetalhe(req);
+    const result = await caixasController.getCardDetalhe(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -137,7 +66,7 @@ router.get(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getCardDetalheDinheiro(req);
+      const result = await caixasController.getCardDetalheDinheiro(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -150,7 +79,7 @@ router.get(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getAllTransacoesCredit(req);
+      const result = await caixasController.getAllTransacoesCredit(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -160,15 +89,7 @@ router.get(
 
 router.get("/:id", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await getOneCaixa(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-router.get("/:id", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await getOneCaixa(req);
+    const result = await caixasController.getOneCaixa(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -180,7 +101,7 @@ router.get(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getOneDeposito(req);
+      const result = await caixasController.getOneDeposito(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -193,7 +114,7 @@ router.get(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getOneOcorrencia(req);
+      const result = await caixasController.getOneOcorrencia(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -206,20 +127,7 @@ router.get(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await getOneAjuste(req);
-      res.status(200).send(result);
-    } catch (error) {
-      res.status(400).send({ message: error.message });
-    }
-  }
-);
-
-router.get(
-  "/ajustes/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await getOneAjuste(req);
+      const result = await caixasController.getOneAjuste(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -229,7 +137,7 @@ router.get(
 
 router.post("/import", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await importCaixasDatasys(req);
+    const result = await caixasController.importCaixasDatasys(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -241,29 +149,7 @@ router.post(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await importCaixasPorPeriodo(req);
-      res.status(200).send(result);
-    } catch (error) {
-      res.status(400).send({ message: error.message });
-    }
-  }
-);
-
-router.post("/import", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await importCaixasDatasys(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.post(
-  "/import-por-periodo",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await importCaixasPorPeriodo(req);
+      const result = await caixasController.importCaixasPorPeriodo(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -276,7 +162,7 @@ router.post(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await insertOneDeposito(req);
+      const result = await caixasController.insertOneDeposito(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -289,7 +175,7 @@ router.post(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await insertMultiDepositoExtrato(req);
+      const result = await caixasController.insertMultiDepositoExtrato(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -302,7 +188,7 @@ router.post(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await insertOneOcorrencia(req);
+      const result = await caixasController.insertOneOcorrencia(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -312,16 +198,7 @@ router.post(
 
 router.post("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await insertOneAjuste(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.post("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await insertOneAjuste(req);
+    const result = await caixasController.insertOneAjuste(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -333,7 +210,7 @@ router.post(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await lancamentoDespesa(req);
+      const result = await caixasController.lancamentoDespesa(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -343,16 +220,7 @@ router.post(
 
 router.put("/depositos", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await updateDeposito(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.put("/depositos", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await updateDeposito(req);
+    const result = await caixasController.updateDeposito(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -364,7 +232,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await updateOcorrencia(req);
+      const result = await caixasController.updateOcorrencia(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -374,7 +242,7 @@ router.put(
 
 router.put("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
-    const result = await updateAjuste(req);
+    const result = await caixasController.updateAjuste(req);
     res.status(200).send(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
@@ -386,29 +254,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await aprovarAjuste(req);
-      res.status(200).send(result);
-    } catch (error) {
-      res.status(400).send({ message: error.message });
-    }
-  }
-);
-
-router.put("/ajustes", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
-  try {
-    const result = await updateAjuste(req);
-    res.status(200).send(result);
-  } catch (error) {
-    res.status(400).send({ message: error.message });
-  }
-});
-
-router.put(
-  "/ajustes/aprovar",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await aprovarAjuste(req);
+      const result = await caixasController.aprovarAjuste(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -421,7 +267,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await changeStatusCaixa(req);
+      const result = await caixasController.changeStatusCaixa(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -434,7 +280,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await changeValueFieldCaixa(req);
+      const result = await caixasController.changeValueFieldCaixa(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -447,7 +293,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await importCaixasDatasys(req);
+      const result = await caixasController.importCaixasDatasys(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -460,7 +306,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await cruzarRelatorios(req);
+      const result = await caixasController.cruzarRelatorios(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -473,7 +319,7 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await cruzarRelatoriosLote(req);
+      const result = await caixasController.cruzarRelatoriosLote(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -486,7 +332,7 @@ router.delete(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await deleteDeposito(req);
+      const result = await caixasController.deleteDeposito(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
@@ -499,20 +345,7 @@ router.delete(
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
-      const result = await deleteAjuste(req);
-      res.status(200).send(result);
-    } catch (error) {
-      res.status(400).send({ message: error.message });
-    }
-  }
-);
-
-router.delete(
-  "/ajustes/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await deleteAjuste(req);
+      const result = await caixasController.deleteAjuste(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });

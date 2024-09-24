@@ -1,5 +1,5 @@
 module.exports = {
-  getFiliais: require("./metodos/getFiliais"),
+  getAllFiliaisCaixas: require("./metodos/getAllFiliaisCaixas"),
   getCaixasToRobot: require("./metodos/getCaixasToRobot"),
   getAllCaixas: require("./metodos/getAllCaixas"),
   getAllTransacoesCredit: require("./metodos/getAllTransacoesCredit"),
