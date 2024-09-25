@@ -8,7 +8,7 @@ const {
 } = require("./util");
 
 const versoesLoteHeader = ["022", "030", "040"];
-const remessaToObject = (txt, tipo_retorno='pagamento') => {
+const remessaToObject = (txt, tipo_retorno = "pagamento") => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!txt) {
@@ -49,22 +49,14 @@ const remessaToObject = (txt, tipo_retorno='pagamento') => {
           const tipo_registro = checkTipoRegistroRemessa(linha);
 
           if (tipo_registro == 0) {
-            result.arquivoHeader = transformStringToObject(
-              layoutArquivoHeader,
-              linha
-            );
+            result.arquivoHeader = transformStringToObject(layoutArquivoHeader, linha);
           }
           if (tipo_registro == 9) {
-            result.arquivoTrailer = transformStringToObject(
-              layoutArquivoTrailer,
-              linha
-            );
+            result.arquivoTrailer = transformStringToObject(layoutArquivoTrailer, linha);
           }
           if (tipo_registro == 1) {
             const versaoTxt = linha.substring(13, 16);
-            const versao = versoesLoteHeader.includes(versaoTxt)
-              ? versaoTxt
-              : "040";
+            const versao = versoesLoteHeader.includes(versaoTxt) ? versaoTxt : "040";
             const layoutLoteHeader = rules.loteHeader[versao];
 
             if (lote !== 0) {
@@ -75,16 +67,10 @@ const remessaToObject = (txt, tipo_retorno='pagamento') => {
               });
             }
             isPix = checkIsPixByLoteRemessa(linha);
-            result.lotes[lote].loteHeader = transformStringToObject(
-              layoutLoteHeader,
-              linha
-            );
+            result.lotes[lote].loteHeader = transformStringToObject(layoutLoteHeader, linha);
           }
           if (tipo_registro == 5) {
-            result.lotes[lote].loteTrailer = transformStringToObject(
-              layoutLoteTrailer,
-              linha
-            );
+            result.lotes[lote].loteTrailer = transformStringToObject(layoutLoteTrailer, linha);
             lote++;
             detalhe = 0;
           }
