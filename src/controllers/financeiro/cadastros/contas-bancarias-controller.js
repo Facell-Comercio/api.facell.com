@@ -51,9 +51,6 @@ function getAll(req) {
       where += `AND f.id IN(${contas_bancarias_habilitadas.join(",")}) `;
     }
 
-    if(onlyDatasys){
-      where += ` AND sequencial_datasys IS NOT NULL `
-    }
     if (id_filial) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
