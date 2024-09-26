@@ -32,6 +32,7 @@ function registerUserMachine(req) {
         throw new Error("Dados da inscrição incorretos");
       }
       conn = await db.getConnection();
+      await conn.beginTransaction();
       //* Consulta se a chave passada já existe no banco de dados
       const [rowsMachines] = await conn.execute(
         "SELECT id FROM user_maquinas WHERE id_user = ? AND public_key = ? AND auth = ?",
@@ -58,6 +59,8 @@ function registerUserMachine(req) {
         "INSERT INTO user_maquinas (id_user, endpoint, public_key, auth) VALUES (?,?,?,?)",
         [user.id, endpoint, p256dh, auth]
       );
+
+      await conn.commit();
       resolve();
     } catch (error) {
       logger.error({
