@@ -32,6 +32,7 @@ function registerUserMachine(req) {
         throw new Error("Dados da inscrição incorretos");
       }
       conn = await db.getConnection();
+      //* Consulta se a chave passada já existe no banco de dados
       const [rowsMachines] = await conn.execute(
         "SELECT id FROM user_maquinas WHERE id_user = ? AND public_key = ? AND auth = ?",
         [user.id, p256dh, auth]
@@ -40,13 +41,19 @@ function registerUserMachine(req) {
         resolve();
         return;
       }
+
+      //* Obtem a lista de todos os dispositivos associados ao usuário
       const [machines] = await conn.execute(
         "SELECT id FROM user_maquinas WHERE id_user = ? ORDER BY id ASC",
         [user.id]
       );
+
+      //* Limitação de 5 dispositivos por usuário
       if (machines.length >= 5) {
         await conn.execute("DELETE FROM user_maquinas WHERE id = ?", [machines[0].id]);
       }
+
+      //* Registra o novo dispositivo no banco de dados
       await conn.execute(
         "INSERT INTO user_maquinas (id_user, endpoint, public_key, auth) VALUES (?,?,?,?)",
         [user.id, endpoint, p256dh, auth]
@@ -86,6 +93,8 @@ function sendNotificationUser(req) {
       if (!machines.length) {
         throw new Error("Usuário não encontrado");
       }
+
+      //* Envia a notificação para cada dispositivo associado ao usuário
       for (const machine of machines) {
         try {
           const subscription = {
@@ -145,6 +154,8 @@ function sendNotificationUsers(req) {
       if (!machines.length) {
         throw new Error("Nenhum usuário encontrado");
       }
+
+      //* Envia a notificação para todos os dispositivos registrados no banco de dados
       for (const machine of machines) {
         try {
           const subscription = {
