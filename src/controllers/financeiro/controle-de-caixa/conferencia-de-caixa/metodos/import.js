@@ -7,7 +7,7 @@ const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
 const aplicarAjuste = require("./aplicarAjuste");
 
-async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo_economico }) {
+async function importarCaixa({ conn, filial, id_caixa, id_filial, data, movimento, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
       if (!(movimento && movimento.length > 0)) {
@@ -30,9 +30,10 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
       const [rowsVenda] = await conn.execute(
         `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} 
         WHERE 
-          grupoEstoque = 'RECARGA ELETRONICA' 
+          grupoEstoque = 'RECARGA ELETRONICA'
+          AND filial = ? 
           AND Date(dataPedido) = ?`,
-        [data]
+        [filial.nome, data]
       );
       let valor_recarga = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
 
@@ -239,6 +240,7 @@ module.exports = async (req) => {
 
         const caixa = await importarCaixa({
           conn,
+          filial,
           id_caixa,
           id_filial,
           data,
