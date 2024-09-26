@@ -13,6 +13,7 @@ const logs = require("./logs-router");
 const departamento = require("./departamento-router");
 const permissao = require("./permissao-router");
 const testes = require("./testes-router");
+const notification = require("./notification-router");
 
 const datasys = require("./datasys");
 const tim = require("./tim");
@@ -45,7 +46,8 @@ router.get("/", (req, res) => {
 });
 router.use("/auth", authRouter);
 router.use("/testes", testes);
-router.get("/visualizar.boleto.caixa", visualizarBoletoCaixa)
+router.use("/notification", notification);
+router.get("/visualizar.boleto.caixa", visualizarBoletoCaixa);
 
 // ^ Rotas privadas:
 router.use("/", authMiddleware);
