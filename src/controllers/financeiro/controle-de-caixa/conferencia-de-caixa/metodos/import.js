@@ -10,13 +10,14 @@ const aplicarAjuste = require("./aplicarAjuste");
 async function getValorRecarga({ conn, pedido, data, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
+      
       const datasys_vendas = grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
       const [rowsVenda] = await conn.execute(
         `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} 
         WHERE 
           grupoEstoque = 'RECARGA ELETRONICA' 
           AND numeroPedido = ? 
-          AND dataPedido = ?`,
+          AND Date(dataPedido) = ?`,
         [pedido, data]
       );
       const valor = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
