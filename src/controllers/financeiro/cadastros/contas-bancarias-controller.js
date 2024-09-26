@@ -155,6 +155,7 @@ function getOne(req) {
             `,
         [id]
       );
+      
       const planoContas = rowPlanoContas && rowPlanoContas[0];
       resolve(planoContas);
       return;
