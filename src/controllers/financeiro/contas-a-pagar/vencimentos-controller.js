@@ -1,10 +1,6 @@
 const { db } = require("../../../../mysql");
-const {
-  checkUserDepartment,
-} = require("../../../helpers/checkUserDepartment");
-const {
-  checkUserPermission,
-} = require("../../../helpers/checkUserPermission");
+const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 const { logger } = require("../../../../logger");
 require("dotenv").config();
 
@@ -12,25 +8,19 @@ function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const { pagination, filters } =
-      req.query || {};
-    const { pageIndex, pageSize } =
-      pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+    const { pagination, filters } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
 
-    const offset =
-      pageIndex > 0 ? pageSize * pageIndex : 0;
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
     // console.log(pageIndex, pageSize, offset)
 
     // Filtros
     var where = ` WHERE 1=1 `;
     // Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const {
@@ -65,36 +55,27 @@ function getAll(req) {
     }
 
     if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } =
-        range_data;
+      const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" ||
-        tipo_data == "data_vencimento"
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${
-            data_de.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${
-            data_ate.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
-    if (
-      id_grupo_economico &&
-      id_grupo_economico !== "all"
-    ) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -110,13 +91,8 @@ function getAll(req) {
         `,
         params
       );
-      const totalTitulos =
-        (rowsTitulos &&
-          rowsTitulos[0]["total"]) ||
-        0;
-      const limit = pagination
-        ? "LIMIT ? OFFSET ?"
-        : "";
+      const totalTitulos = (rowsTitulos && rowsTitulos[0]["total"]) || 0;
+      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       var query = `
             SELECT 
                 t.id, s.status, t.created_at, t.descricao, t.valor,
@@ -140,16 +116,11 @@ function getAll(req) {
       }
       // console.log(query);
       // console.log(params);
-      const [titulos] = await conn.execute(
-        query,
-        params
-      );
+      const [titulos] = await conn.execute(query, params);
       // console.log(query, params);
       const objResponse = {
         rows: titulos,
-        pageCount: Math.ceil(
-          totalTitulos / pageSize
-        ),
+        pageCount: Math.ceil(totalTitulos / pageSize),
         rowCount: totalTitulos,
       };
       // console.log('Fetched Titulos', titulos.length)
@@ -189,14 +160,12 @@ function getAllVencimentosEFaturas(req) {
       minStatusTitulo,
       enabledStatusPgto,
     } = req.query || {};
-    const { pageIndex, pageSize } =
-      pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
 
-    const offset =
-      pageIndex > 0 ? pageSize * pageIndex : 0;
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
     // console.log(pageIndex, pageSize, offset)
 
     // Filtros
@@ -276,13 +245,8 @@ function getAllVencimentosEFaturas(req) {
       params.push(id_matriz);
       params.push(id_matriz);
     }
-    if (
-      forma_pagamento_list &&
-      forma_pagamento_list.length > 0
-    ) {
-      where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join(
-        "','"
-      )}')`;
+    if (forma_pagamento_list && forma_pagamento_list.length > 0) {
+      where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join("','")}')`;
     }
     if (id_filial && id_filial !== "all") {
       where += ` AND (f.id = ? OR f2.id = ?)`;
@@ -336,43 +300,30 @@ function getAllVencimentosEFaturas(req) {
     }
 
     // Filtra os vencimentos com base no status
-    if (
-      enabledStatusPgto !== undefined &&
-      enabledStatusPgto.length > 0
-    ) {
-      where += ` AND tv.status IN ('${enabledStatusPgto.join(
-        "','"
-      )}')`;
+    if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
+      where += ` AND tv.status IN ('${enabledStatusPgto.join("','")}')`;
     }
 
     if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } =
-        range_data;
+      const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
-          where += ` AND (tv.${tipo_data} >= '${
-            data_de.split("T")[0]
-          }' OR ccf.${tipo_data} >= '${
+          where += ` AND (tv.${tipo_data} >= '${data_de.split("T")[0]}' OR ccf.${tipo_data} >= '${
             data_de.split("T")[0]
           }') `;
         }
         if (data_ate) {
-          where += ` AND (tv.${tipo_data} <= '${
-            data_ate.split("T")[0]
-          }' OR ccf.${tipo_data} <= '${
+          where += ` AND (tv.${tipo_data} <= '${data_ate.split("T")[0]}' OR ccf.${tipo_data} <= '${
             data_ate.split("T")[0]
           }') `;
         }
       }
     }
-    if (
-      id_grupo_economico &&
-      id_grupo_economico !== "all"
-    ) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND (f.id_grupo_economico = ? OR f2.id_grupo_economico = ?)`;
       params.push(id_grupo_economico);
       params.push(id_grupo_economico);
@@ -403,16 +354,12 @@ function getAllVencimentosEFaturas(req) {
               ${where}
         ) as subconsulta
         `;
-      const [rowsVencimentosFaturas] =
-        await conn.execute(queryTotal, params);
+      const [rowsVencimentosFaturas] = await conn.execute(queryTotal, params);
 
       const qtdeVencimentosFaturas =
-        (rowsVencimentosFaturas &&
-          rowsVencimentosFaturas[0]["qtde"]) ||
-        0;
-      const [rowsVencimentosFaturasValorTotal] =
-        await conn.execute(
-          `
+        (rowsVencimentosFaturas && rowsVencimentosFaturas[0]["qtde"]) || 0;
+      const [rowsVencimentosFaturasValorTotal] = await conn.execute(
+        `
             SELECT DISTINCT 
               SUM(COALESCE(ccf.valor,tv.valor)) as total 
             FROM fin_cp_titulos t 
@@ -432,17 +379,11 @@ function getAllVencimentosEFaturas(req) {
 
             ${where}
           `,
-          params
-        );
+        params
+      );
       const valorTotalVencimentosFaturas =
-        (rowsVencimentosFaturasValorTotal &&
-          rowsVencimentosFaturasValorTotal[0][
-            "total"
-          ]) ||
-        0;
-      const limit = pagination
-        ? "LIMIT ? OFFSET ?"
-        : "";
+        (rowsVencimentosFaturasValorTotal && rowsVencimentosFaturasValorTotal[0]["total"]) || 0;
+      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       const query = `
         SELECT DISTINCT 
           COALESCE(ccf.id,tv.id) as id_item,
@@ -493,13 +434,10 @@ function getAllVencimentosEFaturas(req) {
       }
       // console.log(query);
       // console.log(params);
-      const [vencimentosFaturas] =
-        await conn.execute(query, params);
+      const [vencimentosFaturas] = await conn.execute(query, params);
       const objResponse = {
         rows: vencimentosFaturas,
-        pageCount: Math.ceil(
-          qtdeVencimentosFaturas / pageSize
-        ),
+        pageCount: Math.ceil(qtdeVencimentosFaturas / pageSize),
         rowCount: qtdeVencimentosFaturas,
         valorTotal: valorTotalVencimentosFaturas,
       };
@@ -537,20 +475,17 @@ function getAllVencimentosBordero(req) {
       enabledStatusPgto,
       orderBy,
     } = req.query || {};
-    const { pageIndex, pageSize } =
-      pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
 
-    const offset =
-      pageIndex > 0 ? pageSize * pageIndex : 0;
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
     // console.log(pageIndex, pageSize, offset)
 
     // Filtros
     let where = ` WHERE t.id_cartao IS NULL `;
-    let order =
-      orderBy || "ORDER BY t.created_at DESC";
+    let order = orderBy || "ORDER BY t.created_at DESC";
     // Somente o Financeiro/Master podem ver todos
 
     const {
@@ -668,39 +603,26 @@ function getAllVencimentosBordero(req) {
     }
 
     // Filtra os vencimentos com base no status
-    if (
-      enabledStatusPgto !== undefined &&
-      enabledStatusPgto.length > 0
-    ) {
-      where += ` AND tv.status IN ('${enabledStatusPgto.join(
-        "','"
-      )}')`;
+    if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
+      where += ` AND tv.status IN ('${enabledStatusPgto.join("','")}')`;
     }
 
     if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } =
-        range_data;
+      const { from: data_de, to: data_ate } = range_data;
       if (data_de && data_ate) {
-        where += ` AND tv.${tipo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND tv.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
-          where += ` AND tv.${tipo_data} >= '${
-            data_de.split("T")[0]
-          }' `;
+          where += ` AND tv.${tipo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND tv.${tipo_data} <= '${
-            data_ate.split("T")[0]
-          }' `;
+          where += ` AND tv.${tipo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
-    if (
-      id_grupo_economico &&
-      id_grupo_economico !== "all"
-    ) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
@@ -727,14 +649,8 @@ function getAllVencimentosBordero(req) {
           ${where}
         ) as subconsulta
         `;
-      const [rowQtdeTotal] = await conn.execute(
-        queryQtdeTotal,
-        params
-      );
-      const totalVencimentos =
-        (rowQtdeTotal &&
-          rowQtdeTotal[0]["qtde"]) ||
-        0;
+      const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
 
       let limit = "";
       if (pagination !== undefined) {
@@ -788,16 +704,11 @@ function getAllVencimentosBordero(req) {
         `;
       // console.log(query);
       // console.log(params);
-      const [vencimentos] = await conn.execute(
-        query,
-        params
-      );
+      const [vencimentos] = await conn.execute(query, params);
 
       const objResponse = {
         rows: vencimentos,
-        pageCount: Math.ceil(
-          totalVencimentos / pageSize
-        ),
+        pageCount: Math.ceil(totalVencimentos / pageSize),
         rowCount: totalVencimentos,
       };
       // console.log('Fetched Titulos', titulos.length)
@@ -826,35 +737,22 @@ function getVencimentosAPagar(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const { pagination, filters } =
-      req.query || {};
-    const { pageIndex, pageSize } =
-      pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+    const { pagination, filters } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
 
-    const offset =
-      pageIndex > 0 ? pageSize * pageIndex : 0;
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     // Filtros
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
 
-    const {
-      id,
-      id_grupo_economico,
-      tipo_data,
-      range_data,
-      descricao,
-      id_matriz,
-    } = filters || {};
+    const { id, id_grupo_economico, tipo_data, range_data, descricao, id_matriz } = filters || {};
 
     const params = [];
     if (id) {
@@ -871,45 +769,35 @@ function getVencimentosAPagar(req) {
     }
 
     if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } =
-        range_data;
+      const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" ||
-        tipo_data == "data_vencimento"
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${
-            data_de.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${
-            data_ate.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
-    if (
-      id_grupo_economico &&
-      id_grupo_economico !== "all"
-    ) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
     // console.log(where)
     const conn = await db.getConnection();
     try {
-      const [rowsVencimentos] =
-        await conn.execute(
-          `SELECT count(t.id) as total, SUM(tv.valor) as valor_total 
+      const [rowsVencimentos] = await conn.execute(
+        `SELECT count(t.id) as total, SUM(tv.valor) as valor_total 
         FROM fin_cp_titulos_vencimentos tv
             LEFT JOIN fin_cp_titulos t ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
@@ -921,16 +809,10 @@ function getVencimentosAPagar(req) {
         AND (t.id_status = 3 OR t.id_status = 4)
         AND bi.id IS NULL
         `,
-          params
-        );
-      const totalVencimentos =
-        (rowsVencimentos &&
-          rowsVencimentos[0]["total"]) ||
-        0;
-      const valorTotalVencimentos =
-        (rowsVencimentos &&
-          rowsVencimentos[0]["valor_total"]) ||
-        0;
+        params
+      );
+      const totalVencimentos = (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
+      const valorTotalVencimentos = (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
       var query = `
             SELECT 
                 tv.id,tv.id_titulo, tv.data_vencimento, tv.data_prevista, t.descricao, tv.valor,
@@ -953,15 +835,10 @@ function getVencimentosAPagar(req) {
             `;
       params.push(pageSize);
       params.push(offset);
-      const [vencimentos] = await conn.execute(
-        query,
-        params
-      );
+      const [vencimentos] = await conn.execute(query, params);
       const objResponse = {
         rows: vencimentos,
-        pageCount: Math.ceil(
-          totalVencimentos / pageSize
-        ),
+        pageCount: Math.ceil(totalVencimentos / pageSize),
         rowCount: totalVencimentos,
         valorTotal: valorTotalVencimentos,
       };
@@ -988,35 +865,22 @@ function getVencimentosEmBordero(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const { pagination, filters } =
-      req.query || {};
-    const { pageIndex, pageSize } =
-      pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+    const { pagination, filters } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
 
-    const offset =
-      pageIndex > 0 ? pageSize * pageIndex : 0;
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     // Filtros
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
 
-    const {
-      id,
-      id_grupo_economico,
-      tipo_data,
-      range_data,
-      descricao,
-      id_matriz,
-    } = filters || {};
+    const { id, id_grupo_economico, tipo_data, range_data, descricao, id_matriz } = filters || {};
 
     const params = [];
     if (id) {
@@ -1033,45 +897,35 @@ function getVencimentosEmBordero(req) {
     }
 
     if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } =
-        range_data;
+      const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" ||
-        tipo_data == "data_vencimento"
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${
-            data_de.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${
-            data_ate.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
-    if (
-      id_grupo_economico &&
-      id_grupo_economico !== "all"
-    ) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
     // console.log(where)
     const conn = await db.getConnection();
     try {
-      const [rowsVencimentos] =
-        await conn.execute(
-          `SELECT count(t.id) as total, SUM(tv.valor) as valor_total 
+      const [rowsVencimentos] = await conn.execute(
+        `SELECT count(t.id) as total, SUM(tv.valor) as valor_total 
         FROM fin_cp_titulos_vencimentos tv
             LEFT JOIN fin_cp_titulos t ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
@@ -1083,16 +937,10 @@ function getVencimentosEmBordero(req) {
         AND tv.data_pagamento IS NULL
         AND bi.id IS NOT NULL
         `,
-          params
-        );
-      const totalVencimentos =
-        (rowsVencimentos &&
-          rowsVencimentos[0]["total"]) ||
-        0;
-      const valorTotalVencimentos =
-        (rowsVencimentos &&
-          rowsVencimentos[0]["valor_total"]) ||
-        0;
+        params
+      );
+      const totalVencimentos = (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
+      const valorTotalVencimentos = (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
 
       params.push(pageSize);
       params.push(offset);
@@ -1123,9 +971,7 @@ function getVencimentosEmBordero(req) {
 
       const objResponse = {
         rows: vencimentos,
-        pageCount: Math.ceil(
-          totalVencimentos / pageSize
-        ),
+        pageCount: Math.ceil(totalVencimentos / pageSize),
         rowCount: totalVencimentos,
         valorTotal: valorTotalVencimentos,
       };
@@ -1152,35 +998,22 @@ function getVencimentosPagos(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
 
-    const { pagination, filters } =
-      req.query || {};
-    const { pageIndex, pageSize } =
-      pagination || {
-        pageIndex: 0,
-        pageSize: 15,
-      };
+    const { pagination, filters } = req.query || {};
+    const { pageIndex, pageSize } = pagination || {
+      pageIndex: 0,
+      pageSize: 15,
+    };
 
-    const offset =
-      pageIndex > 0 ? pageSize * pageIndex : 0;
+    const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
     // Filtros
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
 
-    const {
-      id,
-      id_grupo_economico,
-      tipo_data,
-      range_data,
-      descricao,
-      id_matriz,
-    } = filters || {};
+    const { id, id_grupo_economico, tipo_data, range_data, descricao, id_matriz } = filters || {};
 
     const params = [];
     if (id) {
@@ -1197,45 +1030,35 @@ function getVencimentosPagos(req) {
     }
 
     if (tipo_data && range_data) {
-      const { from: data_de, to: data_ate } =
-        range_data;
+      const { from: data_de, to: data_ate } = range_data;
 
       const campo_data =
-        tipo_data == "data_prevista" ||
-        tipo_data == "data_vencimento"
+        tipo_data == "data_prevista" || tipo_data == "data_vencimento"
           ? `tv.${tipo_data}`
           : `t.${tipo_data}`;
 
       if (data_de && data_ate) {
-        where += ` AND ${campo_data} BETWEEN '${
-          data_de.split("T")[0]
-        }' AND '${data_ate.split("T")[0]}'  `;
+        where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
       } else {
         if (data_de) {
-          where += ` AND ${campo_data} >= '${
-            data_de.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
         }
         if (data_ate) {
-          where += ` AND ${campo_data} <= '${
-            data_ate.split("T")[0]
-          }' `;
+          where += ` AND ${campo_data} <= '${data_ate.split("T")[0]}' `;
         }
       }
     }
-    if (
-      id_grupo_economico &&
-      id_grupo_economico !== "all"
-    ) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND f.id_grupo_economico = ? `;
       params.push(id_grupo_economico);
     }
     // console.log(where)
     const conn = await db.getConnection();
     try {
-      const [rowsVencimentos] =
-        await conn.execute(
-          `SELECT count(t.id) as total, SUM(tv.valor) as valor_total 
+      const [rowsVencimentos] = await conn.execute(
+        `SELECT count(t.id) as total, SUM(tv.valor) as valor_total 
         FROM fin_cp_titulos_vencimentos tv
             LEFT JOIN fin_cp_titulos t ON tv.id_titulo = t.id
             LEFT JOIN fin_cp_status s ON s.id = t.id_status 
@@ -1247,16 +1070,10 @@ function getVencimentosPagos(req) {
         AND bi.id IS NOT NULL
         AND tv.data_pagamento IS NOT NULL
         `,
-          params
-        );
-      const totalVencimentos =
-        (rowsVencimentos &&
-          rowsVencimentos[0]["total"]) ||
-        0;
-      const valorTotalVencimentos =
-        (rowsVencimentos &&
-          rowsVencimentos[0]["valor_total"]) ||
-        0;
+        params
+      );
+      const totalVencimentos = (rowsVencimentos && rowsVencimentos[0]["total"]) || 0;
+      const valorTotalVencimentos = (rowsVencimentos && rowsVencimentos[0]["valor_total"]) || 0;
 
       var query = `
             SELECT 
@@ -1282,15 +1099,10 @@ function getVencimentosPagos(req) {
             `;
       params.push(pageSize);
       params.push(offset);
-      const [vencimentos] = await conn.execute(
-        query,
-        params
-      );
+      const [vencimentos] = await conn.execute(query, params);
       const objResponse = {
         rows: vencimentos,
-        pageCount: Math.ceil(
-          totalVencimentos / pageSize
-        ),
+        pageCount: Math.ceil(totalVencimentos / pageSize),
         rowCount: totalVencimentos,
         valorTotal: valorTotalVencimentos,
       };
@@ -1315,8 +1127,7 @@ function getVencimentosPagos(req) {
 
 function changeFieldVencimentosFaturas(req) {
   return new Promise(async (resolve, reject) => {
-    const { value: data_prevista, itens } =
-      req.body;
+    const { value: data_prevista, itens } = req.body;
     // const itens = [
     //   {id_item: 1, tipo: 'vencimento'},
     //   {id_item: 2, tipo: 'fatura'},
@@ -1326,23 +1137,15 @@ function changeFieldVencimentosFaturas(req) {
     await conn.beginTransaction();
     try {
       if (!data_prevista) {
-        throw new Error(
-          "Preencha a previsão de pagamento!"
-        );
+        throw new Error("Preencha a previsão de pagamento!");
       }
       if (!itens || !itens?.length) {
-        throw new Error(
-          "Nenhum item selecionado!"
-        );
+        throw new Error("Nenhum item selecionado!");
       }
 
       for (const item of itens) {
         if (!item) {
-          throw new Error(
-            `Item não itendificado ${JSON.stringify(
-              item
-            )}`
-          );
+          throw new Error(`Item não itendificado ${JSON.stringify(item)}`);
         }
         const id_item = item.id_item;
 
@@ -1353,8 +1156,7 @@ function changeFieldVencimentosFaturas(req) {
             `SELECT id FROM fin_cp_bordero_itens WHERE id_vencimento = ?`,
             [id_item]
           );
-          const bordero =
-            rowBordero && rowBordero[0];
+          const bordero = rowBordero && rowBordero[0];
           if (bordero) {
             throw new Error(
               `O(a) ${item.tipo} já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`
@@ -1369,23 +1171,12 @@ function changeFieldVencimentosFaturas(req) {
             WHERE tv.id = ? `,
             [item.id_item]
           );
-          const titulo =
-            rowTitulo && rowTitulo[0];
+          const titulo = rowTitulo && rowTitulo[0];
           if (!titulo) {
-            throw new Error(
-              `Titulo do vencimento ${item.id_item} não encontrado...`
-            );
+            throw new Error(`Titulo do vencimento ${item.id_item} não encontrado...`);
           }
-          if (titulo.id_status >= 4) {
-            throw new Error(
-              `Alteração rejeitada pois o título ${
-                titulo.id
-              } já consta como ${
-                titulo.id_status === 4
-                  ? "pago parcial"
-                  : "pago"
-              }!`
-            );
+          if (titulo.id_status > 4) {
+            throw new Error(`Alteração rejeitada pois o título ${titulo.id} já consta como pago!`);
           }
 
           if (!bordero || bordero.length === 0) {
@@ -1403,8 +1194,7 @@ function changeFieldVencimentosFaturas(req) {
             `SELECT id FROM fin_cp_bordero_itens WHERE id_fatura = ?`,
             [id_item]
           );
-          const bordero =
-            rowBordero && rowBordero[0];
+          const bordero = rowBordero && rowBordero[0];
           if (bordero) {
             throw new Error(
               `A Fatura já consta em bordero. Descrição: ${item.descricao}, valor: ${item.valor}`
