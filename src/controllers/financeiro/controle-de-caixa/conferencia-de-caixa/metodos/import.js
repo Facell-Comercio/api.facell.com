@@ -87,7 +87,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
           valor_crediario += valor;
         }
 
-        const isRecarga = valorRecarga > 0;
+        const isRecarga = 0;
 
         // * Insere o item do caixa:
         await conn.execute(
