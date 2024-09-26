@@ -7,27 +7,6 @@ const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
 const aplicarAjuste = require("./aplicarAjuste");
 
-async function getValorRecarga({ conn, pedido, data, grupo_economico }) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      
-      const datasys_vendas = grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
-      const [rowsVenda] = await conn.execute(
-        `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} 
-        WHERE 
-          grupoEstoque = 'RECARGA ELETRONICA' 
-          AND numeroPedido = ? 
-          AND Date(dataPedido) = ?`,
-        [pedido, data]
-      );
-      const valor = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
-      resolve(valor);
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
 async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo_economico }) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -47,7 +26,15 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
       let valor_crediario = 0;
 
       // CRUZAR COM VENDAS PELO PEDIDO (SEM PV) + GRUPO ESTOQUE = 'RECARGA ELETRONICA'
-      let valor_recarga = 0;
+      const datasys_vendas = grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
+      const [rowsVenda] = await conn.execute(
+        `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} 
+        WHERE 
+          grupoEstoque = 'RECARGA ELETRONICA' 
+          AND Date(dataPedido) = ?`,
+        [pedido, data]
+      );
+      let valor_recarga = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
 
       // FORMA_PGTO = TRADEIN || TRADE IN
       let valor_tradein = 0;
@@ -59,27 +46,6 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
         const historico = (item.HISTORICO && item.HISTORICO.toUpperCase()) || "";
         const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null;
 
-        let valorRecarga = 0;
-        if (tipo_operacao == "VENDA" && !historico.includes("CANCELAMENTO")) {
-          try {
-            valorRecarga = await getValorRecarga({
-              conn,
-              pedido: pedido.replace("PV", ""),
-              data: data,
-              grupo_economico,
-            });
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        if (
-          tipo_operacao.includes("VENDA") &&
-          valorRecarga > 0 &&
-          !historico.includes("CANCELAMENTO")
-        ) {
-          valor_recarga += valorRecarga;
-        }
         if (forma_pgto == "DINHEIRO") {
           if (tipo_operacao == "VENDA") {
             // * Dinheiro
