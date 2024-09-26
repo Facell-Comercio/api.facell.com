@@ -32,7 +32,7 @@ async function importarCaixa({ conn, id_caixa, id_filial, data, movimento, grupo
         WHERE 
           grupoEstoque = 'RECARGA ELETRONICA' 
           AND Date(dataPedido) = ?`,
-        [pedido, data]
+        [data]
       );
       let valor_recarga = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
 
