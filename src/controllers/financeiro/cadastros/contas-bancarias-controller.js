@@ -155,10 +155,11 @@ function getOne(req) {
             `,
         [id]
       );
-      
+
       const planoContas = rowPlanoContas && rowPlanoContas[0];
       resolve(planoContas);
       return;
+      
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
