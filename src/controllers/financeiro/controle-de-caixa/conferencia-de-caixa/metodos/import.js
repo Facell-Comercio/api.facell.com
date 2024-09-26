@@ -16,7 +16,7 @@ async function getValorRecarga({ conn, pedido, data, grupo_economico }) {
         WHERE 
           grupoEstoque = 'RECARGA ELETRONICA' 
           AND numeroPedido = ? 
-          AND DATE(dataPeido) = ?`,
+          AND DATE(dataPedido) = ?`,
         [pedido, formatDate(data, 'yyyy-MM-dd')]
       );
       const valor = (rowsVenda && rowsVenda[0] && rowsVenda[0].valor) || 0;
