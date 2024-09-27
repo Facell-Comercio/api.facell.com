@@ -46,12 +46,12 @@ router.get("/", (req, res) => {
 });
 router.use("/auth", authRouter);
 router.use("/testes", testes);
-router.use("/notification", notification);
 router.get("/visualizar.boleto.caixa", visualizarBoletoCaixa);
 
 // ^ Rotas privadas:
 router.use("/", authMiddleware);
 
+router.use("/notification", notification);
 router.use("/upload", uploadRouter);
 router.use("/storage", storageRouter);
 router.use("/financeiro", financeiroRouter);
