@@ -39,7 +39,13 @@ module.exports = async (req) => {
         `
       );
 
-      resolve(filiais);
+      const [rowTotalAjustes] = await conn.execute(
+        "SELECT COUNT(id) as total_ajustes FROM datasys_caixas_ajustes WHERE NOT aprovado"
+      );
+      const totalAjustes =
+        rowTotalAjustes && rowTotalAjustes[0] && rowTotalAjustes[0].total_ajustes;
+
+      resolve({ filiais, totalAjustes });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
