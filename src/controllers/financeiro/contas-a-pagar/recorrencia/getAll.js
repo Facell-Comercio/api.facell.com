@@ -21,33 +21,31 @@ module.exports = function getAllRecorrencias(
         (departamento) =>
           departamento.id_departamento
       );
-
+      
     try {
       const { user } = req;
       const { filters } = req.query || {};
-      const { mes, ano, a_lancar, ownerOnly } = filters || {
-        mes: format(new Date(), "MM"),
-        ano: format(new Date(), "yyyy"),
-      };
+      const { mes, ano, a_lancar, ownerOnly } = filters || {};
+
+      const mesValue = mes ?? format(new Date(), "MM")
+      const anoValue = ano ?? format(new Date(), "yyyy")
 
       const params = [];
       let where = "WHERE 1=1 ";
 
       const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
-      
+
       if (!isMaster) {
         if (departamentosUser?.length > 0) {
-          where += ` AND (r.id_user = '${
-            user.id
-          }' OR t.id_departamento IN (${departamentosUser.join(
-            ","
-          )})) `;
+          where += ` AND (r.id_user = '${user.id
+            }' OR t.id_departamento IN (${departamentosUser.join(
+              ","
+            )})) `;
         } else {
           where += ` AND r.id_user = '${user.id}' `;
         }
       }
-      
-      if(ownerOnly == 'true'){
+      if (ownerOnly == 'true') {
         where += ` AND r.id_user = '${user.id}' `;
       }
 
@@ -56,12 +54,11 @@ module.exports = function getAllRecorrencias(
       }
 
       where += ` AND YEAR(r.data_vencimento) = ?
-          AND MONTH(r.data_vencimento) = ?`;
-      params.push(ano);
-      params.push(mes);
+        AND MONTH(r.data_vencimento) = ?`;
+      params.push(anoValue);
+      params.push(mesValue);
 
-      const [recorrencias] = await conn.execute(
-        `SELECT 
+      let query = `SELECT 
             r.*,
             UPPER(t.descricao) as descricao, r.valor,
             forn.nome as fornecedor,
@@ -76,9 +73,9 @@ module.exports = function getAllRecorrencias(
           LEFT JOIN users u ON u.id = r.id_user
           ${where}
           ORDER BY r.data_vencimento
-          `,
-        params
-      );
+          `;
+      const [recorrencias] = await conn.execute(query, params);
+
       resolve({ rows: recorrencias });
     } catch (error) {
       logger.error({
