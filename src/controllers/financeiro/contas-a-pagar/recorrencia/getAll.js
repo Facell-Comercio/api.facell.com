@@ -25,7 +25,7 @@ module.exports = function getAllRecorrencias(
     try {
       const { user } = req;
       const { filters } = req.query || {};
-      const { mes, ano, a_lancar } = filters || {
+      const { mes, ano, a_lancar, ownerOnly } = filters || {
         mes: format(new Date(), "MM"),
         ano: format(new Date(), "yyyy"),
       };
@@ -33,12 +33,9 @@ module.exports = function getAllRecorrencias(
       const params = [];
       let where = "WHERE 1=1 ";
 
-      if (
-        !(
-          checkUserPermission(req, "MASTER") ||
-          checkUserDepartment(req, "FINANCEIRO")
-        )
-      ) {
+      const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
+      
+      if (!isMaster && !ownerOnly) {
         if (departamentosUser?.length > 0) {
           where += ` AND (r.id_user = '${
             user.id
@@ -48,6 +45,9 @@ module.exports = function getAllRecorrencias(
         } else {
           where += ` AND r.id_user = '${user.id}' `;
         }
+      }
+      if(ownerOnly){
+        where += ` AND r.id_user = '${user.id}' `;
       }
 
       if (parseInt(a_lancar)) {
