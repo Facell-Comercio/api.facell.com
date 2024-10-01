@@ -39,7 +39,7 @@ async function mantainInfiniteConnection() {
     if (conn) conn.release();
   }
 }
-setTimeout(mantainInfiniteConnection, timeout)
+setInterval(mantainInfiniteConnection, timeout)
 
 module.exports = {
   db
