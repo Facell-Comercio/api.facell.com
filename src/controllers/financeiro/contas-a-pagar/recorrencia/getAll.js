@@ -35,7 +35,7 @@ module.exports = function getAllRecorrencias(
 
       const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
       
-      if (!isMaster && !ownerOnly == 'true') {
+      if (!isMaster) {
         if (departamentosUser?.length > 0) {
           where += ` AND (r.id_user = '${
             user.id
