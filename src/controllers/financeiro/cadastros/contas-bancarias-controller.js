@@ -38,7 +38,7 @@ function getAll(req) {
     const params = [];
 
     if(!(showInactive == 'true' || showInactive == 1)){
-      where += ` cb.active = 1 `
+      where += ` AND cb.active = 1 `
     }
 
     if (!isMaster) {
