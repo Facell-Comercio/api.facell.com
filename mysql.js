@@ -28,7 +28,9 @@ async function mantainInfiniteConnection() {
     conn = await db.getConnection();
     await conn.execute('SELECT 1')
 
-    // console.log('Conexão com o banco reforçada...');
+    if(isProduction){
+      console.log('Conexão com o banco reforçada...');
+    }
   } catch (error) {
     logger.error({
       module: 'ROOT',

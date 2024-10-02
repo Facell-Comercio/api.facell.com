@@ -32,9 +32,14 @@ function getAll(req) {
       active,
       id_matriz,
       onlyDatasys,
+      showInactive
     } = filters || {};
     var where = ` WHERE 1=1 `;
     const params = [];
+
+    if(!(showInactive == 'true' || showInactive == 1)){
+      where += ` cb.active = 1 `
+    }
 
     if (!isMaster) {
       if (
