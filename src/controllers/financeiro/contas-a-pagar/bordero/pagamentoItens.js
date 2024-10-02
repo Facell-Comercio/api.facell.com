@@ -1,8 +1,8 @@
-"use strict";
-
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
-const { normalizeFirstAndLastName } = require("../../../../helpers/mask");
+const { normalizeFirstAndLastName, objectToStringLine } = require("../../../../helpers/mask");
+const updateSaldoContaBancaria = require("../../../financeiro/tesouraria/metodos/updateSaldoContaBancaria");
+const crypto = require("crypto");
 
 function pagarTituloPorVencimento({ user, conn, vencimento }) {
   return new Promise(async (resolve, reject) => {
@@ -148,6 +148,93 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento, obs }) {
   });
 }
 
+function registrarTransacoesTesouraria({ user, id_bordero, vencimentos, conn }) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!id_bordero) {
+        throw new Error("Bordero não informado");
+      }
+
+      const [rowsContaBancaria] = await conn.execute(
+        `
+        SELECT cb.id, cb.caixa, b.data_pagamento
+        FROM fin_contas_bancarias cb
+        LEFT JOIN fin_cp_bordero b ON b.id_conta_bancaria = cb.id
+        WHERE b.id = ?
+      `,
+        [id_bordero]
+      );
+
+      const contaBancaria = rowsContaBancaria && rowsContaBancaria[0];
+
+      //* SE NÃO FOR CONTA CAIXA IGNORA OS PROCEDIMENTOS ABAIXO
+      if (!contaBancaria.caixa) {
+        resolve();
+        return;
+      }
+
+      const id_conta_bancaria = contaBancaria.id;
+      const data_pagamento = contaBancaria.data_pagamento;
+
+      for (const vencimento of vencimentos) {
+        if (!vencimento.tipo_baixa) {
+          throw new Error(
+            `Você precisa informar o tipo de baixa do vencimento ${vencimento.id_vencimento}`
+          );
+        }
+        const [rowTitulo] = await conn.execute(
+          "SELECT id, descricao FROM fin_cp_titulos WHERE id = ?",
+          [vencimento.id_titulo]
+        );
+        const titulo = rowTitulo && rowTitulo[0];
+        const valor = vencimento.valor_pago || vencimento.valor_total;
+
+        const descricao = `PAGAMENTO #${titulo.id} - ${titulo.descricao}`;
+        const hashSaida = crypto
+          .createHash("md5")
+          .update(
+            objectToStringLine({
+              id_conta_bancaria,
+              valor: -valor,
+              data_deposito: data_pagamento,
+              id_user: user.id,
+              tipo_transacao: "DEBIT",
+              descricao,
+            })
+          )
+          .digest("hex");
+
+        await conn.execute(
+          `INSERT INTO fin_extratos_bancarios
+            (id_conta_bancaria, id_transacao, documento, data_transacao, tipo_transacao, valor, descricao, id_user)
+          VALUES(?,?,?,?,?,?,?,?)`,
+          [
+            id_conta_bancaria,
+            hashSaida,
+            hashSaida,
+            data_pagamento,
+            "DEBIT",
+            -valor,
+            descricao,
+            user.id,
+          ]
+        );
+
+        await updateSaldoContaBancaria({
+          body: {
+            id_conta_bancaria,
+            valor: -valor,
+            conn,
+          },
+        });
+      }
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 function pagarFatura({ user, conn, fatura, data_pagamento, obs }) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -239,7 +326,7 @@ function pagamentoItens(req) {
     let conn;
     try {
       const user = req.user;
-      const { itens, data_pagamento } = req.body;
+      const { itens, data_pagamento, id_bordero } = req.body;
 
       conn = await db.getConnection();
       if (!data_pagamento) {
@@ -250,6 +337,17 @@ function pagamentoItens(req) {
 
       const vencimentos = itens.filter((item) => item.tipo === "vencimento");
       const faturas = itens.filter((item) => item.tipo === "fatura");
+      const vencimentos_dinheiro = itens.filter(
+        (item) => item.tipo === "vencimento" && item.forma_pagamento === "Dinheiro"
+      );
+
+      // * REGISTRO DE TRANSAÇÕES TESOURARIA
+      await registrarTransacoesTesouraria({
+        user,
+        conn,
+        vencimentos: vencimentos_dinheiro,
+        id_bordero,
+      });
 
       // * PAGAMENTO DOS VENCIMENTOS
       await Promise.all(

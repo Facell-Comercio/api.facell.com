@@ -51,7 +51,7 @@ module.exports = async (req) => {
         body: {
           id_conta_bancaria: id_caixa_saida,
           valor: -valor_transferir,
-          conn_externa: conn,
+          conn,
         },
       });
 
@@ -91,7 +91,7 @@ module.exports = async (req) => {
         body: {
           id_conta_bancaria: id_caixa_entrada,
           valor: valor_transferir,
-          conn_externa: conn,
+          conn,
         },
       });
 

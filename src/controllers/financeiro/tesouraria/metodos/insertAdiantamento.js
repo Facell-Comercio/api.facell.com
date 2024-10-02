@@ -47,7 +47,7 @@ module.exports = async (req) => {
         body: {
           id_conta_bancaria,
           valor: -valor,
-          conn_externa: conn,
+          conn,
         },
       });
 

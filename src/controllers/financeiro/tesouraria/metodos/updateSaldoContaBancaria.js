@@ -1,26 +1,30 @@
 const { logger } = require("../../../../../logger");
-const { db } = require("../../../../../mysql");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const { conn_externa, valor, id_conta_bancaria } = req.body;
+    const { conn, valor, id_conta_bancaria } = req.body;
 
-    let conn;
     try {
-      conn = conn_externa || (await db.getConnection());
+      //* VALIDAÇÃO DE SALDO NO CASO DE RETIRADA
+      if (valor < 0) {
+        const [rowsContaBancaria] = await conn.execute(
+          "SELECT saldo FROM fin_contas_bancarias WHERE id = ?",
+          [id_conta_bancaria]
+        );
+        const contaBancaria = rowsContaBancaria && rowsContaBancaria[0];
+        if (parseFloat(contaBancaria.saldo) < Math.abs(parseFloat(String(valor)))) {
+          throw new Error("Saldo insuficiente na tesouraria");
+        }
+      }
 
       await conn.execute(
         `
         UPDATE fin_contas_bancarias
         SET saldo = saldo + ?,
-        data_saldo = CURDATE()
+        data_saldo = NOW()
         WHERE id = ?`,
         [valor, id_conta_bancaria]
       );
-
-      if (!conn_externa) {
-        await conn.commit();
-      }
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
@@ -29,10 +33,7 @@ module.exports = async (req) => {
         method: "UPDATE_SALDO_CONTA_BANCARIA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
-      if (conn) await conn.rollback();
       reject(error);
-    } finally {
-      conn.release();
     }
   });
 };
