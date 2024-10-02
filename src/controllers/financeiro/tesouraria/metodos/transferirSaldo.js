@@ -2,15 +2,9 @@ const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 const crypto = require("crypto");
 const { formatDate } = require("../../../../services/boleto/helper/formatters");
+const updateSaldoContaBancaria = require("./updateSaldoContaBancaria");
+const { objectToStringLine } = require("../../../../helpers/mask");
 
-function objectToString(object) {
-  return Object.values(object).reduce((acc, value) => {
-    if (value instanceof Date) {
-      value = formatDate(value, "yyyyMMdd");
-    }
-    return acc + (value !== null && value !== undefined ? String(value) : "");
-  }, "");
-}
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
@@ -53,15 +47,19 @@ module.exports = async (req) => {
       const contaEntrada = rowContaEntrada && rowContaEntrada[0];
 
       //* SAÍDA
-      await conn.execute(
-        "UPDATE fin_contas_bancarias SET saldo = saldo - ?, data_saldo = ? WHERE id = ?",
-        [valor_transferir, data_hoje, id_caixa_saida]
-      );
+      await updateSaldoContaBancaria({
+        body: {
+          id_conta_bancaria: id_caixa_saida,
+          valor: -valor_transferir,
+          conn_externa: conn,
+        },
+      });
+
       const descricaoSaida = `TRANSFERENCIA - ${contaEntrada.descricao}`;
       const hashSaida = crypto
         .createHash("md5")
         .update(
-          objectToString({
+          objectToStringLine({
             id_caixa_saida,
             valor_transferir,
             data_transferir: data_hoje,
@@ -89,15 +87,19 @@ module.exports = async (req) => {
       );
 
       //* ENTRADA
-      await conn.execute(
-        "UPDATE fin_contas_bancarias SET saldo = saldo + ?, data_saldo = ? WHERE id = ?",
-        [valor_transferir, data_hoje, id_caixa_entrada]
-      );
+      await updateSaldoContaBancaria({
+        body: {
+          id_conta_bancaria: id_caixa_entrada,
+          valor: valor_transferir,
+          conn_externa: conn,
+        },
+      });
+
       const descricaoEntrada = `TRANSFERENCIA - ${contaSaida.descricao}`;
       const hashEntrada = crypto
         .createHash("md5")
         .update(
-          objectToString({
+          objectToStringLine({
             id_caixa_entrada,
             valor_transferir,
             data_transferir: data_hoje,

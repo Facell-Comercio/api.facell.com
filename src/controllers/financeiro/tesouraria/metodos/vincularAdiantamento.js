@@ -1,6 +1,7 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 const { pagarVencimento } = require("../../contas-a-pagar/bordero/pagamentoItens");
+const updateSaldoContaBancaria = require("./updateSaldoContaBancaria");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -52,17 +53,15 @@ module.exports = async (req) => {
         );
       }
 
-      //* DESCONTA NO SALDO DA CONTA O VALOR DO TÍTULO
-      await conn.execute("UPDATE fin_contas_bancarias SET saldo = saldo - ? WHERE id = ?", [
-        valor_titulo,
-        id_conta_bancaria,
-      ]);
-
-      //* DEVOLVENDO O SALDO RETIRADO PELO ADIANTAMENTO
-      await conn.execute("UPDATE fin_contas_bancarias SET saldo = saldo + ? WHERE id = ?", [
-        valor_extrato,
-        id_conta_bancaria,
-      ]);
+      //* ATUALIZA O VALOR DO SALDO DA CONTA BANCÁRIA
+      const valorAtualizado = valor_extrato - valor_titulo;
+      await updateSaldoContaBancaria({
+        body: {
+          id_conta_bancaria,
+          valor: valorAtualizado,
+          conn_externa: conn,
+        },
+      });
 
       //* UPDATE EXTRATO BANCÁRIO
       await conn.execute(

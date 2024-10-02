@@ -2,15 +2,9 @@ const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 const crypto = require("crypto");
 const { formatDate } = require("../../../../services/boleto/helper/formatters");
+const updateSaldoContaBancaria = require("./updateSaldoContaBancaria");
+const { objectToStringLine } = require("../../../../helpers/mask");
 
-function objectToString(object) {
-  return Object.values(object).reduce((acc, value) => {
-    if (value instanceof Date) {
-      value = formatDate(value, "yyyyMMdd");
-    }
-    return acc + (value !== null && value !== undefined ? String(value) : "");
-  }, "");
-}
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
@@ -49,14 +43,18 @@ module.exports = async (req) => {
       }
 
       //* SAÍDA
-      await conn.execute(
-        "UPDATE fin_contas_bancarias SET saldo = saldo - ?, data_saldo = ? WHERE id = ?",
-        [valor, data_hoje, id_conta_bancaria]
-      );
+      await updateSaldoContaBancaria({
+        body: {
+          id_conta_bancaria,
+          valor: -valor,
+          conn_externa: conn,
+        },
+      });
+
       const hashSaida = crypto
         .createHash("md5")
         .update(
-          objectToString({
+          objectToStringLine({
             id_conta_bancaria,
             valor,
             data_transferir: data_hoje,

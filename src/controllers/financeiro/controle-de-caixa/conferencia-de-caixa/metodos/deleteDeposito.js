@@ -1,5 +1,6 @@
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
+const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
 const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
@@ -19,15 +20,44 @@ module.exports = async (req) => {
       conn = await db.getConnection();
       await conn.beginTransaction();
 
-      const [rowDeposito] = await conn.execute(`SELECT id, id_caixa FROM datasys_caixas_depositos WHERE id = ?`,[id])
-      const deposito = rowDeposito && rowDeposito[0];
-      if(!deposito){
-        throw new Error('Depósito não localizado!')
+      const [rowsCaixas] = await conn.execute(
+        `SELECT dc.id, dc.status, dc.data
+        FROM datasys_caixas_depositos dcd
+        LEFT JOIN datasys_caixas dc ON dc.id = dcd.id_caixa
+        WHERE dcd.id = ?`,
+        [id]
+      );
+      const caixa = rowsCaixas && rowsCaixas[0];
+
+      if (caixa.status === "CONFIRMADO") {
+        throw new Error("Não há como deletar depósitos neste caixa");
       }
-      await conn.execute(`DELETE FROM datasys_caixas_depositos WHERE id = ?`, [
-        id,
-      ]);
-      await updateSaldo({conn, id_caixa: deposito.id_caixa})
+      const [rowDeposito] = await conn.execute(
+        `SELECT id, id_caixa, id_conta_bancaria, id_transacao_criada, valor FROM datasys_caixas_depositos WHERE id = ?`,
+        [id]
+      );
+      const deposito = rowDeposito && rowDeposito[0];
+      if (!deposito) {
+        throw new Error("Depósito não localizado!");
+      }
+      //* SE FOR UMA CONTA CAIXA
+      if (deposito.id_transacao_criada) {
+        await updateSaldoContaBancaria({
+          body: {
+            id_conta_bancaria: deposito.id_conta_bancaria,
+            valor: -parseFloat(deposito.valor),
+            conn_externa: conn,
+          },
+        });
+
+        await conn.execute("DELETE FROM fin_extratos_bancarios WHERE id = ?", [
+          deposito.id_transacao_criada,
+        ]);
+      }
+
+      await conn.execute(`DELETE FROM datasys_caixas_depositos WHERE id = ?`, [id]);
+
+      await updateSaldo({ conn, id_caixa: deposito.id_caixa });
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
