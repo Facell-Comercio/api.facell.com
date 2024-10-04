@@ -83,19 +83,20 @@ module.exports = async (req) => {
                   process.env.NODE_ENV === "production"
                     ? `https://api.facell.com/visualizar.boleto.caixa?id=${boleto.id}`
                     : `http://localhost:7000/visualizar.boleto.caixa?id=${boleto.id}`;
-                // await enviarEmail({
-                //   destinatarios: [emails],
-                //   assunto: `Novo Boleto Emitido - ${normalizeCurrency(
-                //     boleto.valor
-                //   )} - Vencimento ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}`,
-                //   corpo_html: `
-                //     <p>Valor: ${normalizeCurrency(boleto.valor)}<br/>
-                //     Data de emissão:  ${formatDate(boleto.data_emissao, "dd/MM/yyyy")}<br/>
-                //     Data de vencimento: ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}<br/>
-                //     Link para visualizar o boleto:</p>
-                //     <a href='${link}'>${link}</a>
-                //   `,
-                // });
+
+                await enviarEmail({
+                  destinatarios: [emails],
+                  assunto: `Novo Boleto Emitido - ${normalizeCurrency(
+                    boleto.valor
+                  )} - Vencimento ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}`,
+                  corpo_html: `
+                    <p>Valor: ${normalizeCurrency(boleto.valor)}<br/>
+                    Data de emissão:  ${formatDate(boleto.data_emissao, "dd/MM/yyyy")}<br/>
+                    Data de vencimento: ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}<br/>
+                    Link para visualizar o boleto:</p>
+                    <a href='${link}'>${link}</a>
+                  `,
+                });
               }
 
               obj = { ...obj, status: "emitido" };
