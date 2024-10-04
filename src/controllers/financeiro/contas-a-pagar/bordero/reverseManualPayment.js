@@ -47,7 +47,17 @@ function registrarDevolucaoTesouraria({ user, conn, id_vencimento }) {
       );
       const titulo = rowTitulo && rowTitulo[0];
 
-      const descricao = `DEVOLUCAO PAGAMENTO #${titulo.id} - ${titulo.descricao}`;
+      let descricao = `DEVOLUCAO PAGAMENTO #${titulo.id} - ${titulo.descricao}`;
+
+      // * Verifica se já existe um extrato com a mesma descrição:
+      const [extratosRepetidos] = await conn.execute(
+        "SELECT id FROM fin_extratos_bancarios WHERE descricao LIKE CONCAT(?,'%')",
+        [descricao]
+      );
+      if (extratosRepetidos.length > 0) {
+        descricao += ` (${extratosRepetidos.length})`;
+      }
+
       const hashEntrada = crypto
         .createHash("md5")
         .update(
