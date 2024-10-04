@@ -1,23 +1,9 @@
 const { db } = require("../../../../mysql");
 const { logger } = require("../../../../logger");
 const fs = require("fs/promises");
-const {
-  remessaToObject,
-} = require("../remessa/CNAB240/to-object");
-const {
-  normalizeCodigoBarras,
-} = require("../remessa/CNAB240/to-string/masks");
-
-function ensureArray(data) {
-  if (!data) return null;
-  if (Array.isArray(data)) {
-    return data;
-  }
-  // Converte o objeto de volta para um array
-  return Object.keys(data).map(
-    (key) => data[key]
-  );
-}
+const { remessaToObject } = require("../remessa/CNAB240/to-object");
+const { normalizeCodigoBarras } = require("../remessa/CNAB240/to-string/masks");
+const { ensureArray } = require("../../../helpers/mask");
 
 async function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -25,11 +11,10 @@ async function getAll(req) {
     try {
       const { filters, pagination } = req.query;
 
-      const { pageIndex, pageSize } =
-        pagination || {
-          pageIndex: 0,
-          pageSize: 15,
-        };
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
       const {
         id_filial,
         nome_fornecedor,
@@ -60,37 +45,29 @@ async function getAll(req) {
       }
 
       if (cod_barras) {
-        const codBarras =
-          normalizeCodigoBarras(cod_barras);
+        const codBarras = normalizeCodigoBarras(cod_barras);
         where += ` AND dda.cod_barras = ?  `;
         params.push(codBarras);
       }
 
       if (tipo_data && range_data) {
-        const { from: data_de, to: data_ate } =
-          range_data;
+        const { from: data_de, to: data_ate } = range_data;
         if (data_de && data_ate) {
-          where += ` AND dda.${tipo_data} BETWEEN '${
-            data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+          where += ` AND dda.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
         } else {
           if (data_de) {
-            where += ` AND dda.${tipo_data} = '${
-              data_de.split("T")[0]
-            }' `;
+            where += ` AND dda.${tipo_data} = '${data_de.split("T")[0]}' `;
           }
           if (data_ate) {
-            where += ` AND dda.${tipo_data} = '${
-              data_ate.split("T")[0]
-            }' `;
+            where += ` AND dda.${tipo_data} = '${data_ate.split("T")[0]}' `;
           }
         }
       }
 
       if (ensureArray(filiais_list)) {
-        where += ` AND f.id IN(${ensureArray(
-          filiais_list
-        ).join(",")}) `;
+        where += ` AND f.id IN(${ensureArray(filiais_list).join(",")}) `;
       }
 
       const offset = pageIndex * pageSize;
@@ -105,11 +82,7 @@ async function getAll(req) {
         params
       );
 
-      const qtdeTotal =
-        (rowQtdeTotal &&
-          rowQtdeTotal[0] &&
-          rowQtdeTotal[0]["qtde"]) ||
-        0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
       params.push(pageSize);
       params.push(offset);
 
@@ -125,16 +98,11 @@ async function getAll(req) {
               LIMIT ? OFFSET ?
             `;
 
-      const [rows] = await conn.execute(
-        query,
-        params
-      );
+      const [rows] = await conn.execute(query, params);
 
       const objResponse = {
         rows: rows,
-        pageCount: Math.ceil(
-          qtdeTotal / pageSize
-        ),
+        pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
@@ -164,9 +132,7 @@ async function importDDA(req) {
 
       const files = req.files;
       if (!files || !files.length) {
-        throw new Error(
-          "Arquivos não recebidos!"
-        );
+        throw new Error("Arquivos não recebidos!");
       }
 
       let index = 1;
@@ -179,47 +145,31 @@ async function importDDA(req) {
         const filePath = file?.path;
         try {
           if (!filePath) {
-            throw new Error(
-              "O arquivo não importado corretamente!"
-            );
+            throw new Error("O arquivo não importado corretamente!");
           }
 
           // Ler e fazer parse do arquivo
-          const data = await fs.readFile(
-            filePath,
-            "utf8"
-          );
-          const objRemessa =
-            await remessaToObject(data);
+          const data = await fs.readFile(filePath, "utf8");
+          const objRemessa = await remessaToObject(data);
 
           let qtdeImportada = 0;
           // Passagem pelos lotes
           const lotes = objRemessa.lotes;
           if (!lotes || !lotes.length) {
-            throw new Error(
-              "Aquivo vazio ou não foi possível acessar os lotes de boletos..."
-            );
+            throw new Error("Aquivo vazio ou não foi possível acessar os lotes de boletos...");
           }
           for (const lote of lotes) {
             // Passagem pelos segmentos G
-            const segmentos =
-              lote.detalhe?.filter(
-                (d) =>
-                  d.cod_seg_registro_lote === "G"
-              );
+            const segmentos = lote.detalhe?.filter((d) => d.cod_seg_registro_lote === "G");
             if (!segmentos || !segmentos.length) {
               continue;
             }
             for (const segmento of segmentos) {
               const params = [
-                String(
-                  lote.loteHeader.cnpj_empresa
-                ).padStart(14, "0"),
+                String(lote.loteHeader.cnpj_empresa).padStart(14, "0"),
                 segmento.banco,
                 segmento.cod_barras,
-                String(
-                  segmento.cnpj_fornecedor
-                ).padStart(14, "0"),
+                String(segmento.cnpj_fornecedor).padStart(14, "0"),
                 segmento.nome_fornecedor,
                 segmento.data_vencimento,
                 segmento.valor,
@@ -321,15 +271,10 @@ async function autoVincularDDA() {
         boleto.id_fatura = null;
         boleto.mensagem = null;
 
-        const params = [
-          boleto.valor,
-          boleto.cnpj_filial,
-          boleto.cnpj_fornecedor,
-        ];
+        const params = [boleto.valor, boleto.cnpj_filial, boleto.cnpj_fornecedor];
         // console.log(params)
-        const [rowVencimento] =
-          await conn.execute(
-            `SELECT
+        const [rowVencimento] = await conn.execute(
+          `SELECT
               v.id, v.valor, f.cnpj as cnpj_filial, ff.cnpj as cnpj_fornecedor
             FROM fin_cp_titulos_vencimentos v 
             INNER JOIN fin_cp_titulos t ON t.id = v.id_titulo
@@ -344,10 +289,9 @@ async function autoVincularDDA() {
                 AND ff.cnpj = ?
             LIMIT 1
             `,
-            params
-          );
-        const vencimento =
-          rowVencimento && rowVencimento[0];
+          params
+        );
+        const vencimento = rowVencimento && rowVencimento[0];
 
         const [rowFatura] = await conn.execute(
           `SELECT
@@ -374,21 +318,18 @@ async function autoVincularDDA() {
           continue;
         }
         if (vencimento) {
-          await conn.execute(
-            `UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`,
-            [vencimento.id, boleto.id]
-          );
-          (boleto.vinculado = true),
-            (boleto.id_vencimento =
-              vencimento.id);
+          await conn.execute(`UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`, [
+            vencimento.id,
+            boleto.id,
+          ]);
+          (boleto.vinculado = true), (boleto.id_vencimento = vencimento.id);
         }
         if (fatura) {
-          await conn.execute(
-            `UPDATE fin_dda SET id_fatura = ? WHERE id = ?`,
-            [fatura.id, boleto.id]
-          );
-          (boleto.vinculado = true),
-            (boleto.id_fatura = fatura.id);
+          await conn.execute(`UPDATE fin_dda SET id_fatura = ? WHERE id = ?`, [
+            fatura.id,
+            boleto.id,
+          ]);
+          (boleto.vinculado = true), (boleto.id_fatura = fatura.id);
         }
 
         // console.log({
@@ -412,8 +353,7 @@ async function exportDDA() {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
-      const [boletos] =
-        await conn.execute(`SELECT 
+      const [boletos] = await conn.execute(`SELECT 
                 *
                 FROM fin_dda `);
 
@@ -448,83 +388,51 @@ async function vincularDDA(req) {
     let conn;
     try {
       conn = await db.getConnection();
-      const {
-        id_vencimento,
-        id_forma_pagamento,
-        id_dda,
-      } = req.body;
+      const { id_vencimento, id_forma_pagamento, id_dda } = req.body;
       if (!id_vencimento) {
-        throw new Error(
-          "ID do vencimento não informado!"
-        );
+        throw new Error("ID do vencimento não informado!");
       }
       if (!id_dda) {
-        throw new Error(
-          "ID do DDA não informado!"
-        );
+        throw new Error("ID do DDA não informado!");
       }
       if (!id_forma_pagamento) {
-        throw new Error(
-          "ID da forma de pagamento não informado!"
-        );
+        throw new Error("ID da forma de pagamento não informado!");
       }
 
       const isFatura = id_forma_pagamento === 6;
-      const columnName = isFatura
-        ? "id_fatura"
-        : "id_vencimento";
+      const columnName = isFatura ? "id_fatura" : "id_vencimento";
 
       // ^ Verificar se o Vencimento ou a fatura existe
       if (isFatura) {
-        const [rowVencimento] =
-          await conn.execute(
-            `SELECT id FROM fin_cartoes_corporativos_faturas WHERE id = ?`,
-            [id_vencimento]
-          );
-        if (
-          rowVencimento &&
-          !rowVencimento.length
-        ) {
-          throw new Error(
-            `Fatura de ID ${id_vencimento} não existe!`
-          );
+        const [rowVencimento] = await conn.execute(
+          `SELECT id FROM fin_cartoes_corporativos_faturas WHERE id = ?`,
+          [id_vencimento]
+        );
+        if (rowVencimento && !rowVencimento.length) {
+          throw new Error(`Fatura de ID ${id_vencimento} não existe!`);
         }
       } else {
-        const [rowVencimento] =
-          await conn.execute(
-            `SELECT id FROM fin_cp_titulos_vencimentos WHERE id = ? AND id_fatura IS NULL`,
-            [id_vencimento]
-          );
-        if (
-          rowVencimento &&
-          !rowVencimento.length
-        ) {
-          throw new Error(
-            `Vencimento de ID ${id_vencimento} não existe!`
-          );
+        const [rowVencimento] = await conn.execute(
+          `SELECT id FROM fin_cp_titulos_vencimentos WHERE id = ? AND id_fatura IS NULL`,
+          [id_vencimento]
+        );
+        if (rowVencimento && !rowVencimento.length) {
+          throw new Error(`Vencimento de ID ${id_vencimento} não existe!`);
         }
       }
 
       // ^ Verificar se vencimento já foi vinculado
-      const [rowVencimentosVinculados] =
-        await conn.execute(
-          `SELECT id, cod_barras FROM fin_dda WHERE ${columnName} = ?`,
-          [id_vencimento]
-        );
-      if (
-        rowVencimentosVinculados &&
-        rowVencimentosVinculados.length > 0
-      ) {
+      const [rowVencimentosVinculados] = await conn.execute(
+        `SELECT id, cod_barras FROM fin_dda WHERE ${columnName} = ?`,
+        [id_vencimento]
+      );
+      if (rowVencimentosVinculados && rowVencimentosVinculados.length > 0) {
         throw new Error(
           `${
             isFatura ? "Fatura" : "Vencimento"
           } de ID ${id_vencimento} já foi vinculado com o DDA ID: ${
             rowVencimentosVinculados[0]["id"]
-          }, código de barras: ${
-            rowVencimentosVinculados[0][
-              "cod_barras"
-            ]
-          }!`
+          }, código de barras: ${rowVencimentosVinculados[0]["cod_barras"]}!`
         );
       }
 
@@ -535,31 +443,23 @@ async function vincularDDA(req) {
       );
 
       if (!rowDDA && !rowDDA.length) {
-        throw new Error(
-          `Registro ${id_dda} do DDA não existe!`
-        );
+        throw new Error(`Registro ${id_dda} do DDA não existe!`);
       }
       const DDAbanco = rowDDA && rowDDA[0];
       //^ Se tem ID Vencimento no DDA então já está vinculado:
-      if (
-        isFatura
-          ? DDAbanco.id_fatura
-          : DDAbanco.id_vencimento
-      ) {
+      if (isFatura ? DDAbanco.id_fatura : DDAbanco.id_vencimento) {
         throw new Error(
           `Registro ${id_dda} do DDA já consta como vinculado, não deu para vincular com o ${columnName} ${
-            isFatura
-              ? DDAbanco.id_forma_pagamento
-              : DDAbanco.id_vencimento
+            isFatura ? DDAbanco.id_forma_pagamento : DDAbanco.id_vencimento
           }`
         );
       }
 
       // * Vinculação
-      await conn.execute(
-        `UPDATE fin_dda SET ${columnName} = ? WHERE id = ?`,
-        [id_vencimento, id_dda]
-      );
+      await conn.execute(`UPDATE fin_dda SET ${columnName} = ? WHERE id = ?`, [
+        id_vencimento,
+        id_dda,
+      ]);
       resolve(true);
     } catch (error) {
       logger.error({
@@ -585,9 +485,7 @@ async function desvincularDDA(req) {
     try {
       const { id_dda } = req.body;
       if (!id_dda) {
-        throw new Error(
-          "ID do DDA não informado!"
-        );
+        throw new Error("ID do DDA não informado!");
       }
 
       // ^ Obter o DDA
@@ -597,35 +495,24 @@ async function desvincularDDA(req) {
       );
 
       if (!rowDDA && !rowDDA.length) {
-        throw new Error(
-          `Registro ${id_dda} do DDA não existe!`
-        );
+        throw new Error(`Registro ${id_dda} do DDA não existe!`);
       }
       const DDAbanco = rowDDA && rowDDA[0];
       if (DDAbanco.id_vencimento) {
         //^ Obter o Vencimento:
-        const [rowVencimento] =
-          await conn.execute(
-            `SELECT id, status FROM fin_cp_titulos_vencimentos WHERE id = ?`,
-            [DDAbanco.id_vencimento]
-          );
-        const vencimento =
-          rowVencimento && rowVencimento[0];
-        if (
-          vencimento &&
-          (vencimento.status == "pago" ||
-            vencimento.status == "programado")
-        ) {
+        const [rowVencimento] = await conn.execute(
+          `SELECT id, status FROM fin_cp_titulos_vencimentos WHERE id = ?`,
+          [DDAbanco.id_vencimento]
+        );
+        const vencimento = rowVencimento && rowVencimento[0];
+        if (vencimento && (vencimento.status == "pago" || vencimento.status == "programado")) {
           throw new Error(
             `Vencimento ${vencimento.id} do já consta como pago ou já foi programado para pagamento!`
           );
         }
 
         // * Desvinculação
-        await conn.execute(
-          `UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`,
-          [null, id_dda]
-        );
+        await conn.execute(`UPDATE fin_dda SET id_vencimento = ? WHERE id = ?`, [null, id_dda]);
       }
       if (DDAbanco.id_fatura) {
         //^ Obter a Fatura:
@@ -634,21 +521,14 @@ async function desvincularDDA(req) {
           [DDAbanco.id_fatura]
         );
         const fatura = rowFatura && rowFatura[0];
-        if (
-          fatura &&
-          (fatura.status == "pago" ||
-            fatura.status == "programado")
-        ) {
+        if (fatura && (fatura.status == "pago" || fatura.status == "programado")) {
           throw new Error(
             `Fatura ${fatura.id} já consta como pago ou já foi programado para pagamento!`
           );
         }
 
         // * Desvinculação
-        await conn.execute(
-          `UPDATE fin_dda SET id_fatura = ? WHERE id = ?`,
-          [null, id_dda]
-        );
+        await conn.execute(`UPDATE fin_dda SET id_fatura = ? WHERE id = ?`, [null, id_dda]);
       }
       resolve(true);
     } catch (error) {

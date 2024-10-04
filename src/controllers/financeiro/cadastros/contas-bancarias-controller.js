@@ -1,4 +1,4 @@
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
@@ -32,9 +32,11 @@ function getAll(req) {
       active,
       id_matriz,
       onlyDatasys,
+      onlyCaixa,
       showInactive
     } = filters || {};
-    var where = ` WHERE 1=1 `;
+    let where = ` WHERE 1=1 `;
+
     const params = [];
 
     if(!(showInactive == 'true' || showInactive == 1)){
@@ -42,10 +44,7 @@ function getAll(req) {
     }
 
     if (!isMaster) {
-      if (
-        !contas_bancarias_habilitadas ||
-        contas_bancarias_habilitadas.length === 0
-      ) {
+      if (!contas_bancarias_habilitadas || contas_bancarias_habilitadas.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
@@ -60,7 +59,7 @@ function getAll(req) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
     }
-    if (id_matriz && id_matriz !== 'all') {
+    if (id_matriz && id_matriz !== "all") {
       where += ` AND f.id_matriz = ? `;
       params.push(id_matriz);
     }
@@ -73,7 +72,7 @@ function getAll(req) {
       else where += ` AND fb.nome LIKE CONCAT('%',?,'%') `;
       params.push(banco);
     }
-    if (id_grupo_economico && id_grupo_economico !== 'all') {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND ge.id = ? `;
       params.push(id_grupo_economico);
     }
@@ -84,6 +83,9 @@ function getAll(req) {
     if (active) {
       where += ` AND cb.active = ? `;
       params.push(active);
+    }
+    if (onlyCaixa && parseInt(onlyCaixa)) {
+      where += " AND cb.caixa";
     }
 
     const offset = pageIndex * pageSize;
@@ -100,14 +102,13 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       params.push(pageSize);
       params.push(offset);
       var query = `
             SELECT 
-              f.id_matriz, cb.id_filial, cb.id, cb.descricao, f.nome as filial, ge.nome, 
+              f.id_matriz, cb.*, f.nome as filial, ge.nome, 
               fb.nome as banco, ge.nome as grupo_economico, 
               ftc.tipo as tipo_conta, cb.active
             FROM fin_contas_bancarias cb
@@ -164,7 +165,6 @@ function getOne(req) {
       const planoContas = rowPlanoContas && rowPlanoContas[0];
       resolve(planoContas);
       return;
-      
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
@@ -202,11 +202,7 @@ function insertOne(req) {
         }
         campos += `${key}`;
         values += `?`;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       const query = `INSERT INTO fin_contas_bancarias (${campos}) VALUES (${values});`;
@@ -248,11 +244,7 @@ function update(req) {
           updateQuery += ", "; // Adicionar vírgula entre os campos
         }
         updateQuery += `${key} = ? `;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       params.push(id);

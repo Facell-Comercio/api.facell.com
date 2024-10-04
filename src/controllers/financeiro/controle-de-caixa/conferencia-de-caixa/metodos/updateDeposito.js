@@ -2,6 +2,7 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 const updateSaldo = require("./updateSaldo");
+const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -21,16 +22,36 @@ module.exports = async (req) => {
       await conn.beginTransaction();
 
       const [rowsCaixas] = await conn.execute(
-        `
-        SELECT id, status FROM datasys_caixas
-        WHERE id = ?
-        AND (status = 'CONFIRMADO' OR status = 'CONFIRMADO')
-      `,
+        "SELECT id, status, data FROM datasys_caixas WHERE id = ?",
         [id_caixa]
       );
+      const caixa = rowsCaixas && rowsCaixas[0];
 
-      if (rowsCaixas && rowsCaixas.length > 0) {
-        throw new Error("Os depósitos não podem ser atualizados nesse caixa");
+      if (caixa.status === "CONFIRMADO") {
+        throw new Error("Não há como atualizar depósitos neste caixa");
+      }
+
+      const [rowsDepositos] = await conn.execute(
+        "SELECT id_conta_bancaria, id_transacao_criada, valor as valor_anterior FROM datasys_caixas_depositos WHERE id = ?",
+        [id]
+      );
+      const deposito = rowsDepositos && rowsDepositos[0];
+
+      //* SE FOR UMA CONTA CAIXA
+      if (deposito.id_transacao_criada) {
+        await conn.execute("UPDATE fin_extratos_bancarios SET valor = ? WHERE id = ?", [
+          valor,
+          deposito.id_transacao_criada,
+        ]);
+        const valorAtualizado = parseFloat(valor) - parseFloat(deposito.valor_anterior);
+
+        await updateSaldoContaBancaria({
+          body: {
+            id_conta_bancaria: deposito.id_conta_bancaria,
+            valor: valorAtualizado,
+            conn,
+          },
+        });
       }
 
       await conn.execute(

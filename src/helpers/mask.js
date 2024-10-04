@@ -46,13 +46,10 @@ const normalizePercentual = (value) => {
   if (isNaN(valueMultiplicado)) {
     return "0.00%";
   }
-  return valueMultiplicado.toLocaleString(
-    "pt-BR",
-    {
-      style: "percent",
-      minimumFractionDigits: 2,
-    }
-  );
+  return valueMultiplicado.toLocaleString("pt-BR", {
+    style: "percent",
+    minimumFractionDigits: 2,
+  });
 };
 
 const normalizeDataDayOne = (dataString) => {
@@ -60,9 +57,7 @@ const normalizeDataDayOne = (dataString) => {
     const data = new Date(dataString);
 
     const ano = data.getFullYear();
-    const mes = (data.getMonth() + 1)
-      .toString()
-      .padStart(2, "0");
+    const mes = (data.getMonth() + 1).toString().padStart(2, "0");
 
     const dataFormatada = `${ano}-${mes}-01`;
 
@@ -70,13 +65,7 @@ const normalizeDataDayOne = (dataString) => {
   }
 };
 
-const normalizeDate = (data) =>
-  data &&
-  data
-    .split("T")[0]
-    .split("-")
-    .reverse()
-    .join("/");
+const normalizeDate = (data) => data && data.split("T")[0].split("-").reverse().join("/");
 const normalizeCurrency = (data) => {
   if (typeof data === "string") {
     const valor = parseFloat(data);
@@ -98,9 +87,7 @@ const normalizeCurrency = (data) => {
 function normalizeFirstAndLastName(nomeCompleto) {
   if (!nomeCompleto) return "NOME NÃO INFORMADO!";
   // Usa uma expressão regular para extrair o primeiro e último nome
-  const match = nomeCompleto.match(
-    /^(\S+)\s+(.+)\s+(\S+)$/
-  );
+  const match = nomeCompleto.match(/^(\S+)\s+(.+)\s+(\S+)$/);
 
   // Verifica se houve uma correspondência
   if (match) {
@@ -116,8 +103,7 @@ function normalizeFirstAndLastName(nomeCompleto) {
 function removeSpecialCharactersAndAccents(str) {
   const regex = /[^A-Za-z0-9\s]/g;
   const normalizedStr = str.replace(regex, "");
-  const lowerCaseStr =
-    normalizedStr.toLowerCase();
+  const lowerCaseStr = normalizedStr.toLowerCase();
   const trimmedStr = lowerCaseStr.trim();
   return trimmedStr;
 }
@@ -155,8 +141,7 @@ function normalizeCodigoBarras48(texto) {
 
   // Remove pontos e espaços
   let textoTratado = normalizeNumberOnly(texto);
-  if (textoTratado.length == 44)
-    return textoTratado;
+  if (textoTratado.length == 44) return textoTratado;
 
   if (textoTratado.length !== 48) {
     throw new Error(
@@ -183,9 +168,7 @@ function normalizeCodigoBarras48(texto) {
 /**
  * Função que extrai URL / Chave de endereçamento do PIX Copia e Cola
  * */
-function normalizeURLChaveEnderecamentoPIX(
-  qr_code
-) {
+function normalizeURLChaveEnderecamentoPIX(qr_code) {
   if (!qr_code) {
     throw new Error("QR Code não informado!");
   }
@@ -198,35 +181,18 @@ function normalizeURLChaveEnderecamentoPIX(
   // return etapa1[1].substring(4, caracteres);
 
   // Verifica se o QR Code contém a URL do PSP (indicativo de QR dinâmico)
-  if (
-    qr_code
-      .toLowerCase()
-      .includes("pix.bpp.com.br")
-  ) {
-    const urlStart = qr_code
-      .toLowerCase()
-      .indexOf("pix.bpp.com.br");
+  if (qr_code.toLowerCase().includes("pix.bpp.com.br")) {
+    const urlStart = qr_code.toLowerCase().indexOf("pix.bpp.com.br");
     const etapa1 = qr_code.substring(urlStart);
-    const tamanhoUrl = parseInt(
-      etapa1.substring(17, 21)
-    ); // Extrai o tamanho da URL
+    const tamanhoUrl = parseInt(etapa1.substring(17, 21)); // Extrai o tamanho da URL
     return etapa1.substring(21, 21 + tamanhoUrl); // Retorna a URL completa
-  } else if (
-    qr_code
-      .toLowerCase()
-      .includes("br.gov.bcb.pix")
-  ) {
+  } else if (qr_code.toLowerCase().includes("br.gov.bcb.pix")) {
     // Caso seja um QR estático
-    const etapa1 = qr_code
-      .toLowerCase()
-      .split("br.gov.bcb.pix");
-    const tamanhoChave =
-      parseInt(etapa1[1].substring(2, 4)) + 4;
+    const etapa1 = qr_code.toLowerCase().split("br.gov.bcb.pix");
+    const tamanhoChave = parseInt(etapa1[1].substring(2, 4)) + 4;
     return etapa1[1].substring(4, tamanhoChave); // Retorna a chave de endereçamento
   } else {
-    throw new Error(
-      "Chave PIX ou URL não identificada"
-    );
+    throw new Error("Chave PIX ou URL não identificada");
   }
 }
 
@@ -234,10 +200,29 @@ function excelDateToJSDate(serial) {
   // Ponto de início (1900 ou 1904)
   const baseDate = new Date(1900, 0, 1); // 1 de janeiro de 1900
   const days = serial - 2; // Ajuste para o bug do Excel que considera 1900 como ano bissexto
-  return new Date(
-    baseDate.getTime() +
-      days * 24 * 60 * 60 * 1000
-  );
+  return new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function ensureArray(data) {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    return data;
+  }
+  // Converte o objeto de volta para um array
+  return Object.keys(data).map((key) => data[key]);
+}
+
+function objectToStringLine(object) {
+  return Object.values(object).reduce((acc, value) => {
+    if (value instanceof Date) {
+      const dia = String(value.getDate()).padStart(2, "0");
+      const mes = String(value.getMonth() + 1).padStart(2, "0");
+      const ano = value.getFullYear();
+
+      value = `${dia}${mes}${ano}`;
+    }
+    return acc + (value !== null && value !== undefined ? String(value) : "");
+  }, "");
 }
 
 module.exports = {
@@ -255,4 +240,6 @@ module.exports = {
   normalizeCodigoBarras48,
   normalizeURLChaveEnderecamentoPIX,
   excelDateToJSDate,
+  ensureArray,
+  objectToStringLine,
 };

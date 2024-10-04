@@ -2,15 +2,7 @@ const XLSX = require("xlsx");
 const fs = require("fs").promises;
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
-
-function ensureArray(data) {
-  if (!data) return null;
-  if (Array.isArray(data)) {
-    return data;
-  }
-  // Converte o objeto de volta para um array
-  return Object.keys(data).map((key) => data[key]);
-}
+const { ensureArray } = require("../../../../../helpers/mask");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {

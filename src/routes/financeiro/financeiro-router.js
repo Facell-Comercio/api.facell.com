@@ -12,6 +12,7 @@ const bancos = require("./cadastros/bancos");
 const contasBancarias = require("./cadastros/contas-bancarias");
 const equipamentosCielo = require("./cadastros/equipamentos-cielo");
 const rateios = require("./cadastros/rateios");
+const tesouraria = require("./tesouraria");
 
 const formasPagamento = require("./formas-pagamento");
 const extratosBancarios = require("./extratos-bancarios");
@@ -26,6 +27,9 @@ router.use("/controle-de-caixa", controleDeCaixa);
 
 // Orçamento
 router.use("/orcamento", orcamento);
+
+// Tesouraria
+router.use("/tesouraria", tesouraria);
 
 // Cadastros
 router.use("/fornecedores", fornecedores);
