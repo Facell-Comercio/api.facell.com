@@ -62,45 +62,10 @@ module.exports = async (req) => {
             );
 
             if (cod_ocorrencia === 2) {
-              await conn.execute(
-                "UPDATE datasys_caixas_boletos SET status = 'emitido' WHERE id = ?",
-                [id_boleto]
-              );
-              const [rowsBoletos] = await conn.execute(
-                `
-                SELECT dcb.*, dcrb.email, f.nome as filial FROM datasys_caixas_receptores_boletos dcrb
-                LEFT JOIN datasys_caixas_boletos dcb ON dcb.id_filial = dcrb.id_filial
-                LEFT JOIN filiais f ON f.id = dcrb.id_filial
-                WHERE dcb.id = ?`,
-                [id_boleto]
-              );
-
-              //* Envio de email para receptores de boletos da loja
-              if (rowsBoletos.length > 0) {
-                const boleto = rowsBoletos && rowsBoletos[0];
-                const emails = rowsBoletos?.map((boleto) => boleto.email);
-                const link =
-                  process.env.NODE_ENV === "production"
-                    ? `https://api.facell.com/visualizar.boleto.caixa?id=${boleto.id}`
-                    : `http://localhost:7000/visualizar.boleto.caixa?id=${boleto.id}`;
-
-                await enviarEmail({
-                  destinatarios: [emails],
-                  assunto: `Novo Boleto Emitido - ${normalizeCurrency(
-                    boleto.valor
-                  )} - Vencimento ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}`,
-                  corpo_html: `
-                    <p>Valor: ${normalizeCurrency(boleto.valor)}<br/>
-                    Data de emissão:  ${formatDate(boleto.data_emissao, "dd/MM/yyyy")}<br/>
-                    Data de vencimento: ${formatDate(boleto.data_vencimento, "dd/MM/yyyy")}<br/>
-                    Link para visualizar o boleto:</p>
-                    <a href='${link}'>${link}</a>
-                  `,
-                });
-              }
+              // Lógica movida para o exportRemessaBoleto...
 
               obj = { ...obj, status: "emitido" };
-            } else if ([6, 8, 9, 10].includes(cod_ocorrencia)) {
+            } else if (cod_ocorrencia === 6) {
               await conn.execute("UPDATE datasys_caixas_boletos SET status = 'pago' WHERE id = ?", [
                 id_boleto,
               ]);

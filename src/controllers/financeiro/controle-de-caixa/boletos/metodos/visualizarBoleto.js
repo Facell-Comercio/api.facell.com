@@ -20,7 +20,8 @@ module.exports = async (req, res) => {
             `SELECT 
             boleto.id,
             boleto.valor,
-            LPAD(nosso_numero, 8, '0') as nosso_numero,
+            -- LPAD(nosso_numero, 8, '0') as nosso_numero,
+            nosso_numero,
             boleto.documento,
             boleto.data_emissao,
             boleto.data_vencimento, 
@@ -77,7 +78,7 @@ module.exports = async (req, res) => {
         let cedente = dadosBoleto.razao_social
         let cedente_cnpj = dadosBoleto.cnpj_filial
         let agencia = dadosBoleto.agencia_bancaria
-        let codigo_cedente = `${dadosBoleto.conta_bancaria}${dadosBoleto.dv_conta_bancaria || 0}`
+        let codigo_cedente = `${dadosBoleto.conta_bancaria}`
 
         let pagador = formatters.generateTextPagadorBoleto({
             razao: dadosBoleto['pagador_razao'], 
