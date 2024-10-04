@@ -189,7 +189,17 @@ function registrarTransacoesTesouraria({ user, id_bordero, vencimentos, conn }) 
         const titulo = rowTitulo && rowTitulo[0];
         const valor = vencimento.valor_pago || vencimento.valor_total;
 
-        const descricao = `PAGAMENTO #${titulo.id} - ${titulo.descricao}`;
+        let descricao = `PAGAMENTO #${titulo.id} - ${titulo.descricao}`;
+
+        // * Verifica se já existe um extrato com a mesma descrição:
+        const [extratosRepetidos] = await conn.execute(
+          "SELECT id FROM fin_extratos_bancarios WHERE descricao LIKE CONCAT(?,'%')",
+          [descricao]
+        );
+        if (extratosRepetidos.length > 0) {
+          descricao += ` (${extratosRepetidos.length})`;
+        }
+
         const hashSaida = crypto
           .createHash("md5")
           .update(
