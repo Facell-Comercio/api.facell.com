@@ -42,10 +42,10 @@ async function importarCaixa({ conn, filial, id_caixa, id_filial, data, moviment
       for (const item of movimento) {
         const valor = parseFloat(item.VALOR || 0);
         const pedido = item.DOCUMENTO;
-        const forma_pgto = (item.FORMA_PGTO && item.FORMA_PGTO.toUpperCase()) || "";
-        const tipo_operacao = (item.TIPO_OPERACAO && item.TIPO_OPERACAO.toUpperCase()) || "";
-        const historico = (item.HISTORICO && item.HISTORICO.toUpperCase()) || "";
-        const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase()) || null;
+        const forma_pgto = (item.FORMA_PGTO && item.FORMA_PGTO.toUpperCase().trim()) || "";
+        const tipo_operacao = (item.TIPO_OPERACAO && item.TIPO_OPERACAO.toUpperCase().trim()) || "";
+        const historico = (item.HISTORICO && item.HISTORICO.toUpperCase().trim()) || "";
+        const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase().trim()) || null;
 
         if (forma_pgto == "DINHEIRO") {
           if (tipo_operacao == "VENDA") {
