@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
         `
         SELECT
           db.id, db.valor as valor_titulo, f.cnpj as num_inscricao_pagador,
-          f.razao as nome_pagador, f.logradouro, f.municipio, f.municipio as cidade,
+          f.nome as nome_pagador, f.logradouro, f.municipio, f.municipio as cidade,
           f.cep, f.uf
         FROM datasys_caixas_boletos db
         LEFT JOIN filiais f ON f.id = db.id_filial
