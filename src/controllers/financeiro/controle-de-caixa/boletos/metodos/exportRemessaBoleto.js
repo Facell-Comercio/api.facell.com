@@ -1,4 +1,4 @@
-const { formatDate, addDays } = require("date-fns");
+const { formatDate } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 
 const {
@@ -8,7 +8,8 @@ const {
 } = require("../../../remessa/CNAB400/to-string");
 const { logger } = require("../../../../../../logger");
 const { addDiasUteis } = require("../../../remessa/CNAB400/helper");
-const { removeSpecialCharactersAndAccents } = require("../../../../../helpers/mask");
+const { removeSpecialCharactersAndAccents, normalizeCurrency } = require("../../../../../helpers/mask");
+const { enviarEmail } = require("../../../../../helpers/email");
 require('dotenv').config();
 
 module.exports = async (req, res) => {
@@ -143,13 +144,14 @@ module.exports = async (req, res) => {
             documento = ?,
             nosso_numero = ?, 
             id_conta_bancaria = ? 
-          WHERE id = ?`, [
+          WHERE 
+            id = ?`, [
           data_emissao,
           data_vencimento,
           boleto.id,
           boleto.id,
-          boleto.id,
           id_conta_bancaria,
+          boleto.id,
         ]);
       }
 
@@ -170,6 +172,13 @@ module.exports = async (req, res) => {
 
       arquivo.push(trailerArquivo);
 
+      //* DISPARO DE EMAILS:
+      for (const email of emails) {
+        await enviarEmail(email);
+      }
+
+      await conn.commit();
+
       // * ENVIO DO ARQUIVO
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
       const filename = `REMESSA BOLETO - ${formatDate(
@@ -182,13 +191,6 @@ module.exports = async (req, res) => {
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);
 
-
-      //* Dispara os emails:
-      for (const email of emails) {
-        await enviarEmail(email);
-      }
-
-      await conn.commit();
       // await conn.rollback();
       resolve();
     } catch (error) {

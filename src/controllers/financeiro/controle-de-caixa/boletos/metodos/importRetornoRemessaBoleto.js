@@ -5,9 +5,6 @@ require("dotenv").config();
 const { logger } = require("../../../../../../logger");
 const { remessaToObject } = require("../../../remessa/CNAB400/to-object");
 const constants = require("../../../remessa/CNAB400/layout/constants");
-const { enviarEmail } = require("../../../../../helpers/email");
-const { normalizeDate, normalizeCurrency } = require("../../../../../helpers/mask");
-const { formatDate } = require("date-fns");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
