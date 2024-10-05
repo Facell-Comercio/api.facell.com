@@ -1,7 +1,6 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 const crypto = require("crypto");
-const { formatDate } = require("../../../../services/boleto/helper/formatters");
 const updateSaldoContaBancaria = require("./updateSaldoContaBancaria");
 const { objectToStringLine } = require("../../../../helpers/mask");
 

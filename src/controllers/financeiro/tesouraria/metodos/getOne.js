@@ -56,7 +56,7 @@ module.exports = (req) => {
 
       const [rowsContasBancarias] = await conn.execute(
         `
-        SELECT cb.id, cb.descricao as conta, cb.saldo, f.id_matriz
+        SELECT cb.id, cb.descricao as conta, cb.saldo, f.id_matriz, cb.data_fechamento
         FROM fin_contas_bancarias cb
         LEFT JOIN filiais f ON f.id = cb.id_filial
         WHERE cb.id = ?
@@ -81,7 +81,13 @@ module.exports = (req) => {
       }
 
       const [rowsMovimentacaoCaixa] = await conn.execute(
-        `SELECT eb.* FROM fin_extratos_bancarios eb
+        `SELECT eb.*,
+        CASE WHEN eb.data_transacao > cb.data_fechamento
+        AND (eb.adiantamento OR eb.suprimento)
+        AND NOT eb.id_titulo_adiantamento
+        THEN TRUE ELSE FALSE END as allowAction
+        FROM fin_extratos_bancarios eb
+        LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
         ORDER BY eb.data_transacao DESC
         ${limit}`,
