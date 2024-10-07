@@ -18,7 +18,7 @@ module.exports = (req) => {
         throw new Error("ID do extrato não informado!");
       }
       const [rowTransacao] = await conn.execute(
-        "SELECT * FROM fin_extratos_bancarios WHERE id = ?",
+        "SELECT *, ABS(valor) as valor FROM fin_extratos_bancarios WHERE id = ?",
         [id]
       );
       const transacao = rowTransacao && rowTransacao[0];
