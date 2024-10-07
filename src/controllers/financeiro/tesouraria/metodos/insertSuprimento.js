@@ -82,7 +82,6 @@ module.exports = async (req) => {
       );
 
       await conn.commit();
-      // await conn.rollback();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({

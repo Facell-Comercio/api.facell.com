@@ -84,7 +84,7 @@ module.exports = (req) => {
         `SELECT eb.*,
         CASE WHEN eb.data_transacao > cb.data_fechamento
         AND (eb.adiantamento OR eb.suprimento)
-        AND NOT eb.id_titulo_adiantamento
+        AND eb.id_titulo_adiantamento IS NULL
         THEN TRUE ELSE FALSE END as allowAction
         FROM fin_extratos_bancarios eb
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria

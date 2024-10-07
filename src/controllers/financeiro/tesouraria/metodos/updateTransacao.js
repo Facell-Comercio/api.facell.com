@@ -1,10 +1,12 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
+const { normalizeFirstAndLastName } = require("../../../../helpers/mask");
+const updateSaldoContaBancaria = require("./updateSaldoContaBancaria");
 
 module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const { descricao, valor, id } = req.body;
+    const { descricao, valor, id, tipo } = req.body;
 
     if (!user) {
       reject("Usuário não autenticado!");
@@ -23,16 +25,37 @@ module.exports = (req) => {
       if (!valor) {
         throw new Error("Valor não informado!");
       }
+      await conn.beginTransaction();
 
-      console.log("UPDATE", { id, descricao, valor });
+      const [rowTransacao] = await conn.execute(
+        "SELECT ABS(valor) as valor, id_conta_bancaria, adiantamento FROM fin_extratos_bancarios WHERE id = ?",
+        [id]
+      );
+      const transacao = rowTransacao && rowTransacao[0];
+      if (!transacao) {
+        throw new Error("Transacao não encontrada!");
+      }
+      const valorAnteriorTransacao = parseFloat(transacao.valor);
+      const id_conta_bancaria = transacao.id_conta_bancaria;
+      const isAdiantamento = !!transacao.adiantamento;
 
-      // await conn.execute(
-      //   "UPDATE FROM fin_extratos_bancarios descricao = ?, valor = ? WHERE id = ?",
-      //   [descricao, valor, id_extrato]
-      // );
+      // const updatedDescricao = `${descricao} (ATUALIZADO: ${normalizeFirstAndLastName(user.name)})`;
+      await conn.execute(
+        "UPDATE fin_extratos_bancarios SET descricao = ?, valor = ? WHERE id = ?",
+        [descricao, isAdiantamento ? valor * -1 : valor, id]
+      );
 
-      //! ATUALIZAR SALDO DA CONTA
+      //* ATUALIZA O VALOR DO SALDO DA CONTA BANCÁRIA
+      const valorAtualizado = valor - valorAnteriorTransacao;
+      await updateSaldoContaBancaria({
+        body: {
+          id_conta_bancaria,
+          valor: isAdiantamento ? -1 * valorAtualizado : valorAtualizado,
+          conn,
+        },
+      });
 
+      await conn.commit();
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
@@ -41,6 +64,7 @@ module.exports = (req) => {
         method: "UPDATE_TRANSACAO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
       if (conn) conn.release();
