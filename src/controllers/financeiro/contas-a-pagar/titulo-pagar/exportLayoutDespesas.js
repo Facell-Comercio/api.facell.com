@@ -141,7 +141,8 @@ module.exports = function exportLayoutDespesas(req, res) {
 
       // * Lista de vencimentos
       const query = `SELECT 
-          tv.id as id_vencimento,  
+          tv.id as id_vencimento,
+          ffp.forma_pagamento,
           t.id as id_titulo, 
           s.status as status_titulo,
           tv.valor as valor_vencimento, 
@@ -169,6 +170,7 @@ module.exports = function exportLayoutDespesas(req, res) {
         INNER JOIN fin_cp_titulos t on t.id = tv.id_titulo
         LEFT JOIN departamentos d ON d.id = t.id_departamento 
         LEFT JOIN fin_rateio r ON r.id = t.id_rateio 
+        LEFT JOIN fin_formas_pagamento ffp ON ffp.id = t.id_forma_pagamento 
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
         LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero 
@@ -194,7 +196,8 @@ module.exports = function exportLayoutDespesas(req, res) {
             tr.id as id_item_rateio,
             f.nome as filial,
             fcc.nome  as centro_custo,
-            CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
+            fpc.codigo as codigo_plano_conta,
+            fpc.descricao as plano_conta,
             tr.percentual
           FROM 
             fin_cp_titulos_rateio tr 
@@ -240,11 +243,13 @@ module.exports = function exportLayoutDespesas(req, res) {
             'DATA VENCIMENTO': vencimento.data_vencimento,
             'DATA PREVISTA': vencimento.data_prevista,
             'CENTRO DE CUSTOS': item_rateio.centro_custo,
+            'CODIGO PLANO DE CONTAS': item_rateio.codigo_plano_conta,
             'PLANO DE CONTAS': item_rateio.plano_conta,
             'VALOR': valorVencimentoRateado,
             'DATA PAGAMENTO': vencimento.data_pagamento,
             'VALOR PAGO': valorPagoVencimentoRateado,
             'TIPO BAIXA': vencimento.tipo_baixa,
+            'FORMA DE PAGAMENTO': vencimento.forma_pagamento,
 
           }
           // console.log({ despesa });
