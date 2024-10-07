@@ -29,7 +29,13 @@ module.exports = async (req) => {
       if (statusPagamento === "pago") {
         throw new Error("Ação não permitida, pagamento já realizado!");
       }
-      await conn.execute(`UPDATE ${updatedTable} SET status = 'pendente' WHERE id = ?`, [id]);
+      await conn.execute(
+        `UPDATE ${updatedTable} 
+        SET status = 'pendente', data_pagamento = NULL, tipo_baixa = NULL,
+        valor_pago = NULL, obs = NULL
+        WHERE id = ?`,
+        [id]
+      );
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
