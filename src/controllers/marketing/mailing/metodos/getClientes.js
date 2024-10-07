@@ -18,39 +18,54 @@ module.exports = async = (req) => {
     };
 
     const {
-      grupo_estoque,
-      subgrupo,
-      areas,
-      data_pedido,
+      grupo_estoque_list,
+      subgrupo_list,
+      uf_list,
+      filiais_list,
+      plano_habilitado_list,
+      modalidade_venda_list,
+      fabricante_list,
+      tipo_pedido_list,
+
+      range_data_pedido,
       valor_minimo,
       valor_maximo,
-      filial,
       descricao,
-      plano_habilitacao,
-      modalidade_venda,
-      fabricante,
-      tipo_pedido,
       fidelizacao_aparelho,
       fidelizacao_plano,
     } = filters || {};
 
-    let where = ` WHERE 1=1 `;
+    let where = ` 
+        WHERE 1=1
+        AND tipoPedido = 'Venda'
+        AND gsm IS NOT NULL
+        AND Date(dataPedido) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)`;
+
     const params = [];
 
-    if (grupo_estoque) {
-      where += ` AND grupoEstoque LIKE CONCAT(?,"%") `;
-      params.push(grupo_estoque);
+    if (grupo_estoque_list && grupo_estoque_list.length > 0) {
+      where += ` AND grupoEstoque IN('${ensureArray(grupo_estoque_list).join("','")}') `;
     }
-    if (subgrupo) {
-      where += ` AND subgrupo LIKE CONCAT(?,"%") `;
-      params.push(subgrupo);
+    if (subgrupo_list && subgrupo_list.length > 0) {
+      where += ` AND subgrupo IN('${ensureArray(subgrupo_list).join("','")}') `;
     }
-    if (areas && areas.length > 0) {
-      where += ` AND area IN('${ensureArray(areas).join("','")}') `;
+    if (uf_list && uf_list.length > 0) {
+      where += ` AND area IN('${ensureArray(uf_list).join("','")}') `;
     }
-    if (data_pedido) {
-      where += ` AND DATE(dataPedido) =? `;
-      params.push(formatDate(data_pedido, "yyyy-MM-dd"));
+    if (range_data_pedido) {
+      const { from: data_de, to: data_ate } = range_data_pedido;
+      if (data_de && data_ate) {
+        where += ` AND DATE(dataPedido) BETWEEN '${data_de.split("T")[0]}' AND '${
+          data_ate.split("T")[0]
+        }'  `;
+      } else {
+        if (data_de) {
+          where += ` AND DATE(dataPedido) >= '${data_de.split("T")[0]}' `;
+        }
+        if (data_ate) {
+          where += ` AND DATE(dataPedido) <= '${data_ate.split("T")[0]}' `;
+        }
+      }
     }
     if (valor_minimo) {
       where += ` AND valorCaixa >=? `;
@@ -60,29 +75,24 @@ module.exports = async = (req) => {
       where += ` AND valorCaixa <=? `;
       params.push(valor_maximo);
     }
-    if (filial) {
-      where += ` AND filial LIKE CONCAT("%",?,"%") `;
-      params.push(filial);
+    if (filiais_list && filiais_list.length > 0) {
+      where += ` AND filial IN('${ensureArray(filiais_list).join("','")}') `;
     }
     if (descricao) {
       where += ` AND descricao LIKE CONCAT("%",?,"%") `;
       params.push(descricao);
     }
-    if (plano_habilitacao) {
-      where += ` AND planoHabilitacao LIKE CONCAT("%",?,"%") `;
-      params.push(plano_habilitacao);
+    if (plano_habilitado_list && plano_habilitado_list.length > 0) {
+      where += ` AND planoHabilitacao IN('${ensureArray(plano_habilitado_list).join("','")}') `;
     }
-    if (modalidade_venda) {
-      where += ` AND modalidadeVenda LIKE CONCAT(?,"%") `;
-      params.push(modalidade_venda);
+    if (modalidade_venda_list && modalidade_venda_list.length > 0) {
+      where += ` AND modalidadeVenda IN('${ensureArray(modalidade_venda_list).join("','")}') `;
     }
-    if (fabricante) {
-      where += ` AND fabricante LIKE CONCAT("%",?,"%") `;
-      params.push(fabricante);
+    if (fabricante_list && fabricante_list.length > 0) {
+      where += ` AND fabricante IN('${ensureArray(fabricante_list).join("','")}') `;
     }
-    if (tipo_pedido) {
-      where += ` AND tipoPedido LIKE CONCAT(?,"%") `;
-      params.push(tipo_pedido);
+    if (tipo_pedido_list && tipo_pedido_list.length > 0) {
+      where += ` AND tipoPedido IN('${ensureArray(tipo_pedido_list).join("','")}') `;
     }
     if (fidelizacao_aparelho && fidelizacao_aparelho !== "all") {
       where += ` AND fidAparelho LIKE CONCAT(?,"%") `;
@@ -97,16 +107,72 @@ module.exports = async = (req) => {
 
     try {
       const [rowQtdeTotal] = await conn.execute(
-        `SELECT 
-            COUNT(id) as qtde
-            FROM datasys_vendas
-            ${where}
-            AND tipoPedido = 'Venda'
-            AND gsm IS NOT NULL
-            AND Date(dataPedido) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)`,
+        `SELECT COUNT(id) as qtde FROM datasys_vendas ${where}`,
         params
       );
       const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+
+      //* COLETA DE DADOS PARA FILTRAGEM
+      //~ GRUPO ESTOQUE
+      const [grupo_estoque_list] = await conn.execute(
+        `SELECT DISTINCT grupoEstoque as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ SUBGRUPO
+      const [subgrupo_list] = await conn.execute(
+        `SELECT DISTINCT subgrupo as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ UF/AREA
+      const [uf_list] = await conn.execute(
+        `SELECT DISTINCT area as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ FILIAL
+      const [filiais_list] = await conn.execute(
+        `SELECT DISTINCT filial as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ PLANO HABILITADO
+      const [plano_habilitado_list] = await conn.execute(
+        `SELECT DISTINCT planoHabilitacao as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ MODALIDADE VENDA
+      const [modalidade_venda_list] = await conn.execute(
+        `SELECT DISTINCT modalidadeVenda as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ FABRICANTE
+      const [fabricante_list] = await conn.execute(
+        `SELECT DISTINCT fabricante as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      //~ TIPO DE PEDIDO
+      const [tipo_pedido_list] = await conn.execute(
+        `SELECT DISTINCT tipoPedido as value FROM datasys_vendas ${where}`,
+        params
+      );
+
+      const filters = {
+        grupo_estoque_list,
+        subgrupo_list,
+        uf_list,
+        filiais_list,
+        plano_habilitado_list,
+        modalidade_venda_list,
+        fabricante_list,
+        tipo_pedido_list,
+      };
+
+      //* FIM COLETA DE DADOS PARA FILTRAGEM
 
       const limit = pagination ? " LIMIT ? OFFSET ? " : "";
       if (limit) {
@@ -134,6 +200,7 @@ module.exports = async = (req) => {
         rows: rows,
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
+        filters,
       };
       resolve(objResponse);
     } catch (error) {
