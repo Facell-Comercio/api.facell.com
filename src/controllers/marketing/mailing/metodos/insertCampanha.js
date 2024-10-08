@@ -10,8 +10,7 @@ module.exports = async = (req) => {
       return false;
     }
     // Filtros
-    const { nome, quantidade_lotes, quantidade_total_clientes, lotes, filters } = req.body;
-    console.log(req.body);
+    const { nome, quantidade_total_clientes, lotes, filters } = req.body;
 
     let conn;
 
@@ -30,8 +29,8 @@ module.exports = async = (req) => {
       //* INSERINDO A CAMPANHA
       const rowsClientes = clientes.rows;
       const [resultCampanha] = await conn.execute(
-        "INSERT INTO marketing_mailing_campanhas (nome) VALUES (?)",
-        [nome]
+        "INSERT INTO marketing_mailing_campanhas (nome, data, id_user) VALUES (?, ?, ?)",
+        [nome, new Date(), user.id]
       );
       const campanha_id = resultCampanha.insertId;
 
@@ -48,7 +47,7 @@ module.exports = async = (req) => {
       conn.config.namedPlaceholders = true;
 
       //* INSERINDO OS CLIENTES E DISTRIBUINDO EM CADA LOTE
-      for (let i = 0; i < quantidade_total_clientes; i + 0) {
+      for (let i = 0; i < quantidade_total_clientes; i) {
         for (const [key, lote] of lotesIds) {
           if (lote.qtde_inseridos === parseInt(lote.quantidade_itens)) {
             continue;
