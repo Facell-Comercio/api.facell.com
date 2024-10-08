@@ -5,13 +5,9 @@ const { ensureArray } = require("../../../../helpers/mask");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
     // Filtros
     const { filters, pagination } = req.query;
+    const { conn_externa } = req.body;
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -103,9 +99,10 @@ module.exports = async = (req) => {
       params.push(fidelizacao_plano);
     }
 
-    const conn = await db.getConnection();
+    let conn;
 
     try {
+      conn = conn_externa || (await db.getConnection());
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(id) as qtde FROM datasys_vendas ${where}`,
         params
