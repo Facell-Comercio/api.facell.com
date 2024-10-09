@@ -6,9 +6,8 @@ const { normalizeFirstAndLastName } = require("../../../../../helpers/mask");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
+    let conn;
     try {
-      await conn.beginTransaction();
       const { user } = req;
       const data = req.body;
       const {
@@ -20,6 +19,11 @@ module.exports = async = (req) => {
         id_filial,
         id_grupo_economico,
 
+        id_tipo_documento,
+        data_emissao,
+        num_doc,
+        tim_pedido,
+        tim_pedido_sap,
         valor,
         descricao,
 
@@ -32,8 +36,11 @@ module.exports = async = (req) => {
         url_nota_fiscal,
         url_nota_debito,
         url_planilha,
-        url_txt,
+        url_outros,
+        url_recibo,
       } = data || {};
+      conn = await db.getConnection();
+      await conn.beginTransaction();
 
       // ^ Validações
       // Titulo
@@ -74,7 +81,7 @@ module.exports = async = (req) => {
         vencimento.valor = valorVencimento;
       }
 
-      // ^ Passamos por cada item de rateio, validando os campos
+      // * Passamos por cada item de rateio, validando os campos
       for (const item_rateio of itens_rateio) {
         // ^ Validar vencimento se possui todos os campos obrigatórios
         if (!item_rateio.id_filial) {
@@ -108,31 +115,6 @@ module.exports = async = (req) => {
         item_rateio.percentual = percentualRateio;
       }
 
-      // * Verificar se o Grupo valida orçamento
-      const [rowGrupoEconomico] = await conn.execute(
-        `SELECT orcamento FROM grupos_economicos WHERE id = ?`,
-        [id_grupo_economico]
-      );
-      const grupoValidaOrcamento =
-        rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]["orcamento"];
-
-      // * Obter o Orçamento:
-      const [rowOrcamento] = await conn.execute(
-        `SELECT id, active FROM fin_orcamento WHERE DATE_FORMAT(ref, '%Y-%m') = ? and id_grupo_economico = ?`,
-        [format(new Date(), "yyyy-MM"), id_grupo_economico]
-      );
-
-      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
-        throw new Error("Orçamento não localizado!");
-      }
-      if (rowOrcamento.length > 1) {
-        throw new Error(
-          `${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`
-        );
-      }
-      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
-      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
-
       // * Persitir os anexos
       const nova_url_xml = await persistFile({
         fileUrl: url_xml_nota,
@@ -144,19 +126,28 @@ module.exports = async = (req) => {
         fileUrl: url_nota_debito,
       });
       const nova_url_planilha = await persistFile({ fileUrl: url_planilha });
-      const nova_url_txt = await persistFile({
-        fileUrl: url_txt,
+      const nova_url_outros = await persistFile({
+        fileUrl: url_outros,
+      });
+      const nova_url_recibo = await persistFile({
+        fileUrl: url_recibo,
       });
 
       // * INÍCIO - Criação do Título a Receber
       const [resultInsertTitulo] = await conn.execute(
         `INSERT INTO fin_cr_titulos
           (
-              id_solicitante,
+              id_user,
               id_fornecedor,
   
               id_filial,
               
+              id_tipo_documento,
+              data_emissao,
+              num_doc,
+              tim_pedido,
+              tim_pedido_sap,
+
               valor,
               descricao,
               
@@ -166,17 +157,24 @@ module.exports = async = (req) => {
               url_nota_fiscal,
               url_nota_debito,
               url_planilha,
-              url_txt,
+              url_outros,
+              url_recibo,
   
               id_status
           )
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
           `,
         [
           user.id,
           id_fornecedor,
 
           id_filial,
+
+          id_tipo_documento || null,
+          data_emissao ? startOfDay(data_emissao) : null,
+          num_doc || null,
+          tim_pedido || null,
+          tim_pedido_sap || null,
 
           valor,
           descricao,
@@ -187,7 +185,8 @@ module.exports = async = (req) => {
           nova_url_nota_fiscal || null,
           nova_url_nota_debito || null,
           nova_url_planilha || null,
-          nova_url_txt || null,
+          nova_url_outros || null,
+          nova_url_recibo || null,
 
           10,
         ]
@@ -221,28 +220,10 @@ module.exports = async = (req) => {
             item_rateio.percentual,
           ]
         );
-
-        if (orcamentoAtivo && grupoValidaOrcamento) {
-          // ^ Vamos validar se orçamento possui saldo:
-          // Obter a Conta de Orçamento com o Valor Previsto:
-          const [rowOrcamentoConta] = await conn.execute(
-            `SELECT id, valor_previsto, active FROM fin_orcamento_contas
-              WHERE id_orcamento = ? AND id_centro_custo = ?
-              AND id_plano_contas = ?
-            `,
-            [id_orcamento, item_rateio.id_centro_custo, item_rateio.id_plano_conta]
-          );
-
-          if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
-            throw new Error(
-              `Não existe conta no orçamento para ${item_rateio.centro_custo}: ${item_rateio.plano_conta}!`
-            );
-          }
-        }
       }
 
       // Gerar e Registar historico:
-      let historico = `CRIADO POR: ${normalizeFirstAndLastName(user.nome)}.\n`;
+      let historico = `CRIADO POR: ${normalizeFirstAndLastName(user.nome || "SISTEMA")}.\n`;
 
       await conn.execute(
         `INSERT INTO fin_cr_titulos_historico (id_titulo, descricao) VALUES (?,?)`,

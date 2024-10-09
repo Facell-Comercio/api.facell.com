@@ -3,10 +3,11 @@ const { logger } = require("../../../../../../logger");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
-    const { id } = req.params;
     // console.log(req.params)
-    const conn = await db.getConnection();
+    let conn;
     try {
+      conn = await db.getConnection();
+      const { id } = req.params;
       const [rowTitulo] = await conn.execute(
         `
           SELECT 
@@ -77,7 +78,7 @@ module.exports = async = (req) => {
       reject(error);
       return;
     } finally {
-      conn.release();
+      if (conn) conn.release();
     }
   });
 };
