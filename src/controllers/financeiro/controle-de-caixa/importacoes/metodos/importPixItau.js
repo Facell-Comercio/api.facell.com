@@ -93,7 +93,7 @@ module.exports = async (req) => {
                     )
                     ON DUPLICATE KEY UPDATE
                       valor = VALUES(valor),
-                      devolucao = VALUES(devolucao),
+                      devolucao = VALUES(devolucao)
                       `,
           obj
         );
