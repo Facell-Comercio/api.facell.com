@@ -14,6 +14,7 @@ module.exports = async (req) => {
       { id: 203, plano: "GARANTIA ESTENDIDA" },
       { id: 71, plano: "PROTEÇÃO PARCIAL" },
       { id: 456, plano: "PITZI CARE" },
+      { id: 500, plano: "GAZIN" },
     ];
 
     try {
