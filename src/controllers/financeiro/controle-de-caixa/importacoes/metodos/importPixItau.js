@@ -59,7 +59,7 @@ module.exports = async (req) => {
         }
 
         const dataVenda = row["data do pagamento"].split("/").reverse().join("-");
-        const devolucao = row["tem devolução?"] == "Sim" ? 1 : 0;
+        
         const valor_recebido = parseFloat(row['valor recebido'] || 0)
         const valor_devolvido = parseFloat(row['valor devolvido'] || 0)
 
@@ -68,7 +68,7 @@ module.exports = async (req) => {
           id_filial: filial.id,
           data_venda: dataVenda,
           valor: valor_recebido - valor_devolvido,
-          devolucao: devolucao,
+          devolucao: valor_devolvido > 0,
           banco: "ITAU",
         };
 
@@ -92,7 +92,9 @@ module.exports = async (req) => {
                         :banco
                     )
                     ON DUPLICATE KEY UPDATE
-                      valor = VALUES(valor)`,
+                      valor = VALUES(valor),
+                      devolucao = VALUES(devolucao),
+                      `,
           obj
         );
       }
