@@ -18,9 +18,12 @@ module.exports = async () => {
         WHERE dc.status = "A CONFERIR" OR dc.status = "CONFERIDO"
         `
       );
-
+      let i = 0;
       for (const caixa of rowsCaixas) {
         try {
+          i++;
+          console.log(`Passando pelo caixa ${i} de ${rowsCaixas.length}`);
+          
           await cruzarRelatorios({ conn, id_filial: caixa.id_filial, data_caixa: caixa.data_caixa})
 
         } catch (e) {
