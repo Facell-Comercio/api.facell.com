@@ -65,6 +65,8 @@ module.exports = function changeStatusTitulo(req) {
         id_titulo,
       ]);
 
+      console.log(id_novo_status);
+
       // !: Caso Emitir - Validar campos obrigatórios
       if (id_novo_status == "30") {
         const { id_tipo_documento, url_nota_fiscal, url_nota_debito, url_recibo, num_doc } = titulo;
@@ -72,17 +74,17 @@ module.exports = function changeStatusTitulo(req) {
 
         if (!num_doc) throw new Error("É necessário informar o Núm. Doc.");
         if (!id_tipo_documento) throw new Error("É necessário informar o tipo de documento");
-        if (id_tipo_documento === "10") {
+        if (id_tipo_documento == "1") {
           if (!url_nota_fiscal) {
             throw new Error("Faça o upload da Nota Fiscal!");
           }
         }
-        if (id_tipo_documento === "20") {
+        if (id_tipo_documento == "2") {
           if (!url_nota_debito) {
             throw new Error("Faça o upload da Nota de Débito!");
           }
         }
-        if (id_tipo_documento === "30") {
+        if (id_tipo_documento == "3") {
           if (!url_recibo) {
             throw new Error("Faça o upload do Recibo!");
           }

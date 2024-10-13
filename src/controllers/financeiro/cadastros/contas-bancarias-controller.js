@@ -32,15 +32,16 @@ function getAll(req) {
       active,
       id_matriz,
       onlyDatasys,
-      onlyCaixa,
-      showInactive
+      isCaixa,
+      showInactive,
     } = filters || {};
     let where = ` WHERE 1=1 `;
+    console.log(filters);
 
     const params = [];
 
-    if(!(showInactive == 'true' || showInactive == 1)){
-      where += ` AND cb.active = 1 `
+    if (!(showInactive == "true" || showInactive == 1)) {
+      where += ` AND cb.active = 1 `;
     }
 
     if (!isMaster) {
@@ -84,8 +85,12 @@ function getAll(req) {
       where += ` AND cb.active = ? `;
       params.push(active);
     }
-    if (onlyCaixa && parseInt(onlyCaixa)) {
-      where += " AND cb.caixa";
+    if (isCaixa) {
+      if (parseInt(isCaixa)) {
+        where += " AND cb.caixa = 1";
+      } else {
+        where += " AND cb.caixa = 0";
+      }
     }
 
     const offset = pageIndex * pageSize;

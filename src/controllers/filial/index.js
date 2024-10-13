@@ -71,15 +71,15 @@ function getAll(req) {
         where += ` AND NOT f.tim_cod_sap IS NULL`;
       }
     }
-  
-    if (isLojaTim == '1' || isLojaTim === true) {
+
+    if (isLojaTim == "1" || isLojaTim === true) {
       where += ` AND f.tim_cod_sap IS NOT NULL`;
     }
-    if (id_matriz !== undefined && id_matriz !== "all") {
+    if (id_matriz && id_matriz !== undefined && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;
       params.push(id_matriz);
     }
-    
+
     const offset = pageIndex * pageSize;
 
     const conn = await db.getConnection();
