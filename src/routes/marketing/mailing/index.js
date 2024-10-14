@@ -40,4 +40,23 @@ router.get("/campanhas", async (req, res) => {
   }
 });
 
+router.get("/campanhas/:id", async (req, res) => {
+  try {
+    const result = await controller.getOneCampanha(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+//* CLIENTES
+router.put("/campanhas/clientes/:id", async (req, res) => {
+  try {
+    const result = await controller.updateClienteCampanha(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

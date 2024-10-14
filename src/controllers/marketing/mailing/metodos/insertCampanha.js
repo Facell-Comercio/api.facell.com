@@ -55,8 +55,7 @@ module.exports = async = (req) => {
         );
       }
 
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
       resolve({ message: "Success" });
     } catch (error) {
       logger.error({
