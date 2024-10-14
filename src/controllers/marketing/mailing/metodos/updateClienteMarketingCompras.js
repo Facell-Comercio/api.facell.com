@@ -125,6 +125,7 @@ module.exports = async = (req) => {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
+      reject(error);
     } finally {
       if (conn && !conn_externa) conn.release();
     }
