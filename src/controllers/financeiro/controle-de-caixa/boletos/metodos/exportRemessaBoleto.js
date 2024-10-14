@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
         LEFT JOIN filiais f ON f.id = boleto.id_filial
         WHERE ${id_boleto ? "boleto.id = ?" : "f.id_grupo_economico = ?"}
         AND f.tim_cod_sap IS NOT NULL
-        AND (boleto.status = 'aguardando_emissao' OR boleto.status = 'erro')
+        AND boleto.status = 'aguardando_emissao'
       `,
         [id_boleto || id_grupo_economico]
       );
