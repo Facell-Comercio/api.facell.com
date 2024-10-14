@@ -49,16 +49,25 @@ module.exports = async = (req) => {
             tipoPedido AS tipo_pedido,
             fornecedor,
             fabricante,
+            fidAparelho AS fid_aparelho,
+            fidPlano AS fid_plano,
             dataPedido as data_compra
           FROM datasys_vendas
             ${where}
-          LIMIT 50
         `;
       const [compras] = await conn.execute(queryConsulta);
 
       conn.config.namedPlaceholders = true;
-
       for (const compra of compras) {
+        //* Método para resolver problema com a UNIQUE KEY
+        if (compra.gsm === null) {
+          compra.gsm = "";
+        }
+        if (compra.subgrupo === null) {
+          compra.subgrupo = "";
+        }
+        //*
+
         const queryInsert = `
           INSERT IGNORE INTO marketing_mailing_compras
           (
@@ -81,9 +90,11 @@ module.exports = async = (req) => {
             tipo_pedido,
             fornecedor,
             fabricante,
+            fid_aparelho,
+            fid_plano,
             data_compra
             )
-            VAlUES 
+            VAlUES
             (
             :grupo_estoque,
             :subgrupo,
@@ -104,6 +115,8 @@ module.exports = async = (req) => {
             :tipo_pedido,
             :fornecedor,
             :fabricante,
+            :fid_aparelho,
+            :fid_plano,
             :data_compra)
           `;
         await conn.execute(queryInsert, compra);

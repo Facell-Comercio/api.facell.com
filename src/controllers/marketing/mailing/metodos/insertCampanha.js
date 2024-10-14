@@ -10,7 +10,7 @@ module.exports = async = (req) => {
       return false;
     }
     // Filtros
-    const { nome, quantidade_total_clientes, lotes, filters } = req.body;
+    const { nome, filters } = req.body;
 
     let conn;
 
@@ -34,40 +34,25 @@ module.exports = async = (req) => {
       );
       const campanha_id = resultCampanha.insertId;
 
-      //* INSERINDO OS LOTES
-      const lotesIds = new Map();
-      for (const lote of lotes) {
-        const [result] = await conn.execute(
-          "INSERT INTO marketing_mailing_campanhas (nome, id_parent) VALUES (?,?)",
-          [lote.nome, campanha_id]
-        );
-        lotesIds.set(lote.nome, { ...lote, qtde_inseridos: 0, id: result.insertId });
-      }
-
       conn.config.namedPlaceholders = true;
 
-      //* INSERINDO OS CLIENTES E DISTRIBUINDO EM CADA LOTE
-      for (let i = 0; i < quantidade_total_clientes; i) {
-        for (const [key, lote] of lotesIds) {
-          if (lote.qtde_inseridos === parseInt(lote.quantidade_itens)) {
-            continue;
-          }
-          const cliente = { ...rowsClientes[i], id_campanha: lote.id };
-          await conn.execute(
-            `INSERT INTO marketing_mailing_clientes
-            (
-              gsm, gsm_portado, cpf, data_ultima_compra, plano_habilitado, area,
-              produto_ultima_compra, desconto_plano, valor_caixa, filial, id_campanha
-            )
-            VALUES (
-              :gsm, :gsm_portado, :cpf, :data_ultima_compra, :plano_habilitado, :area,
-              :produto_ultima_compra, :desconto_plano, :valor_caixa, :filial, :id_campanha
-            )`,
-            cliente
-          );
-          lote.qtde_inseridos++;
-          i++;
-        }
+      //* INSERINDO OS CLIENTES
+      for (const cliente of rowsClientes) {
+        cliente.id_campanha = campanha_id;
+        console.log(cliente);
+
+        await conn.execute(
+          `INSERT INTO marketing_mailing_clientes
+          (
+            gsm, gsm_portado, cpf, data_ultima_compra, plano_habilitado, uf,
+            produto_ultima_compra, desconto_plano, valor_caixa, filial, id_campanha
+          )
+          VALUES (
+            :gsm, :gsm_portado, :cpf_cliente, :data_compra, :plano_habilitado, :uf,
+            :produto_compra, :desconto_plano, :valor_caixa, :filial, :id_campanha
+          )`,
+          cliente
+        );
       }
 
       // await conn.commit();
@@ -81,7 +66,11 @@ module.exports = async = (req) => {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
-      reject(error);
+      if (String(error.message).includes("Duplicate entry")) {
+        resolve({ message: "Cliente já cadastrado!" });
+      } else {
+        reject(error);
+      }
     } finally {
       if (conn) conn.release();
     }
