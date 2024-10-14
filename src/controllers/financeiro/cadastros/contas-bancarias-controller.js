@@ -36,7 +36,6 @@ function getAll(req) {
       showInactive,
     } = filters || {};
     let where = ` WHERE 1=1 `;
-    console.log(filters);
 
     const params = [];
 

@@ -67,15 +67,6 @@ router.get("/vencimentos/recebimentos", async (req, res) => {
   }
 });
 
-router.post("/vencimentos/recebimentos", async (req, res) => {
-  try {
-    const result = await controller.insertOneRecebimento(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
 router.delete("/vencimentos/recebimentos/:id", async (req, res) => {
   try {
     const result = await controller.deleteRecebimento(req);

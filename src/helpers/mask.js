@@ -225,6 +225,16 @@ function objectToStringLine(object) {
   }, "");
 }
 
+function normalizeNumberFixed(number, fractionDigits) {
+  if (typeof number === "string" && parseFloat(number)) {
+    return parseFloat(parseFloat(number || "0").toFixed(fractionDigits));
+  }
+  if (typeof number === "number" && !isNaN(number)) {
+    return parseFloat(number.toFixed(fractionDigits) || "0");
+  }
+  return null;
+}
+
 module.exports = {
   normalizeNumberOnly,
   normalizePhoneNumber,
@@ -242,4 +252,5 @@ module.exports = {
   excelDateToJSDate,
   ensureArray,
   objectToStringLine,
+  normalizeNumberFixed,
 };

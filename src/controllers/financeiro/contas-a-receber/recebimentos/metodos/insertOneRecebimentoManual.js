@@ -36,14 +36,14 @@ module.exports = async = (req) => {
 
       //* Consulta o vencimento e os recebimentos relacionados a ele
       const [rowVencimento] = await conn.execute(
-        `SELECT tv.valor as valor_vencimento, t.descricao as descricao_titulo
+        `SELECT tv.valor as valor_vencimento, t.descricao as descricao_titulo, tv.valor_pago
         FROM fin_cr_titulos_vencimentos tv
         LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
         WHERE tv.id = ?`,
         [id_vencimento]
       );
       const vencimento = rowVencimento && rowVencimento[0];
-      const { valor_vencimento, descricao_titulo } = vencimento;
+      const { valor_vencimento, descricao_titulo, valor_pago } = vencimento;
 
       const [recebimentos] = await conn.execute(
         `SELECT tr.valor
@@ -56,13 +56,16 @@ module.exports = async = (req) => {
         (acc, curr) => acc + parseFloat(curr.valor),
         0
       );
-
       //* Valida se o valor dos recebimentos não ultrapassa o valor do vencimento
       if (
         parseFloat((valor_recebimentos + parseFloat(valor)).toFixed(2)) >
         parseFloat(parseFloat(valor_vencimento).toFixed(2))
       ) {
-        throw new Error("Valor acima do permitido!");
+        throw new Error(
+          `Valor acima do permitido! O valor máximo para esse recebimento é de R$${
+            valor_vencimento - valor_pago
+          }`
+        );
       }
 
       //* Obtém os dados da conta bancária
@@ -123,6 +126,13 @@ module.exports = async = (req) => {
         });
         id_extrato = result.insertId;
       }
+
+      //* Pagamento Vencimento
+      await conn.execute(
+        `UPDATE fin_cr_titulos_vencimentos SET
+          valor_pago = valor_pago + ? WHERE id = ?`,
+        [valor, id_vencimento]
+      );
 
       // * Criação do Recebimento
       await conn.execute(
