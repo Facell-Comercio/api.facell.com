@@ -63,14 +63,22 @@ module.exports = async (req) => {
 
               obj = { ...obj, status: "emitido" };
             } else if (cod_ocorrencia === 6) {
+              // * APLICAÇÃO DE STATUS PAGO:
               await conn.execute("UPDATE datasys_caixas_boletos SET status = 'pago' WHERE id = ?", [
                 id_boleto,
               ]);
               obj = { ...obj, status: "pago" };
             } else {
-              await conn.execute("UPDATE datasys_caixas_boletos SET status = 'erro' WHERE id = ?", [
+              // * APLICAÇÃO DE STATUS ERRO:
+              const [rowsBoletoBanco] = await conn.execute("SELECT status FROM datasys_caixas_boletos WHERE id = ?", [
                 id_boleto,
               ]);
+              const status = rowsBoletoBanco && rowsBoletoBanco[0] && rowsBoletoBanco[0]['status']
+              if (status == 'emitido') {
+                await conn.execute("UPDATE datasys_caixas_boletos SET status = 'erro' WHERE id = ?", [
+                  id_boleto,
+                ]);
+              }
               obj = {
                 ...obj,
                 status: "erro",
