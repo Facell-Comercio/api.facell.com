@@ -1,7 +1,7 @@
-const { startOfDay } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
+const updateValorVencimento = require("./updateValorVencimento");
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
@@ -17,7 +17,11 @@ module.exports = async = (req) => {
 
       //* Obtém o id_conta_bancaria do recebimento
       const [rowRecebimento] = await conn.execute(
-        "SELECT id_conta_bancaria, id_extrato, valor FROM fin_cr_titulos_recebimentos WHERE id = ?",
+        `
+        SELECT
+          id_conta_bancaria, id_extrato, valor, id_vencimento
+        FROM fin_cr_titulos_recebimentos
+        WHERE id = ?`,
         [id]
       );
       const recebimento = rowRecebimento && rowRecebimento[0];
@@ -45,6 +49,15 @@ module.exports = async = (req) => {
           recebimento.id_extrato,
         ]);
       }
+
+      //* Deduzir valor do vencimento
+      await updateValorVencimento({
+        body: {
+          id: recebimento.id_vencimento,
+          valor: -recebimento.valor,
+          conn_externa: conn,
+        },
+      });
 
       await conn.commit();
       resolve({ message: "Sucesso!" });

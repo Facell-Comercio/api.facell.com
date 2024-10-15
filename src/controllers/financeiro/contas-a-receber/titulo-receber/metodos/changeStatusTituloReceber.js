@@ -52,7 +52,7 @@ module.exports = function changeStatusTitulo(req) {
         throw new Error(`Alteração rejeitada pois o título já consta como ${status}!`);
       }
       const [vencimentosPagos] = await conn.execute(
-        `SELECT id FROM fin_cr_titulos_vencimentos WHERE id_titulo = ? AND NOT valor_pago IS NULL`,
+        `SELECT id FROM fin_cr_titulos_vencimentos WHERE id_titulo = ? AND valor_pago > 0 `,
         [id_titulo]
       );
       if (vencimentosPagos && vencimentosPagos.length > 0) {
@@ -65,12 +65,12 @@ module.exports = function changeStatusTitulo(req) {
         id_titulo,
       ]);
 
-      console.log(id_novo_status);
+      // console.log(id_novo_status);
 
       // !: Caso Emitir - Validar campos obrigatórios
       if (id_novo_status == "30") {
         const { id_tipo_documento, url_nota_fiscal, url_nota_debito, url_recibo, num_doc } = titulo;
-        console.log(titulo);
+        // console.log(titulo);
 
         if (!num_doc) throw new Error("É necessário informar o Núm. Doc.");
         if (!id_tipo_documento) throw new Error("É necessário informar o tipo de documento");

@@ -114,7 +114,8 @@ module.exports = async = (req) => {
             tv.*,
             t.id as id_titulo, t.descricao, t.num_doc,
             forn.nome as fornecedor,
-            f.nome as filial, f.id_matriz
+            f.nome as filial, f.id_matriz,
+            (tv.valor - tv.valor_pago) as valor_em_aberto
         FROM fin_cr_titulos_vencimentos tv
         LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor

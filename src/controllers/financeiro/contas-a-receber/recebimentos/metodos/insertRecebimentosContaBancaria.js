@@ -1,9 +1,8 @@
 const { startOfDay } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
-const crypto = require("crypto");
-const { objectToStringLine, normalizeNumberFixed } = require("../../../../../helpers/mask");
+const { normalizeNumberFixed } = require("../../../../../helpers/mask");
+const updateValorVencimento = require("../../titulo-receber/metodos/updateValorVencimento");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -27,13 +26,14 @@ module.exports = async = (req) => {
       );
       const transacao = rowTransacoes && rowTransacoes[0];
 
-      const totalPagarVencimentos = vencimentos.reduce(
+      const totalUpdateValorVencimentos = vencimentos.reduce(
         (acc, vencimento) => acc + parseFloat(vencimento.valor_pagar),
         0
       );
 
       if (
-        normalizeNumberFixed(totalPagarVencimentos, 2) > normalizeNumberFixed(transacao.valor, 2)
+        normalizeNumberFixed(totalUpdateValorVencimentos, 2) >
+        normalizeNumberFixed(transacao.valor, 2)
       ) {
         throw new Error("Valor total dos vencimentos não pode ser maior que o valor da transação!");
       }
@@ -76,11 +76,13 @@ module.exports = async = (req) => {
           );
         }
         //* Pagamento Vencimento
-        await conn.execute(
-          `UPDATE fin_cr_titulos_vencimentos SET
-            valor_pago = valor_pago + ? WHERE id = ?`,
-          [valor_pagar, id_vencimento]
-        );
+        await updateValorVencimento({
+          body: {
+            id: id_vencimento,
+            valor: valor_pagar,
+            conn_externa: conn,
+          },
+        });
 
         // * Criação do Recebimento
         await conn.execute(
@@ -100,6 +102,7 @@ module.exports = async = (req) => {
       }
 
       await conn.commit();
+      // await conn.rollback();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({

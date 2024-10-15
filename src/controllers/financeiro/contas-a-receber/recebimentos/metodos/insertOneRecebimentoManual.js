@@ -4,6 +4,7 @@ const { logger } = require("../../../../../../logger");
 const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
 const crypto = require("crypto");
 const { objectToStringLine } = require("../../../../../helpers/mask");
+const updateValorVencimento = require("../../titulo-receber/metodos/updateValorVencimento");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -128,11 +129,13 @@ module.exports = async = (req) => {
       }
 
       //* Pagamento Vencimento
-      await conn.execute(
-        `UPDATE fin_cr_titulos_vencimentos SET
-          valor_pago = valor_pago + ? WHERE id = ?`,
-        [valor, id_vencimento]
-      );
+      await updateValorVencimento({
+        body: {
+          id: id_vencimento,
+          valor: valor,
+          conn_externa: conn,
+        },
+      });
 
       // * Criação do Recebimento
       await conn.execute(

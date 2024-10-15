@@ -2,7 +2,7 @@ const { format, startOfDay } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { replaceFileUrl } = require("../../../../storage-controller");
-const { normalizeFirstAndLastName } = require("../../../../../helpers/mask");
+const { normalizeFirstAndLastName, normalizeCurrency } = require("../../../../../helpers/mask");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -83,7 +83,7 @@ module.exports = async = (req) => {
 
       // ^ Validar se algum vencimento já foi pago, se sim, abortar.
       const [vencimentosPagos] = await conn.execute(
-        "SELECT id FROM fin_cr_titulos_vencimentos WHERE id_titulo = ? AND NOT valor_pago IS NULL",
+        "SELECT id FROM fin_cr_titulos_vencimentos WHERE id_titulo = ? AND valor_pago > 0",
         [id]
       );
       if (vencimentosPagos && vencimentosPagos.length) {
@@ -290,7 +290,6 @@ module.exports = async = (req) => {
         `INSERT INTO fin_cr_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
         [id, historico]
       );
-      console.log("FINALIZOU");
 
       await conn.commit();
       resolve();
