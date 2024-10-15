@@ -227,7 +227,8 @@ module.exports = function exportLayoutDRE(req, res) {
             'Valor Titulo': vencimento.valor_titulo,
             'ID Vencimento': vencimento.id_vencimento,
             'Valor Vencimento': vencimento.valor_pago,
-            'Tipo Baixa': vencimento.tipo_baixa
+            'Tipo Baixa': vencimento.tipo_baixa,
+            '% Rateio': item_rateio.percentual
           }
           // console.log({despesa});
           despesas.push(despesa)
