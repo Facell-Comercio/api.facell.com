@@ -1,5 +1,5 @@
 module.exports = {
-  getClientes: require("./metodos/getClientes"),
+  getAllCompras: require("./metodos/getAllCompras"),
   getAllCampanhas: require("./metodos/getAllCampanhas"),
   getOneCampanha: require("./metodos/getOneCampanha"),
 

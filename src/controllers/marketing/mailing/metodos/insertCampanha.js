@@ -1,6 +1,6 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
-const getClientes = require("./getClientes");
+const getAllCompras = require("./getAllCompras");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -19,7 +19,7 @@ module.exports = async = (req) => {
       await conn.beginTransaction();
 
       //* CONSULTANDO OS CLIENTES DE ACORDO COM OS FILTROS
-      const clientes = await getClientes({
+      const clientes = await getAllCompras({
         query: { filters },
         body: {
           conn_externa: conn,

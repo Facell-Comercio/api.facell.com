@@ -101,68 +101,70 @@ module.exports = async = (req) => {
       where += ` AND mc.status_plano IN('${ensureArray(status_plano).join("','")}') `;
     }
     if (produtos_cliente && produtos_cliente.length > 0) {
-      // //* COM APARELHO
+      //* COM APARELHO
       if (ensureArray(produtos_cliente).includes("com_aparelho")) {
         where += ` AND EXISTS(
           SELECT 1 FROM marketing_mailing_compras mcs
-          WHERE mcs.gsm IS NOT NULL
-          AND mc.gsm = mcs.gsm
-          AND mc.cpf_cliente = mcs.cpf_cliente
+          WHERE mc.cpf_cliente = mcs.cpf_cliente
           AND DATE(mc.data_compra) = DATE(mcs.data_compra)
           AND mcs.grupo_estoque LIKE CONCAT("APARELHO","%") )`;
-      } else {
-        where += ` AND EXISTS(
+      }
+      //* SEM APARELHO
+      if (ensureArray(produtos_cliente).includes("sem_aparelho")) {
+        where += ` AND NOT EXISTS(
           SELECT 1 FROM marketing_mailing_compras mcs
-          WHERE mcs.gsm IS NOT NULL
-          AND mc.gsm = mcs.gsm
-          AND mc.cpf_cliente = mcs.cpf_cliente
+          WHERE mc.cpf_cliente = mcs.cpf_cliente
           AND DATE(mc.data_compra) = DATE(mcs.data_compra)
-          AND NOT mcs.grupo_estoque LIKE CONCAT("APARELHO","%") )`;
+          AND mcs.grupo_estoque LIKE CONCAT("APARELHO","%") )`;
       }
       //* COM ACESSÓRIO
       if (ensureArray(produtos_cliente).includes("com_acessorio")) {
         where += ` AND EXISTS(
           SELECT 1 FROM marketing_mailing_compras mcs
-          WHERE mcs.gsm IS NOT NULL
-          AND mc.gsm = mcs.gsm
-          AND mc.cpf_cliente = mcs.cpf_cliente
+          WHERE mc.cpf_cliente = mcs.cpf_cliente
           AND DATE(mc.data_compra) = DATE(mcs.data_compra)
           AND mcs.grupo_estoque LIKE CONCAT("ACESSORIO","%") )`;
-      } else {
-        where += ` AND EXISTS(
+      }
+      //* SEM ACESSÓRIO
+      if (ensureArray(produtos_cliente).includes("sem_acessorio")) {
+        where += ` AND NOT EXISTS(
           SELECT 1 FROM marketing_mailing_compras mcs
-          WHERE mcs.gsm IS NOT NULL
-          AND mc.gsm = mcs.gsm
-          AND mc.cpf_cliente = mcs.cpf_cliente
+          WHERE mc.cpf_cliente = mcs.cpf_cliente
           AND DATE(mc.data_compra) = DATE(mcs.data_compra)
-          AND NOT mcs.grupo_estoque LIKE CONCAT("ACESSORIO","%") )`;
+          AND mcs.grupo_estoque LIKE CONCAT("ACESSORIO","%") )`;
       }
       //* COM PLANO
-      if (ensureArray(produtos_cliente).includes("com_acessorio")) {
+      if (ensureArray(produtos_cliente).includes("com_plano")) {
         where += ` AND EXISTS(
           SELECT 1 FROM marketing_mailing_compras mcs
-          WHERE mcs.gsm IS NOT NULL
-          AND mc.gsm = mcs.gsm
-          AND mc.cpf_cliente = mcs.cpf_cliente
+          WHERE mc.cpf_cliente = mcs.cpf_cliente
           AND DATE(mc.data_compra) = DATE(mcs.data_compra)
           AND (
-            mcs.grupo_estoque LIKE 'APARELHO%' OR
-            mcs.grupo_estoque LIKE 'ACESSORIO%' OR
-            mcs.modalidade LIKE '%ativ%'
-      ))
+            mcs.modalidade LIKE 'ativa%' OR
+            mcs.modalidade LIKE 'migra%' OR
+            mcs.modalidade LIKE 'porta%' OR
+            mcs.modalidade LIKE 'depen%'
+          )
+          AND NOT (mcs.plano_habilitado LIKE '%pre %'
+          OR mcs.plano_habilitado LIKE '%pre-%')
+          )
           `;
-      } else {
-        where += ` AND EXISTS(
+      }
+      //* SEM PLANO
+      if (ensureArray(produtos_cliente).includes("sem_plano")) {
+        where += ` AND NOT EXISTS(
           SELECT 1 FROM marketing_mailing_compras mcs
-          WHERE mcs.gsm IS NOT NULL
-          AND mc.gsm = mcs.gsm
-          AND mc.cpf_cliente = mcs.cpf_cliente
+          WHERE mc.cpf_cliente = mcs.cpf_cliente
           AND DATE(mc.data_compra) = DATE(mcs.data_compra)
-          AND NOT (
-            mcs.grupo_estoque LIKE 'APARELHO%' OR
-            mcs.grupo_estoque LIKE 'ACESSORIO%' OR
-            mcs.modalidade LIKE '%ativ%'
-      ))
+          AND (
+            mcs.modalidade LIKE 'ativa%' OR
+            mcs.modalidade LIKE 'migra%' OR
+            mcs.modalidade LIKE 'porta%' OR
+            mcs.modalidade LIKE 'depen%'
+          )
+          AND NOT (mcs.plano_habilitado LIKE '%pre %'
+          OR mcs.plano_habilitado LIKE '%pre-%')
+          )
           `;
       }
     }
@@ -227,6 +229,12 @@ module.exports = async = (req) => {
         params
       );
 
+      //~ STATUS
+      const [status_list] = await conn.execute(
+        `SELECT DISTINCT mc.status_plano as value FROM marketing_mailing_compras mc ${where}`,
+        params
+      );
+
       const filters = {
         grupo_estoque_list,
         subgrupo_list,
@@ -236,6 +244,7 @@ module.exports = async = (req) => {
         modalidade_list,
         fabricante_list,
         tipo_pedido_list,
+        status_list,
       };
 
       //* FIM COLETA DE DADOS PARA FILTRAGEM

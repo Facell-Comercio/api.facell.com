@@ -92,11 +92,8 @@ module.exports = async = (req) => {
       }
 
       //* VALIDAÇÕES
-      if (!gsm) {
-        throw new Error("GSM do cliente não informado");
-      }
-      if (!cpf_cliente) {
-        throw new Error("CPF do cliente não informado");
+      if (!gsm && !cpf_cliente) {
+        throw new Error("GSM ou CPF do cliente não informados!");
       }
 
       //* WHERE
