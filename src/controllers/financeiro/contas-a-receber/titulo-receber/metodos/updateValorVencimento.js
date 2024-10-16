@@ -14,7 +14,9 @@ module.exports = async = (req) => {
     try {
       conn = conn_externa || (await db.getConnection());
 
-      await conn.beginTransaction();
+      if (!conn_externa) {
+        await conn.beginTransaction();
+      }
 
       // ^ Validações
       if (!id) {

@@ -3,7 +3,14 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
 const crypto = require("crypto");
-const { objectToStringLine } = require("../../../../../helpers/mask");
+const {
+  objectToStringLine,
+  normalizeDate,
+  normalizeFirstAndLastName,
+  normalizeCurrency,
+  normalizeNumberFixed,
+  normalizeNumberOnly,
+} = require("../../../../../helpers/mask");
 const updateValorVencimento = require("../../titulo-receber/metodos/updateValorVencimento");
 
 module.exports = async = (req) => {
@@ -37,14 +44,16 @@ module.exports = async = (req) => {
 
       //* Consulta o vencimento e os recebimentos relacionados a ele
       const [rowVencimento] = await conn.execute(
-        `SELECT tv.valor as valor_vencimento, t.descricao as descricao_titulo, tv.valor_pago
+        `SELECT tv.valor as valor_vencimento, t.descricao as descricao_titulo,
+        tv.valor_pago, tv.data_vencimento, t.id as id_titulo
         FROM fin_cr_titulos_vencimentos tv
         LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
         WHERE tv.id = ?`,
         [id_vencimento]
       );
       const vencimento = rowVencimento && rowVencimento[0];
-      const { valor_vencimento, descricao_titulo, valor_pago } = vencimento;
+      const { valor_vencimento, descricao_titulo, valor_pago, data_vencimento, id_titulo } =
+        vencimento;
 
       const [recebimentos] = await conn.execute(
         `SELECT tr.valor
@@ -82,12 +91,19 @@ module.exports = async = (req) => {
         let descricao = `RECEBIMENTO #${id_vencimento} - ${descricao_titulo}`;
         // * Verifica se já existe um extrato com a mesma descrição:
         const [extratosRepetidos] = await conn.execute(
-          "SELECT id FROM fin_extratos_bancarios WHERE descricao LIKE CONCAT(?,'%')",
+          "SELECT descricao FROM fin_extratos_bancarios WHERE descricao LIKE CONCAT(?,'%') ORDER BY created_at DESC",
           [descricao]
         );
+
         if (extratosRepetidos.length > 0) {
-          descricao += ` (${extratosRepetidos.length})`;
+          const lastExtratoRepetido = extratosRepetidos && extratosRepetidos[0];
+          const lastIndex = lastExtratoRepetido.descricao.match(/\((\d+)\)$/);
+
+          const normalizedIndex = parseInt(normalizeNumberOnly(lastIndex ? lastIndex[0] : "0"));
+
+          descricao += ` (${normalizedIndex ? normalizedIndex + 1 : 1})`;
         }
+
         const hashEntrada = crypto
           .createHash("md5")
           .update(
@@ -144,6 +160,17 @@ module.exports = async = (req) => {
           VALUES (?,?,?,?,?,?)
           `,
         [id_vencimento, id_conta_bancaria, startOfDay(data), valor, user.id, id_extrato]
+      );
+
+      //* Adição de histórico no título
+      let historico = `EDITADO POR: ${normalizeFirstAndLastName(user.nome)}\n`;
+      historico += `ADICIONADO ${normalizeCurrency(valor)} NO VENCIMENTO DE DATA ${normalizeDate(
+        data_vencimento
+      )}\n`;
+
+      await conn.execute(
+        `INSERT INTO fin_cr_titulos_historico(id_titulo, descricao) VALUES(?, ?)`,
+        [id_titulo, historico]
       );
 
       await conn.commit();

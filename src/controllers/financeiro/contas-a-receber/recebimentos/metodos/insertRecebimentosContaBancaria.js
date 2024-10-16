@@ -1,7 +1,12 @@
 const { startOfDay } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const { normalizeNumberFixed } = require("../../../../../helpers/mask");
+const {
+  normalizeNumberFixed,
+  normalizeFirstAndLastName,
+  normalizeCurrency,
+  normalizeDate,
+} = require("../../../../../helpers/mask");
 const updateValorVencimento = require("../../titulo-receber/metodos/updateValorVencimento");
 
 module.exports = async = (req) => {
@@ -43,14 +48,15 @@ module.exports = async = (req) => {
 
         //* Consulta o vencimento e os recebimentos relacionados a ele
         const [rowVencimento] = await conn.execute(
-          `SELECT tv.valor as valor_vencimento, t.descricao as descricao_titulo, tv.valor_pago
+          `SELECT tv.valor as valor_vencimento, t.descricao as descricao_titulo,
+          tv.valor_pago, t.id as id_titulo, tv.data_vencimento
           FROM fin_cr_titulos_vencimentos tv
           LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
           WHERE tv.id = ?`,
           [vencimento.id_vencimento]
         );
         const vencimento_database = rowVencimento && rowVencimento[0];
-        const { valor_vencimento, valor_pago } = vencimento_database;
+        const { valor_vencimento, valor_pago, id_titulo, data_vencimento } = vencimento_database;
 
         const [recebimentos] = await conn.execute(
           `SELECT tr.valor
@@ -98,6 +104,17 @@ module.exports = async = (req) => {
             user.id,
             transacao.id,
           ]
+        );
+
+        //* Adição de histórico no título
+        let historico = `EDITADO POR: ${normalizeFirstAndLastName(user.nome)}\n`;
+        historico += `ADICIONADO ${normalizeCurrency(
+          valor_pagar
+        )} NO VENCIMENTO DE DATA ${normalizeDate(data_vencimento)}\n`;
+
+        await conn.execute(
+          `INSERT INTO fin_cr_titulos_historico(id_titulo, descricao) VALUES(?, ?)`,
+          [id_titulo, historico]
         );
       }
 

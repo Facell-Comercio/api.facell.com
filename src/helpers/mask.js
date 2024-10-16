@@ -65,7 +65,16 @@ const normalizeDataDayOne = (dataString) => {
   }
 };
 
-const normalizeDate = (data) => data && data.split("T")[0].split("-").reverse().join("/");
+const normalizeDate = (data) => {
+  if (!data) return null;
+  if (typeof data === "string") {
+    return data && data.split("T")[0].split("-").reverse().join("/");
+  }
+  if (data instanceof Date) {
+    return data.toLocaleDateString("pt-BR");
+  }
+  return null;
+};
 const normalizeCurrency = (data) => {
   if (typeof data === "string") {
     const valor = parseFloat(data);

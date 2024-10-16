@@ -2,13 +2,20 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
 const updateValorVencimento = require("./updateValorVencimento");
-module.exports = async = (req) => {
+const { normalize } = require("xml2js/lib/processors");
+const {
+  normalizeFirstAndLastName,
+  normalizeCurrency,
+  normalizeDate,
+} = require("../../../../../helpers/mask");
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
-      const { id } = req.params;
-
       conn = await db.getConnection();
+      const { id } = req.params;
+      const { user } = req;
+
       await conn.beginTransaction();
 
       if (!id) {
@@ -19,15 +26,17 @@ module.exports = async = (req) => {
       const [rowRecebimento] = await conn.execute(
         `
         SELECT
-          id_conta_bancaria, id_extrato, valor, id_vencimento
-        FROM fin_cr_titulos_recebimentos
-        WHERE id = ?`,
+          tr.id_conta_bancaria, tr.id_extrato, tr.valor,
+          tr.id_vencimento, tv.id_titulo, tv.data_vencimento
+        FROM fin_cr_titulos_recebimentos tr
+        LEFT JOIN fin_cr_titulos_vencimentos tv ON tv.id = tr.id_vencimento
+        WHERE tr.id = ?`,
         [id]
       );
       const recebimento = rowRecebimento && rowRecebimento[0];
 
       //* Deleta o recebimento
-      await conn.execute("DELETE FROM fin_cr_titulos_recebimentos WHERE id = ?", [id]);
+      // await conn.execute("DELETE FROM fin_cr_titulos_recebimentos WHERE id = ?", [id]);
 
       //* Obtém os dados da conta bancária
       const [rowContaBancaria] = await conn.execute(
@@ -45,9 +54,9 @@ module.exports = async = (req) => {
             conn,
           },
         });
-        await conn.execute("DELETE FROM fin_extratos_bancarios WHERE id = ?", [
-          recebimento.id_extrato,
-        ]);
+        // await conn.execute("DELETE FROM fin_extratos_bancarios WHERE id = ?", [
+        //   recebimento.id_extrato,
+        // ]);
       }
 
       //* Deduzir valor do vencimento
@@ -58,6 +67,17 @@ module.exports = async = (req) => {
           conn_externa: conn,
         },
       });
+
+      //* Adição de histórico no título
+      let historico = `EDITADO POR: ${normalizeFirstAndLastName(user.nome)}\n`;
+      historico += `RETIRADO ${normalizeCurrency(
+        recebimento.valor
+      )} DO VENCIMENTO DE DATA ${normalizeDate(recebimento.data_vencimento)}\n`;
+
+      await conn.execute(
+        `INSERT INTO fin_cr_titulos_historico(id_titulo, descricao) VALUES(?, ?)`,
+        [recebimento.id_titulo, historico]
+      );
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
