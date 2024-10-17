@@ -26,7 +26,7 @@ module.exports = async = (req) => {
       range_data_pedido,
       valor_minimo,
       valor_maximo,
-      descricao,
+      produto_compra,
       fidelizacao_aparelho,
       fidelizacao_plano,
 
@@ -38,7 +38,8 @@ module.exports = async = (req) => {
 
     const params = [];
 
-    if (grupo_estoque_list && grupo_estoque_list.length > 0) {
+    const temGrupoEstoque = grupo_estoque_list && grupo_estoque_list.length > 0;
+    if (temGrupoEstoque) {
       where += ` AND mc.grupo_estoque IN('${ensureArray(grupo_estoque_list).join("','")}') `;
     }
     if (subgrupo_list && subgrupo_list.length > 0) {
@@ -73,9 +74,9 @@ module.exports = async = (req) => {
     if (filiais_list && filiais_list.length > 0) {
       where += ` AND mc.filial IN('${ensureArray(filiais_list).join("','")}') `;
     }
-    if (descricao) {
-      where += ` AND mc.descricao LIKE CONCAT("%",?,"%") `;
-      params.push(descricao);
+    if (produto_compra) {
+      where += ` AND mc.produto_compra LIKE CONCAT("%",?,"%") `;
+      params.push(produto_compra);
     }
     if (plano_habilitado_list && plano_habilitado_list.length > 0) {
       where += ` AND mc.plano_habilitado IN('${ensureArray(plano_habilitado_list).join("','")}') `;
@@ -258,6 +259,7 @@ module.exports = async = (req) => {
       const query = `
       SELECT mc.* FROM marketing_mailing_compras mc
       ${where}
+      ${temGrupoEstoque ? "GROUP BY mc.cpf_cliente" : ""}
       ${limit}
       `;
 

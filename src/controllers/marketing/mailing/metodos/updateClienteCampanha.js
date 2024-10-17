@@ -22,7 +22,7 @@ module.exports = async = (req) => {
       data_expiracao_fid3,
       codigo,
       plano_atual,
-      fidelizado_aparelho,
+      produto_fidelizado,
       tim_data_consulta,
 
       produto_ofertado,
@@ -87,9 +87,9 @@ module.exports = async = (req) => {
       sets += ` plano_atual = ? `;
       params.push(plano_atual);
     }
-    if (fidelizado_aparelho) {
-      sets += ` fidelizado_aparelho = ? `;
-      params.push(fidelizado_aparelho);
+    if (produto_fidelizado) {
+      sets += ` produto_fidelizado = ? `;
+      params.push(produto_fidelizado);
     }
     if (tim_data_consulta) {
       sets += ` tim_data_consulta = ? `;

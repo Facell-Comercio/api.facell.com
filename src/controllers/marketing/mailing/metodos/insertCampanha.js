@@ -1,6 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 const getAllCompras = require("./getAllCompras");
+const { startOfDay } = require("date-fns");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -10,7 +11,7 @@ module.exports = async = (req) => {
       return false;
     }
     // Filtros
-    const { nome, filters } = req.body;
+    const { nome, data_inicio, filters } = req.body;
 
     let conn;
 
@@ -29,8 +30,8 @@ module.exports = async = (req) => {
       //* INSERINDO A CAMPANHA
       const rowsClientes = clientes.rows;
       const [resultCampanha] = await conn.execute(
-        "INSERT INTO marketing_mailing_campanhas (nome, data, id_user) VALUES (?, ?, ?)",
-        [nome, new Date(), user.id]
+        "INSERT INTO marketing_mailing_campanhas (nome, data_inicio, id_user) VALUES (?, ?, ?)",
+        [nome, startOfDay(data_inicio), user.id]
       );
       const campanha_id = resultCampanha.insertId;
 
@@ -39,7 +40,6 @@ module.exports = async = (req) => {
       //* INSERINDO OS CLIENTES
       for (const cliente of rowsClientes) {
         cliente.id_campanha = campanha_id;
-        console.log(cliente);
 
         await conn.execute(
           `INSERT INTO marketing_mailing_clientes
