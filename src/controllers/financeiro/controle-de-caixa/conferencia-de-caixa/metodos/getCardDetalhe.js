@@ -40,7 +40,7 @@ module.exports = async (req) => {
           cartao: {
             table: "fin_vendas_cartao fvc",
             forma_pgto: "CARTÃO",
-            datatabaseColumns: `fvc.valor_venda as valor, fvc.data_venda as data, fvc.forma_pgto as forma_pagamento,
+            databaseColumns: `fvc.valor_venda as valor, fvc.data_venda as data, fvc.forma_pgto as forma_pagamento,
                                 fvc.bandeira, fvc.cod_autorizacao, fvc.nsu, fvc.canal_venda,
                                 fvc.taxa, fvc.status, fvc.adquirente`,
             tableColumns: [
@@ -85,7 +85,7 @@ module.exports = async (req) => {
           recarga: {
             table: "fin_vendas_recarga fvr",
             forma_pgto: "RECARGA",
-            datatabaseColumns: `fvr.valor, fvr.gsm, fvr.usuario, fvr.status`,
+            databaseColumns: `fvr.valor, fvr.gsm, fvr.usuario, fvr.status`,
             tableColumns: [
               {
                 label: "valor",
@@ -105,7 +105,7 @@ module.exports = async (req) => {
           pitzi: {
             table: "pitzi_vendas pv",
             forma_pgto: "SEGURO PITZI PROVI - CARTAO",
-            datatabaseColumns: `pv.valor, pv.tipo_plano, pv.id_seguro, pv.cpf_cliente, pv.cancelada`,
+            databaseColumns: `pv.valor, pv.tipo_plano, pv.id_seguro, pv.cpf_cliente, pv.cancelada`,
             tableColumns: [
               {
                 label: "valor",
@@ -137,7 +137,7 @@ module.exports = async (req) => {
           pix: {
             table: "fin_vendas_pix fvp",
             forma_pgto: "PIX",
-            datatabaseColumns: `fvp.valor, fvp.banco, fvp.devolucao, fvp.txid`,
+            databaseColumns: `fvp.valor, fvp.banco, fvp.devolucao, fvp.txid`,
             tableColumns: [
               {
                 label: "valor",
@@ -159,7 +159,7 @@ module.exports = async (req) => {
           tradein: {
             table: "renov_tradein rt",
             forma_pgto: "TRADEIN",
-            datatabaseColumns: `rt.valor, rt.voucher, rt.status, rt.data_uso`,
+            databaseColumns: `rt.valor, rt.voucher, rt.status, rt.data_uso`,
             tableColumns: [
               {
                 label: "valor",
@@ -180,7 +180,7 @@ module.exports = async (req) => {
           crediario: {
             table: "fin_vendas_crediario fvc",
             forma_pgto: "CREDIÁRIO",
-            datatabaseColumns: `fvc.valor_crediario as valor, fvc.data, fvc.descricao_produto as descricao, fvc.nome_vendedor, fvc.nome_cliente`,
+            databaseColumns: `fvc.valor_crediario as valor, fvc.data, fvc.descricao_produto as descricao, fvc.nome_vendedor, fvc.nome_cliente`,
             tableColumns: [
               {
                 label: "valor",
@@ -211,7 +211,7 @@ module.exports = async (req) => {
       const [rowsDadosReais] = await conn.execute(
         `
         SELECT
-          ${tiposMap.get(type).datatabaseColumns}
+          ${tiposMap.get(type).databaseColumns}
           FROM ${tiposMap.get(type).table}
           ${tiposMap.get(type).where}
       `,
@@ -232,7 +232,6 @@ module.exports = async (req) => {
             dv.tipoPedido as tipo_operacao, dv.descricao as historico, dv.valorCaixa as valor
           FROM ${tabela_recarga} dv
           WHERE dv.grupoEstoque = "RECARGA ELETRONICA"
-          AND dv.tipoPedido = "Venda"
           AND DATE_FORMAT(dv.dataPedido,'%Y-%m-%d') = ?
           AND dv.filial = ?
           `,
