@@ -1,7 +1,7 @@
 module.exports = {
   getAll: require("./metodos/getAll"),
   getOne: require("./metodos/getOne"),
-  insertOne: require("./metodos/insertOne"),
+  insertOneTituloReceber: require("./metodos/insertOneTituloReceber"),
   update: require("./metodos/update"),
   getAllVencimentosCR: require("./metodos/getAllVencimentosCR"),
 
@@ -9,4 +9,6 @@ module.exports = {
   deleteRecebimento: require("./metodos/deleteRecebimento"),
 
   changeStatusTituloReceber: require("./metodos/changeStatusTituloReceber"),
+  lancamentoReebolsosTim: require("./metodos/lancamentoReebolsosTim"),
+  lancamentoComissoesTim: require("./metodos/lancamentoComissoesTim"),
 };

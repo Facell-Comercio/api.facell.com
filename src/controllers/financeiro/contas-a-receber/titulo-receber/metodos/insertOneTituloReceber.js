@@ -7,6 +7,7 @@ const { normalizeFirstAndLastName } = require("../../../../../helpers/mask");
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
+    const conn_externa = req?.conn_externa;
     try {
       const { user } = req;
       const data = req.body;
@@ -39,11 +40,14 @@ module.exports = async = (req) => {
         url_outros,
         url_recibo,
       } = data || {};
-      conn = await db.getConnection();
-      await conn.beginTransaction();
+      conn = conn_externa || (await db.getConnection());
 
+      if (!conn_externa) {
+        await conn.beginTransaction();
+      }
       // ^ Validações
       // Titulo
+
       if (!id_filial) {
         throw new Error("Campo id_filial não informado!");
       }
@@ -163,7 +167,7 @@ module.exports = async = (req) => {
               id_status
           )
           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-          `,
+            `,
         [
           user.id,
           id_fornecedor,
@@ -230,23 +234,27 @@ module.exports = async = (req) => {
         [newId, historico]
       );
 
-      await conn.commit();
+      if (!conn_externa) {
+        await conn.commit();
+      }
       resolve({ message: "Sucesso!", id_titulo: newId });
     } catch (error) {
-      logger.error({
-        module: "FINANCEIRO",
-        origin: "TITULOS_A_RECEBER",
-        method: "INSERT_ONE",
-        data: {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-        },
-      });
-      await conn.rollback();
+      if (!conn_externa) {
+        logger.error({
+          module: "FINANCEIRO",
+          origin: "TITULOS_A_RECEBER",
+          method: "INSERT_ONE",
+          data: {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          },
+        });
+      }
+      if (conn && !conn_externa) await conn.rollback();
       reject(error);
     } finally {
-      conn.release();
+      if (conn && !conn_externa) conn.release();
     }
   });
 };

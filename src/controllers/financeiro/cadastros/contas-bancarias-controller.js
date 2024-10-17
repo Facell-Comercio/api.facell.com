@@ -84,13 +84,13 @@ function getAll(req) {
       where += ` AND cb.active = ? `;
       params.push(active);
     }
-    if (isCaixa) {
-      if (parseInt(isCaixa)) {
-        where += " AND cb.caixa = 1";
-      } else {
-        where += " AND cb.caixa = 0";
-      }
-    }
+    // if (isCaixa !== undefined) {
+    //   if (parseInt(isCaixa)) {
+    //     where += " AND cb.caixa = 1";
+    //   } else {
+    //     where += " AND cb.caixa = 0";
+    //   }
+    // }
 
     const offset = pageIndex * pageSize;
     const conn = await db.getConnection();

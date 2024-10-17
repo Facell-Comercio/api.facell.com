@@ -32,7 +32,7 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const result = await controller.insertOne(req);
+    const result = await controller.insertOneTituloReceber(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -51,6 +51,24 @@ router.put("/", async (req, res) => {
 router.post("/change-status", async (req, res) => {
   try {
     const result = await controller.changeStatusTituloReceber(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.post("/reembolso-tim-lote", async (req, res) => {
+  try {
+    const result = await controller.lancamentoReebolsosTim(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.post("/comissoes-tim-lote", async (req, res) => {
+  try {
+    const result = await controller.lancamentoComissoesTim(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
