@@ -3,7 +3,8 @@ const { logger } = require("../../../../../../logger");
 const insertOneTituloReceber = require("./insertOneTituloReceber");
 const { normalizeNumberOnly, parseCurrency } = require("../../../../../helpers/mask");
 const { addDays } = require("date-fns");
-const { importFromExcel } = require("../../../../../helpers/lerXML");
+const fs = require("fs/promises");
+const { lerXML, importFromExcel } = require("../../../../../helpers/lerXML");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -14,6 +15,7 @@ module.exports = async = (req) => {
       const { user } = req;
 
       await conn.beginTransaction();
+
       const files = req.files;
 
       if (!files || !files.length) {
@@ -41,23 +43,30 @@ module.exports = async = (req) => {
               tipo_de_remuneracao: value["Tipo de Remuneração"].trim(),
               valor_total: parseCurrency(value["Valor Total"]),
             }));
-          const wrongResult = excelFileList.filter((res) => res.tipo_de_remuneracao !== "COMISSÃO");
 
+          const wrongResult = excelFileList.filter(
+            (res) =>
+              !(
+                res.tipo_de_remuneracao === "PRICE" ||
+                res.tipo_de_remuneracao === "REBATE" ||
+                res.tipo_de_remuneracao === "ADM"
+              )
+          );
           if (wrongResult.length > 0) {
-            throw new Error();
+            throw new Error("Há remunerações inválidas no arquivo!");
           }
 
-          //* LANÇAMENTO CADA COMISSÃO DO AQUIVO
-          for (const comissao of excelFileList) {
+          //* LANÇAMENTO CADA REEMBOLSO DO AQUIVO
+          for (const reembolso of excelFileList) {
             obj = {
               ...obj,
-              ...comissao,
+              ...reembolso,
             };
             try {
               //* DADOS FILIAL
               const [rowFilial] = await conn.execute(
                 "SELECT id, uf, id_grupo_economico FROM filiais WHERE cnpj = ?",
-                [normalizeNumberOnly(comissao.cnpj)]
+                [normalizeNumberOnly(reembolso.cnpj)]
               );
               const filial = rowFilial && rowFilial[0];
 
@@ -76,7 +85,7 @@ module.exports = async = (req) => {
               const vencimentos = [
                 {
                   data_vencimento: addDays(new Date(), 30),
-                  valor: comissao.valor_total,
+                  valor: reembolso.valor_total,
                 },
               ];
 
@@ -84,7 +93,7 @@ module.exports = async = (req) => {
               const [rowCentroCusto] = await conn.execute(
                 `
                 SELECT id
-                FROM fin_centros_custo 
+                FROM fin_centros_custo
                 WHERE nome LIKE 'FINANCEIRO'
                 AND id_grupo_economico = ?
                 `,
@@ -101,9 +110,9 @@ module.exports = async = (req) => {
                 SELECT id
                 FROM fin_plano_contas
                 WHERE id_grupo_economico = ?
-                AND descricao LIKE 'COMISSÃO TIM'
+                AND descricao LIKE CONCAT(?,'%')
                 `,
-                [filial.id_grupo_economico]
+                [filial.id_grupo_economico, reembolso.tipo_de_remuneracao]
               );
               const plano_contas = rowPlanoContas && rowPlanoContas[0];
               if (!plano_contas) {
@@ -116,14 +125,14 @@ module.exports = async = (req) => {
                   id_filial: filial.id,
                   id_centro_custo: centro_custo.id,
                   id_plano_conta: plano_contas.id,
-                  valor: comissao.valor_total,
+                  valor: reembolso.valor_total,
                   percentual: 1,
                 },
               ];
 
               //* DESCRIÇÃO DO TÍTULO
               const descricao =
-                `${comissao.tipo_de_remuneracao} ${comissao.mes}/${comissao.ano}`.toUpperCase();
+                `${reembolso.tipo_de_remuneracao} ${reembolso.mes}/${reembolso.ano}`.toUpperCase();
 
               //* CRIANDO TÍTULO
               const result = await insertOneTituloReceber({
@@ -134,11 +143,11 @@ module.exports = async = (req) => {
                   id_filial: filial.id,
                   id_grupo_economico: filial.id_grupo_economico,
 
-                  id_tipo_documento: 1,
+                  id_tipo_documento: 3,
                   data_emissao: new Date(),
-                  tim_pedido: comissao.pedido,
-                  tim_pedido_sap: comissao.pedido_sap,
-                  valor: comissao.valor_total,
+                  tim_pedido: reembolso.pedido,
+                  tim_pedido_sap: reembolso.pedido_sap,
+                  valor: reembolso.valor_total,
                   descricao,
 
                   vencimentos,
@@ -172,18 +181,19 @@ module.exports = async = (req) => {
           obj = {
             ...obj,
             status_importacao: "ERRO",
-            observação: "Há comissões inválidas no arquivo!".toUpperCase(),
+            observação: "Há remunerações inválidas no arquivo!".toUpperCase(),
           };
           retorno.push(obj);
         }
       }
+
       await conn.commit();
       resolve(retorno);
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS_A_RECEBER",
-        method: "LANCAMENTO_COMISSOES_TIM",
+        method: "LANCAMENTO_REEMBOLSOS_TIM",
         data: {
           message: error.message,
           stack: error.stack,

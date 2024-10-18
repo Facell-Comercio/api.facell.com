@@ -159,7 +159,7 @@ module.exports = async = (req) => {
             ${where}
   
             ORDER BY
-                t.created_at DESC
+                t.id DESC
             ${limit}`;
       if (limit) {
         params.push(pageSize);

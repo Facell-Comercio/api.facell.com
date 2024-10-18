@@ -244,6 +244,17 @@ function normalizeNumberFixed(number, fractionDigits) {
   return null;
 }
 
+function parseCurrency(value) {
+  // Remove o símbolo "R$" e espaços em branco
+  let numericValue = value.replace(/[R$\s]/g, "");
+
+  // Remove o separador de milhar (pontos) e substitui a vírgula por ponto
+  numericValue = numericValue.replace(/\./g, "").replace(",", ".");
+
+  // Converte para número
+  return parseFloat(numericValue);
+}
+
 module.exports = {
   normalizeNumberOnly,
   normalizePhoneNumber,
@@ -262,4 +273,5 @@ module.exports = {
   ensureArray,
   objectToStringLine,
   normalizeNumberFixed,
+  parseCurrency,
 };

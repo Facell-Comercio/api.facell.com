@@ -9,6 +9,8 @@ module.exports = {
   deleteRecebimento: require("./metodos/deleteRecebimento"),
 
   changeStatusTituloReceber: require("./metodos/changeStatusTituloReceber"),
-  lancamentoReebolsosTim: require("./metodos/lancamentoReebolsosTim"),
+
+  lancamentoReembolsosTim: require("./metodos/lancamentoReembolsosTim"),
   lancamentoComissoesTim: require("./metodos/lancamentoComissoesTim"),
+  reembolsosTimZIP: require("./metodos/reembolsosTimZIP"),
 };
