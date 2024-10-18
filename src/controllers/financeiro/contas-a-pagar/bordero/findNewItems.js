@@ -14,7 +14,7 @@ module.exports = function findNewItems(req) {
       req.query = {
         ...req.query,
         emBordero: false,
-        minStatusTitulo: 3,
+        minStatusTitulo: 4,
         enabledStatusPgto: ["erro", "pendente"],
         closedFatura: true,
       };
