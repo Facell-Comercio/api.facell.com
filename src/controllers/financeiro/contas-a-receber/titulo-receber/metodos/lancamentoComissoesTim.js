@@ -21,6 +21,7 @@ module.exports = async = (req) => {
       }
       const retorno = [];
 
+      let qtde_comissoes = 0;
       //* PASSANDO EM TODOS OS ARQUIVOS
       for (const file of files) {
         const filePath = file?.path;
@@ -154,6 +155,7 @@ module.exports = async = (req) => {
                 status_importacao: "OK",
                 observação: "IMPORTAÇÃO REALIZADA COM SUCESSO",
               };
+              qtde_comissoes++;
             } catch (erro) {
               let message = String(erro.message).toUpperCase();
               if (message.includes("DUPLICATE ENTRY")) {
@@ -177,6 +179,19 @@ module.exports = async = (req) => {
           retorno.push(obj);
         }
       }
+
+      // * Insert em log de importações de relatórios:
+      if (qtde_comissoes > 0) {
+        await conn.execute(
+          `INSERT INTO logs_movimento_arquivos (id_user, relatorio, descricao ) VALUES (?,?,?)`,
+          [
+            user.id,
+            "IMPORT_LANCAMENTOS_COMISSOES_TIM",
+            `Foram lançadas ${qtde_comissoes} comissões!`,
+          ]
+        );
+      }
+
       await conn.commit();
       resolve(retorno);
     } catch (error) {

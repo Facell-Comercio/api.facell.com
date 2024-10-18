@@ -23,6 +23,7 @@ module.exports = async = (req) => {
       }
       const retorno = [];
 
+      let qtde_reembolsos = 0;
       //* PASSANDO EM TODOS OS ARQUIVOS
       for (const file of files) {
         const filePath = file?.path;
@@ -163,6 +164,7 @@ module.exports = async = (req) => {
                 status_importacao: "OK",
                 observação: "IMPORTAÇÃO REALIZADA COM SUCESSO",
               };
+              qtde_reembolsos++;
             } catch (erro) {
               let message = String(erro.message).toUpperCase();
               if (message.includes("DUPLICATE ENTRY")) {
@@ -185,6 +187,18 @@ module.exports = async = (req) => {
           };
           retorno.push(obj);
         }
+      }
+
+      // * Insert em log de importações de relatórios:
+      if (qtde_reembolsos > 0) {
+        await conn.execute(
+          `INSERT INTO logs_movimento_arquivos (id_user, relatorio, descricao ) VALUES (?,?,?)`,
+          [
+            user.id,
+            "IMPORT_LANCAMENTOS_REEMBOLSOS_TIM",
+            `Foram lançados ${qtde_reembolsos} reembolsos!`,
+          ]
+        );
       }
 
       await conn.commit();
