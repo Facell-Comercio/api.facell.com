@@ -97,7 +97,7 @@ function appendIntoTempFile({
 Remove o arquivo do roll de exclusão às 00:00
 */ 
 function persistFile({
-    fileUrl
+    conn_externa, fileUrl
 }) {
     return new Promise(async (resolve, reject) => {
         let conn
@@ -107,8 +107,7 @@ function persistFile({
                 resolve(fileUrl)
                 return
             }
-            conn = await db.getConnection();
-            await conn.beginTransaction()
+            conn = conn_externa || (await db.getConnection());
 
             // Extrair id da nova url
             const fileId = extractGoogleDriveId(fileUrl)
@@ -116,12 +115,8 @@ function persistFile({
                 // Remover da lista de exclusão
                 await conn.execute(`DELETE FROM temp_files WHERE id =?;`, [fileId])
             }
-            await conn.commit()
             resolve(fileUrl)
         } catch (error) {
-            if (conn) {
-                await conn.rollback()
-            }
             reject(error)
             logger.error({
                 module: 'STORAGE', origin: 'GOOGLE_DRIVE', method: 'PERSIST_FILE',
@@ -129,7 +124,7 @@ function persistFile({
             });
 
         } finally {
-            if (conn) conn.release()
+            if (conn && !conn_externa) conn.release()
         }
     })
 }
@@ -218,8 +213,9 @@ function uploadFile(req) {
 // * OK
 async function preUploadFile(req) {
     return new Promise(async (resolve, reject) => {
-        const conn = await db.getConnection()
+        let conn 
         try {
+            conn = await db.getConnection()
             const { fileId, fileUrl } = await uploadFile(req)
             await conn.execute(`INSERT INTO temp_files (id) VALUES (?)`, [extractGoogleDriveId(fileUrl)])
             resolve({ fileUrl })
@@ -230,7 +226,7 @@ async function preUploadFile(req) {
             });
             reject(error)
         } finally {
-            conn.release()
+            if(conn) conn.release();
         }
     })
 }
@@ -330,8 +326,9 @@ const downloadFile = async ({ fileId }) => {
 // * OK
 function deleteFile(fileUrl) {
     return new Promise(async (resolve, reject) => {
-        const conn = await db.getConnection()
+        let conn
         try {
+            conn = await db.getConnection()
             const fileId = extractGoogleDriveId(fileUrl)
             if (!fileId) {
                 throw new Error('ID do arquivo não recebido!')
@@ -362,7 +359,7 @@ function deleteFile(fileUrl) {
             });
             resolve(false);
         } finally {
-            conn.release()
+            if(conn) conn.release()
         }
     })
 }
