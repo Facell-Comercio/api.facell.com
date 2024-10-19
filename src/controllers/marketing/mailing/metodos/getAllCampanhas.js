@@ -15,7 +15,7 @@ module.exports = async = (req) => {
         pageSize: 15,
       };
       const { mes, ano, active, nome } = filters || {};
-
+      
       let where = "WHERE 1=1";
       const params = [];
 
@@ -52,8 +52,10 @@ module.exports = async = (req) => {
       }
       const [campanhas] = await conn.execute(
         `SELECT * FROM marketing_mailing_campanhas
-        ${where} ${limit}
-        ORDER BY data_inicio`,
+        ${where} 
+        ORDER BY data_inicio
+        ${limit}
+        `,
         params
       );
 

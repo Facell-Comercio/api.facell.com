@@ -3,7 +3,7 @@ const { logger } = require("../../../../../logger");
 const getAllCompras = require("./getAllCompras");
 const { startOfDay } = require("date-fns");
 
-module.exports = async = (req) => {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     if (!user) {

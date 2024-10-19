@@ -1,7 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 
-module.exports = async = (req) => {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     // Filtros
     const { conn_externa } = req.body;

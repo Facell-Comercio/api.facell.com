@@ -3,7 +3,7 @@ const { logger } = require("../../../../../logger");
 const { formatDate } = require("date-fns");
 const { ensureArray } = require("../../../../helpers/mask");
 
-module.exports = async = (req) => {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     // Filtros
     const { filters, pagination } = req.query;

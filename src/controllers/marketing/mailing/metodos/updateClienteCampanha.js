@@ -1,7 +1,8 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
+const updateClienteMarketingCompras = require('./updateClienteMarketingCompras');
 
-module.exports = async = (req) => {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     // Filtros
     const {
@@ -114,7 +115,11 @@ module.exports = async = (req) => {
       await conn.beginTransaction();
 
       await conn.execute(`UPDATE marketing_mailing_clientes SET ${sets} WHERE id = ?`, params);
+      await updateClienteMarketingCompras({
+        body: {
 
+        }
+      })
       if (!conn_externa) {
         await conn.commit();
       }

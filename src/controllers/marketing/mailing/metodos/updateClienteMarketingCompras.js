@@ -1,7 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 
-module.exports = async = (req) => {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
 
@@ -32,7 +32,7 @@ module.exports = async = (req) => {
 
       const params = [];
       let sets = "";
-      let where = " WHERE 1 = 1 ";
+      let where = " WHERE status <> 'Desativado' ";
 
       if (gsm_portado) {
         sets += ` gsm_portado = ? `;
@@ -98,11 +98,11 @@ module.exports = async = (req) => {
 
       //* WHERE
       if (gsm) {
-        where += ` gsm = ? `;
+        where += ` AND gsm = ? `;
         params.push(gsm);
       }
       if (cpf_cliente) {
-        where += ` cpf = ? `;
+        where += ` AND cpf = ? `;
         params.push(cpf_cliente);
       }
       conn = conn_externa || (await db.getConnection());
