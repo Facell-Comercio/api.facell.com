@@ -8,7 +8,7 @@ module.exports = ({id_matriz, range_datas})=>{
         try {
             conn = await db.getConnection();
 
-            const [filiais] = await conn.execute(`SELECT id FROM filiais WHERE id_matriz = ? and active = 1`,[id_matriz]);
+            const [filiais] = await conn.execute(`SELECT id FROM filiais WHERE id_matriz = ? and active = 1 AND tim_cod_sap IS NOT NULL`,[id_matriz]);
             for(const filial of filiais){
                 await importarCaixas({body: { id_filial: filial.id, range_datas}})
             }

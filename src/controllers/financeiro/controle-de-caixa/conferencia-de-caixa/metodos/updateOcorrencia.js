@@ -21,14 +21,7 @@ module.exports = async (req) => {
         throw new Error("ID não informado!");
       }
       if (
-        !(
-          id_user_criador &&
-          id_filial &&
-          data_ocorrencia &&
-          data_caixa &&
-          descricao &&
-          resolvida
-        )
+        !(id_user_criador && id_filial && data_ocorrencia && data_caixa && descricao && resolvida)
       ) {
         throw new Error("Todos os campos são obrigatórios!");
       }
@@ -39,7 +32,7 @@ module.exports = async (req) => {
         `
         SELECT id, status FROM datasys_caixas
         WHERE id_filial = ? AND data = ?
-        AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
+        AND (status = 'CONFIRMADO' OR status = 'CONFIRMADO')
       `,
         [id_filial, startOfDay(data_caixa)]
       );
@@ -73,9 +66,13 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "UPDATE_OCORRÊNCIA",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
       conn.release();

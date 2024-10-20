@@ -5,7 +5,7 @@ const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    let filePath
+    let filePath;
     let conn;
     try {
       const { file } = req;
@@ -14,7 +14,7 @@ module.exports = async (req) => {
       if (!file) {
         throw new Error("Falha no upload do arquivo, tente novamente!");
       }
-      filePath = file.path
+      filePath = file.path;
       const fileBuffer = await fs.readFile(filePath);
       const workbook = XLSX.read(fileBuffer, { type: "buffer" });
       const sheetName = workbook.SheetNames[0];
@@ -40,14 +40,10 @@ module.exports = async (req) => {
       conn.config.namedPlaceholders = true;
 
       for (const row of formattedData) {
-        const cnpj = row["CPF/CNPJ do estabelecimento"].replace(
-          /[^a-zA-Z0-9]/g,
-          ""
-        );
-        const [rowFilial] = await conn.execute(
-          `SELECT id FROM filiais WHERE cnpj = :cnpj `,
-          { cnpj }
-        );
+        const cnpj = row["CPF/CNPJ do estabelecimento"].replace(/[^a-zA-Z0-9]/g, "");
+        const [rowFilial] = await conn.execute(`SELECT id FROM filiais WHERE cnpj = :cnpj `, {
+          cnpj,
+        });
         const filial = rowFilial && rowFilial[0];
         if (!filial) {
           throw new Error(`Filial não localizada pelo CNPJ: ${cnpj}`);
@@ -120,7 +116,7 @@ module.exports = async (req) => {
       }
       // * Insert em log de importações de relatórios:
       await conn.execute(
-        `INSERT INTO logs_import_relatorio (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`,
+        `INSERT INTO logs_movimento_arquivos (id_user, relatorio, descricao ) VALUES (:id_user, :relatorio, :descricao)`,
         {
           id_user: req.user.id,
           relatorio: "CIELO-VENDAS",
@@ -144,8 +140,8 @@ module.exports = async (req) => {
     } finally {
       if (filePath) {
         try {
-          await fs.unlink(filePath)
-        } catch (err) { }
+          await fs.unlink(filePath);
+        } catch (err) {}
       }
       if (conn) conn.release();
     }

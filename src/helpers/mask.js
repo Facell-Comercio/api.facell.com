@@ -1,6 +1,6 @@
 const normalizeNumberOnly = (value) => {
   if (!value) return "";
-  return value.replace(/[\D]/g, "");
+  return String(value).replace(/[\D]/g, "");
 };
 
 const normalizePhoneNumber = (value) => {
@@ -65,8 +65,16 @@ const normalizeDataDayOne = (dataString) => {
   }
 };
 
-const normalizeDate = (data) =>
-  data && data.split("T")[0].split("-").reverse().join("/");
+const normalizeDate = (data) => {
+  if (!data) return null;
+  if (typeof data === "string") {
+    return data && data.split("T")[0].split("-").reverse().join("/");
+  }
+  if (data instanceof Date) {
+    return data.toLocaleDateString("pt-BR");
+  }
+  return null;
+};
 const normalizeCurrency = (data) => {
   if (typeof data === "string") {
     const valor = parseFloat(data);
@@ -121,7 +129,9 @@ function normalizeCodigoBarras(text) {
     return textoLimpo;
   }
   if (textoLimpo.length !== 47) {
-    throw new Error(`Línha digitável deve possuir 47 caracteres, ou o código de barras possuir 44 caracteres! Recebido ${text.length} caracteres!`)
+    throw new Error(
+      `Línha digitável deve possuir 47 caracteres, ou o código de barras possuir 44 caracteres! Recebido ${text.length} caracteres!`
+    );
   }
   const parte1 = textoLimpo.substring(0, 4);
   const parte3 = textoLimpo.substring(4, 9);
@@ -143,7 +153,9 @@ function normalizeCodigoBarras48(texto) {
   if (textoTratado.length == 44) return textoTratado;
 
   if (textoTratado.length !== 48) {
-    throw new Error(`A linha digitável deve ter 48 caracteres, ou o código de barras possuir 44 caracteres! Recebido ${textoTratado.length} caracteres.`);
+    throw new Error(
+      `A linha digitável deve ter 48 caracteres, ou o código de barras possuir 44 caracteres! Recebido ${textoTratado.length} caracteres.`
+    );
   }
 
   // Extrai campos da linha digitável
@@ -166,13 +178,31 @@ function normalizeCodigoBarras48(texto) {
  * Função que extrai URL / Chave de endereçamento do PIX Copia e Cola
  * */
 function normalizeURLChaveEnderecamentoPIX(qr_code) {
-  const qr = qr_code.trim();
-  if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
-    throw new Error("Chave PIX não identificada");
+  if (!qr_code) {
+    throw new Error("QR Code não informado!");
   }
-  const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
-  const caracteres = parseInt(etapa1[1].substring(2, 4)) + 4;
-  return etapa1[1].substring(4, caracteres);
+  // const qr = qr_code.trim();
+  // if (!qr.toLowerCase().includes("br.gov.bcb.pix")) {
+  //   throw new Error("Chave PIX não identificada");
+  // }
+  // const etapa1 = qr.toLowerCase().split("br.gov.bcb.pix");
+  // const caracteres = parseInt(etapa1[1].substring(2, 4)) + 4;
+  // return etapa1[1].substring(4, caracteres);
+
+  // Verifica se o QR Code contém a URL do PSP (indicativo de QR dinâmico)
+  if (qr_code.toLowerCase().includes("pix.bpp.com.br")) {
+    const urlStart = qr_code.toLowerCase().indexOf("pix.bpp.com.br");
+    const etapa1 = qr_code.substring(urlStart);
+    const tamanhoUrl = parseInt(etapa1.substring(17, 21)); // Extrai o tamanho da URL
+    return etapa1.substring(21, 21 + tamanhoUrl); // Retorna a URL completa
+  } else if (qr_code.toLowerCase().includes("br.gov.bcb.pix")) {
+    // Caso seja um QR estático
+    const etapa1 = qr_code.toLowerCase().split("br.gov.bcb.pix");
+    const tamanhoChave = parseInt(etapa1[1].substring(2, 4)) + 4;
+    return etapa1[1].substring(4, tamanhoChave); // Retorna a chave de endereçamento
+  } else {
+    throw new Error("Chave PIX ou URL não identificada");
+  }
 }
 
 function excelDateToJSDate(serial) {
@@ -180,6 +210,49 @@ function excelDateToJSDate(serial) {
   const baseDate = new Date(1900, 0, 1); // 1 de janeiro de 1900
   const days = serial - 2; // Ajuste para o bug do Excel que considera 1900 como ano bissexto
   return new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function ensureArray(data) {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    return data;
+  }
+  // Converte o objeto de volta para um array
+  return Object.keys(data).map((key) => data[key]);
+}
+
+function objectToStringLine(object) {
+  return Object.values(object).reduce((acc, value) => {
+    if (value instanceof Date) {
+      const dia = String(value.getDate()).padStart(2, "0");
+      const mes = String(value.getMonth() + 1).padStart(2, "0");
+      const ano = value.getFullYear();
+
+      value = `${dia}${mes}${ano}`;
+    }
+    return acc + (value !== null && value !== undefined ? String(value) : "");
+  }, "");
+}
+
+function normalizeNumberFixed(number, fractionDigits) {
+  if (typeof number === "string" && parseFloat(number)) {
+    return parseFloat(parseFloat(number || "0").toFixed(fractionDigits));
+  }
+  if (typeof number === "number" && !isNaN(number)) {
+    return parseFloat(number.toFixed(fractionDigits) || "0");
+  }
+  return null;
+}
+
+function parseCurrency(value) {
+  // Remove o símbolo "R$" e espaços em branco
+  let numericValue = value.replace(/[R$\s]/g, "");
+
+  // Remove o separador de milhar (pontos) e substitui a vírgula por ponto
+  numericValue = numericValue.replace(/\./g, "").replace(",", ".");
+
+  // Converte para número
+  return parseFloat(numericValue);
 }
 
 module.exports = {
@@ -197,4 +270,8 @@ module.exports = {
   normalizeCodigoBarras48,
   normalizeURLChaveEnderecamentoPIX,
   excelDateToJSDate,
+  ensureArray,
+  objectToStringLine,
+  normalizeNumberFixed,
+  parseCurrency,
 };

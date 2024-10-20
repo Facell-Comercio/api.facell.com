@@ -1,7 +1,6 @@
 const { startOfDay } = require("date-fns");
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
-const getCaixaAnterior = require("./getCaixaAnterior");
 const updateSaldo = require("./updateSaldo");
 
 module.exports = async (req) => {
@@ -12,7 +11,7 @@ module.exports = async (req) => {
       return false;
     }
     const { id, action } = req.body;
-    //enum('A CONFERIR','CONFERIDO / BAIXA PENDENTE','BAIXADO / PENDENTE DATASYS','BAIXADO NO DATASYS')
+    //enum('A CONFERIR','CONFERIDO','CONFIRMADO')
     let conn;
     try {
       conn = await db.getConnection();
@@ -21,26 +20,41 @@ module.exports = async (req) => {
         `
         SELECT 
           dc.status, dc.data, dc.id_filial,
-          dc.valor_dinheiro, dc.valor_retiradas,
-          COALESCE(SUM(dco.resolvida = 0),0) as ocorrencias_nao_resolvidas
+          dc.valor_dinheiro, dc.valor_despesas,
+          (
+            SELECT COUNT(*)
+            FROM datasys_caixas_ocorrencias ocorrencias
+            WHERE ocorrencias.id_filial = dc.id_filial
+              AND ocorrencias.data_caixa = dc.data
+              AND ocorrencias.resolvida = 1
+          ) AS ocorrencias_resolvidas,
+          (
+            SELECT COUNT(*)
+            FROM datasys_caixas_ocorrencias ocorrencias
+            WHERE ocorrencias.id_filial = dc.id_filial
+              AND ocorrencias.data_caixa = dc.data
+              AND ocorrencias.resolvida = 0
+          ) AS ocorrencias_nao_resolvidas,
+          (
+            SELECT COUNT(dci.id) 
+            FROM datasys_caixas_itens dci 
+            WHERE dci.id_caixa = dc.id
+              AND dci.tipo_operacao LIKE 'DESPESAS%'
+              AND dci.id_cp_titulo IS NULL
+          ) AS despesas_nao_lancadas,
+          dc.divergente
         FROM datasys_caixas dc
         LEFT JOIN filiais f ON f.id = dc.id_filial
-        LEFT JOIN datasys_caixas_ocorrencias dco ON dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data
         WHERE dc.id = ?
         `,
         [id]
       );
       const caixa = rowsCaixas && rowsCaixas[0];
-
-      if (caixa.status === "BAIXADO NO DATASYS") {
-        throw new Error(`Nenhuma ação pode ser realizada nesse caixa`);
-      }
-
-      //* INÍCIO - CONFIRMAÇÃO DE CAIXA
+      //* INÍCIO - CONFERÊNCIA DE CAIXA
       if (action === "conferir") {
         await conn.execute(
           `
-          UPDATE datasys_caixas SET status = 'CONFERIDO / BAIXA PENDENTE' WHERE id = ?
+          UPDATE datasys_caixas SET status = 'CONFERIDO' WHERE id = ?
         `,
           [id]
         );
@@ -54,42 +68,33 @@ module.exports = async (req) => {
           [id, `Caixa CONFERIDO por ${user.nome.toUpperCase()}`]
         );
       }
-      //* FIM - CONFIRMAÇÃO DE CAIXA
+      //* FIM - CONFERÊNCIA DE CAIXA
 
-      //* INÍCIO - CONFERÊNCIA DE CAIXA
+      //* INÍCIO - CONFIRMAÇÃO DE CAIXA
       if (action === "confirmar") {
+        //~~ Validação da quantidade de ocorrências
         if (Number(caixa.ocorrencias_nao_resolvidas) > 0) {
-          throw new Error(
-            `Há ${caixa.ocorrencias_nao_resolvidas} ocorrências não resolvidas!`
-          );
+          throw new Error(`Há ${caixa.ocorrencias_nao_resolvidas} ocorrências não resolvidas!`);
         }
 
-        //~ INÍCIO - Validação de regra de negócio para a baixa de caixa
-        const [rowCaixaAnterior] = await conn.execute(
-          `SELECT status FROM datasys_caixas 
-          WHERE data < ? 
-          ORDER BY data DESC
-          LIMIT 1`,
-          [startOfDay(caixa.data)]
-        );
+        //~~ Validação de divergências + ocorrências
+        if (caixa.divergente && !caixa.ocorrencias_resolvidas) {
+          throw new Error("Registre uma ocorrência pois o caixa é divergente!");
+        }
 
-        const caixaAnterior = rowCaixaAnterior && rowCaixaAnterior[0];
-
-        if (
-          caixaAnterior && !(
-            caixaAnterior['status'] === "BAIXADO NO DATASYS" ||
-            caixaAnterior['status'] === "BAIXADO / PENDENTE DATASYS"
-          )
-        ) {
+        const despesas_nao_lancadas = Number(caixa.despesas_nao_lancadas);
+        //~~ Validação de despesas não lançadas
+        if (despesas_nao_lancadas > 0) {
           throw new Error(
-            "Ainda não foi realizada a confirmação no caixa anterior"
+            `Não é possível confirmar o caixa pois há ${despesas_nao_lancadas} ${
+              despesas_nao_lancadas === 1 ? "despesa não lançada" : "despesas não lançadas"
+            }!`
           );
         }
-        //~ FIM - Validação de regra de negócio para a baixa de caixa
 
         await conn.execute(
           `
-          UPDATE datasys_caixas SET status = 'BAIXADO / PENDENTE DATASYS' WHERE id = ?
+          UPDATE datasys_caixas SET status = 'CONFIRMADO' WHERE id = ?
         `,
           [id]
         );
@@ -102,7 +107,7 @@ module.exports = async (req) => {
         `,
           [id, `Caixa CONFIRMADO por ${user.nome.toUpperCase()}`]
         );
-        console.log("Atualizando saldo...");
+        // console.log("Atualizando saldo...");
         await updateSaldo({
           conn,
           id_caixa: id,
@@ -112,26 +117,6 @@ module.exports = async (req) => {
 
       //* INÍCIO - DESCONFIRMAÇÃO DE CAIXA
       if (action === "desconfirmar") {
-        //~ INÍCIO - Validação de regra de negócio para a desconfirmação de caixa
-        const [rowCaixaSeguinte] = await conn.execute(
-          `SELECT status, data FROM datasys_caixas 
-          WHERE data > ? 
-          ORDER BY data ASC
-          LIMIT 1`,
-          [startOfDay(caixa.data)]
-        );
-        const statusCaixaSeguinte =
-          rowCaixaSeguinte && rowCaixaSeguinte[0] && rowCaixaSeguinte[0].status;
-        if (
-          statusCaixaSeguinte === "BAIXADO NO DATASYS" ||
-          statusCaixaSeguinte === "BAIXADO / PENDENTE DATASYS"
-        ) {
-          throw new Error(
-            "Ação não permitida pois já foi realizada a confirmação do caixa seguinte"
-          );
-        }
-        //~ FIM - Validação de regra de negócio para a desconfirmação de caixa
-
         await conn.execute(
           `
           UPDATE datasys_caixas SET status = 'A CONFERIR' WHERE id = ?
@@ -158,7 +143,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "CHANGE_STATUS_CAIXA",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       reject(error);
       if (conn) await conn.rollback();

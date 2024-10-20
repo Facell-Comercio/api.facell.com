@@ -5,6 +5,9 @@ const Decimal = require('decimal.js');
 const { uploadFile, downloadFile } = require("./storage-controller");
 const XLSX = require('xlsx');
 const { lerXML } = require('../helpers/lerXML');
+const { delay } = require("../helpers/delay");
+const { default: axios } = require("axios");
+const { normalizeNumberOnly } = require("../helpers/mask");
 
 const titulos_sem_rateio = [
     { id_titulo: 125, id_plano_conta: 645, id_centro_custo: 1 },
@@ -585,8 +588,8 @@ function subirAnexosParaDrive() {
             console.log(error);
             reject(error)
         } finally {
-            if(conn) conn.release();
-            
+            if (conn) conn.release();
+
         }
     })
 }
@@ -603,7 +606,7 @@ function lerXMLnota(req) {
     })
 }
 
-async function teste(){
+async function teste() {
     try {
         await subirAnexosParaDrive()
         return true
@@ -613,10 +616,88 @@ async function teste(){
 
 }
 
+const updateDadosFiliais = () => {
+    return new Promise(async (resolve, reject) => {
+        let conn
+        try {
+            conn = await db.getConnection();
+            conn.config.namedPlaceholders = true;
+
+            const [filiais] = await conn.execute('SELECT * FROM filiais')
+            let max = 3;
+            let count = 0;
+            for (const filial of filiais) {
+                if(count == max){
+                    await delay(62000)
+                    console.log('1 minuto se passou, vamos prosseguir...')
+                    count = 0
+                }
+                console.log('Atualizando filial ', filial.nome)
+                const result = await axios.get(`https://receitaws.com.br/v1/cnpj/${filial.cnpj}`)
+                count++;
+                const {logradouro, numero, complemento, bairro, cep, email, telefone } = result.data;
+                
+                // await conn.execute(`UPDATE filiais 
+                // SET 
+                //     logradouro=:logradouro,
+                //     numero=:numero,
+                //     complemento=:complemento,
+                //     bairro=:bairro,
+                //     cep=:cep,
+                //     email=:email,
+                //     telefone=:telefone
+                // WHERE id = :id
+                // `, {
+                //     id: filial.id,
+                //     logradouro: logradouro,
+                //     numero: numero,
+                //     complemento: complemento,
+                //     bairro: bairro,
+                //     cep: cep,
+                //     email: email,
+                //     telefone: String(normalizeNumberOnly(telefone)).slice(0,11),
+                // })
+                await conn.execute(`UPDATE facell.filiais 
+                    SET 
+                        bairro=:bairro
+                    WHERE id = :id
+                    `, {
+                        id: filial.id,
+                        bairro: bairro,
+                    })
+                    await conn.execute(`UPDATE alex.filiais 
+                        SET 
+                            bairro=:bairro
+                        WHERE id = :id
+                        `, {
+                            id: filial.id,
+                            bairro: bairro,
+                        })
+                        await conn.execute(`UPDATE jonathan.filiais 
+                            SET 
+                                bairro=:bairro
+                            WHERE id = :id
+                            `, {
+                                id: filial.id,
+                                bairro: bairro,
+                            })
+            }
+            resolve(true)
+        } catch (error) {
+            console.log(error);
+            if (conn) conn.rollback();
+            reject(error);
+        } finally {
+            if (conn) conn.release();
+        }
+    })
+}
+
 module.exports = {
     gerarRateio,
     removerRateio,
     subirAnexosParaDrive,
     lerXMLnota,
     teste,
+    updateDadosFiliais,
 }

@@ -1,11 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
-const {
-  checkUserDepartment,
-} = require("../../../../helpers/checkUserDepartment");
-const {
-  checkUserPermission,
-} = require("../../../../helpers/checkUserPermission");
+const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
 
 module.exports = function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -26,10 +22,7 @@ module.exports = function getAll(req) {
     // Filtros
     var where = ` WHERE 1=1 `;
     //* Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
       if (departamentosUser?.length > 0) {
         where += ` AND (t.id_solicitante = '${
@@ -55,7 +48,9 @@ module.exports = function getAll(req) {
       nome_fornecedor,
       nome_user,
       filial,
+      id_filial,
       num_doc,
+      valor_maximo,
     } = filters || {};
     const params = [];
     if (id) {
@@ -75,9 +70,7 @@ module.exports = function getAll(req) {
       params.push(id_forma_pagamento);
     }
     if (forma_pagamento_list && forma_pagamento_list.length > 0) {
-      where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join(
-        "','"
-      )}')`;
+      where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join("','")}')`;
     }
 
     if (descricao) {
@@ -136,15 +129,22 @@ module.exports = function getAll(req) {
       params.push(id_grupo_economico);
     }
     if (grupo_economico_list && grupo_economico_list.length > 0) {
-      where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join(
-        "','"
-      )}')`;
+      where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join("','")}')`;
     }
 
     if (filial) {
       where += ` AND f.nome LIKE CONCAT("%", ?,"%")`;
       params.push(filial);
     }
+    if (id_filial) {
+      where += ` AND f.id = ?`;
+      params.push(id_filial);
+    }
+    if (valor_maximo) {
+      where += ` AND t.valor <= ? `;
+      params.push(valor_maximo);
+    }
+
     const conn = await db.getConnection();
 
     try {
