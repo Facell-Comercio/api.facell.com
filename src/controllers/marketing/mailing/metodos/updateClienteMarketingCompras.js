@@ -4,11 +4,9 @@ const { logger } = require("../../../../../logger");
 module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
-
+    let conn_externa = req?.body?.conn_externa;
     try {
       const {
-        conn_externa,
-
         //* WHERE
         gsm,
         cpf_cliente,
@@ -24,70 +22,70 @@ module.exports = (req) => {
         data_expiracao_fid2,
         fidelizacao3,
         data_expiracao_fid3,
-        codigo,
+        codigo_cliente,
         plano_atual,
         produto_fidelizado,
         tim_data_consulta,
       } = req.body;
 
       const params = [];
-      let sets = "";
-      let where = " WHERE status <> 'Desativado' ";
+      let sets = [];
+      let where = " WHERE status_plano <> 'Desativado' ";
 
       if (gsm_portado) {
-        sets += ` gsm_portado = ? `;
+        sets.push(`gsm_portado = ?`);
         params.push(gsm_portado);
       }
       if (cliente) {
-        sets += ` cliente = ? `;
+        sets.push(`cliente = ?`);
         params.push(cliente);
       }
       if (desconto_plano) {
-        sets += `desconto_plano = ?`;
+        sets.push(`desconto_plano = ?`);
         params.push(desconto_plano);
       }
       if (status_plano) {
-        sets += ` status_plano = ? `;
+        sets.push(`status_plano = ?`);
         params.push(status_plano);
       }
       if (fidelizacao1) {
-        sets += ` fidelizacao1 = ? `;
+        sets.push(`fidelizacao1 = ?`);
         params.push(fidelizacao1);
       }
       if (data_expiracao_fid1) {
-        sets += ` data_expiracao_fid1 = ? `;
+        sets.push(`data_expiracao_fid1 = ?`);
         params.push(data_expiracao_fid1);
       }
       if (fidelizacao2) {
-        sets += ` fidelizacao2 = ? `;
+        sets.push(`fidelizacao2 = ?`);
         params.push(fidelizacao2);
       }
       if (data_expiracao_fid2) {
-        sets += ` data_expiracao_fid2 = ? `;
+        sets.push(`data_expiracao_fid2 = ?`);
         params.push(data_expiracao_fid2);
       }
       if (fidelizacao3) {
-        sets += ` fidelizacao3 = ? `;
+        sets.push(`fidelizacao3 = ?`);
         params.push(fidelizacao3);
       }
       if (data_expiracao_fid3) {
-        sets += ` data_expiracao_fid3 = ? `;
+        sets.push(`data_expiracao_fid3 = ?`);
         params.push(data_expiracao_fid3);
       }
-      if (codigo) {
-        sets += ` codigo = ? `;
-        params.push(codigo);
+      if (codigo_cliente) {
+        sets.push(`codigo_cliente = ?`);
+        params.push(codigo_cliente);
       }
       if (plano_atual) {
-        sets += ` plano_atual = ? `;
+        sets.push(`plano_atual = ?`);
         params.push(plano_atual);
       }
-      if (produto_fidelizado) {
-        sets += ` produto_fidelizado = ? `;
+      if (produto_fidelizado !== undefined) {
+        sets.push(`produto_fidelizado = ?`);
         params.push(produto_fidelizado);
       }
       if (tim_data_consulta) {
-        sets += ` tim_data_consulta = ? `;
+        sets.push(`tim_data_consulta = ?`);
         params.push(tim_data_consulta);
       }
 
@@ -105,10 +103,13 @@ module.exports = (req) => {
         where += ` AND cpf = ? `;
         params.push(cpf_cliente);
       }
+      if(sets.length === 0){
+        throw new Error('Nenhum campo foi passado para atualização!')
+      }
       conn = conn_externa || (await db.getConnection());
       await conn.beginTransaction();
 
-      await conn.execute(`UPDATE marketing_mailing_compras SET ${sets} ${where}`, params);
+      await conn.execute(`UPDATE marketing_mailing_compras SET ${sets.join(',')} ${where}`, params);
 
       if (!conn_externa) {
         await conn.commit();
