@@ -65,7 +65,16 @@ const normalizeDataDayOne = (dataString) => {
   }
 };
 
-const normalizeDate = (data) => data && data.split("T")[0].split("-").reverse().join("/");
+const normalizeDate = (data) => {
+  if (!data) return null;
+  if (typeof data === "string") {
+    return data && data.split("T")[0].split("-").reverse().join("/");
+  }
+  if (data instanceof Date) {
+    return data.toLocaleDateString("pt-BR");
+  }
+  return null;
+};
 const normalizeCurrency = (data) => {
   if (typeof data === "string") {
     const valor = parseFloat(data);
@@ -225,6 +234,27 @@ function objectToStringLine(object) {
   }, "");
 }
 
+function normalizeNumberFixed(number, fractionDigits) {
+  if (typeof number === "string" && parseFloat(number)) {
+    return parseFloat(parseFloat(number || "0").toFixed(fractionDigits));
+  }
+  if (typeof number === "number" && !isNaN(number)) {
+    return parseFloat(number.toFixed(fractionDigits) || "0");
+  }
+  return null;
+}
+
+function parseCurrency(value) {
+  // Remove o símbolo "R$" e espaços em branco
+  let numericValue = value.replace(/[R$\s]/g, "");
+
+  // Remove o separador de milhar (pontos) e substitui a vírgula por ponto
+  numericValue = numericValue.replace(/\./g, "").replace(",", ".");
+
+  // Converte para número
+  return parseFloat(numericValue);
+}
+
 module.exports = {
   normalizeNumberOnly,
   normalizePhoneNumber,
@@ -242,4 +272,6 @@ module.exports = {
   excelDateToJSDate,
   ensureArray,
   objectToStringLine,
+  normalizeNumberFixed,
+  parseCurrency,
 };

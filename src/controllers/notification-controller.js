@@ -206,7 +206,7 @@ function sendNotificationUsers(req) {
       if (conn) await conn.rollback();
       reject(error);
     } finally {
-      if (conn) conn.release();
+      if (conn && !conn_externa) conn.release();
     }
   });
 }

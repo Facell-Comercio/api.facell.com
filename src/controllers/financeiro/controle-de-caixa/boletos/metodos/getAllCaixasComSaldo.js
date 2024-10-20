@@ -4,8 +4,9 @@ const { db } = require("../../../../../../mysql");
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
+    const { conn_externa } = req.query;
     try {
-      const { id_filial, conn_externa } = req.query;
+      const { id_filial } = req.query;
 
       conn = conn_externa || (await db.getConnection());
 
@@ -51,7 +52,7 @@ module.exports = async (req) => {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
     } finally {
-      if (conn) conn.release();
+      if (conn && !conn_externa) conn.release();
     }
   });
 };

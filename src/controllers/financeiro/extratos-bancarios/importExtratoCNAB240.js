@@ -8,9 +8,14 @@ const arquivoHeader = require("../remessa/CNAB240/layout/arquivo-header");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const { conn_externa, filePath, contaBancaria, user } = req.body;
-    const conn = conn_externa || (await db.getConnection());
+    const { conn_externa } = req.body;
+    let conn;
     try {
+      const { filePath, contaBancaria, user } = req.body;
+      conn = conn_externa || (await db.getConnection());
+      if (!conn_externa) {
+        await conn.beginTransaction();
+      }
       const txt = await lerArquivo(filePath);
 
       const obj = await remessaToObject(txt, "extrato");
@@ -84,6 +89,9 @@ module.exports = async (req) => {
           );
         }
       }
+      if (!conn_externa) {
+        await conn.commit();
+      }
       resolve();
     } catch (error) {
       logger.error({
@@ -92,7 +100,10 @@ module.exports = async (req) => {
         method: "IMPORT_CNAB_240",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
+      if (conn) await conn.rollback();
       reject(error);
+    } finally {
+      if (conn && !conn_externa) conn.release();
     }
   });
 };

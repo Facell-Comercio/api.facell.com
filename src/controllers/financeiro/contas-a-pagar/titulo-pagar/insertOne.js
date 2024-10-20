@@ -17,8 +17,9 @@ const { persistFile } = require("../../../storage-controller");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
+    let conn;
     try {
+      conn = await db.getConnection();
       await conn.beginTransaction();
       const { user } = req;
       const data = req.body;
@@ -537,10 +538,10 @@ module.exports = function insertOne(req) {
           name: error.name,
         },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
-      conn.release();
+      if (conn) conn.release();
     }
   });
 };

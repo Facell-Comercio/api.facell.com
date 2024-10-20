@@ -42,6 +42,7 @@
     "node-cron": "^3.0.2",
     "nodemailer": "^6.9.14",
     "ofx-js": "^0.2.0",
+    "pdf-parse": "^1.1.1",
     "pdfkit": "^0.14.0",
     "pdfkit-table": "^0.1.99",
     "pino": "^9.2.0",
