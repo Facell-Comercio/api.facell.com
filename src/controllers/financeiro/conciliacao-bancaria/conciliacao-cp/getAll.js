@@ -1,11 +1,7 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
-const {
-  getAllFaturasBordero,
-} = require("../../contas-a-pagar/cartoes-controller");
-const {
-  getAllVencimentosBordero,
-} = require("../../contas-a-pagar/vencimentos-controller");
+const { getAllFaturasBordero } = require("../../contas-a-pagar/cartoes-controller");
+const { getAllVencimentosBordero } = require("../../contas-a-pagar/vencimentos-controller");
 const { getAllTransacoesBancarias } = require("./getAllTransacoesBancarias");
 const getChartConciliacaoPagamentos = require("./getChart");
 
@@ -14,16 +10,18 @@ module.exports = function getAll(req) {
     // Filtros
     const { filters } = req.query;
     const { id_conta_bancaria } = filters || {};
-    
+
     let conn;
     try {
       if (!id_conta_bancaria) {
-        throw new Error('ID Conta bancária não recebido!')
+        throw new Error("ID Conta bancária não recebido!");
       }
       conn = await db.getConnection();
 
       // * ChartConciliacaoPagamentos
-      const dataChartConciliacaoPagamentos = await getChartConciliacaoPagamentos({query: req.query})
+      const dataChartConciliacaoPagamentos = await getChartConciliacaoPagamentos({
+        query: req.query,
+      });
 
       // * Itens a Conciliar
       const { rows: vencimentosConciliar } = await getAllVencimentosBordero({
@@ -120,8 +118,7 @@ module.exports = function getAll(req) {
           `,
         [id_conta_bancaria]
       );
-      const bancoComFornecedor =
-        rowsBancoComFornecedor && rowsBancoComFornecedor[0];
+      const bancoComFornecedor = rowsBancoComFornecedor && rowsBancoComFornecedor[0];
 
       const objResponse = {
         dataChartConciliacaoPagamentos,
@@ -131,12 +128,12 @@ module.exports = function getAll(req) {
         transacoesConciliadas: transacoesConciliadas,
         bancoComFornecedor: bancoComFornecedor,
       };
-   
+
       resolve(objResponse);
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

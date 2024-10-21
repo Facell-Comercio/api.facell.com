@@ -1,7 +1,7 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 
-module.exports = function getChartConciliacaoPagamentos(req) {
+module.exports = function getChartConciliacaoRecebimentos(req) {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
@@ -60,27 +60,27 @@ module.exports = function getChartConciliacaoPagamentos(req) {
         }
       }
 
-      const [dataChartConciliacaoPagamentos] = await conn.execute(
+      const [dataChartConciliacaoRecebimentos] = await conn.execute(
         `
-                SELECT
-                e.data_transacao, 
-                count(e.id) as total,
-                SUM(CASE WHEN cbi.id_item IS NULL THEN 0 ELSE 1 END) as conciliado,
-                SUM(CASE WHEN cbi.id_item IS NULL THEN 1 ELSE 0 END) as pendente
-                FROM fin_extratos_bancarios e
-                LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.tipo = 'transacao' AND cbi.id_item = e.id
-                ${where} AND e.tipo_transacao = 'DEBIT' and e.id_duplicidade is NULL
-                GROUP BY e.data_transacao
-            `,
+          SELECT
+          e.data_transacao,
+          count(e.id) as total,
+          SUM(CASE WHEN cbi.id_item IS NULL THEN 0 ELSE 1 END) as conciliado,
+          SUM(CASE WHEN cbi.id_item IS NULL THEN 1 ELSE 0 END) as pendente
+          FROM fin_extratos_bancarios e
+          LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.tipo = 'transacao' AND cbi.id_item = e.id
+          ${where} AND e.tipo_transacao = 'CREDIT' and e.id_duplicidade is NULL
+          GROUP BY e.data_transacao
+        `,
         params
       );
 
-      resolve(dataChartConciliacaoPagamentos);
+      resolve(dataChartConciliacaoRecebimentos);
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
-        method: "GET_CONCILIACOES",
+        origin: "CONCILICAO_BANCARIA_CR",
+        method: "GET_CONCILIACOES_RECEBER",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

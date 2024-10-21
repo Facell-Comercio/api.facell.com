@@ -28,7 +28,7 @@ module.exports = function conciliacaoTransferenciaContas(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
+        origin: "CONCILIACAO_BANCARIA_CR",
         method: "LANÇAMENTO TARIFAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

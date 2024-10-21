@@ -43,14 +43,14 @@ module.exports = function getExtratoDuplicated(req) {
             cb.descricao as conta_bancaria
         FROM fin_extratos_bancarios eb
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
-        LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi
                 ON cbi.id_item = eb.id
                 AND cbi.tipo = "transacao"
         WHERE eb.id_conta_bancaria = ?
         AND eb.descricao = ?
         AND ABS(eb.valor) = ?
         AND eb.data_transacao = ?
-        AND eb.tipo_transacao = "DEBIT"
+        AND eb.tipo_transacao = "CREDIT"
         AND eb.id <> ?
         AND cbi.id IS NOT NULL
       `,
@@ -61,7 +61,7 @@ module.exports = function getExtratoDuplicated(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
+        origin: "CONCILIACAO_BANCARIA_CR",
         method: "GET_EXTRATOS_DUPLICATED",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

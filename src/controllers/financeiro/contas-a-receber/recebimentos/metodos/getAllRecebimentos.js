@@ -7,7 +7,8 @@ module.exports = async = (req) => {
     let conn;
     try {
       conn = await db.getConnection();
-      const { filters, pagination } = req.query;
+      const { filters, pagination, pago, minStatusTitulo, emConciliacao, id_conciliacao } =
+        req.query;
       const { pageIndex, pageSize } = pagination || {
         pageIndex: 0,
         pageSize: 15,
@@ -69,6 +70,28 @@ module.exports = async = (req) => {
           }
         }
       }
+      if (pago !== undefined) {
+        if (Number(pago)) {
+          where += ` AND tv.status = "pago" `;
+        } else {
+          where += ` AND tv.status <> "pago" `;
+        }
+      }
+      if (minStatusTitulo && minStatusTitulo !== undefined) {
+        where += ` AND t.id <= ? `;
+        params.push(minStatusTitulo);
+      }
+      if (emConciliacao !== undefined) {
+        if (Number(emConciliacao)) {
+          where += ` AND cbi.id IS NOT NULL `;
+        } else {
+          where += ` AND cbi.id IS NULL `;
+        }
+      }
+      if (id_conciliacao) {
+        where += ` AND cbi.id_conciliacao = ? `;
+        params.push(id_conciliacao);
+      }
 
       const [rowsRecebimentos] = await conn.execute(
         `
@@ -80,10 +103,12 @@ module.exports = async = (req) => {
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN users u ON u.id = tr.id_user
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_item = tr.id AND cbi.tipo = "recebimento"
         ${where}
         `,
         params
       );
+
       const totalRecebimentos = (rowsRecebimentos && rowsRecebimentos[0]["total"]) || 0;
 
       const limit = pagination ? "LIMIT ? OFFSET ?" : "";
@@ -93,12 +118,13 @@ module.exports = async = (req) => {
       }
       const query = `
         SELECT
-            tr.id, tr.data, tr.valor,
+            tr.id, tr.id as id_recebimento, tr.data, tr.data as data_recebimento, tr.valor,
             t.id as id_titulo, t.descricao, t.num_doc,
             cb.descricao as conta_bancaria,
             forn.nome as fornecedor,
             f.nome as filial,
-            u.nome as criador
+            u.nome as criador,
+            cbi.id_conciliacao
         FROM fin_cr_titulos_recebimentos tr
         LEFT JOIN fin_cr_titulos_vencimentos tv ON tv.id = tr.id_vencimento
         LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
@@ -106,6 +132,7 @@ module.exports = async = (req) => {
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN users u ON u.id = tr.id_user
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi ON cbi.id_item = tr.id AND cbi.tipo = "recebimento"
         ${where}
         ORDER BY tr.data DESC
         ${limit}
@@ -113,11 +140,13 @@ module.exports = async = (req) => {
 
       const [recebimentos] = await conn.execute(query, params);
       // console.log(query, params);
+
       const objResponse = {
         rows: recebimentos,
         pageCount: Math.ceil(totalRecebimentos / pageSize),
         rowCount: totalRecebimentos,
       };
+
       resolve(objResponse);
       return;
     } catch (error) {

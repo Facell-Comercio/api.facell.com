@@ -2,7 +2,7 @@ const { format } = require("date-fns");
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 
-module.exports = function getExtratosCredit(req) {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     // user.perfil = 'Financeiro'
@@ -21,7 +21,7 @@ module.exports = function getExtratosCredit(req) {
     const params = [];
 
     if (termo) {
-      where += ` AND (descricao LIKE CONCAT('%',?,'%') 
+      where += ` AND (descricao LIKE CONCAT('%',?,'%')
                     OR documento LIKE CONCAT('%',?,'%')) `;
       params.push(termo, termo);
     }
@@ -48,7 +48,7 @@ module.exports = function getExtratosCredit(req) {
         FROM fin_extratos_bancarios eb
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
-        AND tipo_transacao = "CREDIT"
+        AND tipo_transacao = "DEBIT"
       `,
         params
       );
@@ -67,7 +67,7 @@ module.exports = function getExtratosCredit(req) {
         FROM fin_extratos_bancarios eb
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria 
         ${where}
-        AND tipo_transacao = "CREDIT"
+        AND tipo_transacao = "DEBIT"
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
       `,
@@ -83,8 +83,8 @@ module.exports = function getExtratosCredit(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
-        method: "GET_EXTRATOS_CREDIT",
+        origin: "CONCILIACAO_BANCARIA_CR",
+        method: "GET_EXTRATOS_DEBIT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

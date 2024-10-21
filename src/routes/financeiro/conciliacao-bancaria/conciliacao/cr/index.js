@@ -1,10 +1,7 @@
 const router = require("express").Router();
 
-const controller = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cp-controller");
+const controller = require("../../../../../controllers/financeiro/conciliacao-bancaria/conciliacao-cr-controller");
 const checkUserAuthorization = require("../../../../../middlewares/authorization-middleware");
-
-const tarifasPadraoRouter = require("../config/tarifas-padrao");
-router.use("/tarifas-padrao", tarifasPadraoRouter);
 
 router.get("/", async (req, res) => {
   try {
@@ -24,9 +21,9 @@ router.get("/conciliacoes", async (req, res) => {
   }
 });
 
-router.get("/extratos-credit", async (req, res) => {
+router.get("/extratos-debit", async (req, res) => {
   try {
-    const result = await controller.getExtratosCredit(req);
+    const result = await controller.getExtratosDebit(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -72,19 +69,6 @@ router.post(
 );
 
 router.post(
-  "/conciliar-tarifas",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await controller.conciliacaoTarifas(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-);
-
-router.post(
   "/transferencia-contas",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
@@ -96,6 +80,7 @@ router.post(
     }
   }
 );
+
 router.put("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
   try {
     const result = await controller.update(req);
@@ -111,19 +96,6 @@ router.put(
   async (req, res) => {
     try {
       const result = await controller.tratarDuplicidade(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  }
-);
-
-router.delete(
-  "/titulo/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-  async (req, res) => {
-    try {
-      const result = await controller.deleteTitulo(req);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ message: error.message });
