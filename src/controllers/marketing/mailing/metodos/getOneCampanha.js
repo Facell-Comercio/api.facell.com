@@ -20,10 +20,18 @@ module.exports = (req) => {
       const campanha = rowCampanha && rowCampanha[0];
 
       const [clientes] = await conn.execute(
-        `SELECT * FROM marketing_mailing_clientes WHERE id_campanha = ?`,
+        `
+        SELECT mc.* 
+        FROM marketing_mailing_clientes mc
+        WHERE mc.id_campanha = ?`,
         [id]
       );
-
+      const [rowQtdeClientes] = await conn.execute(
+        `SELECT COUNT(id) as qtde FROM marketing_mailing_clientes WHERE id_campanha = ?`,
+        [id]
+      );
+      campanha.qtde_clientes =
+        (rowQtdeClientes && rowQtdeClientes[0] && rowQtdeClientes[0].qtde) || 0;
       campanha.clientes = clientes;
 
       const [subcampanhas] = await conn.execute(
@@ -31,10 +39,6 @@ module.exports = (req) => {
         [id]
       );
       campanha.subcampanhas = subcampanhas;
-
-      const nomes_subcampanhas =
-        subcampanhas && subcampanhas.map((subcampanha) => subcampanha.nome);
-      campanha.nomes_subcampanhas = nomes_subcampanhas;
 
       resolve(campanha);
     } catch (error) {

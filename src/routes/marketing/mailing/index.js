@@ -50,9 +50,28 @@ router.get("/campanhas/:id", async (req, res) => {
 });
 
 //* CLIENTES
+router.get("/campanhas/clientes/:id", async (req, res) => {
+  try {
+    const result = await controller.getOneClienteCampanha(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.put("/campanhas/clientes/:id", async (req, res) => {
   try {
     const result = await controller.updateClienteCampanha(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+//* APARELHOS
+router.get("/aparelhos", async (req, res) => {
+  try {
+    const result = await controller.getAllAparelhos(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
