@@ -8,6 +8,7 @@ module.exports = (req) => {
     let conn_externa = req?.body?.conn_externa;
     try {
       // Filtros
+      const { data, filters } = req.body;
       const {
         id,
         gsm,
@@ -29,12 +30,12 @@ module.exports = (req) => {
 
         produto_ofertado,
         vendedor,
-
-        canUpdateClienteMarketingCompras = 1,
-      } = req.body;
+      } = data || {};
 
       const params = [];
-      let sets = [];
+      const sets = [];
+      let where = " WHERE 1=1 ";
+
       if (gsm) {
         sets.push(`gsm = ?`);
         params.push(gsm);
@@ -108,8 +109,43 @@ module.exports = (req) => {
         params.push(vendedor);
       }
 
-      //* ID CLIENTE
-      params.push(id);
+      //* WHERE
+      //     const {
+      //       plano_atual,
+      // produto,
+      // produto_fidelizado,
+      // sem_contato,
+      // status,
+      // id_campanha,
+      //     } = filters || {};
+      if (filters.plano_atual) {
+        where += " AND plano_atual = ? ";
+        params.push(filters.plano_atual);
+      }
+      if (filters.produto) {
+        where += " AND produto =? ";
+        params.push(filters.produto);
+      }
+      if (filters.produto_fidelizado) {
+        where += " AND produto_fidelizado =? ";
+        params.push(filters.produto_fidelizado);
+      }
+      // if (filters.sem_contato) {
+      //   if(parseInt(filters.sem_contato)){
+      //     where += " AND - =? ";
+
+      //   }else{
+      //     where += " AND - =? ";
+      //   }
+      // }
+      if (filters.status) {
+        where += " AND status =? ";
+        params.push(filters.status);
+      }
+      if (filters.id_campanha) {
+        where += " AND id_campanha =? ";
+        params.push(filters.id_campanha);
+      }
 
       if (sets.length === 0) {
         throw new Error("Nenhum campo foi passado para atualização!");
@@ -117,27 +153,20 @@ module.exports = (req) => {
       conn = conn_externa || (await db.getConnection());
       await conn.beginTransaction();
 
-      let query = `UPDATE marketing_mailing_clientes SET ${sets.join(",")} WHERE id = ?`;
+      let query = `UPDATE marketing_mailing_clientes SET ${sets.join(",")} ${where}`;
 
       await conn.execute(query, params);
-      if (parseInt(canUpdateClienteMarketingCompras)) {
-        await updateClienteMarketingCompras({
-          body: {
-            ...req.body,
-            conn_externa: conn,
-          },
-        });
-      }
 
       if (!conn_externa) {
         await conn.commit();
       }
+
       resolve({ message: "Success" });
     } catch (error) {
       logger.error({
         module: "MARKETING",
         origin: "MAILING",
-        method: "UPDATE_CLIENTE_CAMPANHA",
+        method: "UPDATE_CLIENTE_CAMPANHA_LOTE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();

@@ -7,6 +7,7 @@ module.exports = {
   insertCampanha: require("./metodos/insertCampanha"),
 
   updateClienteCampanha: require("./metodos/updateClienteCampanha"),
+  updateClienteCampanhaLote: require("./metodos/updateClienteCampanhaLote"),
   updateClienteMarketingCompras: require("./metodos/updateClienteMarketingCompras"),
   importComprasDatasys: require("./metodos/importComprasDatasys"),
 
