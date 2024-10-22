@@ -85,16 +85,16 @@ function getAllTransacoesBancarias(req) {
             SELECT DISTINCT
                 eb.id
             FROM fin_extratos_bancarios eb
-            LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+            LEFT JOIN fin_conciliacao_bancaria_itens cbi
                 ON cbi.id_item = eb.id
                 AND cbi.tipo = "transacao"
             LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
             ${where}
             AND tipo_transacao = 'DEBIT'
             AND eb.id_duplicidade IS NULL
-            AND eb.adiantamento = 0
+            AND (eb.adiantamento = 0 OR eb.adiantamento IS NULL)
             AND eb.id_deposito_caixa IS NULL
-            AND eb.suprimento = 0
+            AND (eb.suprimento = 0 OR eb.suprimento IS NULL)
         ) as subconsulta
         `;
       const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
