@@ -1,11 +1,7 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
-const {
-  getAllFaturasBordero,
-} = require("../../contas-a-pagar/cartoes-controller");
-const {
-  getAllVencimentosBordero,
-} = require("../../contas-a-pagar/vencimentos-controller");
+const { getAllFaturasBordero } = require("../../contas-a-pagar/cartoes-controller");
+const { getAllVencimentosBordero } = require("../../contas-a-pagar/vencimentos-controller");
 const { getAllTransacoesBancarias } = require("./getAllTransacoesBancarias");
 
 module.exports = function getOne(req) {
@@ -116,7 +112,7 @@ module.exports = function getOne(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "GET_ONE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

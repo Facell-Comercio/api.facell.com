@@ -21,7 +21,7 @@ module.exports = function deleteConciliacao(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
+        origin: "CONCILIACAO_BANCARIA_CR",
         method: "DELETE_CONCILIACAO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

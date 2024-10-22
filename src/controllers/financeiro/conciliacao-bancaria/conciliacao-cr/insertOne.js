@@ -3,13 +3,7 @@ const { db } = require("../../../../../mysql");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      vencimentos: itensConciliacao,
-      transacoes,
-      data_pagamento,
-      id_conta_bancaria,
-    } = req.body;
+    const { id, recebimentos: itensConciliacao, transacoes, id_conta_bancaria } = req.body;
 
     let conn;
     try {
@@ -23,20 +17,21 @@ module.exports = function insertOne(req) {
         throw new Error("É necessário informar uma conta bancária!");
       }
       const itensConciliacaoSoma = itensConciliacao.reduce(
-        (acc, item) => acc + parseFloat(item.valor_pago),
+        (acc, item) => acc + parseFloat(item.valor),
         0
       );
       const transacoesSoma = transacoes.reduce((acc, item) => acc + parseFloat(item.valor), 0);
-      // ^ Verificando os valores de títulos e transações batem
+
+      // ^ Verificando os valores de recebimentos e transações batem
       if (itensConciliacaoSoma.toFixed(2) !== transacoesSoma.toFixed(2)) {
-        throw new Error("A soma dos vencimentos e das transações não batem!");
+        throw new Error("A soma dos recebimentos e das transações não batem!");
       }
       await conn.beginTransaction();
 
       // ^ Realiza a conciliação do tipo MANUAL
       const [result] = await conn.execute(
-        `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
-        [req.user.id, "MANUAL", id_conta_bancaria]
+        `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria, modulo) VALUES (?,?,?,?);`,
+        [req.user.id, "MANUAL", id_conta_bancaria, "CR"]
       );
 
       const newId = result.insertId;
@@ -45,40 +40,27 @@ module.exports = function insertOne(req) {
       }
 
       // ^ Adiciona todas as transações nos itens da conciliação bancária
+      for (const item of itensConciliacao) {
+        await conn.execute(
+          `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
+          [newId, item.id_recebimento, item.valor, "recebimento"]
+        );
+      }
+
       for (const transacao of transacoes) {
         await conn.execute(
           `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
           [newId, transacao.id, transacao.valor, "transacao"]
         );
       }
-
-      for (const item of itensConciliacao) {
-        // ^ Adiciona o título nos itens da conciliação bancária
-        //* No caso do item ser um vencimento
-        if (item.tipo === "vencimento") {
-          await conn.execute(
-            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-            [newId, item.id_vencimento, item.valor_pago, "pagamento"]
-          );
-        }
-        //* No caso do item ser uma fatura
-        if (item.tipo === "fatura") {
-          await conn.execute(
-            `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-            [newId, item.id_vencimento, item.valor_pago, "fatura"]
-          );
-        }
-      }
-
       await conn.commit();
-      // await conn.rollback();
 
       resolve({ message: "Sucesso" });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
-        method: "INSERT",
+        origin: "CONCILIACAO_BANCARIA_CR",
+        method: "CONCILIACAO_MANUAL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();

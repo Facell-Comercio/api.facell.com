@@ -1,14 +1,13 @@
 const { format } = require("date-fns");
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
+const { filter } = require("jszip");
 
-module.exports = function getExtratosCredit(req) {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
 
     try {
-      const { user } = req;
-
       // Filtros
       const { filters, pagination } = req.query;
       const { pageIndex, pageSize } = pagination || {
@@ -30,7 +29,7 @@ module.exports = function getExtratosCredit(req) {
       }
 
       if (termo) {
-        where += ` AND (eb.descricao LIKE CONCAT('%',?,'%') 
+        where += ` AND (eb.descricao LIKE CONCAT('%',?,'%')
                       OR eb.documento LIKE CONCAT('%',?,'%')) `;
         params.push(termo, termo);
       }
@@ -58,7 +57,8 @@ module.exports = function getExtratosCredit(req) {
           ON cbi.id_item = eb.id AND cbi.tipo = "transacao"
         ${where}
         AND cbi.id IS NULL
-        AND tipo_transacao = "CREDIT"
+        AND eb.id_duplicidade
+        AND tipo_transacao = "DEBIT"
       `,
         params
       );
@@ -81,7 +81,7 @@ module.exports = function getExtratosCredit(req) {
         ${where}
         AND cbi.id IS NULL
         AND eb.id_duplicidade IS NULL
-        AND tipo_transacao = "CREDIT"
+        AND tipo_transacao = "DEBIT"
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
       `,
@@ -97,8 +97,8 @@ module.exports = function getExtratosCredit(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
-        method: "GET_EXTRATOS_CREDIT",
+        origin: "CONCILIACAO_BANCARIA_CR",
+        method: "GET_EXTRATOS_DEBIT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

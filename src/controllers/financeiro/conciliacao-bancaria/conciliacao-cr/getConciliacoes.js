@@ -53,17 +53,18 @@ module.exports = function getConciliacoes(req) {
           FROM fin_conciliacao_bancaria cb
           LEFT JOIN users u ON u.id = cb.id_user
           LEFT JOIN fin_conciliacao_bancaria_itens fcbi ON fcbi.id_conciliacao = cb.id
-          LEFT JOIN fin_extratos_bancarios eb 
+          LEFT JOIN fin_extratos_bancarios eb
             ON eb.id = fcbi.id_item
             AND fcbi.tipo = 'transacao'
           LEFT JOIN fin_contas_bancarias fcbe ON fcbe.id = eb.id_conta_bancaria
-          LEFT JOIN fin_cp_titulos_vencimentos tv 
-            ON tv.id = fcbi.id_item
-            AND fcbi.tipo = 'pagamento'
-          LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+          LEFT JOIN fin_cr_titulos_recebimentos tr
+            ON tr.id = fcbi.id_item
+            AND fcbi.tipo = 'recebimento'
+          LEFT JOIN fin_cr_titulos_vencimentos tv ON tv.id = tr.id_vencimento
+          LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
   
           ${where}
-          AND cb.modulo = "CP"
+          AND cb.modulo = "CR"
           GROUP BY cb.id
       `,
         params
@@ -81,37 +82,37 @@ module.exports = function getConciliacoes(req) {
         SELECT 
           cb.id, u.nome as responsavel, cb.created_at as data_conciliacao, cb.tipo,
           (
-            SELECT SUM(tv.valor_pago)
-            FROM fin_cp_titulos_vencimentos tv
-            INNER JOIN fin_conciliacao_bancaria_itens cbip 
-              ON cbip.id_item = tv.id
-              AND cbip.tipo = 'pagamento'
+            SELECT SUM(tr.valor)
+            FROM fin_cr_titulos_recebimentos tr
+            INNER JOIN fin_conciliacao_bancaria_itens cbip
+              ON cbip.id_item = tr.id
+              AND cbip.tipo = 'recebimento'
             WHERE cbip.id_conciliacao = cb.id
           ) as valor_pagamentos,
           ABS((
             SELECT SUM(eb.valor)
             FROM fin_extratos_bancarios eb
-            INNER JOIN fin_conciliacao_bancaria_itens cbit 
-              ON cbit.id_item = eb.id 
+            INNER JOIN fin_conciliacao_bancaria_itens cbit
+              ON cbit.id_item = eb.id
               AND cbit.tipo = 'transacao'
             WHERE cbit.id_conciliacao = cb.id
-            AND cbit.tipo = "transacao"
-            AND eb.tipo_transacao = "DEBIT"
+            AND eb.tipo_transacao = "CREDIT"
           )) as valor_transacoes
         FROM fin_conciliacao_bancaria cb
         LEFT JOIN users u ON u.id = cb.id_user
         LEFT JOIN fin_conciliacao_bancaria_itens fcbi ON fcbi.id_conciliacao = cb.id
-        LEFT JOIN fin_extratos_bancarios eb 
+        LEFT JOIN fin_extratos_bancarios eb
           ON eb.id = fcbi.id_item
           AND fcbi.tipo = 'transacao'
         LEFT JOIN fin_contas_bancarias fcbe ON fcbe.id = eb.id_conta_bancaria
-        LEFT JOIN fin_cp_titulos_vencimentos tv 
-          ON tv.id = fcbi.id_item
-          AND fcbi.tipo = 'pagamento'
-        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
+        LEFT JOIN fin_cr_titulos_recebimentos tr
+          ON tr.id = fcbi.id_item
+          AND fcbi.tipo = 'recebimento'
+        LEFT JOIN fin_cr_titulos_vencimentos tv ON tv.id = tr.id_vencimento
+        LEFT JOIN fin_cr_titulos t ON t.id = tv.id_titulo
 
         ${where}
-        AND cb.modulo = "CP"
+        AND cb.modulo = "CR"
         GROUP BY cb.id
         ORDER BY cb.id DESC
         LIMIT ? OFFSET ?
@@ -129,7 +130,7 @@ module.exports = function getConciliacoes(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
+        origin: "CONCILIACAO_BANCARIA_CR",
         method: "GET_CONCILIACOES",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

@@ -4,7 +4,7 @@ const controller = require("../../../../controllers/financeiro/contas-a-receber/
 
 router.get("/", async (req, res) => {
   try {
-    const result = await controller.getAll(req);
+    const result = await controller.getAllRecebimentos(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

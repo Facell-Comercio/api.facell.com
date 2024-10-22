@@ -18,6 +18,7 @@ const tesouraria = require("./tesouraria");
 const formasPagamento = require("./formas-pagamento");
 const extratosBancarios = require("./extratos-bancarios");
 const conciliacaoCP = require("./conciliacao-bancaria/conciliacao/cp");
+const conciliacaoCR = require("./conciliacao-bancaria/conciliacao/cr");
 const tarifas = require("./conciliacao-bancaria/conciliacao/config/tarifas-padrao");
 
 // Contas a pagar
@@ -48,5 +49,6 @@ router.use("/formas-pagamento", formasPagamento);
 
 router.use("/conciliacao-bancaria", extratosBancarios);
 router.use("/conciliacao-cp", conciliacaoCP);
+router.use("/conciliacao-cr", conciliacaoCR);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 
-function getAllTransacoesBancarias(req) {
+module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
@@ -57,7 +57,7 @@ function getAllTransacoesBancarias(req) {
 
       // Determina o retorno com base se está ou não em conciliação
       if (emConciliacao !== undefined) {
-        if (emConciliacao) {
+        if (Number(emConciliacao)) {
           where += ` AND cbi.id IS NOT NULL`;
         } else {
           where += ` AND cbi.id IS NULL`;
@@ -85,12 +85,12 @@ function getAllTransacoesBancarias(req) {
             SELECT DISTINCT
                 eb.id
             FROM fin_extratos_bancarios eb
-            LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+            LEFT JOIN fin_conciliacao_bancaria_itens cbi
                 ON cbi.id_item = eb.id
-                AND cbi.tipo = "transacao"
+                AND cbi.tipo = "recebimento"
             LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
             ${where}
-            AND tipo_transacao = 'DEBIT'
+            AND tipo_transacao = 'CREDIT'
             AND eb.id_duplicidade IS NULL
             AND eb.adiantamento = 0
             AND eb.id_deposito_caixa IS NULL
@@ -112,12 +112,12 @@ function getAllTransacoesBancarias(req) {
             cbi.id_conciliacao as id_conciliacao, eb.id, eb.id_transacao, eb.documento as doc,
             ABS(eb.valor) as valor, eb.data_transacao, eb.descricao, cb.descricao as conta_bancaria
         FROM fin_extratos_bancarios eb
-        LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+        LEFT JOIN fin_conciliacao_bancaria_itens cbi
             ON cbi.id_item = eb.id
             AND cbi.tipo = "transacao"
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
-        AND tipo_transacao = 'DEBIT'
+        AND tipo_transacao = 'CREDIT'
         AND eb.id_duplicidade IS NULL
         AND eb.adiantamento = 0
         AND eb.id_deposito_caixa IS NULL
@@ -125,9 +125,8 @@ function getAllTransacoesBancarias(req) {
         ${order}
         ${limit}
         `;
-      // console.log(query);
-      // console.log(params);
       const [transacoes] = await conn.execute(query, params);
+      // console.log(query, params);
 
       const objResponse = {
         rows: transacoes,
@@ -139,7 +138,7 @@ function getAllTransacoesBancarias(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIAÇÃO BANCÁRIA",
+        origin: "CONCILIACAO_BANCARIA_CR",
         method: "GET_ALL_TRANSACOES_BANCARIAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -149,8 +148,4 @@ function getAllTransacoesBancarias(req) {
       if (conn) conn.release();
     }
   });
-}
-
-module.exports = {
-  getAllTransacoesBancarias,
 };

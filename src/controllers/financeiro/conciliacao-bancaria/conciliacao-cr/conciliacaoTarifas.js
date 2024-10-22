@@ -6,6 +6,7 @@ const { db } = require("../../../../../mysql");
 module.exports = function conciliacaoTarifas(req) {
   return new Promise(async (resolve, reject) => {
     const { tarifas, data_transacao, id_conta_bancaria } = req.body;
+    const { user } = req;
     if (!id_conta_bancaria) {
       throw new Error("A conta bancária não foi informada!");
     }
@@ -16,24 +17,6 @@ module.exports = function conciliacaoTarifas(req) {
     try {
       conn = await db.getConnection();
       const result = [];
-
-      //* Query para conseguir um id_bordero com os dados fornecidos
-      const [rowBorderos] = await conn.execute(
-        `
-        SELECT id 
-        FROM fin_cp_bordero
-        WHERE 
-        id_conta_bancaria = ? 
-        AND data_pagamento = ?
-        `,
-        [id_conta_bancaria, new Date(data_transacao)]
-      );
-
-      if (rowBorderos.length > 1) {
-        throw new Error("Há mais de um borderô com esses dados");
-      }
-
-      const bordero = rowBorderos && rowBorderos[0];
 
       //* Query para conseguir alguns dados
       const [rowDadosSolicitacao] = await conn.execute(
@@ -56,7 +39,7 @@ module.exports = function conciliacaoTarifas(req) {
           const [rowTarifasDuplicadas] = await conn.execute(
             `
             SELECT id 
-            FROM fin_cp_titulos
+            FROM fin_cr_titulos
             WHERE id_filial = ?
             AND descricao = ?
             AND valor = ?
@@ -96,7 +79,7 @@ module.exports = function conciliacaoTarifas(req) {
           //* Criação da solicitação
           const [resultInsertTitulo] = await conn.execute(
             `
-            INSERT INTO fin_cp_titulos
+            INSERT INTO fin_cr_titulos
             (id_status, data_emissao, valor, id_fornecedor, id_filial, id_solicitante, id_tipo_solicitacao, id_banco, id_departamento, id_forma_pagamento, num_doc, descricao)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
@@ -105,7 +88,7 @@ module.exports = function conciliacaoTarifas(req) {
               tarifa.valor, //valor
               dadosSolicitacao.id_fornecedor, // id_fornecedor
               dadosSolicitacao.id_filial, // id_filial
-              req.user.id, //id_solicitante
+              user.id, //id_solicitante
               3, //id_tipo_solicitacao
               dadosSolicitacao.id_banco, // id_banco
               4, //id_departamento
@@ -121,25 +104,21 @@ module.exports = function conciliacaoTarifas(req) {
             req.user.nome
           )}. AUTOMATICAMENTE POR LANÇAMENTO DE TARIFAS\n`;
           await conn.execute(
-            `INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
+            `INSERT INTO fin_cr_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
             [idTitulo, historico]
           );
 
           //* Criação do vencimento
           const [resultInsertVencimento] = await conn.execute(
             `
-            INSERT INTO fin_cp_titulos_vencimentos
-            (id_titulo, data_vencimento, data_prevista, data_pagamento, valor, valor_pago, tipo_baixa, status, obs)
-            VALUES (?,?,?,?,?,?,?,?,?)
+            INSERT INTO fin_cr_titulos_vencimentos
+            (id_titulo, data_vencimento, valor, status, obs)
+            VALUES (?,?,?,?,?)
             `,
             [
               idTitulo, // id_titulo
-              new Date(tarifa.data_transacao), // data_vencimento
-              new Date(tarifa.data_transacao), // data_prevista
               new Date(tarifa.data_transacao), // data_pagamento
               tarifa.valor, // valor
-              tarifa.valor, // valor_pago
-              "PADRÃO", // tipo_baixa
               "pago", // status
               "PAGO AUTOMATICAMENTE PELA CONCILIAÇÃO", // obs
             ]
@@ -149,7 +128,7 @@ module.exports = function conciliacaoTarifas(req) {
           //* Criação do item rateio
           await conn.execute(
             `
-            INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, valor, percentual)
+            INSERT INTO fin_cr_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, valor, percentual)
             VALUES (?,?,?,?,?,?)`,
             [
               idTitulo, //id_titulo
@@ -161,34 +140,28 @@ module.exports = function conciliacaoTarifas(req) {
             ]
           );
 
-          //* Adiciona o vencimento a um borderô existente ou novo
-          if (bordero && bordero.id) {
-            await conn.execute(
-              `
-              INSERT INTO fin_cp_bordero_itens (id_bordero, id_vencimento)
-              VALUES (?,?)`,
-              [bordero.id, idVencimento]
-            );
-          } else {
-            const [resultInsertBordero] = await conn.execute(
-              `
-              INSERT INTO fin_cp_bordero (id_conta_bancaria, data_pagamento) VALUES (?,?)
-              `,
-              [id_conta_bancaria, new Date(data_transacao)]
-            );
-            const idBordero = resultInsertBordero.insertId;
-            await conn.execute(
-              `
-              INSERT INTO fin_cp_bordero_itens (id_bordero, id_vencimento)
-              VALUES (?,?)`,
-              [idBordero, idVencimento]
-            );
-          }
+          //* Adiciona um recebimento no vencimento
+          const [resultInsertRecebimento] = await conn.execute(
+            `
+            INSERT INTO fin_cr_titulos_vencimentos
+            (id_vencimento, id_conta_bancaria, data, valor, id_user, id_extrato)
+            VALUES (?,?,?,?,?,?)
+            `,
+            [
+              idVencimento, // id_vencimento,
+              id_conta_bancaria, // id_conta_bancaria
+              new Date(tarifa.data_transacao), // data_pagamento
+              tarifa.valor, // valor
+              user.id, // id_user
+              tarifa.id, // id_extrato
+            ]
+          );
+          const idRecebimento = resultInsertRecebimento.insertId;
 
           //* Conciliação automática
           const [resultConciliacao] = await conn.execute(
-            `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
-            [req.user.id, "AUTOMATICA", id_conta_bancaria]
+            `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria, modulo) VALUES (?,?,?,?);`,
+            [user.id, "AUTOMATICA", id_conta_bancaria, "CR"]
           );
           const newIdConciliacao = resultConciliacao.insertId;
           if (!newIdConciliacao) {
@@ -204,13 +177,14 @@ module.exports = function conciliacaoTarifas(req) {
           //* Adiciona o vencimento nos itens da conciliação bancária
           await conn.execute(
             `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-            [newIdConciliacao, idVencimento, tarifa.valor, "pagamento"]
+            [newIdConciliacao, idRecebimento, tarifa.valor, "recebimento"]
           );
+
           await conn.commit();
           result.push({
             id_titulo: idTitulo,
             fornecedor: dadosSolicitacao.fornecedor,
-            filia: dadosSolicitacao.filial,
+            filial: dadosSolicitacao.filial,
             data_pagamento: formatDate(tarifa.data_transacao, "dd/MM/yyyy"),
             valor: tarifa.valor,
             id_transacao: tarifa.id_transacao,
@@ -222,7 +196,7 @@ module.exports = function conciliacaoTarifas(req) {
           logger.error({
             module: "FINANCEIRO",
             origin: "CONCILIACAO_BANCARIA_CP",
-            method: "LANÇAMENTO TARIFA INDIVIDIAL",
+            method: "LANCAMENTO_TARIFA_INDIVIDUAL",
             data: {
               message: errorTarifa.message,
               stack: errorTarifa.stack,
@@ -246,7 +220,7 @@ module.exports = function conciliacaoTarifas(req) {
       logger.error({
         module: "FINANCEIRO",
         origin: "CONCILIACAO_BANCARIA_CP",
-        method: "LANÇAMENTO TARIFAS",
+        method: "LANCAMENTO_TARIFAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();

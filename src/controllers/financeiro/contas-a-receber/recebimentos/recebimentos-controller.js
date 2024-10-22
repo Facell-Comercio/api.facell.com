@@ -1,5 +1,5 @@
 module.exports = {
-  getAll: require("./metodos/getAll"),
+  getAllRecebimentos: require("./metodos/getAllRecebimentos"),
   getAllTransacoesAndVencimentos: require("./metodos/getAllTransacoesAndVencimentos"),
 
   insertOneRecebimentoManual: require("./metodos/insertOneRecebimentoManual"),

@@ -5,7 +5,7 @@ const { normalizeNumberFixed } = require("../../../../helpers/mask");
 
 module.exports = function conciliacaoAutomatica(req) {
   return new Promise(async (resolve, reject) => {
-    let { vencimentos: itensConciliacao, transacoes, id_conta_bancaria } = req.body;
+    let { recebimentos: itensConciliacao, transacoes, id_conta_bancaria } = req.body;
     let conn;
     try {
       conn = await db.getConnection();
@@ -32,15 +32,15 @@ module.exports = function conciliacaoAutomatica(req) {
         for (let t = 0; t < transacoesLength; t++) {
           const transacao = transacoes[t];
           if (
-            formatDate(itemConciliacao.data_pagamento, "dd-MM-yyyy").toString() ==
+            formatDate(itemConciliacao.data, "dd-MM-yyyy").toString() ==
               formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
-            normalizeNumberFixed(itemConciliacao.valor_pago, 2) ==
+            normalizeNumberFixed(itemConciliacao.valor, 2) ==
               normalizeNumberFixed(transacao.valor, 2)
           ) {
             //^ UPDATE do Vencimento
             const [result] = await conn.execute(
-              `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?,?,?);`,
-              [req.user.id, "AUTOMATICA", id_conta_bancaria]
+              `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria,modulo) VALUES (?,?,?,?);`,
+              [req.user.id, "AUTOMATICA", id_conta_bancaria, "CR"]
             );
             const newId = result.insertId;
             if (!newId) {
@@ -53,21 +53,10 @@ module.exports = function conciliacaoAutomatica(req) {
               [newId, transacao.id, transacao.valor, "transacao"]
             );
 
-            // ^ Adiciona o título nos itens da conciliação bancária
-            //* No caso do item ser um vencimento
-            if (itemConciliacao.tipo === "vencimento") {
-              await conn.execute(
-                `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-                [newId, itemConciliacao.id_vencimento, itemConciliacao.valor_pago, "pagamento"]
-              );
-            }
-            //* No caso do item ser uma fatura
-            if (itemConciliacao.tipo === "fatura") {
-              await conn.execute(
-                `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-                [newId, itemConciliacao.id_vencimento, itemConciliacao.valor_pago, "fatura"]
-              );
-            }
+            await conn.execute(
+              `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
+              [newId, itemConciliacao.id_recebimento, itemConciliacao.valor, "recebimento"]
+            );
 
             obj = {
               ...obj,
@@ -94,7 +83,7 @@ module.exports = function conciliacaoAutomatica(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIACAO_BANCARIA_CP",
+        origin: "CONCILIACAO_BANCARIA_CR",
         method: "AUTOMATICA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

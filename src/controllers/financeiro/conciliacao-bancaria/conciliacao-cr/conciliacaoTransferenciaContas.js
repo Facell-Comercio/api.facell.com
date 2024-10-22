@@ -23,8 +23,8 @@ module.exports = function conciliacaoTransferenciaContas(req) {
       }
       //* Cricação da conciliação
       const [resultConciliacao] = await conn.execute(
-        `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?, ?, ?);`,
-        [req.user.id, "MANUAL", id_conta_bancaria]
+        `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria, modulo) VALUES (?,?,?,?);`,
+        [req.user.id, "MANUAL", id_conta_bancaria, "CR"]
       );
       const newIdConciliacao = resultConciliacao.insertId;
       if (!newIdConciliacao) {
@@ -50,7 +50,7 @@ module.exports = function conciliacaoTransferenciaContas(req) {
       logger.error({
         module: "FINANCEIRO",
         origin: "CONCILIACAO_BANCARIA_CP",
-        method: "LANÇAMENTO TARIFAS",
+        method: "LANCAMENTO_TARIFAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();
