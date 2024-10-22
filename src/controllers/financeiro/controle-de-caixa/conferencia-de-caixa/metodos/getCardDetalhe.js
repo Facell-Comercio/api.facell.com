@@ -208,6 +208,7 @@ module.exports = async (req) => {
           outros: {
             forma_pgto: "OUTROS",
             whereMovimento: "AND dci.forma_pagamento LIKE 'OUTROS'",
+            tipoAjuste: "valor_outros",
           },
         })
       );
@@ -258,9 +259,8 @@ module.exports = async (req) => {
           `,
           [id_caixa]
         );
-        if (tiposMap.get(type).tipoAjuste) {
-          const [rowsAjustes] = await conn.execute(
-            `
+        const [rowsAjustes] = await conn.execute(
+          `
           SELECT 
             id as documento, tipo_ajuste as tipo_operacao, obs as historico,
             CASE WHEN saida = '${
@@ -269,14 +269,13 @@ module.exports = async (req) => {
           FROM datasys_caixas_ajustes
           WHERE id_caixa = ?
           AND (entrada = '${tiposMap.get(type).tipoAjuste}' OR saida = '${
-              tiposMap.get(type).tipoAjuste
-            }')
+            tiposMap.get(type).tipoAjuste
+          }')
           AND aprovado
           `,
-            [id_caixa]
-          );
-          rowsMovimentoCaixa.push(...rowsAjustes);
-        }
+          [id_caixa]
+        );
+        rowsMovimentoCaixa.push(...rowsAjustes);
       }
 
       const obj = {
