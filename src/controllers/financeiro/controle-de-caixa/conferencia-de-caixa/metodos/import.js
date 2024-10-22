@@ -7,7 +7,15 @@ const updateSaldo = require("./updateSaldo");
 const cruzarRelatorios = require("./cruzarRelatorios");
 const aplicarAjuste = require("./aplicarAjuste");
 
-async function importarCaixa({ conn, filial, id_caixa, id_filial, data, movimento, grupo_economico }) {
+async function importarCaixa({
+  conn,
+  filial,
+  id_caixa,
+  id_filial,
+  data,
+  movimento,
+  grupo_economico,
+}) {
   return new Promise(async (resolve, reject) => {
     try {
       if (!(movimento && movimento.length > 0)) {
@@ -24,6 +32,7 @@ async function importarCaixa({ conn, filial, id_caixa, id_filial, data, moviment
       let valor_pix = 0;
       let valor_pitzi = 0;
       let valor_crediario = 0;
+      let valor_outros = 0;
 
       // CRUZAR COM VENDAS PELO PEDIDO (SEM PV) + GRUPO ESTOQUE = 'RECARGA ELETRONICA'
       const datasys_vendas = grupo_economico == "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
@@ -45,7 +54,8 @@ async function importarCaixa({ conn, filial, id_caixa, id_filial, data, moviment
         const forma_pgto = (item.FORMA_PGTO && item.FORMA_PGTO.toUpperCase().trim()) || "";
         const tipo_operacao = (item.TIPO_OPERACAO && item.TIPO_OPERACAO.toUpperCase().trim()) || "";
         const historico = (item.HISTORICO && item.HISTORICO.toUpperCase().trim()) || "";
-        const credito_debito = (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase().trim()) || null;
+        const credito_debito =
+          (item.CREDITO_DEBITO && item.CREDITO_DEBITO.toUpperCase().trim()) || null;
 
         if (forma_pgto == "DINHEIRO") {
           if (tipo_operacao == "VENDA") {
@@ -86,6 +96,9 @@ async function importarCaixa({ conn, filial, id_caixa, id_filial, data, moviment
         }
         if (forma_pgto.includes("CREDIARIO") && !historico.includes("CANCELAMENTO")) {
           valor_crediario += valor;
+        }
+        if (forma_pgto.includes("OUTROS") && !historico.includes("CANCELAMENTO")) {
+          valor_outros += valor;
         }
 
         const isRecarga = 0;
@@ -132,7 +145,8 @@ async function importarCaixa({ conn, filial, id_caixa, id_filial, data, moviment
               valor_pix = :valor_pix,
               valor_pitzi = :valor_pitzi,
               valor_tradein = :valor_tradein,
-              valor_crediario = :valor_crediario
+              valor_crediario = :valor_crediario,
+              valor_outros = :valor_outros
           WHERE id = :id_caixa`,
         {
           valor_cartao,
@@ -145,6 +159,7 @@ async function importarCaixa({ conn, filial, id_caixa, id_filial, data, moviment
           valor_tradein,
           id_caixa,
           valor_crediario,
+          valor_outros,
         }
       );
 
