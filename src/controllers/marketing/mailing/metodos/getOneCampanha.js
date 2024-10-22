@@ -6,11 +6,57 @@ module.exports = (req) => {
     // Filtros
     const { conn_externa } = req.body;
 
-    const { id } = req.params || {};
-
     let conn;
 
     try {
+      const { id } = req.params || {};
+      const {
+        plano_habilitado,
+        produto,
+        produto_fidelizado,
+        sem_contato,
+        status_plano,
+        id_campanha,
+      } = req.query.filters || {};
+
+      let where = " WHERE 1=1 ";
+      const params = [];
+
+      if (plano_habilitado) {
+        where += " AND mc.plano_habilitado LIKE ? ";
+        params.push(plano_habilitado);
+      }
+      if (produto) {
+        where += " AND mc.produto_ultima_compra LIKE ? ";
+        params.push(produto);
+      }
+      if (produto_fidelizado !== undefined) {
+        if (Number(produto_fidelizado)) {
+          where += " AND mc.produto_fidelizado = 1 ";
+        } else {
+          where += " AND (mc.produto_fidelizado = 0 OR mc.produto_fidelizado IS NULL) ";
+        }
+      }
+      if (sem_contato !== undefined) {
+        if (Number(sem_contato)) {
+          where += " AND mr.id IS NULL";
+        } else {
+          where += " AND mr.id IS NOT NULL";
+        }
+      }
+      if (status_plano) {
+        where += " AND mc.status_plano =? ";
+        params.push(status_plano);
+      }
+      if (id_campanha) {
+        where += " AND mc.id_campanha =? ";
+        params.push(id_campanha);
+      }
+      if (id) {
+        where += " AND mc.id_campanha =? ";
+        params.push(id);
+      }
+
       conn = conn_externa || (await db.getConnection());
 
       const [rowCampanha] = await conn.execute(
@@ -21,14 +67,19 @@ module.exports = (req) => {
 
       const [clientes] = await conn.execute(
         `
-        SELECT mc.* 
+        SELECT mc.*, mr.id as id_resultado
         FROM marketing_mailing_clientes mc
-        WHERE mc.id_campanha = ?`,
-        [id]
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
+        params
       );
       const [rowQtdeClientes] = await conn.execute(
-        `SELECT COUNT(id) as qtde FROM marketing_mailing_clientes WHERE id_campanha = ?`,
-        [id]
+        `
+        SELECT COUNT(mc.id) as qtde
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
+        params
       );
       campanha.qtde_clientes =
         (rowQtdeClientes && rowQtdeClientes[0] && rowQtdeClientes[0].qtde) || 0;
@@ -39,6 +90,18 @@ module.exports = (req) => {
         [id]
       );
       campanha.subcampanhas = subcampanhas;
+
+      const idsCampanhas = [id, subcampanhas.map((subcampanha) => subcampanha.id)].flat();
+
+      const [allClientes] = await conn.execute(
+        `
+        SELECT mc.*
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        WHERE mc.id_campanha IN ('${idsCampanhas.join("','")}')`
+      );
+
+      campanha.all_clientes = allClientes;
 
       resolve(campanha);
     } catch (error) {

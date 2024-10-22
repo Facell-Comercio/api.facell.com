@@ -27,6 +27,7 @@ module.exports = (req) => {
         plano_atual,
         produto_fidelizado,
         tim_data_consulta,
+        id_campanha,
 
         produto_ofertado,
         vendedor,
@@ -108,42 +109,49 @@ module.exports = (req) => {
         sets.push(`vendedor = ?`);
         params.push(vendedor);
       }
+      if (id_campanha) {
+        sets.push(`id_campanha = ?`);
+        params.push(id_campanha);
+      }
 
       //* WHERE
-      //     const {
-      //       plano_atual,
-      // produto,
-      // produto_fidelizado,
-      // sem_contato,
-      // status,
-      // id_campanha,
-      //     } = filters || {};
       if (filters.plano_atual) {
-        where += " AND plano_atual = ? ";
+        where += " AND mc.plano_atual = ? ";
         params.push(filters.plano_atual);
       }
       if (filters.produto) {
-        where += " AND produto =? ";
+        where += " AND mc.produto =? ";
         params.push(filters.produto);
       }
       if (filters.produto_fidelizado) {
-        where += " AND produto_fidelizado =? ";
+        where += " AND mc.produto_fidelizado =? ";
         params.push(filters.produto_fidelizado);
       }
-      // if (filters.sem_contato) {
-      //   if(parseInt(filters.sem_contato)){
-      //     where += " AND - =? ";
-
-      //   }else{
-      //     where += " AND - =? ";
-      //   }
-      // }
+      if (filters.sem_contato) {
+        if (Number(filters.sem_contato)) {
+          where += `
+          AND NOT EXISTS (
+          SELECT 1
+          FROM marketing_mailing_resultados mr
+          WHERE mr.id_cliente = mc.id
+          )
+          `;
+        } else {
+          where += `
+          AND EXISTS (
+          SELECT 1
+          FROM marketing_mailing_resultados mr
+          WHERE mr.id_cliente = mc.id
+          )
+          `;
+        }
+      }
       if (filters.status) {
-        where += " AND status =? ";
+        where += " AND mc.status =? ";
         params.push(filters.status);
       }
       if (filters.id_campanha) {
-        where += " AND id_campanha =? ";
+        where += " AND mc.id_campanha =? ";
         params.push(filters.id_campanha);
       }
 
@@ -153,10 +161,12 @@ module.exports = (req) => {
       conn = conn_externa || (await db.getConnection());
       await conn.beginTransaction();
 
-      let query = `UPDATE marketing_mailing_clientes SET ${sets.join(",")} ${where}`;
+      let query = `UPDATE marketing_mailing_clientes mc SET ${sets.join(",")} ${where}`;
 
-      await conn.execute(query, params);
+      const [result] = await conn.execute(query, params);
+      console.log(result);
 
+      await conn.rollback();
       if (!conn_externa) {
         await conn.commit();
       }
