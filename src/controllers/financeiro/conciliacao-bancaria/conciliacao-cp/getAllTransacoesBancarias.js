@@ -92,9 +92,9 @@ function getAllTransacoesBancarias(req) {
             ${where}
             AND tipo_transacao = 'DEBIT'
             AND eb.id_duplicidade IS NULL
-            AND (eb.adiantamento = 0 OR eb.adiantamento IS NULL)
+            AND eb.adiantamento = 0 
             AND eb.id_deposito_caixa IS NULL
-            AND (eb.suprimento = 0 OR eb.suprimento IS NULL)
+            AND eb.suprimento = 0
         ) as subconsulta
         `;
       const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
