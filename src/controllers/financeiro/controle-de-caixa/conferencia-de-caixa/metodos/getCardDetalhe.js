@@ -205,18 +205,26 @@ module.exports = async (req) => {
             whereMovimento: "AND dci.forma_pagamento LIKE 'CREDIARIO'",
             tipoAjuste: "valor_crediario",
           },
+          outros: {
+            forma_pgto: "OUTROS",
+            whereMovimento: "AND dci.forma_pagamento LIKE 'OUTROS'",
+          },
         })
       );
 
-      const [rowsDadosReais] = await conn.execute(
-        `
+      let rowsDadosReais = [];
+
+      if (tiposMap.get(type).table) {
+        [rowsDadosReais] = await conn.execute(
+          `
         SELECT
           ${tiposMap.get(type).databaseColumns}
           FROM ${tiposMap.get(type).table}
           ${tiposMap.get(type).where}
       `,
-        [caixa.data, caixa.id_filial]
-      );
+          [caixa.data, caixa.id_filial]
+        );
+      }
 
       let rowsMovimentoCaixa = [];
       if (type === "recarga") {
@@ -249,8 +257,9 @@ module.exports = async (req) => {
           `,
           [id_caixa]
         );
-        const [rowsAjustes] = await conn.execute(
-          `
+        if (tiposMap.get(type).tipoAjuste) {
+          const [rowsAjustes] = await conn.execute(
+            `
           SELECT 
             id as documento, tipo_ajuste as tipo_operacao, obs as historico,
             CASE WHEN saida = '${
@@ -259,18 +268,19 @@ module.exports = async (req) => {
           FROM datasys_caixas_ajustes
           WHERE id_caixa = ?
           AND (entrada = '${tiposMap.get(type).tipoAjuste}' OR saida = '${
-            tiposMap.get(type).tipoAjuste
-          }')
+              tiposMap.get(type).tipoAjuste
+            }')
           AND aprovado
-        `,
-          [id_caixa]
-        );
-        rowsMovimentoCaixa.push(...rowsAjustes);
+          `,
+            [id_caixa]
+          );
+          rowsMovimentoCaixa.push(...rowsAjustes);
+        }
       }
 
       const obj = {
         movimento_caixa: rowsMovimentoCaixa,
-        columns: tiposMap.get(type).tableColumns,
+        columns: tiposMap.get(type).tableColumns || [],
         dados_reais: rowsDadosReais,
       };
 
