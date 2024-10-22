@@ -19,7 +19,8 @@ module.exports = function exportLayoutDespesas(req, res) {
       const { filters } = req.query || {};
 
       // Filtros
-      var where = ` tv.data_pagamento IS NOT NULL `;
+      // var where = ` tv.data_pagamento IS NOT NULL `;
+      var where = ` 1 =1 `;
       //* Somente o Financeiro/Master podem ver todos
       if (
         !checkUserDepartment(req, "FINANCEIRO") &&
@@ -247,8 +248,8 @@ module.exports = function exportLayoutDespesas(req, res) {
             'PLANO DE CONTAS': item_rateio.plano_conta,
             'VALOR': valorVencimentoRateado,
             'DATA PAGAMENTO': vencimento.data_pagamento,
-            'VALOR PAGO': valorPagoVencimentoRateado,
-            'TIPO BAIXA': vencimento.tipo_baixa,
+            'VALOR PAGO': valorPagoVencimentoRateado || 0,
+            'TIPO BAIXA': vencimento.tipo_baixa || null,
             'FORMA DE PAGAMENTO': vencimento.forma_pagamento,
 
           }
