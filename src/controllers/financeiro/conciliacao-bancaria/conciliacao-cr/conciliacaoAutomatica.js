@@ -1,6 +1,7 @@
 const { formatDate } = require("date-fns");
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
+const { normalizeNumberFixed } = require("../../../../helpers/mask");
 
 module.exports = function conciliacaoAutomatica(req) {
   return new Promise(async (resolve, reject) => {
@@ -33,7 +34,8 @@ module.exports = function conciliacaoAutomatica(req) {
           if (
             formatDate(itemConciliacao.data, "dd-MM-yyyy").toString() ==
               formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
-            itemConciliacao.valor == transacao.valor
+            normalizeNumberFixed(itemConciliacao.valor, 2) ==
+              normalizeNumberFixed(transacao.valor, 2)
           ) {
             //^ UPDATE do Vencimento
             const [result] = await conn.execute(
