@@ -85,7 +85,7 @@ function getAll(req) {
       params.push(active);
     }
     if (isCaixa !== undefined && isCaixa !== "all") {
-      if (parseInt(isCaixa)) {
+      if (Number(isCaixa)) {
         where += " AND cb.caixa = 1";
       } else {
         where += " AND cb.caixa = 0";

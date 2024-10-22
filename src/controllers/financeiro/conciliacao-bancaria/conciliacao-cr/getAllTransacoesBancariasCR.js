@@ -47,6 +47,7 @@ module.exports = (req) => {
             `SELECT descricao, tipo_transacao FROM fin_extratos_padroes WHERE id_conta_bancaria = ?`,
             [id_conta_bancaria]
           );
+
           for (const transacaoNaoConciliavel of transacoesNaoConciliaveis) {
             where += ` AND NOT (eb.descricao = ? AND eb.tipo_transacao = ?)`;
             params.push(transacaoNaoConciliavel.descricao);
@@ -117,11 +118,11 @@ module.exports = (req) => {
             AND cbi.tipo = "transacao"
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
-        AND tipo_transacao = 'CREDIT'
+        AND eb.tipo_transacao = 'CREDIT'
         AND eb.id_duplicidade IS NULL
-        AND eb.adiantamento = 0
+        AND (eb.adiantamento = 0 OR eb.adiantamento IS NULL)
         AND eb.id_deposito_caixa IS NULL
-        AND eb.suprimento = 0
+        AND (eb.suprimento = 0 OR eb.suprimento IS NULL)
         ${order}
         ${limit}
         `;
