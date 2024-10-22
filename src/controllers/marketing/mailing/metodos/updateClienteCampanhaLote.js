@@ -115,20 +115,26 @@ module.exports = (req) => {
       }
 
       //* WHERE
-      if (filters.plano_atual) {
-        where += " AND mc.plano_atual = ? ";
-        params.push(filters.plano_atual);
+      const { plano_atual_list, produto_list, sem_contato, status_plano_list } = filters || {};
+      if (plano_atual_list && plano_atual_list.length > 0) {
+        where += ` AND mc.plano_atual IN('${ensureArray(plano_atual_list).join("','")}') `;
+      }
+      if (produto_list && produto_list.length > 0) {
+        where += ` AND mc.produto_ultima_compra IN('${ensureArray(produto_list).join("','")}') `;
+      }
+      if (status_plano_list && status_plano_list.length > 0) {
+        where += ` AND mc.status_plano IN('${ensureArray(status_plano_list).join("','")}') `;
+      }
+      if (filters.plano_habilitado) {
+        where += " AND mc.plano_habilitado = ? ";
+        params.push(filters.plano_habilitado);
       }
       if (filters.produto) {
         where += " AND mc.produto =? ";
         params.push(filters.produto);
       }
-      if (filters.produto_fidelizado) {
-        where += " AND mc.produto_fidelizado =? ";
-        params.push(filters.produto_fidelizado);
-      }
-      if (filters.sem_contato) {
-        if (Number(filters.sem_contato)) {
+      if (sem_contato !== undefined && sem_contato !== "all") {
+        if (Number(sem_contato)) {
           where += `
           AND NOT EXISTS (
           SELECT 1
@@ -146,9 +152,9 @@ module.exports = (req) => {
           `;
         }
       }
-      if (filters.status) {
-        where += " AND mc.status =? ";
-        params.push(filters.status);
+      if (produto_fidelizado !== undefined && produto_fidelizado !== "all") {
+        where += " AND mc.produto_fidelizado =? ";
+        params.push(filters.produto_fidelizado);
       }
       if (filters.id_campanha) {
         where += " AND mc.id_campanha =? ";
@@ -163,11 +169,12 @@ module.exports = (req) => {
 
       let query = `UPDATE marketing_mailing_clientes mc SET ${sets.join(",")} ${where}`;
 
-      const [result] = await conn.execute(query, params);
-      console.log(result);
+      await conn.execute(query, params);
 
-      await conn.rollback();
+      // await conn.rollback();
       if (!conn_externa) {
+        console.log(filters, query);
+
         await conn.commit();
       }
 
