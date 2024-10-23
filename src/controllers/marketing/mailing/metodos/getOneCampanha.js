@@ -1,5 +1,6 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
+const { ensureArray } = require("../../../../helpers/mask");
 
 module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -47,10 +48,14 @@ module.exports = (req) => {
       conn = conn_externa || (await db.getConnection());
 
       const [rowCampanha] = await conn.execute(
-        `SELECT * FROM marketing_mailing_campanhas WHERE id = ?`,
+        `SELECT *, 0 as filters FROM marketing_mailing_campanhas WHERE id = ?`,
         [id]
       );
       const campanha = rowCampanha && rowCampanha[0];
+
+      if (!campanha) {
+        throw new Error(`Campanha não encontrada`);
+      }
 
       const [clientes] = await conn.execute(
         `
@@ -63,6 +68,9 @@ module.exports = (req) => {
 
       //* DEFINIÇÃO DOS VALORES DO PRODUTO DE CADA CLIENTE
       for (const cliente of clientes) {
+        if (!cliente.produto_ofertado) {
+          continue;
+        }
         const [rowPlano] = await conn.execute(
           "SELECT * FROM tim_planos_cbcf_vs_precos WHERE plano LIKE ? LIMIT 1",
           [cliente.plano_atual && cliente.plano_atual.replace(".", " ")]
@@ -83,9 +91,9 @@ module.exports = (req) => {
         );
         const preco = rowPreco && rowPreco[0];
 
-        cliente.valor_pre = preco.valor_pre || 0;
-        cliente.valor_plano = preco.valor_plano || preco.valor_pre;
-        cliente.desconto = parseFloat(preco.valor_pre) - parseFloat(preco.valor_plano);
+        cliente.valor_pre = preco?.valor_pre || 0;
+        cliente.valor_plano = preco?.valor_plano || preco?.valor_pre || 0;
+        cliente.desconto = parseFloat(cliente.valor_pre) - parseFloat(cliente.valor_plano);
       }
 
       //~ INÍCIO - FILTERS LIST
@@ -108,9 +116,9 @@ module.exports = (req) => {
       );
 
       campanha.filters = {
-        plano_atual_list: plano_atual_list_filters,
-        produto_list: produto_list_filters,
-        status_plano_list: status_plano_list_filters,
+        plano_atual_list: plano_atual_list_filters || [],
+        produto_list: produto_list_filters || [],
+        status_plano_list: status_plano_list_filters || [],
       };
       //~ FIM - FILTERS LIST
 

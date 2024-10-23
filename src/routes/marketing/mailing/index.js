@@ -49,6 +49,15 @@ router.get("/campanhas/:id", async (req, res) => {
   }
 });
 
+router.post("/campanhas/subcampanhas", async (req, res) => {
+  try {
+    const result = await controller.insertSubcampanha(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 //* CLIENTES
 router.get("/campanhas/clientes/:id", async (req, res) => {
   try {

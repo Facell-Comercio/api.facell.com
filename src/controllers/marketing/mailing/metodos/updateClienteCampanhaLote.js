@@ -1,6 +1,6 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
-const updateClienteMarketingCompras = require("./updateClienteMarketingCompras");
+const { ensureArray } = require("../../../../helpers/mask");
 
 module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -173,8 +173,6 @@ module.exports = (req) => {
 
       // await conn.rollback();
       if (!conn_externa) {
-        console.log(filters, query);
-
         await conn.commit();
       }
 

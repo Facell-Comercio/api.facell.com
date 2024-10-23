@@ -5,6 +5,7 @@ module.exports = {
   getOneClienteCampanha: require("./metodos/getOneClienteCampanha"),
 
   insertCampanha: require("./metodos/insertCampanha"),
+  insertSubcampanha: require("./metodos/insertSubcampanha"),
 
   updateClienteCampanha: require("./metodos/updateClienteCampanha"),
   updateClienteCampanhaLote: require("./metodos/updateClienteCampanhaLote"),
