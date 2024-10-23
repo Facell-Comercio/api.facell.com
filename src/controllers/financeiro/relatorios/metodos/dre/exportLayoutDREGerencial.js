@@ -1,13 +1,13 @@
 const { formatDate } = require("date-fns");
-const { db } = require("../../../../../mysql");
-const { logger } = require("../../../../../logger");
-const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
-const XLSX = require('xlsx');
+const { db } = require("../../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const XLSX = require("xlsx");
 
-module.exports = function exportLayoutDRE(req, res) {
+module.exports = (req, res) => {
   return new Promise(async (resolve, reject) => {
-    let conn
+    let conn;
     try {
       conn = await db.getConnection();
 
@@ -19,16 +19,14 @@ module.exports = function exportLayoutDRE(req, res) {
       const { filters } = req.query || {};
 
       // Filtros
-      var where = ` tv.data_pagamento IS NOT NULL `;
+      let where = ` tv.data_pagamento IS NOT NULL `;
       //* Somente o Financeiro/Master podem ver todos
-      if (
-        !checkUserDepartment(req, "FINANCEIRO") &&
-        !checkUserPermission(req, "MASTER")
-      ) {
+      if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
         // where += ` AND t.id_solicitante = '${user.id}'`;
         if (departamentosUser?.length > 0) {
-          where += ` AND (t.id_solicitante = '${user.id
-            }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
+          where += ` AND (t.id_solicitante = '${
+            user.id
+          }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
         } else {
           where += ` AND t.id_solicitante = '${user.id}' `;
         }
@@ -50,6 +48,9 @@ module.exports = function exportLayoutDRE(req, res) {
         nome_user,
         filial,
         num_doc,
+
+        mes,
+        ano,
       } = filters || {};
       const params = [];
       if (id) {
@@ -69,9 +70,7 @@ module.exports = function exportLayoutDRE(req, res) {
         params.push(id_forma_pagamento);
       }
       if (forma_pagamento_list && forma_pagamento_list.length > 0) {
-        where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join(
-          "','"
-        )}')`;
+        where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join("','")}')`;
       }
 
       if (descricao) {
@@ -101,19 +100,30 @@ module.exports = function exportLayoutDRE(req, res) {
         params.push(String(num_doc).trim());
       }
 
+      if (mes) {
+        where += ` AND MONTH(tv.data_pagamento) = ? `;
+        params.push(mes);
+      }
+
+      if (ano) {
+        where += ` AND YEAR(tv.data_pagamento) = ? `;
+        params.push(ano);
+      }
+
       if (tipo_data && range_data) {
         const { from: data_de, to: data_ate } = range_data;
 
         const campo_data =
           tipo_data == "data_prevista" ||
-            tipo_data == "data_vencimento" ||
-            tipo_data == "data_pagamento"
+          tipo_data == "data_vencimento" ||
+          tipo_data == "data_pagamento"
             ? `tv.${tipo_data}`
             : `t.${tipo_data}`;
 
         if (data_de && data_ate) {
-          where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-            }'  `;
+          where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
         } else {
           if (data_de) {
             where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -129,9 +139,7 @@ module.exports = function exportLayoutDRE(req, res) {
         params.push(id_grupo_economico);
       }
       if (grupo_economico_list && grupo_economico_list.length > 0) {
-        where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join(
-          "','"
-        )}')`;
+        where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join("','")}')`;
       }
 
       if (filial) {
@@ -174,13 +182,13 @@ module.exports = function exportLayoutDRE(req, res) {
         LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
         WHERE 
           ${where}
-          ORDER BY tv.data_vencimento ASC`
+          ORDER BY tv.data_vencimento ASC`;
 
-      const [vencimentos] = await conn.execute(query, params)
+      const [vencimentos] = await conn.execute(query, params);
       // console.log({ query });
       // console.log({ params });
 
-      const despesas = []
+      const despesas = [];
 
       async function gerarDespesa({ vencimento }) {
         const [itens_rateio] = await conn.execute(
@@ -200,49 +208,51 @@ module.exports = function exportLayoutDRE(req, res) {
           [vencimento.id_titulo]
         );
 
-        vencimento.valor_pago = parseFloat(vencimento.valor_pago)
-        vencimento.valor_titulo = parseFloat(vencimento.valor_titulo)
+        vencimento.valor_pago = parseFloat(vencimento.valor_pago);
+        vencimento.valor_titulo = parseFloat(vencimento.valor_titulo);
 
         for (const item_rateio of itens_rateio) {
           const valorVencimentoRateado = parseFloat(item_rateio.percentual) * vencimento.valor_pago;
-          
+
           // Cada vencimento será quebrado em despesas, que nada mais é do que os itens_rateio do título quebrando os vencimentos.
           const despesa = {
-            'Nível': 4,
-            'Grupo': vencimento.grupo_economico,
-            'Empresa': item_rateio.filial,
-            'Conta/Descrição': `Conta: ${item_rateio.plano_conta}`,
-            'Data Movimento': vencimento.data_pagamento,
-            'Documento': vencimento.documento,
-            'Histórico': vencimento.descricao,
-            'Origem Lançamento': 'Contas Pagar',
-            'Centro Custos': item_rateio.centro_custo,
-            'Cliente / Fornecedor': vencimento.nome_fornecedor,
-            'Tipo': 'Pagamentos',
-            'Base': 'Contas Pagar',
-            'Valor': valorVencimentoRateado,
-            'Banco': vencimento.conta_bancaria,
-            'Filial Lançamento': vencimento.filial,
-            'ID Titulo': vencimento.id_titulo,
-            'Valor Titulo': vencimento.valor_titulo,
-            'ID Vencimento': vencimento.id_vencimento,
-            'Valor Vencimento': vencimento.valor_pago,
-            'Tipo Baixa': vencimento.tipo_baixa
-          }
+            "Nível": 4,
+            "Grupo": vencimento.grupo_economico,
+            "Empresa": item_rateio.filial,
+            "Conta/Descrição": `Conta: ${item_rateio.plano_conta}`,
+            "Data Movimento": vencimento.data_pagamento,
+            "Documento": vencimento.documento,
+            "Histórico": vencimento.descricao,
+            "Origem Lançamento": "Contas Pagar",
+            "Centro Custos": item_rateio.centro_custo,
+            "Cliente / Fornecedor": vencimento.nome_fornecedor,
+            "Tipo": "Pagamentos",
+            "Base": "Contas Pagar",
+            "Valor": valorVencimentoRateado,
+            "Banco": vencimento.conta_bancaria,
+            "Filial Lançamento": vencimento.filial,
+            "ID Titulo": vencimento.id_titulo,
+            "Valor Titulo": vencimento.valor_titulo,
+            "ID Vencimento": vencimento.id_vencimento,
+            "Valor Vencimento": vencimento.valor_pago,
+            "Tipo Baixa": vencimento.tipo_baixa,
+          };
           // console.log({despesa});
-          despesas.push(despesa)
+          despesas.push(despesa);
         }
       }
 
-      await Promise.all(vencimentos.map(vencimento => gerarDespesa({ vencimento })))
-
+      await Promise.all(vencimentos.map((vencimento) => gerarDespesa({ vencimento })));
 
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(despesas);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
-      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      const filename = `EXPORT CONTAS A PAGAR LAYOUT DRE ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+      const filename = `EXPORT CONTAS A PAGAR LAYOUT DRE ${formatDate(
+        new Date(),
+        "dd-MM-yyyy hh.mm"
+      )}.xlsx`;
 
       res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
@@ -251,7 +261,7 @@ module.exports = function exportLayoutDRE(req, res) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "TITULOS A PAGAR",
+        origin: "RELATORIOS",
         method: "EXPORT_LAYOUT_DRE",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -260,4 +270,4 @@ module.exports = function exportLayoutDRE(req, res) {
       if (conn) conn.release();
     }
   });
-}
+};
