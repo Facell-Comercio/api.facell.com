@@ -1,9 +1,9 @@
 const { formatDate } = require("date-fns");
-const { db } = require("../../../../../mysql");
-const { logger } = require("../../../../../logger");
-const XLSX = require('xlsx');
+const { db } = require("../../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const XLSX = require("xlsx");
 
-module.exports = function exportLayoutDatasys(req, res) {
+module.exports = (req, res) => {
   return new Promise(async (resolve, reject) => {
     const { filters } = req.query || {};
     const conn = await db.getConnection();
@@ -69,8 +69,7 @@ module.exports = function exportLayoutDatasys(req, res) {
         let documento = "";
 
         for (const rateio of rateios) {
-          const valorRateio =
-            parseFloat(vencimento.valor) * parseFloat(rateio.percentual);
+          const valorRateio = parseFloat(vencimento.valor) * parseFloat(rateio.percentual);
           // ^ Criando a chave para agrupar os rateios por centro de custo e plano de contas
           const chave = `${rateio.id_centro_custo}-${rateio.id_plano_contas}-${vencimento.id}`;
 
@@ -85,10 +84,7 @@ module.exports = function exportLayoutDatasys(req, res) {
 
           // ^ Verificando se o documento já foi criado, para adicionar ao autoincremento, se não, criando e adicionando ao map
           if (valoresMap.has(documento)) {
-            valoresMap.set(
-              documento,
-              parseFloat(valoresMap.get(documento)) + valorRateio
-            );
+            valoresMap.set(documento, parseFloat(valoresMap.get(documento)) + valorRateio);
           } else {
             valoresMap.set(documento, valorRateio);
           }
@@ -99,19 +95,19 @@ module.exports = function exportLayoutDatasys(req, res) {
             "Documento": documento,
             "Emissão": new Date(vencimento.emissao),
             "Vencimento": new Date(vencimento.vencimento),
-            "Valor": valorRateio.toFixed(2).replace('.', ','),
-            "Tipo Documento": vencimento.tipo_documento?.toUpperCase() || '',
+            "Valor": valorRateio.toFixed(2).replace(".", ","),
+            "Tipo Documento": vencimento.tipo_documento?.toUpperCase() || "",
             "Historico": vencimento.historico.toUpperCase(),
             "BarCode": "",
-            "Centro de Custos": rateio.centro_custo?.toUpperCase() || '',
+            "Centro de Custos": rateio.centro_custo?.toUpperCase() || "",
             "Plano de Contas": rateio.plano_contas,
             "CNPJ Rateio": rateio.cnpj_rateio,
             "Valor Rateio": parseFloat(valorRateio.toFixed(2)),
             "ID TITULO": vencimento.id_titulo,
             "ID VENCIMENTO": vencimento.id_vencimento,
-            "BANCO PG": rateio.banco_pg?.toUpperCase() || '',
+            "BANCO PG": rateio.banco_pg?.toUpperCase() || "",
             "DATA PG": new Date(vencimento.data_pagamento),
-            "NOME FORNECEDOR": vencimento.nome_fornecedor?.toUpperCase() || '',
+            "NOME FORNECEDOR": vencimento.nome_fornecedor?.toUpperCase() || "",
             PERCENTUAL: parseFloat(rateio.percentual),
           });
         }
@@ -119,7 +115,7 @@ module.exports = function exportLayoutDatasys(req, res) {
         // ^ Adicionando o valor total dos rateios ao documento, usando os valores do map gerado anteriormente
         for (const linha of datasys) {
           if (valoresMap.has(linha["Documento"])) {
-            linha["Valor"] = valoresMap.get(linha["Documento"]).toFixed(2).replace('.', ',');
+            linha["Valor"] = valoresMap.get(linha["Documento"]).toFixed(2).replace(".", ",");
           }
         }
       }
@@ -127,11 +123,11 @@ module.exports = function exportLayoutDatasys(req, res) {
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(datasys);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
-      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      const filename = `EXPORT DATASYS ${formatDate(new Date(), 'dd-MM-yyyy hh.mm')}.xlsx`;
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+      const filename = `EXPORT DATASYS ${formatDate(new Date(), "dd-MM-yyyy hh.mm")}.xlsx`;
 
-      res.set("Content-Type", 'text/plain');
+      res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(buffer);
 
@@ -139,7 +135,7 @@ module.exports = function exportLayoutDatasys(req, res) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "TITULOS A PAGAR",
+        origin: "RELATORIOS",
         method: "EXPORT_DATASYS_TITULOS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
@@ -148,4 +144,4 @@ module.exports = function exportLayoutDatasys(req, res) {
       conn.release();
     }
   });
-}
+};
