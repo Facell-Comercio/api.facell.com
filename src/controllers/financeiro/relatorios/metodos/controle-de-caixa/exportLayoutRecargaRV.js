@@ -30,8 +30,16 @@ module.exports = async (req, res) => {
 
     let whereFiliais = " WHERE 1=1 ";
     if (uf_list && ensureArray(uf_list).length > 0) {
-      whereFiliais += ` AND id IN ('${ensureArray(uf_list).join("','")}')`;
+      whereFiliais += ` AND uf IN ('${ensureArray(uf_list).join("','")}')`;
     }
+
+    console.log(
+      `
+        SELECT id, nome FROM filiais
+        ${whereFiliais}
+        AND tim_cod_sap IS NOT NULL`,
+      params
+    );
 
     const [filiais] = await conn.execute(
       `
