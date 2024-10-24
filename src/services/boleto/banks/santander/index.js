@@ -7,7 +7,7 @@ require('dotenv').config();
 
 exports.options = {
   logoURL: process.env.NODE_ENV == 'production' ? 
-  'https://kvm.facell.com/assets/images/santander.png':
+  'https://api.facell.com/assets/images/santander.png':
   'http://localhost:7000/assets/images/santander.png',
   codigo: '033'
 }

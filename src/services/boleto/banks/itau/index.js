@@ -6,7 +6,7 @@ require('dotenv').config();
 
 exports.options = {
   logoURL: process.env.NODE_ENV == 'production' ? 
-  'https://kvm.facell.com/assets/images/logoitau.jpg':
+  'https://api.facell.com/assets/images/logoitau.jpg':
   'http://localhost:7000/assets/images/logoitau.jpg',
   codigo: '341'
 }
@@ -26,15 +26,31 @@ exports.barcodeData = function (boleto) {
 
   var valor = formatters.addTrailingZeros(boleto['valor'], 10)
   var carteira = boleto['carteira']
-  var codigoCedente = formatters.addTrailingZeros(boleto['codigo_cedente'], 7)
+  var codigoCedente = formatters.addTrailingZeros(boleto['codigo_cedente'], 5)
+  var DACagconta = formatters.mod10(agencia+codigoCedente);
 
-  var nossoNumero = carteira + formatters.addTrailingZeros(boleto['nosso_numero'], 11)
+  var nossoNumero = formatters.addTrailingZeros(boleto['nosso_numero'], 8)
+  var DACNossoNumero = formatters.mod10(agencia + codigoCedente + carteira + nossoNumero)
+  var carteiraNossoNumero = carteira + nossoNumero + DACNossoNumero
 
-  var barra = codigoBanco + numMoeda + fatorVencimento + valor + agencia + nossoNumero + codigoCedente + '0'
+  var barra = codigoBanco + numMoeda + fatorVencimento + valor  + carteiraNossoNumero + agencia + codigoCedente + DACagconta + '000'
 
   var dvBarra = this.dvBarra(barra)
   var lineData = barra.substring(0, 4) + dvBarra + barra.substring(4, barra.length)
-
+  // console.log({
+  //   codigoBanco,
+  //   numMoeda,
+  //   dvBarra,
+  //   fatorVencimento,
+  //   valor,
+  //   carteira,
+  //   nossoNumero,
+  //   DACNossoNumero,
+  //   agencia,
+  //   codigoCedente,
+  // });
+  // console.log(lineData);
+  
   return lineData
 }
 

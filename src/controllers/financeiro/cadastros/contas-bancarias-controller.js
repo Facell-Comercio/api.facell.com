@@ -32,11 +32,16 @@ function getAll(req) {
       active,
       id_matriz,
       onlyDatasys,
-      onlyCaixa,
+      isCaixa,
+      showInactive,
     } = filters || {};
     let where = ` WHERE 1=1 `;
 
     const params = [];
+
+    if (!(showInactive == "true" || showInactive == 1)) {
+      where += ` AND cb.active = 1 `;
+    }
 
     if (!isMaster) {
       if (!contas_bancarias_habilitadas || contas_bancarias_habilitadas.length === 0) {
@@ -79,8 +84,12 @@ function getAll(req) {
       where += ` AND cb.active = ? `;
       params.push(active);
     }
-    if (onlyCaixa && parseInt(onlyCaixa)) {
-      where += " AND cb.caixa";
+    if (isCaixa !== undefined && isCaixa !== "all") {
+      if (Number(isCaixa)) {
+        where += " AND cb.caixa = 1";
+      } else {
+        where += " AND cb.caixa = 0";
+      }
     }
 
     const offset = pageIndex * pageSize;
@@ -105,7 +114,7 @@ function getAll(req) {
             SELECT 
               f.id_matriz, cb.*, f.nome as filial, ge.nome, 
               fb.nome as banco, ge.nome as grupo_economico, 
-              ftc.tipo as tipo_conta, cb.active
+              ftc.tipo as tipo_conta, cb.active, cb.caixa
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -146,7 +155,9 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await conn.execute(
         `
-            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia,
+            cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, 
+            fb.nome as banco, ftc.tipo as tipo_conta, cb.active, cb.caixa
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco

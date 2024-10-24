@@ -45,10 +45,8 @@ const server = http.createServer(app);
 const PORTA = 7000;
 server.listen(PORTA, () => {
   logger.info({
-    module: "ROOT",
-    origin: "INDEX",
-    method: "LISTEN",
-    data: { message: "Backend Datasys is running... na porta " + PORTA },
+    module: "ROOT", origin: "INDEX", method: "LISTEN",
+    data: { stack: '', name: 'Running', message: "Backend Datasys is running... na porta " + PORTA },
   });
 });
 

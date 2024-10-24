@@ -12,10 +12,10 @@ function isDivergent(valor_datasys, valor_real, divergente) {
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const { id_filial, data_caixa } = req.body;
-
+    
     let conn;
     try {
+      const { id_filial, data_caixa } = req.body;
       conn = req.conn || (await db.getConnection());
       let divergente = false;
       const [rowsCaixas] = await conn.execute(

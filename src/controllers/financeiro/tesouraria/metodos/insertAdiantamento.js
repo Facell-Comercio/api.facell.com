@@ -1,14 +1,13 @@
 const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 const crypto = require("crypto");
-const { formatDate } = require("../../../../services/boleto/helper/formatters");
 const updateSaldoContaBancaria = require("./updateSaldoContaBancaria");
 const { objectToStringLine } = require("../../../../helpers/mask");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const { id_conta_bancaria, valor, descricao } = req.body;
+    const { id, id_conta_bancaria, valor, descricao } = req.body;
 
     if (!user) {
       reject("Usuário não autenticado!");
@@ -17,6 +16,11 @@ module.exports = async (req) => {
 
     let conn;
     try {
+      if (id) {
+        throw new Error(
+          "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
+        );
+      }
       if (!id_conta_bancaria) {
         throw new Error("ID da conta de saída não informado!");
       }

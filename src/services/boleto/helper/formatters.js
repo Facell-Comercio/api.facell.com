@@ -81,8 +81,8 @@ exports.mod10 = function (num) {
 }
 
 exports.fatorVencimento = function (date) {
-  const parsedDate = moment(date).utc().format('YYYY-MM-DD')
-  const startDate = moment('1997-10-07').utc().format('YYYY-MM-DD')
+  const parsedDate = moment(date).utc()
+  const startDate = moment('1997-10-07').utc()
 
   let factor = moment(parsedDate).diff(startDate, 'days')
 

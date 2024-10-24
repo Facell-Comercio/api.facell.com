@@ -15,7 +15,7 @@ module.exports = async (req) => {
       pageSize: 15,
     };
     const { id_grupo_economico, conta } = filters || {};
-    let where = ` WHERE cb.caixa = 1 `;
+    let where = ` WHERE cb.active = 1 AND cb.caixa = 1 `;
     const params = [];
 
     if (id_grupo_economico) {

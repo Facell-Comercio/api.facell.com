@@ -45,7 +45,8 @@ module.exports = async (req) => {
       conn.config.namedPlaceholders = true;
 
       for (const row of formattedData) {
-        const txid = row["txid"] ? row["txid"].trim() : null;
+        const txidBruto = row['txid'] || row['identificador do QR Code']
+        const txid = txidBruto ? txidBruto.trim() : null;
         if (!txid) continue;
         const txidFilial = txid.substring(0, 13);
 
@@ -58,18 +59,21 @@ module.exports = async (req) => {
         }
 
         const dataVenda = row["data do pagamento"].split("/").reverse().join("-");
-        const devolucao = row["tem devolução?"] == "Sim" ? 1 : 0;
+        
+        const valor_recebido = parseFloat(row['valor recebido'] || 0)
+        const valor_devolvido = parseFloat(row['valor devolvido'] || 0)
+
         const obj = {
           txid: txid,
           id_filial: filial.id,
           data_venda: dataVenda,
-          valor: devolucao ? row["valor recebido"] * -1 : row["valor recebido"],
-          devolucao: devolucao,
+          valor: valor_recebido - valor_devolvido,
+          devolucao: valor_devolvido > 0,
           banco: "ITAU",
         };
 
         await conn.execute(
-          `INSERT IGNORE fin_vendas_pix 
+          `INSERT fin_vendas_pix 
                     (
                         txid,
                         id_filial,
@@ -86,7 +90,11 @@ module.exports = async (req) => {
                         :valor,
                         :devolucao,
                         :banco
-                    )`,
+                    )
+                    ON DUPLICATE KEY UPDATE
+                      valor = VALUES(valor),
+                      devolucao = VALUES(devolucao)
+                      `,
           obj
         );
       }

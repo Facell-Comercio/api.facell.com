@@ -1,13 +1,13 @@
 const { formatDate } = require("date-fns");
-const { db } = require("../../../../../mysql");
-const { logger } = require("../../../../../logger");
-const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
-const XLSX = require('xlsx');
+const { db } = require("../../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
+const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const XLSX = require("xlsx");
 
-module.exports = function exportLayoutVencimentos(req, res) {
+module.exports = (req, res) => {
   return new Promise(async (resolve, reject) => {
-    let conn
+    let conn;
     try {
       conn = await db.getConnection();
 
@@ -19,16 +19,14 @@ module.exports = function exportLayoutVencimentos(req, res) {
       const { filters } = req.query || {};
 
       // Filtros
-      var where = ` 1=1 `;
+      let where = ` tv.data_pagamento IS NULL `;
       //* Somente o Financeiro/Master podem ver todos
-      if (
-        !checkUserDepartment(req, "FINANCEIRO") &&
-        !checkUserPermission(req, "MASTER")
-      ) {
+      if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
         // where += ` AND t.id_solicitante = '${user.id}'`;
         if (departamentosUser?.length > 0) {
-          where += ` AND (t.id_solicitante = '${user.id
-            }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
+          where += ` AND (t.id_solicitante = '${
+            user.id
+          }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
         } else {
           where += ` AND t.id_solicitante = '${user.id}' `;
         }
@@ -69,9 +67,7 @@ module.exports = function exportLayoutVencimentos(req, res) {
         params.push(id_forma_pagamento);
       }
       if (forma_pagamento_list && forma_pagamento_list.length > 0) {
-        where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join(
-          "','"
-        )}')`;
+        where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join("','")}')`;
       }
 
       if (descricao) {
@@ -106,14 +102,15 @@ module.exports = function exportLayoutVencimentos(req, res) {
 
         const campo_data =
           tipo_data == "data_prevista" ||
-            tipo_data == "data_vencimento" ||
-            tipo_data == "data_pagamento"
+          tipo_data == "data_vencimento" ||
+          tipo_data == "data_pagamento"
             ? `tv.${tipo_data}`
             : `t.${tipo_data}`;
 
         if (data_de && data_ate) {
-          where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${data_ate.split("T")[0]
-            }'  `;
+          where += ` AND ${campo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
         } else {
           if (data_de) {
             where += ` AND ${campo_data} >= '${data_de.split("T")[0]}' `;
@@ -129,9 +126,7 @@ module.exports = function exportLayoutVencimentos(req, res) {
         params.push(id_grupo_economico);
       }
       if (grupo_economico_list && grupo_economico_list.length > 0) {
-        where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join(
-          "','"
-        )}')`;
+        where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join("','")}')`;
       }
 
       if (filial) {
@@ -140,7 +135,8 @@ module.exports = function exportLayoutVencimentos(req, res) {
       }
 
       // * Lista de vencimentos
-      const [vencimentos] = await conn.execute(`SELECT 
+      const [vencimentos] = await conn.execute(
+        `SELECT 
           tv.id as id_vencimento,  
           t.id as id_titulo, 
           s.status as status_titulo,
@@ -171,31 +167,34 @@ module.exports = function exportLayoutVencimentos(req, res) {
         LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
         WHERE 
           ${where}
-          ORDER BY tv.data_vencimento ASC`, params)
+          ORDER BY tv.data_vencimento ASC`,
+        params
+      );
 
-
-      vencimentos.forEach(vencimento=>{
-        vencimento.valor_vencimento = parseFloat(vencimento.valor_vencimento)
-        vencimento.valor_titulo = parseFloat(vencimento.valor_titulo)
-        vencimento.valor_pago = parseFloat(vencimento.valor_pago || '0')
-      })
+      vencimentos.forEach((vencimento) => {
+        vencimento.valor_vencimento = parseFloat(vencimento.valor_vencimento);
+        vencimento.valor_titulo = parseFloat(vencimento.valor_titulo);
+      });
 
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(vencimentos);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
-      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      const filename = `EXPORT VENCIMENTOS.xlsx`;
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+      const filename = `EXPORT PREVISAO PAGAMENTO ${formatDate(
+        new Date(),
+        "dd-MM-yyyy hh.mm"
+      )}.xlsx`;
 
-      res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(buffer);
       resolve();
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "TITULOS A PAGAR",
-        method: "EXPORT_LAYOUT_VENCIMENTOS",
+        origin: "RELATORIOS",
+        method: "EXPORT_PREVISAO_PAGAMENTO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -203,4 +202,4 @@ module.exports = function exportLayoutVencimentos(req, res) {
       if (conn) conn.release();
     }
   });
-}
+};

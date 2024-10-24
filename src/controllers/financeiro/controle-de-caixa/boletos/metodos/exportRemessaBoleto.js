@@ -1,4 +1,4 @@
-const { formatDate, addDays } = require("date-fns");
+const { formatDate } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 
 const {
@@ -8,7 +8,9 @@ const {
 } = require("../../../remessa/CNAB400/to-string");
 const { logger } = require("../../../../../../logger");
 const { addDiasUteis } = require("../../../remessa/CNAB400/helper");
-const { removeSpecialCharactersAndAccents } = require("../../../../../helpers/mask");
+const { removeSpecialCharactersAndAccents, normalizeCurrency } = require("../../../../../helpers/mask");
+const { enviarEmail } = require("../../../../../helpers/email");
+require('dotenv').config();
 
 module.exports = async (req, res) => {
   return new Promise(async (resolve, reject) => {
@@ -57,14 +59,14 @@ module.exports = async (req, res) => {
       const [boletos] = await conn.execute(
         `
         SELECT
-          db.id, db.valor as valor_titulo, f.cnpj as num_inscricao_pagador,
-          f.razao as nome_pagador, f.logradouro, f.municipio, f.municipio as cidade,
+          boleto.*, boleto.valor as valor_titulo, f.cnpj as num_inscricao_pagador,
+          f.nome as nome_pagador, f.logradouro, f.municipio, f.municipio as cidade,
           f.cep, f.uf
-        FROM datasys_caixas_boletos db
-        LEFT JOIN filiais f ON f.id = db.id_filial
-        WHERE ${id_boleto ? "db.id = ?" : "f.id_grupo_economico = ?"}
+        FROM datasys_caixas_boletos boleto
+        LEFT JOIN filiais f ON f.id = boleto.id_filial
+        WHERE ${id_boleto ? "boleto.id = ?" : "f.id_grupo_economico = ?"}
         AND f.tim_cod_sap IS NOT NULL
-        AND (db.status = 'aguardando_emissao' OR db.status = 'erro')
+        AND boleto.status = 'aguardando_emissao'
       `,
         [id_boleto || id_grupo_economico]
       );
@@ -73,6 +75,8 @@ module.exports = async (req, res) => {
 
       let num_sequencial = 1;
       const data_emissao = new Date();
+      const data_vencimento = addDiasUteis(data_emissao, 3)
+
       const headerArquivo = createHeaderArquivo({
         ...matriz,
         data_emissao,
@@ -81,13 +85,15 @@ module.exports = async (req, res) => {
 
       arquivo.push(headerArquivo);
 
+      let emails = []
+
       for (const boleto of boletos) {
         ++num_sequencial;
         const segmentoDetalhe = createDetalheArquivo({
           ...matriz,
           ...boleto,
           data_emissao,
-          data_vencimento: addDiasUteis(data_emissao, 3),
+          data_vencimento,
           num_sequencial,
           uso_empresa: boleto.id,
           nosso_numero: boleto.id,
@@ -95,13 +101,61 @@ module.exports = async (req, res) => {
         });
         arquivo.push(segmentoDetalhe);
 
-        await conn.execute("UPDATE datasys_caixas_boletos SET id_conta_bancaria = ? WHERE id = ?", [
+        // * OBTEMOS OS RECEPTORES DO BOLETO..
+        const [receptores] = await conn.execute(
+          `
+          SELECT dcrb.email FROM datasys_caixas_receptores_boletos dcrb
+          LEFT JOIN datasys_caixas_boletos dcb ON dcb.id_filial = dcrb.id_filial
+          LEFT JOIN filiais f ON f.id = dcrb.id_filial
+          WHERE dcb.id = ?`,
+          [boleto.id]
+        );
+
+        if (receptores.length > 0) {
+          const emails_receptores = receptores?.map((boleto) => boleto.email);
+          const link =
+            process.env.NODE_ENV === "production"
+              ? `https://api.facell.com/visualizar.boleto.caixa?id=${boleto.id}`
+              : `http://localhost:7000/visualizar.boleto.caixa?id=${boleto.id}`;
+
+          emails.push({
+            destinatarios: [emails_receptores],
+            assunto: `Novo Boleto Criado - ${normalizeCurrency(
+              boleto.valor
+            )} - Vencimento ${formatDate(data_vencimento, "dd/MM/yyyy")}`,
+            corpo_html: `
+                  <p>Valor: ${normalizeCurrency(boleto.valor)}<br/>
+                  Data de emissão:  ${formatDate(data_emissao, "dd/MM/yyyy")}<br/>
+                  Data de vencimento: ${formatDate(data_vencimento, "dd/MM/yyyy")}<br/>
+                  Aguarde ao menos 15 minutos após o recebimento deste email para realização do pagamento!<br/>
+                  Link para visualizar o boleto:</p>
+                  <a href='${link}'>${link}</a>
+                `,
+          })
+        }
+
+
+        // * ATUALIZAÇÃO DO BOLETO:
+        await conn.execute(`UPDATE datasys_caixas_boletos 
+          SET 
+            status = 'emitido',
+            data_emissao = ?,
+            data_vencimento = ?,
+            documento = ?,
+            nosso_numero = ?, 
+            id_conta_bancaria = ? 
+          WHERE 
+            id = ?`, [
+          data_emissao,
+          data_vencimento,
+          boleto.id,
+          boleto.id,
           id_conta_bancaria,
           boleto.id,
         ]);
       }
 
-      // * Insert em log de importações de relatórios:
+      // * REGISTRO DA EXPORTAÇÃO:
       await conn.execute(
         `INSERT INTO logs_movimento_arquivos (id_user, relatorio, descricao ) VALUES (?,?,?)`,
         [
@@ -118,6 +172,14 @@ module.exports = async (req, res) => {
 
       arquivo.push(trailerArquivo);
 
+      //* DISPARO DE EMAILS:
+      for (const email of emails) {
+        await enviarEmail(email);
+      }
+
+      await conn.commit();
+
+      // * ENVIO DO ARQUIVO
       const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
       const filename = `REMESSA BOLETO - ${formatDate(
         data_emissao,
@@ -129,7 +191,6 @@ module.exports = async (req, res) => {
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);
 
-      await conn.commit();
       // await conn.rollback();
       resolve();
     } catch (error) {
