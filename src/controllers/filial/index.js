@@ -23,7 +23,7 @@ function getAll(req) {
       termo: null,
     };
 
-    var where = ` WHERE f.active = 1 `;
+    let where = ` WHERE f.active = 1 `;
     const params = [];
     const limit = pagination ? "LIMIT ? OFFSET ?" : "";
 
@@ -97,7 +97,7 @@ function getAll(req) {
         params.push(pageSize);
         params.push(offset);
       }
-      var query = `
+      let query = `
             SELECT f.*, g.nome as grupo_economico FROM filiais f
             JOIN grupos_economicos g ON g.id = f.id_grupo_economico
             ${where}
@@ -431,9 +431,88 @@ function insertOne(req) {
   });
 }
 
+function getAllUfs(req) {
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+    const isMaster = checkUserPermission(req, "MASTER");
+
+    const filiais_habilitadas = [];
+
+    user?.filiais?.forEach((f) => {
+      filiais_habilitadas.push(f.id_filial);
+    });
+
+    // Filtros
+
+    const { filters } = req.query;
+    console.log(filters);
+    const { id_grupo_economico, id_matriz, tim_cod_sap, isLojaTim } = filters || {};
+
+    let where = ` WHERE f.active = 1 `;
+    const params = [];
+
+    if (!isMaster) {
+      if (!filiais_habilitadas || filiais_habilitadas.length === 0) {
+        resolve({
+          rows: [],
+          pageCount: 0,
+          rowCount: 0,
+        });
+        return;
+      }
+      where += `AND f.id IN(${filiais_habilitadas.join(",")}) `;
+    }
+
+    if (id_grupo_economico) {
+      where += ` AND f.id_grupo_economico = ?`;
+      params.push(id_grupo_economico);
+    }
+    if (tim_cod_sap) {
+      if (tim_cod_sap !== "all") {
+        where += ` AND f.tim_cod_sap = ?`;
+        params.push(tim_cod_sap);
+      } else {
+        where += ` AND NOT f.tim_cod_sap IS NULL`;
+      }
+    }
+
+    if (isLojaTim == "1" || isLojaTim === true) {
+      where += ` AND f.tim_cod_sap IS NOT NULL`;
+    }
+    if (id_matriz && id_matriz !== undefined && id_matriz !== "all") {
+      where += ` AND f.id_matriz = ?`;
+      params.push(id_matriz);
+    }
+
+    const conn = await db.getConnection();
+    try {
+      let query = `
+            SELECT DISTINCT f.uf FROM filiais f
+            JOIN grupos_economicos g ON g.id = f.id_grupo_economico
+            ${where}
+            `;
+      const [rows] = await conn.execute(query, params);
+      console.log(rows);
+      resolve(rows);
+    } catch (error) {
+      logger.error({
+        module: "ADM",
+        origin: "FILIAL",
+        method: "GET_ALL_UFS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+}
+
 module.exports = {
   getAll,
   getOne,
   update,
   insertOne,
+
+  getAllUfs,
 };
