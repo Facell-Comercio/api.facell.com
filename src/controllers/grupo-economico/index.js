@@ -28,11 +28,8 @@ function getAll(req) {
 
     const params = [];
 
-    if (!isMaster && !checkUserDepartment(req, 'FINANCEIRO')) {
-      if (
-        !grupos_economicos_habilitados ||
-        grupos_economicos_habilitados.length === 0
-      ) {
+    if (!isMaster && !checkUserDepartment(req, "FINANCEIRO")) {
+      if (!grupos_economicos_habilitados || grupos_economicos_habilitados.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
@@ -61,8 +58,7 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       if (limit) {
         params.push(pageSize);
@@ -104,7 +100,7 @@ function getAll(req) {
 function getAllMatriz(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, 'FINANCEIRO');
+    const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
 
     const grupos_economicos_habilitados = [];
 
@@ -115,10 +111,7 @@ function getAllMatriz(req) {
     let where = ` WHERE 1=1 `;
 
     if (!isMaster) {
-      if (
-        !grupos_economicos_habilitados ||
-        grupos_economicos_habilitados.length === 0
-      ) {
+      if (!grupos_economicos_habilitados || grupos_economicos_habilitados.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
@@ -238,10 +231,7 @@ function update(req) {
 
       // Atualização de dados
       params.push(id);
-      await conn.execute(
-        `UPDATE grupos_economicos SET ${set.join(",")} WHERE id = ?`,
-        params
-      );
+      await conn.execute(`UPDATE grupos_economicos SET ${set.join(",")} WHERE id = ?`, params);
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
@@ -276,17 +266,17 @@ function insertOne(req) {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
-      if(!id_matriz){
-        throw new Error('Preencha o id_matriz!')
+      if (!id_matriz) {
+        throw new Error("Preencha o id_matriz!");
       }
-      if(!apelido){
-        throw new Error('Preencha o apelido!')
+      if (!apelido) {
+        throw new Error("Preencha o apelido!");
       }
-      if(!nome){
-        throw new Error('Preencha o nome!')
+      if (!nome) {
+        throw new Error("Preencha o nome!");
       }
-      console.log(req.body);
-      
+      // console.log(req.body);
+
       const query = `INSERT INTO grupos_economicos (nome, apelido, id_matriz, orcamento) VALUES (?, ?, ?, ?);`;
 
       await conn.execute(query, [nome, apelido, id_matriz, orcamento]);

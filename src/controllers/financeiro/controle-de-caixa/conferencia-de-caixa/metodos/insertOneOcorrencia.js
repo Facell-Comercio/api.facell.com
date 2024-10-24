@@ -4,14 +4,7 @@ const { startOfDay } = require("date-fns");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      id_user_criador,
-      id_filial,
-      data_ocorrencia,
-      data_caixa,
-      descricao,
-    } = req.body;
+    const { id, id_user_criador, id_filial, data_ocorrencia, data_caixa, descricao } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -20,15 +13,7 @@ module.exports = async (req) => {
           "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
         );
       }
-      if (
-        !(
-          id_user_criador &&
-          id_filial &&
-          data_ocorrencia &&
-          data_caixa &&
-          descricao
-        )
-      ) {
+      if (!(id_user_criador && id_filial && data_ocorrencia && data_caixa && descricao)) {
         throw new Error("Todos os campos são obrigatórios!");
       }
       await conn.beginTransaction();
@@ -37,7 +22,7 @@ module.exports = async (req) => {
         `
         SELECT id, status FROM datasys_caixas
         WHERE id_filial = ? AND data = ?
-        AND (status = 'BAIXADO / PENDENTE DATASYS' OR status = 'BAIXADO NO DATASYS')
+        AND (status = 'CONFIRMADO' OR status = 'CONFIRMADO')
       `,
         [id_filial, startOfDay(data_caixa)]
       );
@@ -48,13 +33,7 @@ module.exports = async (req) => {
 
       const [result] = await conn.execute(
         `INSERT INTO datasys_caixas_ocorrencias (id_user_criador, id_filial, data_ocorrencia, data_caixa, descricao) VALUES (?,?,?,?,?);`,
-        [
-          id_user_criador,
-          id_filial,
-          startOfDay(data_ocorrencia),
-          startOfDay(data_caixa),
-          descricao,
-        ]
+        [id_user_criador, id_filial, startOfDay(data_ocorrencia), startOfDay(data_caixa), descricao]
       );
 
       const newId = result.insertId;
@@ -69,9 +48,13 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "INSERT_OCORRÊNCIA",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
       conn.release();

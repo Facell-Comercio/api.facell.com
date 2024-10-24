@@ -1,10 +1,9 @@
 const path = require("path");
-const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
 const { normalizeCnpjNumber } = require("../../../helpers/mask");
-const { lerOFX, formatarDataTransacao } = require("../../../helpers/lerOfx");
-const { createFilePathFromUrl } = require("../../files-controller");
 const { logger } = require("../../../../logger");
+const importExtratoOFX = require("./importExtratoOFX");
+const importExtratoCNAB240 = require("./importExtratoCNAB240");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -48,8 +47,7 @@ function getAll(req) {
         params
       );
 
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       if (limit) {
         params.push(pageSize);
@@ -224,12 +222,14 @@ function getOne(req) {
 function importarExtrato(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const { id_conta_bancaria } = req.body;
-
+    const { id_conta_bancaria, tipo_extrato } = req.body;
     const conn = await db.getConnection();
     try {
       if (!id_conta_bancaria) {
         throw new Error("Conta bancária não selecionada!");
+      }
+      if (!tipo_extrato) {
+        throw new Error("Tipo de extrato não informado!");
       }
       if (!req.file.path) {
         throw new Error("Extrato não enviado!");
@@ -243,72 +243,26 @@ function importarExtrato(req) {
       const contaBancaria = rowContaBancaria && rowContaBancaria[0];
 
       const filePath = path.join(process.cwd(), req.file.path);
-      const ofxParsed = await lerOFX(filePath);
-      const ofx_conta =
-        ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKACCTFROM;
-
-      const ofx_correto = ofx_conta.ACCTID.includes(contaBancaria.conta);
-      if (!ofx_correto) {
-        throw new Error(
-          `OFX Agência/Conta ${ofx_conta.ACCTID}, diverge de conta selecionada: Agência: ${contaBancaria.agencia} Conta: ${contaBancaria.conta}`
-        );
+      if (tipo_extrato === "ofx") {
+        await importExtratoOFX({
+          body: {
+            filePath,
+            conn_externa: conn,
+            contaBancaria,
+            user,
+          },
+        });
       }
-      const data_atual = formatDate(new Date(), "yyyy-MM-dd");
-      
-      // Função de importaçaõ de transação:
-      async function importTransacao({ transaction }) {
-        const data_transaction = formatarDataTransacao(transaction.DTPOSTED);
-        const id_transacao = transaction.FITID;
-        const valor_transacao = parseFloat(transaction.TRNAMT.replace(',', '.')).toFixed(2);
-        const documento_transacao = transaction.CHECKNUM || transaction.FITID;
-        const descricao_transacao = transaction.MEMO;
-        const tipo_transacao = transaction.TRNTYPE.toUpperCase();
-        
-        if (data_transaction >= data_atual) {
-          return;
-        }
-
-        await conn.execute(
-          `INSERT INTO fin_extratos_bancarios (
-          id_conta_bancaria, 
-          id_transacao,
-          id_user,
-          data_transacao, 
-          valor,
-          documento,
-          descricao,
-          tipo_transacao
-        ) VALUES (?,?,?,?,?,?,?,?) 
-          ON DUPLICATE KEY UPDATE
-          valor = VALUES(valor)
-        `,
-          [
-            id_conta_bancaria,
-            id_transacao,
-            user.id,
-            data_transaction,
-            valor_transacao,
-            documento_transacao,
-            descricao_transacao,
-            tipo_transacao,
-          ]
-        );
+      if (tipo_extrato === "cnab") {
+        await importExtratoCNAB240({
+          body: {
+            filePath,
+            conn_externa: conn,
+            contaBancaria,
+            user,
+          },
+        });
       }
-
-      const ofx_transactions =
-        ofxParsed.OFX.BANKMSGSRSV1.STMTTRNRS.STMTRS.BANKTRANLIST.STMTTRN;
-      if (ofx_transactions) {
-
-
-        if (Array.isArray(ofx_transactions)) {
-          for (const transaction of ofx_transactions) {
-            await importTransacao({ transaction })
-          }
-        } else {
-          await importTransacao({ transaction: ofx_transactions })
-        }
-      }
-
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
@@ -367,8 +321,7 @@ function insertOneTransacaoPadrao(req) {
 
 function updateTransacaoPadrao(req) {
   return new Promise(async (resolve, reject) => {
-    const { id_padrao, id_conta_bancaria, descricao, tipo_transacao } =
-      req.body;
+    const { id_padrao, id_conta_bancaria, descricao, tipo_transacao } = req.body;
     const conn = await db.getConnection();
     try {
       if (!id_padrao) {
@@ -420,9 +373,7 @@ function deleteTransacaoPadrao(req) {
 
       await conn.beginTransaction();
 
-      await conn.execute(`DELETE FROM fin_extratos_padroes WHERE id = ? `, [
-        id_padrao,
-      ]);
+      await conn.execute(`DELETE FROM fin_extratos_padroes WHERE id = ? `, [id_padrao]);
 
       await conn.commit();
       resolve({ message: "Sucesso!" });
@@ -466,23 +417,15 @@ async function exportBorderos(req) {
 
           titulosBordero.push({
             IDPG: titulo.id_titulo || "",
-            PAGAMENTO: titulo.data_pagamento
-              ? normalizeDate(titulo.data_pagamento)
-              : "",
-            EMISSÃO: titulo.data_emissao
-              ? normalizeDate(titulo.data_emissao)
-              : "",
-            VENCIMENTO: titulo.data_vencimento
-              ? normalizeDate(titulo.data_vencimento)
-              : "",
+            PAGAMENTO: titulo.data_pagamento ? normalizeDate(titulo.data_pagamento) : "",
+            EMISSÃO: titulo.data_emissao ? normalizeDate(titulo.data_emissao) : "",
+            VENCIMENTO: titulo.data_vencimento ? normalizeDate(titulo.data_vencimento) : "",
             FILIAL: titulo.filial || "",
             "CPF/CNPJ": titulo.cnpj ? normalizeCnpjNumber(titulo.cnpj) : "",
             FORNECEDOR: titulo.nome_fornecedor || "",
             "Nº DOC": titulo.num_doc || "",
             DESCRIÇÃO: titulo.descricao || "",
-            VALOR:
-              parseFloat(titulo.valor_total && titulo.valor_total.toString()) ||
-              "",
+            VALOR: parseFloat(titulo.valor_total && titulo.valor_total.toString()) || "",
             "CENTRO CUSTO": titulo.centro_custo || "",
 
             "CONTA BANCÁRIA": response.conta_bancaria || "",

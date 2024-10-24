@@ -6,17 +6,16 @@ function isDivergent(valor_datasys, valor_real, divergente) {
   //^ Se já for divergente retorna true, senão realiza a verificação dos valores
   return (
     divergente ||
-    parseFloat(valor_datasys || "0").toFixed(2) !==
-      parseFloat(valor_real || "0").toFixed(2)
+    parseFloat(valor_datasys || "0").toFixed(2) !== parseFloat(valor_real || "0").toFixed(2)
   );
 }
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
-    const { id_filial, data_caixa } = req.body;
-
+    
     let conn;
     try {
+      const { id_filial, data_caixa } = req.body;
       conn = req.conn || (await db.getConnection());
       let divergente = false;
       const [rowsCaixas] = await conn.execute(
@@ -41,11 +40,7 @@ module.exports = async (req) => {
       const vendasCartoes = rowsVendasCartoes && rowsVendasCartoes[0];
 
       //~ Valida se é divergente ou não
-      divergente = isDivergent(
-        caixa.valor_cartao,
-        vendasCartoes.valor_cartao_real,
-        divergente
-      );
+      divergente = isDivergent(caixa.valor_cartao, vendasCartoes.valor_cartao_real, divergente);
 
       //* Validação de vendas recarga
       const [rowsVendasRecarga] = await conn.execute(
@@ -57,11 +52,7 @@ module.exports = async (req) => {
       const vendasRecarga = rowsVendasRecarga && rowsVendasRecarga[0];
 
       //~ Valida se é divergente ou não
-      divergente = isDivergent(
-        caixa.valor_recarga,
-        vendasRecarga.valor_recarga_real,
-        divergente
-      );
+      divergente = isDivergent(caixa.valor_recarga, vendasRecarga.valor_recarga_real, divergente);
 
       //* Validação de vendas no PIX
       const [rowsVendasPix] = await conn.execute(
@@ -73,11 +64,7 @@ module.exports = async (req) => {
       const vendasPix = rowsVendasPix && rowsVendasPix[0];
 
       //~ Valida se é divergente ou não
-      divergente = isDivergent(
-        caixa.valor_pix,
-        vendasPix.valor_pix_banco,
-        divergente
-      );
+      divergente = isDivergent(caixa.valor_pix, vendasPix.valor_pix_banco, divergente);
 
       //* Validação de vendas do Pitzi
       const [rowsVendasPitzi] = await conn.execute(
@@ -89,11 +76,7 @@ module.exports = async (req) => {
       const vendasPitzi = rowsVendasPitzi && rowsVendasPitzi[0];
 
       //~ Valida se é divergente ou não
-      divergente = isDivergent(
-        caixa.valor_pitzi,
-        vendasPitzi.valor_pitzi_real,
-        divergente
-      );
+      divergente = isDivergent(caixa.valor_pitzi, vendasPitzi.valor_pitzi_real, divergente);
 
       //* Validação de vendas do Tradein
       const [rowsVendasTradein] = await conn.execute(
@@ -111,6 +94,22 @@ module.exports = async (req) => {
         divergente
       );
 
+      //* Validação de vendas do Crediario
+      const [rowsVendasCrediario] = await conn.execute(
+        `
+        SELECT SUM(valor_crediario) as valor_crediario_real FROM fin_vendas_crediario WHERE id_filial = ? AND data = ?
+      `,
+        [id_filial, data_caixa]
+      );
+      const vendasCrediario = rowsVendasCrediario && rowsVendasCrediario[0];
+
+      //~ Valida se é divergente ou não
+      divergente = isDivergent(
+        caixa.valor_crediario,
+        vendasCrediario.valor_crediario_real,
+        divergente
+      );
+
       //* UPDATE do datasys_caixas
       await conn.execute(
         `
@@ -120,6 +119,7 @@ module.exports = async (req) => {
           valor_pix_banco = ?,
           valor_pitzi_real = ?,
           valor_tradein_utilizado = ?,
+          valor_crediario_real = ?,
           divergente = ?
         WHERE id_filial = ? AND data = ?;
       `,
@@ -129,6 +129,7 @@ module.exports = async (req) => {
           parseFloat(vendasPix.valor_pix_banco || "0").toFixed(2),
           parseFloat(vendasPitzi.valor_pitzi_real || "0").toFixed(2),
           parseFloat(vendasTradein.valor_tradein_utilizado || "0").toFixed(2),
+          parseFloat(vendasCrediario.valor_crediario_real || "0").toFixed(2),
           divergente,
           id_filial,
           data_caixa,

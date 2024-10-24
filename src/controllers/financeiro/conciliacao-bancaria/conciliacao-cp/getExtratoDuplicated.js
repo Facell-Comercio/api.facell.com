@@ -13,8 +13,7 @@ module.exports = function getExtratoDuplicated(req) {
     }
     // Filtros
     const { filters } = req.query;
-    const { id_conta_bancaria, descricao, data_transacao, valor, id_extrato } =
-      filters || {};
+    const { id_conta_bancaria, descricao, data_transacao, valor, id_extrato } = filters || {};
 
     let conn;
 
@@ -55,20 +54,14 @@ module.exports = function getExtratoDuplicated(req) {
         AND eb.id <> ?
         AND cbi.id IS NOT NULL
       `,
-        [
-          id_conta_bancaria,
-          descricao,
-          parseFloat(valor),
-          startOfDay(data_transacao),
-          id_extrato,
-        ]
+        [id_conta_bancaria, descricao, parseFloat(valor), startOfDay(data_transacao), id_extrato]
       );
 
       resolve(extratos);
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "GET_EXTRATOS_DUPLICATED",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

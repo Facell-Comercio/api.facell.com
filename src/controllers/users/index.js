@@ -86,8 +86,9 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const conn = await db.getConnection();
+    let conn
     try {
+      conn = await db.getConnection();
       const [rowUser] = await conn.execute(
         `
             SELECT u.*, '***' as senha, '***' as senha_temporaria
@@ -150,7 +151,7 @@ function getOne(req) {
         centros_custo,
       };
       resolve(objUser);
-      return;
+
     } catch (error) {
       logger.error({
         module: "ADM",
@@ -159,33 +160,34 @@ function getOne(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-      return;
+
     } finally {
-      conn.release();
+      if (conn) conn.release();
     }
   });
 }
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      nome,
-      email,
-      active,
-      img_url,
-      filiais,
-      updateFiliais,
-      departamentos,
-      updateDepartamentos,
-      centros_custo,
-      updateCentrosCusto,
-      permissoes,
-      updatePermissoes,
-    } = req.body;
-
-    const conn = await db.getConnection();
+    let conn
     try {
+      const {
+        id,
+        nome,
+        email,
+        active,
+        img_url,
+        filiais,
+        updateFiliais,
+        departamentos,
+        updateDepartamentos,
+        centros_custo,
+        updateCentrosCusto,
+        permissoes,
+        updatePermissoes,
+      } = req.body;
+
+      conn = await db.getConnection();
       if (!id) {
         throw new Error("ID do usuário não enviado!");
       }
@@ -266,7 +268,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      await conn.rollback();
+      if(conn) await conn.rollback();
       logger.error({
         module: "ADM",
         origin: "USERS",
@@ -275,18 +277,19 @@ function update(req) {
       });
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }
 
 function updateImg(req) {
   return new Promise(async (resolve, reject) => {
-    const { img_url } = req.body;
-    const { id } = req.params;
-
-    const conn = await db.getConnection();
+    
+    let conn
     try {
+      const { img_url } = req.body;
+      const { id } = req.params;
+      conn = await db.getConnection();
       if (!img_url) {
         throw new Error("Imagem não enviada!");
       }
@@ -324,31 +327,33 @@ function updateImg(req) {
       });
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      nome,
-      email,
-      active,
-      img_url,
-      filiais,
-      updateFiliais,
-      departamentos,
-      updateDepartamentos,
-      centros_custo,
-      updateCentrosCusto,
-      permissoes,
-      updatePermissoes,
-    } = req.body;
-
-    const conn = await db.getConnection();
+    let conn
     try {
+      const {
+        id,
+        nome,
+        email,
+        active,
+        img_url,
+        filiais,
+        updateFiliais,
+        departamentos,
+        updateDepartamentos,
+        centros_custo,
+        updateCentrosCusto,
+        permissoes,
+        updatePermissoes,
+      } = req.body;
+  
+      conn = await db.getConnection();
+
       if (id) {
         throw new Error(
           "ID do usuário enviado, por favor, atualize ao invés de tentar inserir!"
@@ -415,7 +420,7 @@ function insertOne(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      await conn.rollback();
+      if(conn) await conn.rollback();
       logger.error({
         module: "ADM",
         origin: "USERS",
@@ -424,7 +429,7 @@ function insertOne(req) {
       });
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }

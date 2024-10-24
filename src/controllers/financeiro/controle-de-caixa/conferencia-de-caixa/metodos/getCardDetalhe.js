@@ -40,32 +40,63 @@ module.exports = async (req) => {
           cartao: {
             table: "fin_vendas_cartao fvc",
             forma_pgto: "CARTÃO",
-            datatabaseColumns: `fvc.valor_venda as valor, fvc.data_venda as data, fvc.forma_pgto as forma_pagamento,
+            databaseColumns: `fvc.valor_venda as valor, fvc.data_venda as data, fvc.forma_pgto as forma_pagamento,
                                 fvc.bandeira, fvc.cod_autorizacao, fvc.nsu, fvc.canal_venda,
                                 fvc.taxa, fvc.status, fvc.adquirente`,
             tableColumns: [
-              { label: "valor", type: "number", format: "currency" },
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
               { label: "data", type: "date" },
-              { label: "forma_pagamento", type: "string" },
-              { label: "bandeira", type: "string" },
-              { label: "cod_autorizacao", type: "string" },
+              {
+                label: "forma_pagamento",
+                type: "string",
+              },
+              {
+                label: "bandeira",
+                type: "string",
+              },
+              {
+                label: "cod_autorizacao",
+                type: "string",
+              },
               { label: "nsu", type: "string" },
-              { label: "canal_venda", type: "string" },
-              { label: "taxa", type: "number", format: "currency" },
+              {
+                label: "canal_venda",
+                type: "string",
+              },
+              {
+                label: "taxa",
+                type: "number",
+                format: "currency",
+              },
               { label: "status", type: "string" },
-              { label: "adquirente", type: "string" },
+              {
+                label: "adquirente",
+                type: "string",
+              },
             ],
             where: "WHERE fvc.data_venda = ? AND fvc.id_filial = ? ",
             whereMovimento: "AND dci.forma_pagamento LIKE 'CARTÃO'",
+            tipoAjuste: "valor_cartao",
           },
           recarga: {
             table: "fin_vendas_recarga fvr",
             forma_pgto: "RECARGA",
-            datatabaseColumns: `fvr.valor, fvr.gsm, fvr.usuario, fvr.status`,
+            databaseColumns: `fvr.valor, fvr.gsm, fvr.usuario, fvr.status`,
             tableColumns: [
-              { label: "valor", type: "number", format: "currency" },
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
               { label: "gsm", type: "string" },
-              { label: "usuario", type: "string" },
+              {
+                label: "usuario",
+                type: "string",
+              },
               { label: "status", type: "string" },
             ],
             where: "WHERE fvr.data = ? AND fvr.id_filial = ? ",
@@ -74,58 +105,127 @@ module.exports = async (req) => {
           pitzi: {
             table: "pitzi_vendas pv",
             forma_pgto: "SEGURO PITZI PROVI - CARTAO",
-            datatabaseColumns: `pv.valor, pv.tipo_plano, pv.id_seguro, pv.cpf_cliente, pv.cancelada`,
+            databaseColumns: `pv.valor, pv.tipo_plano, pv.id_seguro, pv.cpf_cliente, pv.cancelada`,
             tableColumns: [
-              { label: "valor", type: "number", format: "currency" },
-              { label: "tipo_plano", type: "string" },
-              { label: "id_seguro", type: "string" },
-              { label: "cpf_cliente", type: "string", format: "cpf" },
-              { label: "cancelada", type: "boolean" },
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
+              {
+                label: "tipo_plano",
+                type: "string",
+              },
+              {
+                label: "id_seguro",
+                type: "string",
+              },
+              {
+                label: "cpf_cliente",
+                type: "string",
+                format: "cpf",
+              },
+              {
+                label: "cancelada",
+                type: "boolean",
+              },
             ],
             where: "WHERE pv.data = ? AND pv.id_filial = ? ",
-            whereMovimento:
-              "AND dci.forma_pagamento LIKE CONCAT('%','PITZI','%')",
+            whereMovimento: "AND dci.forma_pagamento LIKE CONCAT('%','PITZI','%')",
+            tipoAjuste: "valor_pitzi",
           },
           pix: {
             table: "fin_vendas_pix fvp",
             forma_pgto: "PIX",
-            datatabaseColumns: `fvp.valor, fvp.banco, fvp.devolucao, fvp.txid`,
+            databaseColumns: `fvp.valor, fvp.banco, fvp.devolucao, fvp.txid`,
             tableColumns: [
-              { label: "valor", type: "number", format: "currency" },
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
               { label: "banco", type: "string" },
-              { label: "devolucao", type: "boolean" },
+              {
+                label: "devolucao",
+                type: "boolean",
+              },
               { label: "txid", type: "string" },
             ],
             where: "WHERE fvp.data_venda = ? AND fvp.id_filial = ? ",
             whereMovimento:
               "AND (dci.forma_pagamento LIKE 'PIX - TRANSFERENCIA' OR dci.forma_pagamento LIKE 'PIX')",
+            tipoAjuste: "valor_pix",
           },
           tradein: {
             table: "renov_tradein rt",
             forma_pgto: "TRADEIN",
-            datatabaseColumns: `rt.valor, rt.voucher, rt.status, rt.data_uso`,
+            databaseColumns: `rt.valor, rt.voucher, rt.status, rt.data_uso`,
             tableColumns: [
-              { label: "valor", type: "number", format: "currency" },
-              { label: "voucher", type: "string" },
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
+              {
+                label: "voucher",
+                type: "string",
+              },
               { label: "status", type: "string" },
               { label: "data_uso", type: "date" },
             ],
             where: "WHERE rt.data = ? AND rt.id_filial = ? ",
             whereMovimento: "AND dci.forma_pagamento LIKE 'TRADEIN'",
+            tipoAjuste: "valor_tradein",
           },
-          // crediario: rowsPagamentoBoletoItau,
+          crediario: {
+            table: "fin_vendas_crediario fvc",
+            forma_pgto: "CREDIÁRIO",
+            databaseColumns: `fvc.valor_crediario as valor, fvc.data, fvc.descricao_produto as descricao, fvc.nome_vendedor, fvc.nome_cliente`,
+            tableColumns: [
+              {
+                label: "valor",
+                type: "number",
+                format: "currency",
+              },
+              { label: "data", type: "date" },
+              {
+                label: "descricao",
+                type: "string",
+              },
+              {
+                label: "nome_vendedor",
+                type: "string",
+              },
+              {
+                label: "nome_cliente",
+                type: "string",
+              },
+            ],
+            where: "WHERE fvc.data = ? AND fvc.id_filial = ? ",
+            whereMovimento: "AND dci.forma_pagamento LIKE 'CREDIARIO'",
+            tipoAjuste: "valor_crediario",
+          },
+          outros: {
+            forma_pgto: "OUTROS",
+            whereMovimento: "AND dci.forma_pagamento LIKE 'OUTROS'",
+            tipoAjuste: "valor_outros",
+          },
         })
       );
 
-      const [rowsDadosReais] = await conn.execute(
-        `
+      let rowsDadosReais = [];
+
+      if (tiposMap.get(type).table) {
+        [rowsDadosReais] = await conn.execute(
+          `
         SELECT
-          ${tiposMap.get(type).datatabaseColumns}
+          ${tiposMap.get(type).databaseColumns}
           FROM ${tiposMap.get(type).table}
           ${tiposMap.get(type).where}
       `,
-        [caixa.data, caixa.id_filial]
-      );
+          [caixa.data, caixa.id_filial]
+        );
+      }
 
       let rowsMovimentoCaixa = [];
       if (type === "recarga") {
@@ -133,9 +233,7 @@ module.exports = async (req) => {
           throw new Error("Este grupo econômico não pode realizar recargas!");
         }
         const tabela_recarga =
-          caixa.id_grupo_economico == 1
-            ? "datasys_vendas"
-            : "datasys_vendas_fort";
+          caixa.id_grupo_economico == 1 ? "datasys_vendas" : "datasys_vendas_fort";
         [rowsMovimentoCaixa] = await conn.execute(
           `
           SELECT
@@ -143,7 +241,6 @@ module.exports = async (req) => {
             dv.tipoPedido as tipo_operacao, dv.descricao as historico, dv.valorCaixa as valor
           FROM ${tabela_recarga} dv
           WHERE dv.grupoEstoque = "RECARGA ELETRONICA"
-          AND dv.tipoPedido = "Venda"
           AND DATE_FORMAT(dv.dataPedido,'%Y-%m-%d') = ?
           AND dv.filial = ?
           `,
@@ -153,19 +250,36 @@ module.exports = async (req) => {
         [rowsMovimentoCaixa] = await conn.execute(
           `
           SELECT
-          dci.id, dci.data, dci.documento, dci.forma_pagamento,
-          dci.tipo_operacao, dci.historico, dci.valor
+          dci.id, dci.data,dci.documento, dci.forma_pagamento,
+          dci.tipo_operacao, dci.historico,dci.valor
           FROM datasys_caixas_itens dci
           WHERE dci.id_caixa = ?
           ${tiposMap.get(type).whereMovimento}
           `,
           [id_caixa]
         );
+        const [rowsAjustes] = await conn.execute(
+          `
+          SELECT 
+            id as documento, tipo_ajuste as tipo_operacao, obs as historico,
+            CASE WHEN saida = '${
+              tiposMap.get(type).tipoAjuste
+            }' THEN valor * -1 ELSE valor * 1 END valor
+          FROM datasys_caixas_ajustes
+          WHERE id_caixa = ?
+          AND (entrada = '${tiposMap.get(type).tipoAjuste}' OR saida = '${
+            tiposMap.get(type).tipoAjuste
+          }')
+          AND aprovado
+          `,
+          [id_caixa]
+        );
+        rowsMovimentoCaixa.push(...rowsAjustes);
       }
 
       const obj = {
         movimento_caixa: rowsMovimentoCaixa,
-        columns: tiposMap.get(type).tableColumns,
+        columns: tiposMap.get(type).tableColumns || [],
         dados_reais: rowsDadosReais,
       };
 
@@ -175,7 +289,11 @@ module.exports = async (req) => {
         module: "FINANCEIRO",
         origin: "CONFERÊNCIA_DE_CAIXA",
         method: "GET_CARD_DETALHE",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       reject(error);
     } finally {

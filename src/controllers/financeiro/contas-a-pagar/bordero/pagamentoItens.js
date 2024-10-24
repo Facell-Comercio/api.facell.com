@@ -1,8 +1,8 @@
-"use strict";
-
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
-const { normalizeFirstAndLastName } = require("../../../../helpers/mask");
+const { normalizeFirstAndLastName, objectToStringLine } = require("../../../../helpers/mask");
+const updateSaldoContaBancaria = require("../../../financeiro/tesouraria/metodos/updateSaldoContaBancaria");
+const crypto = require("crypto");
 
 function pagarTituloPorVencimento({ user, conn, vencimento }) {
   return new Promise(async (resolve, reject) => {
@@ -25,23 +25,15 @@ function pagarTituloPorVencimento({ user, conn, vencimento }) {
       let status = "PAGO";
       if (vencimentosNaoPagos.length === 0) {
         // * ALTERA STATUS DO TÍTULO PARA - PAGO
-        await conn.execute(
-          `UPDATE fin_cp_titulos SET id_status = 5 WHERE id = ?`,
-          [id_titulo]
-        );
+        await conn.execute(`UPDATE fin_cp_titulos SET id_status = 5 WHERE id = ?`, [id_titulo]);
       }
       if (vencimentosNaoPagos.length > 0) {
         // * ALTERA STATUS DO TÍTULO PARA - PAGO PARCIAL
-        await conn.execute(
-          `UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`,
-          [4, id_titulo]
-        );
+        await conn.execute(`UPDATE fin_cp_titulos SET id_status = ? WHERE id = ?`, [4, id_titulo]);
         status = "PAGO PARCIALMENTE";
       }
       // * INCLUI REGISTRO NO HISTÓRICO DO TÍTULO:
-      const historico = `${status} POR: ${normalizeFirstAndLastName(
-        user.nome
-      )}.`;
+      const historico = `${status} POR: ${normalizeFirstAndLastName(user.nome)}.`;
       await conn.execute(
         `INSERT INTO fin_cp_titulos_historico (id_titulo, descricao) VALUES (?,?)`,
         [id_titulo, historico]
@@ -105,18 +97,13 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento, obs }) {
       );
 
       //^ Se for com desconto ou acréscimo, devemos aplicar um ajuste nos itens rateados do título:
-      if (
-        vencimento.tipo_baixa === "COM DESCONTO" ||
-        vencimento.tipo_baixa === "COM ACRÉSCIMO"
-      ) {
+      if (vencimento.tipo_baixa === "COM DESCONTO" || vencimento.tipo_baixa === "COM ACRÉSCIMO") {
         const [itens_rateio] = await conn.execute(
           `SELECT id FROM fin_cp_titulos_rateio WHERE id_titulo = ?`,
           [vencimentoBanco.id_titulo]
         );
         // Aqui obtemos a diferença entre valor pago e valor do vencimento
-        const diferenca =
-          parseFloat(vencimento.valor_pago) -
-          parseFloat(vencimento.valor_total);
+        const diferenca = parseFloat(vencimento.valor_pago) - parseFloat(vencimento.valor_total);
         // Aqui geramos a diferença que será acrescida ou descontada de cada item rateio:
         const difAplicada = diferenca / (itens_rateio?.length || 1);
         // Aplicamos a diferença nos itens
@@ -127,9 +114,7 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento, obs }) {
       }
 
       if (vencimento.tipo_baixa === "PARCIAL") {
-        const valor =
-          parseFloat(vencimento.valor_total) -
-          parseFloat(vencimento.valor_pago);
+        const valor = parseFloat(vencimento.valor_total) - parseFloat(vencimento.valor_pago);
 
         if (!vencimento.data_prevista_parcial) {
           throw new Error(
@@ -157,6 +142,103 @@ function pagarVencimento({ user, conn, vencimento, data_pagamento, obs }) {
       });
 
       resolve(true);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function registrarTransacoesTesouraria({ user, id_bordero, vencimentos, conn }) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (!id_bordero) {
+        throw new Error("Bordero não informado");
+      }
+
+      const [rowsContaBancaria] = await conn.execute(
+        `
+        SELECT cb.id, cb.caixa, b.data_pagamento
+        FROM fin_contas_bancarias cb
+        LEFT JOIN fin_cp_bordero b ON b.id_conta_bancaria = cb.id
+        WHERE b.id = ?
+      `,
+        [id_bordero]
+      );
+
+      const contaBancaria = rowsContaBancaria && rowsContaBancaria[0];
+
+      //* SE NÃO FOR CONTA CAIXA IGNORA OS PROCEDIMENTOS ABAIXO
+      if (!contaBancaria.caixa) {
+        resolve();
+        return;
+      }
+
+      const id_conta_bancaria = contaBancaria.id;
+      const data_pagamento = contaBancaria.data_pagamento;
+
+      for (const vencimento of vencimentos) {
+        if (!vencimento.tipo_baixa) {
+          throw new Error(
+            `Você precisa informar o tipo de baixa do vencimento ${vencimento.id_vencimento}`
+          );
+        }
+        const [rowTitulo] = await conn.execute(
+          "SELECT id, descricao FROM fin_cp_titulos WHERE id = ?",
+          [vencimento.id_titulo]
+        );
+        const titulo = rowTitulo && rowTitulo[0];
+        const valor = vencimento.valor_pago || vencimento.valor_total;
+
+        let descricao = `PAGAMENTO #${titulo.id} - ${titulo.descricao}`;
+
+        // * Verifica se já existe um extrato com a mesma descrição:
+        const [extratosRepetidos] = await conn.execute(
+          "SELECT id FROM fin_extratos_bancarios WHERE descricao LIKE CONCAT(?,'%')",
+          [descricao]
+        );
+        if (extratosRepetidos.length > 0) {
+          descricao += ` (${extratosRepetidos.length})`;
+        }
+
+        const hashSaida = crypto
+          .createHash("md5")
+          .update(
+            objectToStringLine({
+              id_conta_bancaria,
+              valor: -valor,
+              data_deposito: data_pagamento,
+              id_user: user.id,
+              tipo_transacao: "DEBIT",
+              descricao,
+            })
+          )
+          .digest("hex");
+
+        await conn.execute(
+          `INSERT INTO fin_extratos_bancarios
+            (id_conta_bancaria, id_transacao, documento, data_transacao, tipo_transacao, valor, descricao, id_user)
+          VALUES(?,?,?,?,?,?,?,?)`,
+          [
+            id_conta_bancaria,
+            hashSaida,
+            hashSaida,
+            data_pagamento,
+            "DEBIT",
+            -valor,
+            descricao,
+            user.id,
+          ]
+        );
+
+        await updateSaldoContaBancaria({
+          body: {
+            id_conta_bancaria,
+            valor: -valor,
+            conn,
+          },
+        });
+      }
+      resolve();
     } catch (error) {
       reject(error);
     }
@@ -254,7 +336,7 @@ function pagamentoItens(req) {
     let conn;
     try {
       const user = req.user;
-      const { itens, data_pagamento } = req.body;
+      const { itens, data_pagamento, id_bordero } = req.body;
 
       conn = await db.getConnection();
       if (!data_pagamento) {
@@ -265,19 +347,26 @@ function pagamentoItens(req) {
 
       const vencimentos = itens.filter((item) => item.tipo === "vencimento");
       const faturas = itens.filter((item) => item.tipo === "fatura");
+      const vencimentos_dinheiro = itens.filter(
+        (item) => item.tipo === "vencimento" && item.forma_pagamento === "Dinheiro"
+      );
+
+      // * REGISTRO DE TRANSAÇÕES TESOURARIA
+      await registrarTransacoesTesouraria({
+        user,
+        conn,
+        vencimentos: vencimentos_dinheiro,
+        id_bordero,
+      });
 
       // * PAGAMENTO DOS VENCIMENTOS
       await Promise.all(
-        vencimentos.map((vencimento) =>
-          pagarVencimento({ user, conn, vencimento, data_pagamento })
-        )
+        vencimentos.map((vencimento) => pagarVencimento({ user, conn, vencimento, data_pagamento }))
       );
 
       // * PAGAMENTO DAS FATURAS
       await Promise.all(
-        faturas.map((fatura) =>
-          pagarFatura({ user, conn, fatura, data_pagamento })
-        )
+        faturas.map((fatura) => pagarFatura({ user, conn, fatura, data_pagamento }))
       );
 
       await conn.commit();

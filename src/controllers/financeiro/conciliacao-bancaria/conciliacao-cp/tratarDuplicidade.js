@@ -17,10 +17,10 @@ module.exports = function conciliacaoTransferenciaContas(req) {
       }
 
       //* Tratar Duplicidade
-      await conn.execute(
-        `UPDATE fin_extratos_bancarios SET id_duplicidade = ? WHERE id = ?`,
-        [id_duplicidade, id_extrato]
-      );
+      await conn.execute(`UPDATE fin_extratos_bancarios SET id_duplicidade = ? WHERE id = ?`, [
+        id_duplicidade,
+        id_extrato,
+      ]);
 
       await conn.commit();
 
@@ -28,7 +28,7 @@ module.exports = function conciliacaoTransferenciaContas(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "LANÇAMENTO TARIFAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

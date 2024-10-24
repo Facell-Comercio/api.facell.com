@@ -8,8 +8,7 @@ function getAllTransacoesBancarias(req) {
       conn = await db.getConnection();
       const { user } = req;
 
-      const { pagination, filters, emConciliacao, naoConciliaveis, orderBy } =
-        req.query || {};
+      const { pagination, filters, emConciliacao, naoConciliaveis, orderBy } = req.query || {};
       const { pageIndex, pageSize } = pagination || {
         pageIndex: 0,
         pageSize: 15,
@@ -23,8 +22,7 @@ function getAllTransacoesBancarias(req) {
       let order = orderBy || "ORDER BY eb.data_transacao DESC";
       // Somente o Financeiro/Master podem ver todos
 
-      const { id_transacao, range_data, id_conta_bancaria, id_conciliacao } =
-        filters || {};
+      const { id_transacao, range_data, id_conta_bancaria, id_conciliacao } = filters || {};
 
       const params = [];
 
@@ -69,9 +67,9 @@ function getAllTransacoesBancarias(req) {
       if (range_data) {
         const { from: data_de, to: data_ate } = range_data;
         if (data_de && data_ate) {
-          where += ` AND eb.data_transacao BETWEEN '${
-            data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+          where += ` AND eb.data_transacao BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
         } else {
           if (data_de) {
             where += ` AND eb.data_transacao >= '${data_de.split("T")[0]}' `;
@@ -87,13 +85,16 @@ function getAllTransacoesBancarias(req) {
             SELECT DISTINCT
                 eb.id
             FROM fin_extratos_bancarios eb
-            LEFT JOIN fin_conciliacao_bancaria_itens cbi 
+            LEFT JOIN fin_conciliacao_bancaria_itens cbi
                 ON cbi.id_item = eb.id
                 AND cbi.tipo = "transacao"
             LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
             ${where}
             AND tipo_transacao = 'DEBIT'
-            AND eb.id_duplicidade IS NULL 
+            AND eb.id_duplicidade IS NULL
+            AND eb.adiantamento = 0 
+            AND eb.id_deposito_caixa IS NULL
+            AND eb.suprimento = 0
         ) as subconsulta
         `;
       const [rowQtdeTotal] = await conn.execute(queryQtdeTotal, params);
@@ -117,7 +118,10 @@ function getAllTransacoesBancarias(req) {
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
         AND tipo_transacao = 'DEBIT'
-        AND eb.id_duplicidade IS NULL 
+        AND eb.id_duplicidade IS NULL
+        AND eb.adiantamento = 0
+        AND eb.id_deposito_caixa IS NULL
+        AND eb.suprimento = 0
         ${order}
         ${limit}
         `;
