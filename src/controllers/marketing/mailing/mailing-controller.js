@@ -12,5 +12,7 @@ module.exports = {
   updateClienteMarketingCompras: require("./metodos/updateClienteMarketingCompras"),
   importComprasDatasys: require("./metodos/importComprasDatasys"),
 
+  definirVendedoresLote: require("./metodos/definirVendedoresLote"),
+
   getAllAparelhos: require("./metodos/getAllAparelhos"),
 };

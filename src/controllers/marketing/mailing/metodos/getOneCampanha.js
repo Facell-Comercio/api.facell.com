@@ -48,7 +48,7 @@ module.exports = (req) => {
       conn = conn_externa || (await db.getConnection());
 
       const [rowCampanha] = await conn.execute(
-        `SELECT *, 0 as filters FROM marketing_mailing_campanhas WHERE id = ?`,
+        `SELECT * FROM marketing_mailing_campanhas WHERE id = ?`,
         [id]
       );
       const campanha = rowCampanha && rowCampanha[0];
@@ -115,10 +115,17 @@ module.exports = (req) => {
         params
       );
 
+      //~ STATUS PLANO
+      const [vendedores_list_filters] = await conn.execute(
+        `SELECT DISTINCT mc.vendedor as value FROM marketing_mailing_clientes mc ${where}`,
+        params
+      );
+
       campanha.filters = {
         plano_atual_list: plano_atual_list_filters || [],
         produto_list: produto_list_filters || [],
         status_plano_list: status_plano_list_filters || [],
+        vendedores_list: vendedores_list_filters || [],
       };
       //~ FIM - FILTERS LIST
 

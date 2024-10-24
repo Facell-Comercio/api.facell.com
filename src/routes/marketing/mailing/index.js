@@ -86,6 +86,16 @@ router.put("/campanhas/clientes/lote", async (req, res) => {
   }
 });
 
+//* VENDEDORES
+router.put("/campanhas/vendedores", async (req, res) => {
+  try {
+    const result = await controller.definirVendedoresLote(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 //* APARELHOS
 router.get("/aparelhos", async (req, res) => {
   try {
