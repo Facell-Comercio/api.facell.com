@@ -29,12 +29,10 @@ async function importarPacotesThales(req, res) {
     const dataFinal = req.body?.dataFinal;
     const grupo_economico = req.body?.grupo_economico;
 
-
     if (!file) throw new Error("Buffer não recebido!");
     if (!grupo_economico) throw new Error("Grupo econômico não recebido!");
 
     conn = await db.getConnection();
-    await conn.beginTransaction();
 
     const tim_thales = grupo_economico === 'FACELL' ? ' tim_thales ' : ' tim_thales_fort ';
 
@@ -54,7 +52,7 @@ async function importarPacotesThales(req, res) {
           data.push(row);
         })
         .on('end', async () => {
-          var values = ''
+          var values = []
           if (data.length === 0) {
             reject('Arquivo vazio!')
           }
@@ -99,18 +97,19 @@ async function importarPacotesThales(req, res) {
             let activ_code = db.escape(linha['Activ-Code'] || null)
             let fidelizacao = db.escape(linha['Fidelização'] || null)
 
-            const value = `(${gsm}, ${cpf_cliente}, ${cnpj_cliente}, ${id_pacote}, ${operacao}, ${tipo_cliente}, ${subtipo_cliente}, ${numero_contrato}, ${plano}, ${imei}, ${condicao_pgto}, ${valor_entrada}, ${desconto}, ${qtde_parcelas_cartao_1}, ${qtde_parcelas_cartao_2}, ${valor_cartao_1}, ${valor_cartao_2}, ${cod_aut_cartao_1}, ${cod_aut_cartao_2}, ${data_criacao}, ${data_transacao}, ${data_modificacao}, ${status}, ${historico}, ${matricula}, ${canal}, ${custcode}, ${id_grupo}, ${activ_code}, ${fidelizacao}),`
+            const value = `(${gsm}, ${cpf_cliente}, ${cnpj_cliente}, ${id_pacote}, ${operacao}, ${tipo_cliente}, ${subtipo_cliente}, ${numero_contrato}, ${plano}, ${imei}, ${condicao_pgto}, ${valor_entrada}, ${desconto}, ${qtde_parcelas_cartao_1}, ${qtde_parcelas_cartao_2}, ${valor_cartao_1}, ${valor_cartao_2}, ${cod_aut_cartao_1}, ${cod_aut_cartao_2}, ${data_criacao}, ${data_transacao}, ${data_modificacao}, ${status}, ${historico}, ${matricula}, ${canal}, ${custcode}, ${id_grupo}, ${activ_code}, ${fidelizacao})`
 
-            values += value
+            values.push(value)
           }
 
           var query = ''
           try {
-            values = values.slice(0, -1)
-            if (values && values.length > 0) {
+
+            if (values.length > 0) {
 
               query = `INSERT INTO ${tim_thales} 
-                    (gsm, cpf_cliente, cnpj_cliente, id_pacote, operacao, tipo_cliente, subtipo_cliente, numero_contrato, plano, imei, condicao_pgto, valor_entrada, desconto, qtde_parcelas_cartao_1, qtde_parcelas_cartao_2, valor_cartao_1, valor_cartao_2, cod_aut_cartao_1, cod_aut_cartao_2, data_criacao, data_transacao, data_modificacao, status, historico, matricula, canal, custcode, id_grupo, activ_code, fidelizacao) VALUES ${values} 
+                    (gsm, cpf_cliente, cnpj_cliente, id_pacote, operacao, tipo_cliente, subtipo_cliente, numero_contrato, plano, imei, condicao_pgto, valor_entrada, desconto, qtde_parcelas_cartao_1, qtde_parcelas_cartao_2, valor_cartao_1, valor_cartao_2, cod_aut_cartao_1, cod_aut_cartao_2, data_criacao, data_transacao, data_modificacao, status, historico, matricula, canal, custcode, id_grupo, activ_code, fidelizacao) 
+                    VALUES ${values.join(',')} 
                     ON DUPLICATE KEY UPDATE
                     data_modificacao = VALUES(data_modificacao),
                     status = VALUES(status),
@@ -153,10 +152,8 @@ async function importarPacotesThales(req, res) {
         })
     })
 
-    if(conn) conn.commit();
-    res.status(200).json({qtde: result})
+    res.status(200).json({qtde: result || 0})
   } catch (error) {
-    if (conn) await conn.rollback();
     logger.error({
       origin: 'QUALIDADE', module: 'ESTEIRA', method: 'IMPORTAR_THALES',
       data: { name: error.name, stack: error.stack, message: error.message }
