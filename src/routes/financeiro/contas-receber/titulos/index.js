@@ -7,7 +7,7 @@ const checkUserAuthorization = require("../../../../middlewares/authorization-mi
 const upload = multer({ storage: localTempStorage });
 
 //* TÍTULOS
-router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const result = await controller.getAll(req);
     res.status(200).json(result);
@@ -18,7 +18,6 @@ router.get("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req
 
 router.get(
   "/vencimentos",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await controller.getAllVencimentosCR(req);
@@ -29,7 +28,7 @@ router.get(
   }
 );
 
-router.get("/:id", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const result = await controller.getOne(req);
     res.status(200).json(result);
@@ -38,7 +37,7 @@ router.get("/:id", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (
   }
 });
 
-router.post("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const result = await controller.insertOneTituloReceber(req);
     res.status(200).json(result);
@@ -47,7 +46,7 @@ router.post("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (re
   }
 });
 
-router.put("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req, res) => {
+router.put("/", async (req, res) => {
   try {
     const result = await controller.update(req);
     res.status(200).json(result);
@@ -58,7 +57,6 @@ router.put("/", checkUserAuthorization("FINANCEIRO", "OR", "MASTER"), async (req
 
 router.post(
   "/change-status",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   async (req, res) => {
     try {
       const result = await controller.changeStatusTituloReceber(req);
@@ -70,9 +68,7 @@ router.post(
 );
 
 //* RECEBIMENTOS
-router.get(
-  "/vencimentos/recebimentos",
-  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+router.get("/vencimentos/recebimentos",
   async (req, res) => {
     try {
       const result = await controller.getAllRecebimentosVencimento(req);
