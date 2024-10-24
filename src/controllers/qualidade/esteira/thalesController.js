@@ -1,5 +1,171 @@
+"use strict";
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const fs = require('fs');
+const { Readable } = require('stream');
+const csvParser = require("csv-parser")
 
+function tratarDateTime(dataString) {
+  if (!dataString) return null;
+  // Divide a string em partes usando '/' e ' ' como delimitadores
+  const partes = dataString.split(/[/ ]/);
+
+  // Obtém as partes da data
+  const dia = partes[0];
+  const mes = partes[1];
+  const ano = partes[2];
+  const horaMinutos = partes[3];
+
+  // Formata a data no formato 'YYYY-MM-DD HH:mm:ss'
+  const dataFormatada = `${ano}-${mes}-${dia} ${horaMinutos}:00`;
+  return dataFormatada
+}
+
+async function importarPacotesThales(req, res) {
+  let conn;
+  try {
+    const file = req.file;
+    const dataInicial = req.body?.dataInicial;
+    const dataFinal = req.body?.dataFinal;
+    const grupo_economico = req.body?.grupo_economico;
+
+
+    if (!file) throw new Error("Buffer não recebido!");
+    if (!grupo_economico) throw new Error("Grupo econômico não recebido!");
+
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    const tim_thales = grupo_economico === 'FACELL' ? ' tim_thales ' : ' tim_thales_fort ';
+
+    // Converte o buffer em uma stream legível
+    const readable = new Readable();
+    readable._read = () => { }; // Função vazia, pois a stream já terá dados
+    readable.push(file.buffer);
+    readable.push(null); // Indica que o fluxo terminou
+    
+    const result = await new Promise((resolve, reject) => {
+      const data = [];
+      readable
+        .pipe(csvParser({separator: '|'})) // O parser vai separar as colunas automaticamente
+        .on('data', (row) => {
+          // console.log(row);
+          
+          data.push(row);
+        })
+        .on('end', async () => {
+          var values = ''
+          if (data.length === 0) {
+            reject('Arquivo vazio!')
+          }
+          for (let i = 0; i < data.length; i++) {
+
+            const linha = data[i]
+            let primeiraChave = null
+
+            let keys = Object.keys(linha)
+            for (let k = 0; k < 1; k++) {
+              primeiraChave = keys[k];
+            }
+
+            let gsm = db.escape(linha[primeiraChave] || null)
+            let cpf_cliente = db.escape(linha['CPF'] || null)
+            let cnpj_cliente = db.escape(linha['CNPJ'] || null)
+            let id_pacote = db.escape(linha['ID do pacote'])
+            let operacao = db.escape(linha['Operação'] || null)
+            let tipo_cliente = db.escape(linha['Tipo de cliente'] || null)
+            let subtipo_cliente = db.escape(linha['Subtipo de cliente'] || null)
+            let numero_contrato = db.escape(linha['Número do Contrato'] || null)
+            let plano = db.escape(linha['Nome do Plano'] || null)
+            let imei = db.escape(linha['IMEI'] || null)
+            let condicao_pgto = db.escape(linha['Condição de Pagamento'] || null)
+            let valor_entrada = db.escape(linha['Valor de Entrada'] || null)
+            let desconto = db.escape(linha['Desconto'] || null)
+            let qtde_parcelas_cartao_1 = db.escape(linha['Quantidade de Parcelas Cartão 1'] || null)
+            let qtde_parcelas_cartao_2 = db.escape(linha['Quantidade de Parcelas Cartão 2'] || null)
+            let valor_cartao_1 = db.escape(linha['Valor no Cartão de Crédito 1'] || null)
+            let valor_cartao_2 = db.escape(linha['Valor no Cartão de Crédito 2'] || null)
+            let cod_aut_cartao_1 = db.escape(linha['Código de Autorização Cartão 1'] || null)
+            let cod_aut_cartao_2 = db.escape(linha['Código de Autorização Cartão 2'] || null)
+            let data_criacao = db.escape(tratarDateTime(linha['Data de Criação'] || null))
+            let data_transacao = db.escape(linha['Data da Transação'] || null)
+            let data_modificacao = db.escape(tratarDateTime(linha['Data da Última Modificação do Status'] || null))
+            let status = db.escape(linha['Status detalhado'] || null)
+            let historico = db.escape(linha['Histórico de Alterações'] || null)
+            let matricula = db.escape(linha['Usuário criador do pacote'] || null)
+            let canal = db.escape(linha['Canal de venda detalhado'] || null)
+            let custcode = db.escape(linha['Código da Loja'] || null)
+            let id_grupo = db.escape(linha['ID Grupo Econômico'] || null)
+            let activ_code = db.escape(linha['Activ-Code'] || null)
+            let fidelizacao = db.escape(linha['Fidelização'] || null)
+
+            const value = `(${gsm}, ${cpf_cliente}, ${cnpj_cliente}, ${id_pacote}, ${operacao}, ${tipo_cliente}, ${subtipo_cliente}, ${numero_contrato}, ${plano}, ${imei}, ${condicao_pgto}, ${valor_entrada}, ${desconto}, ${qtde_parcelas_cartao_1}, ${qtde_parcelas_cartao_2}, ${valor_cartao_1}, ${valor_cartao_2}, ${cod_aut_cartao_1}, ${cod_aut_cartao_2}, ${data_criacao}, ${data_transacao}, ${data_modificacao}, ${status}, ${historico}, ${matricula}, ${canal}, ${custcode}, ${id_grupo}, ${activ_code}, ${fidelizacao}),`
+
+            values += value
+          }
+
+          var query = ''
+          try {
+            values = values.slice(0, -1)
+            if (values && values.length > 0) {
+
+              query = `INSERT INTO ${tim_thales} 
+                    (gsm, cpf_cliente, cnpj_cliente, id_pacote, operacao, tipo_cliente, subtipo_cliente, numero_contrato, plano, imei, condicao_pgto, valor_entrada, desconto, qtde_parcelas_cartao_1, qtde_parcelas_cartao_2, valor_cartao_1, valor_cartao_2, cod_aut_cartao_1, cod_aut_cartao_2, data_criacao, data_transacao, data_modificacao, status, historico, matricula, canal, custcode, id_grupo, activ_code, fidelizacao) VALUES ${values} 
+                    ON DUPLICATE KEY UPDATE
+                    data_modificacao = VALUES(data_modificacao),
+                    status = VALUES(status),
+                    historico = VALUES(historico),
+                    gsm = VALUES(gsm),
+                    cpf_cliente = VALUES(cpf_cliente),
+                    cnpj_cliente = VALUES(cnpj_cliente),
+                    operacao = VALUES(operacao),
+                    imei = VALUES(imei),
+                    condicao_pgto = VALUES(condicao_pgto),
+                    valor_entrada = VALUES(valor_entrada),
+                    desconto = VALUES(desconto),
+                    qtde_parcelas_cartao_1 = VALUES(qtde_parcelas_cartao_1),
+                    qtde_parcelas_cartao_2 = VALUES(qtde_parcelas_cartao_2),
+                    valor_cartao_1 = VALUES(valor_cartao_1),
+                    valor_cartao_2 = VALUES(valor_cartao_2),
+                    cod_aut_cartao_1 = VALUES(cod_aut_cartao_1),
+                    cod_aut_cartao_2 = VALUES(cod_aut_cartao_2),
+                    fidelizacao = VALUES(fidelizacao)
+                    ;
+                    `
+
+              // console.log(query)
+              await conn.execute(query)
+
+              if(dataInicial && dataFinal){
+                await processarDocs({dataInicial, dataFinal, grupo_economico})
+              }
+            }
+            resolve(data.length)
+          } catch (error) {
+            console.log('Erro na importação', error)
+            reject('Erro na importação do CSV')
+          }
+        })
+        .on('error', (error) => {
+          console.log('Erro no processamento', error);
+          
+          reject('Erro no processamento do CSV')
+        })
+    })
+
+    if(conn) conn.commit();
+    res.status(200).json({qtde: result})
+  } catch (error) {
+    if (conn) await conn.rollback();
+    logger.error({
+      origin: 'QUALIDADE', module: 'ESTEIRA', method: 'IMPORTAR_THALES',
+      data: { name: error.name, stack: error.stack, message: error.message }
+    })
+    res.status(400).json({ message: error.message })
+  } finally {
+    if (conn) conn.release();
+  }
+}
 // THALES
 async function listarDocs(req) {
   return new Promise(async (resolve, reject) => {
@@ -860,6 +1026,7 @@ function editarCredenciais({ grupo_economico, token, senha }) {
 }
 
 module.exports = {
+  importarPacotesThales,
   listarDocs,
   processarDocs,
   thalesCharts,
