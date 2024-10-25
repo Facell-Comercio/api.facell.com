@@ -45,11 +45,11 @@ module.exports = (req) => {
           `INSERT INTO marketing_mailing_clientes
           (
             gsm, gsm_portado, cpf, data_ultima_compra, plano_habilitado, uf,
-            produto_ultima_compra, desconto_plano, valor_caixa, filial, id_campanha
+            produto_ultima_compra, desconto_plano, valor_caixa, filial, id_campanha, cliente
           )
           VALUES (
             :gsm, :gsm_portado, :cpf_cliente, :data_compra, :plano_habilitado, :uf,
-            :produto_compra, :desconto_plano, :valor_caixa, :filial, :id_campanha
+            :produto_compra, :desconto_plano, :valor_caixa, :filial, :id_campanha, :cliente
           )`,
           cliente
         );

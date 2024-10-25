@@ -18,4 +18,6 @@ module.exports = {
   getAllAparelhos: require("./metodos/getAllAparelhos"),
 
   exportSubcampanha: require("./metodos/exportSubcampanha"),
+
+  deleteClientesCampanhaLote: require("./metodos/deleteClientesCampanhaLote"),
 };

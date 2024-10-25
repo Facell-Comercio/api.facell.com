@@ -46,7 +46,7 @@ module.exports = (req, res) => {
           VALOR_PRE: cliente.valor_pre,
           VALOR_COM_DESCONTO: cliente.valor_plano,
           PLANO_ATUAL: cliente.plano_atual,
-          FIDELIZADO_COM_APARELHO: cliente.produto_fidelizado,
+          FIDELIZADO_COM_APARELHO: cliente.produto_fidelizado ? "Sim" : "Não",
           APARELHO_DA_ULTIMA_COMPRA: cliente.produto_ultima_compra,
           DATA_DA_ULTIMA_COMPRA: cliente.data_ultima_compra,
           CPF_DO_CLIENTE: `'${cliente.cpf}'`,
@@ -65,7 +65,7 @@ module.exports = (req, res) => {
         XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
         const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
 
-        const filename = `EXPORTAÇÃO SUBCAMPANHA EVOLUX ${formatDate(
+        const filename = `EXPORTACAO SUBCAMPANHA EVOLUX ${formatDate(
           new Date(),
           "dd-MM-yyyy hh.mm"
         )}.xlsx`;
@@ -82,7 +82,7 @@ module.exports = (req, res) => {
         const bom = "\uFEFF"; // Adiciona o BOM para UTF-8
         const csvWithBom = bom + csv;
 
-        const filename = `EXPORTAÇÃO SUBCAMPANHA EVOLUX ${formatDate(
+        const filename = `EXPORTACAO SUBCAMPANHA EVOLUX ${formatDate(
           new Date(),
           "dd-MM-yyyy hh.mm"
         )}.csv`;

@@ -103,6 +103,15 @@ router.put("/campanhas/clientes/lote", async (req, res) => {
   }
 });
 
+router.delete("/campanhas/clientes/lote", async (req, res) => {
+  try {
+    const result = await controller.deleteClientesCampanhaLote(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 //* VENDEDORES
 router.put("/campanhas/vendedores", async (req, res) => {
   try {
