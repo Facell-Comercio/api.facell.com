@@ -16,6 +16,7 @@ module.exports = {
   definirVendedoresLote: require("./metodos/definirVendedoresLote"),
 
   getAllAparelhos: require("./metodos/getAllAparelhos"),
+  getAllVendedores: require("./metodos/getAllVendedores"),
 
   exportSubcampanha: require("./metodos/exportSubcampanha"),
 

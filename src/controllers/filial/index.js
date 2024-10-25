@@ -445,7 +445,7 @@ function getAllUfs(req) {
     // Filtros
 
     const { filters } = req.query;
-    console.log(filters);
+    // console.log(filters);
     const { id_grupo_economico, id_matriz, tim_cod_sap, isLojaTim } = filters || {};
 
     let where = ` WHERE f.active = 1 `;
