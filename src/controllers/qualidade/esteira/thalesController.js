@@ -41,22 +41,23 @@ async function importarPacotesThales(req, res) {
     readable._read = () => { }; // Função vazia, pois a stream já terá dados
     readable.push(file.buffer);
     readable.push(null); // Indica que o fluxo terminou
-    
+
     const result = await new Promise((resolve, reject) => {
       const data = [];
       readable
-        .pipe(csvParser({separator: '|'})) // O parser vai separar as colunas automaticamente
+        .pipe(csvParser({ separator: '|' })) // O parser vai separar as colunas automaticamente
         .on('data', (row) => {
           // console.log(row);
-          
+
           data.push(row);
         })
         .on('end', async () => {
-          var values = []
+          const values = []
           if (data.length === 0) {
             reject('Arquivo vazio!')
           }
           for (let i = 0; i < data.length; i++) {
+            if (i == 3) break;
 
             const linha = data[i]
             let primeiraChave = null
@@ -106,6 +107,7 @@ async function importarPacotesThales(req, res) {
           try {
 
             if (values.length > 0) {
+              // console.log(values);
 
               query = `INSERT INTO ${tim_thales} 
                     (gsm, cpf_cliente, cnpj_cliente, id_pacote, operacao, tipo_cliente, subtipo_cliente, numero_contrato, plano, imei, condicao_pgto, valor_entrada, desconto, qtde_parcelas_cartao_1, qtde_parcelas_cartao_2, valor_cartao_1, valor_cartao_2, cod_aut_cartao_1, cod_aut_cartao_2, data_criacao, data_transacao, data_modificacao, status, historico, matricula, canal, custcode, id_grupo, activ_code, fidelizacao) 
@@ -135,25 +137,27 @@ async function importarPacotesThales(req, res) {
               // console.log(query)
               await conn.execute(query)
 
-              if(dataInicial && dataFinal){
-                await processarDocs({dataInicial, dataFinal, grupo_economico})
+              if (dataInicial && dataFinal) {
+                await processarDocs({ dataInicial, dataFinal, grupo_economico })
               }
             }
             resolve(data.length)
           } catch (error) {
-            console.log('Erro na importação', error)
+            // console.log('Erro na importação', error)
             reject('Erro na importação do CSV')
           }
         })
         .on('error', (error) => {
-          console.log('Erro no processamento', error);
-          
+          // console.log('Erro no processamento', error);
+
           reject('Erro no processamento do CSV')
         })
     })
 
-    res.status(200).json({qtde: result || 0})
+    res.status(200).json({ qtde: result || 0 })
   } catch (error) {
+    console.log(error);
+
     logger.error({
       origin: 'QUALIDADE', module: 'ESTEIRA', method: 'IMPORTAR_THALES',
       data: { name: error.name, stack: error.stack, message: error.message }
@@ -366,19 +370,21 @@ async function processarDocs({
   if (!dataInicial || !dataFinal) return false;
 
   return new Promise(async (resolve, reject) => {
-    if (!grupo_economico) {
-      reject('Grupo não informado!')
-      return false;
-    }
-    const grupo_economico_local = grupo_economico;
-    const dtInicial = dataInicial;
-    const dtFinal = dataFinal;
-
-    const datasys_ativacoes = grupo_economico_local === 'FACELL' ? 'datasys_ativacoes' : 'datasys_ativacoes_fort';
-    const facell_docs = grupo_economico_local === 'FACELL' ? 'facell_docs' : 'facell_docs_fort';
-    const tim_thales = grupo_economico_local === 'FACELL' ? 'tim_thales' : 'tim_thales_fort';
-
+    let conn
     try {
+      if (!grupo_economico) {
+        throw new Error('Grupo não informado!')
+      }
+      const grupo_economico_local = grupo_economico;
+      const dtInicial = dataInicial;
+      const dtFinal = dataFinal;
+
+      const datasys_ativacoes = grupo_economico_local === 'FACELL' ? 'datasys_ativacoes' : 'datasys_ativacoes_fort';
+      const facell_docs = grupo_economico_local === 'FACELL' ? 'facell_docs' : 'facell_docs_fort';
+      const tim_thales = grupo_economico_local === 'FACELL' ? 'tim_thales' : 'tim_thales_fort';
+
+      conn = await db.getConnection();
+      await conn.beginTransaction();
 
       // Passar pelas ativações do período por meio da tabela datasys_ativacoes
       var [ativacoes] = await db.execute(
@@ -488,7 +494,7 @@ async function processarDocs({
             var rowsThalesAparelho;
 
             // Procura se existe pacote de aparelho Libeardo
-            [rowsThalesAparelho] = await db.execute(
+            [rowsThalesAparelho] = await conn.execute(
               `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao, condicao_pgto FROM  ${tim_thales}
                         WHERE 
                         DATE(data_criacao) >= ? and imei = ? and gsm = ? and status = 'green'
@@ -498,7 +504,7 @@ async function processarDocs({
             if (!(rowsThalesAparelho && rowsThalesAparelho?.length)) {
 
               // Procurar por outros pacotes de aparelho no Thales
-              [rowsThalesAparelho] = await db.execute(
+              [rowsThalesAparelho] = await conn.execute(
                 `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao, condicao_pgto FROM  ${tim_thales}
                 WHERE 
                 DATE(data_criacao) >= ? and imei = ? and gsm = ?
@@ -508,7 +514,7 @@ async function processarDocs({
             }
 
             if (rowsThalesAparelho.length === 0) {
-              [rowsThalesAparelho] = await db.execute(
+              [rowsThalesAparelho] = await conn.execute(
                 `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao, condicao_pgto FROM  ${tim_thales}
                           WHERE 
                           DATE(data_criacao) >= ? and imei = ?
@@ -637,7 +643,7 @@ async function processarDocs({
               }
 
               // Busca mais restrita (gsm, cpf, liberado e modalidade restrita):
-              [rowsThalesServico] = await db.execute(
+              [rowsThalesServico] = await conn.execute(
                 `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao FROM  ${tim_thales}
                             WHERE DATE(data_criacao) >= DATE_SUB(DATE_FORMAT(?, '%Y-%m-01'), INTERVAL 10 DAY) and (gsm = ? or gsm = ?) ${filtra_modalidade} and (cpf_cliente = ? OR cnpj_cliente = ?) and status = 'green'
                             ORDER BY id_pacote DESC LIMIT 1;`,
@@ -663,7 +669,7 @@ async function processarDocs({
                                     or operacao LIKE'%trc_plano%')`;
                 }
                 // Buscar expandindo as modalidades (gsm, cpf, modalidade abrangente, status liberado):
-                [rowsThalesServico] = await db.execute(
+                [rowsThalesServico] = await conn.execute(
                   `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao FROM  ${tim_thales}
                                 WHERE DATE(data_criacao) >= DATE_SUB(DATE_FORMAT(?, '%Y-%m-01'), INTERVAL 10 DAY) and (gsm = ? or gsm = ?) ${filtra_modalidade} and  (cpf_cliente = ? OR cnpj_cliente = ?) and status = 'green'
                                 ORDER BY id_pacote DESC LIMIT 1;`,
@@ -695,7 +701,7 @@ async function processarDocs({
                 }
 
                 // Buscar modalidade restrita e outros status (gsm, cpf, modalidade restrita):
-                [rowsThalesServico] = await db.execute(
+                [rowsThalesServico] = await conn.execute(
                   `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao FROM  ${tim_thales}
                                 WHERE DATE(data_criacao) >= DATE_SUB(DATE_FORMAT(?, '%Y-%m-01'), INTERVAL 10 DAY) and (gsm = ? or gsm = ?) ${filtra_modalidade} and  (cpf_cliente = ? OR cnpj_cliente = ?) 
                                 ORDER BY id_pacote DESC LIMIT 1;`,
@@ -721,7 +727,7 @@ async function processarDocs({
                                 or operacao LIKE'%trc_plano%')`;
                 }
                 // Buscar por outras modalidades e outros status (gsm, cpf, modalidade abrangente):
-                [rowsThalesServico] = await db.execute(
+                [rowsThalesServico] = await conn.execute(
                   `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao FROM  ${tim_thales}
                             WHERE DATE(data_criacao) >= DATE_SUB(DATE_FORMAT(?, '%Y-%m-01'), INTERVAL 10 DAY) and (gsm = ? or gsm = ?) ${filtra_modalidade} and (cpf_cliente = ? OR cnpj_cliente = ?) 
                             ORDER BY id_pacote DESC LIMIT 1;`,
@@ -733,7 +739,7 @@ async function processarDocs({
             // Não localizei pacote liberado para esse caso, então vamos buscar outros pacotes
             // Porém, retirando trc_chip
             if (rowsThalesServico.length === 0) {
-              [rowsThalesServico] = await db.execute(
+              [rowsThalesServico] = await conn.execute(
                 `SELECT gsm, cpf_cliente, cnpj_cliente, status, historico, fidelizacao, data_criacao, data_modificacao, plano, id_pacote, operacao FROM  ${tim_thales}
                             WHERE DATE(data_criacao) >= DATE_SUB(DATE_FORMAT(?, '%Y-%m-01'), INTERVAL 10 DAY) and (gsm = ? or gsm = ?) and  (cpf_cliente = ? OR cnpj_cliente = ?) and not operacao like 'trc_chip' and not operacao like 'fid_base'
                             ORDER BY id_pacote DESC LIMIT 1;`,
@@ -874,7 +880,7 @@ async function processarDocs({
         docs.push(ativacao);
       }
 
-      var values = "";
+      const values = [];
       for (let d = 0; d < docs.length; d++) {
         const doc = docs[d];
         let ativacao_id = db.escape(doc["ativacao_id"]) || null;
@@ -913,21 +919,16 @@ async function processarDocs({
         let thales_historico = db.escape(doc["thales_historico"]) || null;
 
         let value = `
-                (${ativacao_id}, ${thales_status}, ${thales_status_servico}, ${thales_status_aparelho}, ${hashtags}, ${thales_operacao}, ${statusLinha},  ${gsm}, ${gsmProvisorio}, ${imei}, ${pedido}, ${grupo_economico}, ${filial}, ${modalidade}, ${plaOpera}, ${thales_plano}, ${vendedor}, ${cpfVendedor}, ${cpf_cliente}, ${cliente}, ${fidAparelho}, ${fidPlano}, ${thales_fidelizacao}, ${thales_condicao_pgto}, ${aparelho}, ${thales_data_criacao}, ${thales_data_modificacao}, ${dtAtivacao}, ${thales_historico}),`;
+                (${ativacao_id}, ${thales_status}, ${thales_status_servico}, ${thales_status_aparelho}, ${hashtags}, ${thales_operacao}, ${statusLinha},  ${gsm}, ${gsmProvisorio}, ${imei}, ${pedido}, ${grupo_economico}, ${filial}, ${modalidade}, ${plaOpera}, ${thales_plano}, ${vendedor}, ${cpfVendedor}, ${cpf_cliente}, ${cliente}, ${fidAparelho}, ${fidPlano}, ${thales_fidelizacao}, ${thales_condicao_pgto}, ${aparelho}, ${thales_data_criacao}, ${thales_data_modificacao}, ${dtAtivacao}, ${thales_historico})`;
 
-        values += value;
+        values.push(value);
       }
-    } catch (error) {
-      console.log(error);
-      reject(error);
-      return false;
-    }
 
-    try {
-      // console.log("Values gerados, agora vamos importar!");
-      // Inserir na facell_docs
-      values = values.slice(0, -1);
-      await db.execute(`INSERT INTO ${facell_docs} (
+      if (values.length > 0) {
+        // console.log("Values gerados, agora vamos importar!");
+        // Inserir na facell_docs
+
+        await conn.execute(`INSERT INTO ${facell_docs} (
             ativacao_id,
             thales_status,
             thales_status_servico,
@@ -958,7 +959,7 @@ async function processarDocs({
             dtAtivacao,
             thales_historico
       
-            ) VALUES ${values}
+            ) VALUES ${values.join(',')}
             
             ON DUPLICATE KEY UPDATE
             cpf_cliente = VALUES(cpf_cliente),
@@ -981,6 +982,8 @@ async function processarDocs({
             vendedor = VALUES(vendedor)
 
             ;`);
+      }
+
       console.log(`[PROCESSAR_DOCS]: Processamento concluído: ${grupo_economico} ${dataInicial} - ${dataFinal}`);
       resolve("Ok");
     } catch (error) {
