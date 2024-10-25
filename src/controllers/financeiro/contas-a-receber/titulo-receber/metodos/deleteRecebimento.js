@@ -2,7 +2,6 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const updateSaldoContaBancaria = require("../../../tesouraria/metodos/updateSaldoContaBancaria");
 const updateValorVencimento = require("./updateValorVencimento");
-const { normalize } = require("xml2js/lib/processors");
 const {
   normalizeFirstAndLastName,
   normalizeCurrency,
@@ -36,7 +35,7 @@ module.exports = (req) => {
       const recebimento = rowRecebimento && rowRecebimento[0];
 
       //* Deleta o recebimento
-      // await conn.execute("DELETE FROM fin_cr_titulos_recebimentos WHERE id = ?", [id]);
+      await conn.execute("DELETE FROM fin_cr_titulos_recebimentos WHERE id = ?", [id]);
 
       //* Obtém os dados da conta bancária
       const [rowContaBancaria] = await conn.execute(
@@ -54,9 +53,6 @@ module.exports = (req) => {
             conn,
           },
         });
-        // await conn.execute("DELETE FROM fin_extratos_bancarios WHERE id = ?", [
-        //   recebimento.id_extrato,
-        // ]);
       }
 
       //* Deduzir valor do vencimento

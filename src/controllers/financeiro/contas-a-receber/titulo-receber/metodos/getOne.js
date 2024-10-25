@@ -8,6 +8,7 @@ module.exports = async = (req) => {
     try {
       conn = await db.getConnection();
       const { id } = req.params;
+
       const [rowTitulo] = await conn.execute(
         `
           SELECT 
@@ -66,6 +67,7 @@ module.exports = async = (req) => {
       const titulo = rowTitulo && rowTitulo[0];
       // console.log(titulo)
       const objResponse = { titulo, vencimentos, itens_rateio, historico };
+
       resolve(objResponse);
       return;
     } catch (error) {
