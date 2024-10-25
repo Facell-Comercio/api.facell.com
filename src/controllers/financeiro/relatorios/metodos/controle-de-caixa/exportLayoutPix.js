@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
       const relatorioCaixa = [];
       const [caixas] = await conn.execute(
         `
-          SELECT data, valor_recarga, valor_recarga_real FROM datasys_caixas
+          SELECT data, valor_pix, valor_pix_banco FROM datasys_caixas
           ${where} AND id_filial = ?
           `,
         [...params, filial.id]
@@ -56,9 +56,9 @@ module.exports = async (req, res) => {
         const obj = {
           Filial: filial.nome,
           Data: caixa.data,
-          Datasys: parseFloat(caixa.valor_recarga || "0"),
-          RV: parseFloat(caixa.valor_recarga_real || "0"),
-          "Diferença": parseFloat(caixa.valor_recarga - caixa.valor_recarga_real || "0"),
+          Datasys: parseFloat(caixa.valor_pix || "0"),
+          PIX: parseFloat(caixa.valor_pix_banco || "0"),
+          "Diferença": parseFloat(caixa.valor_pix - caixa.valor_pix_banco || "0"),
         };
         relatorioCaixa.push(obj);
       }
@@ -73,7 +73,7 @@ module.exports = async (req, res) => {
 
     // Gera o buffer
     const buffer = gerarBufferExcelFiliais(relatorioFilial);
-    const filename = `RELATORIO RECARGA DATASYS X RV (${mes}-${ano}) ${formatDate(
+    const filename = `RELATORIO PIX DATASYS X BANCO (${mes}-${ano}) ${formatDate(
       new Date(),
       "dd-MM-yyyy hh.mm"
     )}.xlsx`;
@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
     logger.error({
       module: "FINANCEIRO",
       origin: "RELATORIOS",
-      method: "EXPORT_RELATORIO_RECARGA_RV",
+      method: "EXPORT_RELATORIO_PIX",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
     res.status(500).json({ message: error.message });
