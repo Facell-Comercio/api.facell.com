@@ -199,12 +199,6 @@ module.exports = (req) => {
         params
       );
 
-      //~ UF/AREA
-      const [uf_list_filters] = await conn.execute(
-        `SELECT DISTINCT mc.uf as value FROM marketing_mailing_compras mc ${where}`,
-        params
-      );
-
       //~ FILIAL
       const [filiais_list_filters] = await conn.execute(
         `SELECT DISTINCT mc.filial as value FROM marketing_mailing_compras mc ${where}`,
@@ -250,7 +244,6 @@ module.exports = (req) => {
       const defaultFilters = {
         grupo_estoque_list: grupo_estoque_list_filters,
         subgrupo_list: subgrupo_list_filters,
-        uf_list: uf_list_filters,
         filiais_list: filiais_list_filters,
         plano_habilitado_list: plano_habilitado_list_filters,
         modalidade_list: modalidade_list_filters,

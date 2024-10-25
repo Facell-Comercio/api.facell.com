@@ -40,6 +40,14 @@ router.get("/campanhas", async (req, res) => {
   }
 });
 
+router.get("/campanhas/export-evolux", async (req, res) => {
+  try {
+    await controller.exportSubcampanha(req, res);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get("/campanhas/:id", async (req, res) => {
   try {
     const result = await controller.getOneCampanha(req);
@@ -52,6 +60,15 @@ router.get("/campanhas/:id", async (req, res) => {
 router.post("/campanhas/subcampanhas", async (req, res) => {
   try {
     const result = await controller.insertSubcampanha(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/campanhas/duplicar", async (req, res) => {
+  try {
+    const result = await controller.duplicateCampanha(req);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -11,8 +11,14 @@ module.exports = (req) => {
 
     try {
       const { id } = req.params || {};
-      const { plano_atual_list, produto_list, produto_fidelizado, sem_contato, status_plano_list } =
-        req.query.filters || {};
+      const {
+        plano_atual_list,
+        produto_list,
+        produto_fidelizado,
+        status_plano_list,
+        status_contato_list,
+        isExportacao,
+      } = req.query.filters || {};
 
       let where = " WHERE 1=1 ";
       const params = [];
@@ -30,12 +36,15 @@ module.exports = (req) => {
           where += " AND (mc.produto_fidelizado = 0 OR mc.produto_fidelizado IS NULL) ";
         }
       }
-      if (sem_contato !== undefined && sem_contato !== "all") {
-        if (Number(sem_contato)) {
-          where += " AND mr.id IS NULL";
-        } else {
-          where += " AND mr.id IS NOT NULL";
-        }
+      if (status_contato_list && status_contato_list.length > 0) {
+        where += ` AND mr.status_contato IN('${ensureArray(status_contato_list).join("','")}') `;
+      }
+      if (isExportacao) {
+        where += `AND NOT EXISTS(
+          SELECT 1 FROM marketing_mailing_resultados mrs
+          WHERE mrs.id_cliente = mc.id
+          AND mrs.status_contato LIKE "CHAMADA ATENDIDA")
+          `;
       }
       if (status_plano_list && status_plano_list.length > 0) {
         where += ` AND mc.status_plano IN('${ensureArray(status_plano_list).join("','")}') `;
@@ -58,9 +67,7 @@ module.exports = (req) => {
       }
 
       const [clientes] = await conn.execute(
-        `
-        SELECT mc.*, mr.id as id_resultado
-        FROM marketing_mailing_clientes mc
+        `SELECT DISTINCT mc.* FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
         ${where}`,
         params
@@ -99,42 +106,70 @@ module.exports = (req) => {
       //~ INÍCIO - FILTERS LIST
       //~ PLANO ATUAL
       const [plano_atual_list_filters] = await conn.execute(
-        `SELECT DISTINCT mc.plano_atual as value FROM marketing_mailing_clientes mc ${where}`,
+        `SELECT DISTINCT mc.plano_atual as value
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
         params
       );
 
       //~ PRODUTO ÚLTIMA COMPRA
       const [produto_list_filters] = await conn.execute(
-        `SELECT DISTINCT mc.produto_ultima_compra as value FROM marketing_mailing_clientes mc ${where}`,
+        `SELECT DISTINCT mc.produto_ultima_compra as value
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
         params
       );
 
       //~ STATUS PLANO
       const [status_plano_list_filters] = await conn.execute(
-        `SELECT DISTINCT mc.status_plano as value FROM marketing_mailing_clientes mc ${where}`,
+        `SELECT DISTINCT mc.status_plano as value
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
         params
       );
 
       //~ STATUS PLANO
       const [vendedores_list_filters] = await conn.execute(
-        `SELECT DISTINCT mc.vendedor as value FROM marketing_mailing_clientes mc ${where}`,
+        `SELECT DISTINCT mc.vendedor as value
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
+        params
+      );
+
+      //~ STATUS CHAMADA
+      const [status_contato_list_filters] = await conn.execute(
+        `SELECT DISTINCT mr.status_contato as value
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        ${where}`,
         params
       );
 
       campanha.filters = {
-        plano_atual_list: plano_atual_list_filters || [],
-        produto_list: produto_list_filters || [],
-        status_plano_list: status_plano_list_filters || [],
-        vendedores_list: vendedores_list_filters || [],
+        plano_atual_list: plano_atual_list_filters.filter((item) => !!item.value) || [],
+        produto_list: produto_list_filters.filter((item) => !!item.value) || [],
+        status_plano_list: status_plano_list_filters.filter((item) => !!item.value) || [],
+        vendedores_list: vendedores_list_filters.filter((item) => !!item.value) || [],
+        status_contato_list: status_contato_list_filters.filter((item) => !!item.value) || [],
       };
+
       //~ FIM - FILTERS LIST
 
       const [rowQtdeClientes] = await conn.execute(
         `
-        SELECT COUNT(mc.id) as qtde
-        FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
-        ${where}`,
+        SELECT COUNT(*) AS qtde
+          FROM (
+            SELECT DISTINCT
+              mc.id
+            FROM marketing_mailing_clientes mc
+            LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+            ${where}
+          ) AS subconsulta
+           `,
         params
       );
       campanha.qtde_clientes =

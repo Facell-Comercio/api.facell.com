@@ -6,6 +6,7 @@ module.exports = {
 
   insertCampanha: require("./metodos/insertCampanha"),
   insertSubcampanha: require("./metodos/insertSubcampanha"),
+  duplicateCampanha: require("./metodos/duplicateCampanha"),
 
   updateClienteCampanha: require("./metodos/updateClienteCampanha"),
   updateClienteCampanhaLote: require("./metodos/updateClienteCampanhaLote"),
@@ -15,4 +16,6 @@ module.exports = {
   definirVendedoresLote: require("./metodos/definirVendedoresLote"),
 
   getAllAparelhos: require("./metodos/getAllAparelhos"),
+
+  exportSubcampanha: require("./metodos/exportSubcampanha"),
 };
