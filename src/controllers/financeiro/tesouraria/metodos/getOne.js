@@ -89,7 +89,7 @@ module.exports = (req) => {
         FROM fin_extratos_bancarios eb
         LEFT JOIN fin_contas_bancarias cb ON cb.id = eb.id_conta_bancaria
         ${where}
-        ORDER BY eb.data_transacao DESC
+        ORDER BY eb.data_transacao DESC, id DESC
         ${limit}`,
         params
       );
