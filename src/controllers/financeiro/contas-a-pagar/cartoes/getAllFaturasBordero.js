@@ -1,11 +1,7 @@
-const {
-  logger,
-} = require("../../../../../logger");
+const { logger } = require("../../../../../logger");
 const { db } = require("../../../../../mysql");
 
-module.exports = function getAllFaturasBordero(
-  req
-) {
+module.exports = function getAllFaturasBordero(req) {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
@@ -23,11 +19,10 @@ module.exports = function getAllFaturasBordero(
         closedFatura,
         orderBy,
       } = req.query;
-      const { pageIndex, pageSize } =
-        pagination || {
-          pageIndex: 0,
-          pageSize: 15,
-        };
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
       const {
         id_matriz,
         id_filial,
@@ -43,9 +38,7 @@ module.exports = function getAllFaturasBordero(
       } = filters || {};
 
       let where = ` WHERE 1=1 `;
-      let order =
-        orderBy ||
-        " ORDER BY ccf.data_prevista ASC ";
+      let order = orderBy || " ORDER BY ccf.data_prevista ASC ";
       const params = [];
 
       if (id_vencimento) {
@@ -134,32 +127,22 @@ module.exports = function getAllFaturasBordero(
       }
 
       // Filtra com base no status de pagamento
-      if (
-        enabledStatusPgto !== undefined &&
-        enabledStatusPgto.length > 0
-      ) {
-        where += ` AND ccf.status IN ('${enabledStatusPgto.join(
-          "','"
-        )}')`;
+      if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
+        where += ` AND ccf.status IN ('${enabledStatusPgto.join("','")}')`;
       }
 
       if (tipo_data && range_data) {
-        const { from: data_de, to: data_ate } =
-          range_data;
+        const { from: data_de, to: data_ate } = range_data;
         if (data_de && data_ate) {
-          where += ` AND ccf.${tipo_data} BETWEEN '${
-            data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+          where += ` AND ccf.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
         } else {
           if (data_de) {
-            where += ` AND ccf.${tipo_data} >= '${
-              data_de.split("T")[0]
-            }' `;
+            where += ` AND ccf.${tipo_data} >= '${data_de.split("T")[0]}' `;
           }
           if (data_ate) {
-            where += ` AND ccf.${tipo_data} <= '${
-              data_ate.split("T")[0]
-            }' `;
+            where += ` AND ccf.${tipo_data} <= '${data_ate.split("T")[0]}' `;
           }
         }
       }
@@ -187,34 +170,31 @@ module.exports = function getAllFaturasBordero(
         params
       );
 
-      const qtdeTotal =
-        (rowQtdeTotal &&
-          rowQtdeTotal[0]["qtde"]) ||
-        0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
 
-      const offset =
-        pageIndex > 0 ? pageSize * pageIndex : 0;
+      const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
       params.push(pageSize);
       params.push(offset);
 
       const [rows] = await conn.execute(
-        `SELECT DISTINCT 
+        `SELECT DISTINCT
             ccf.id,
-            ccf.id as id_titulo, 
-            ccf.id as id_vencimento, 
-            ccf.status, 
+            ccf.id as id_titulo,
+            ccf.id as id_vencimento,
+            ccf.status,
             ccf.data_prevista as previsao,
-            NULL as id_status, 
+            ccf.data_vencimento,
+            NULL as id_status,
             UPPER(fcc.descricao) as descricao,
-            ccf.valor as valor_total, 
-            ccf.valor_pago, 
+            ccf.valor as valor_total,
+            ccf.valor_pago,
             ccf.tipo_baixa,
             ccf.data_pagamento,
             ccf.obs,
-            f.nome as filial, 
+            f.nome as filial,
             fcc.id_matriz,
             forn.nome as nome_fornecedor,
-            "-" as num_doc,  
+            "-" as num_doc,
             "Cartão" as forma_pagamento,
             6 as id_forma_pagamento,
             bi.remessa,
@@ -242,9 +222,7 @@ module.exports = function getAllFaturasBordero(
 
       const objResponse = {
         rows,
-        pageCount: Math.ceil(
-          qtdeTotal / pageSize
-        ),
+        pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
       resolve(objResponse);
