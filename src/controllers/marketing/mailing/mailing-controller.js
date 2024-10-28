@@ -1,24 +1,10 @@
+const campanhasController = require("./campanhas/campanhas-controller");
+const clientesController = require("./clientes/clientes-controller");
+
 module.exports = {
-  getAllCompras: require("./metodos/getAllCompras"),
-  getAllCampanhas: require("./metodos/getAllCampanhas"),
-  getOneCampanha: require("./metodos/getOneCampanha"),
-  getOneClienteCampanha: require("./metodos/getOneClienteCampanha"),
+  getAllAparelhos: require("./getAllAparelhos"),
+  getAllVendedores: require("./getAllVendedores"),
 
-  insertCampanha: require("./metodos/insertCampanha"),
-  insertSubcampanha: require("./metodos/insertSubcampanha"),
-  duplicateCampanha: require("./metodos/duplicateCampanha"),
-
-  updateClienteCampanha: require("./metodos/updateClienteCampanha"),
-  updateClienteCampanhaLote: require("./metodos/updateClienteCampanhaLote"),
-  updateClienteMarketingCompras: require("./metodos/updateClienteMarketingCompras"),
-  importComprasDatasys: require("./metodos/importComprasDatasys"),
-
-  definirVendedoresLote: require("./metodos/definirVendedoresLote"),
-
-  getAllAparelhos: require("./metodos/getAllAparelhos"),
-  getAllVendedores: require("./metodos/getAllVendedores"),
-
-  exportSubcampanha: require("./metodos/exportSubcampanha"),
-
-  deleteClientesCampanhaLote: require("./metodos/deleteClientesCampanhaLote"),
+  ...campanhasController,
+  ...clientesController,
 };

@@ -1,8 +1,8 @@
-const { db } = require("../../../../../mysql");
-const { logger } = require("../../../../../logger");
-const { ensureArray } = require("../../../../helpers/mask");
+const { db } = require("../../../../../../mysql");
+const { logger } = require("../../../../../../logger");
+const { ensureArray } = require("../../../../../helpers/mask");
 
-module.exports = (req) => {
+module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     // Filtros
     const { conn_externa } = req.body;
@@ -193,6 +193,7 @@ module.exports = (req) => {
       );
 
       campanha.all_clientes = allClientes;
+      campanha.qtde_all_clientes = allClientes?.length || 0;
 
       resolve(campanha);
     } catch (error) {

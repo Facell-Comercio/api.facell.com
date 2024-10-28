@@ -1,145 +1,16 @@
 const router = require("express").Router();
 
 const controller = require("../../../controllers/marketing/mailing/mailing-controller");
+const campanhas = require("./campanhas");
+const clientes = require("./clientes");
 
-//* CLIENTES COMPRAS
-router.get("/clientes", async (req, res) => {
-  try {
-    const result = await controller.getAllCompras(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.post("/clientes", async (req, res) => {
-  try {
-    const result = await controller.insertCampanha(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.post("/import-compras", async (req, res) => {
-  try {
-    const result = await controller.importComprasDatasys(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-//* CAMPANHAS
-router.get("/campanhas", async (req, res) => {
-  try {
-    const result = await controller.getAllCampanhas(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.get("/campanhas/export-evolux", async (req, res) => {
-  try {
-    await controller.exportSubcampanha(req, res);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.get("/campanhas/:id", async (req, res) => {
-  try {
-    const result = await controller.getOneCampanha(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.post("/campanhas/subcampanhas", async (req, res) => {
-  try {
-    const result = await controller.insertSubcampanha(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.post("/campanhas/duplicar", async (req, res) => {
-  try {
-    const result = await controller.duplicateCampanha(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-//* CLIENTES
-router.get("/campanhas/clientes/:id", async (req, res) => {
-  try {
-    const result = await controller.getOneClienteCampanha(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.put("/campanhas/clientes", async (req, res) => {
-  try {
-    const result = await controller.updateClienteCampanha(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.put("/campanhas/clientes/lote", async (req, res) => {
-  try {
-    const result = await controller.updateClienteCampanhaLote(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.delete("/campanhas/clientes/lote", async (req, res) => {
-  try {
-    const result = await controller.deleteClientesCampanhaLote(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-//* VENDEDORES
-router.put("/campanhas/vendedores", async (req, res) => {
-  try {
-    const result = await controller.definirVendedoresLote(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.use("/campanhas", campanhas);
+router.use("/clientes", clientes);
 
 //* APARELHOS
-router.get("/aparelhos", async (req, res) => {
-  try {
-    const result = await controller.getAllAparelhos(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.get("/aparelhos", controller.getAllAparelhos);
 
 //* VENDEDORES
-router.get("/vendedores", async (req, res) => {
-  try {
-    const result = await controller.getAllVendedores(req);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+router.get("/vendedores", controller.getAllVendedores);
 
 module.exports = router;

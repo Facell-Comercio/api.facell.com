@@ -1,7 +1,7 @@
 const cron = require("node-cron");
 const { subDays } = require("date-fns");
 const { logger } = require("../../../logger");
-const importComprasDatasys = require("../../controllers/marketing/mailing/metodos/importComprasDatasys");
+const { importComprasDatasys } = require("../../controllers/marketing/mailing/mailing-controller");
 
 // Importa as compras do dia anterior
 cron.schedule("0 7 * * *", async () => {

@@ -8,9 +8,12 @@ const {
 } = require("../../../remessa/CNAB400/to-string");
 const { logger } = require("../../../../../../logger");
 const { addDiasUteis } = require("../../../remessa/CNAB400/helper");
-const { removeSpecialCharactersAndAccents, normalizeCurrency } = require("../../../../../helpers/mask");
+const {
+  removeSpecialCharactersAndAccents,
+  normalizeCurrency,
+} = require("../../../../../helpers/mask");
 const { enviarEmail } = require("../../../../../helpers/email");
-require('dotenv').config();
+require("dotenv").config();
 
 module.exports = async (req, res) => {
   return new Promise(async (resolve, reject) => {
@@ -75,7 +78,7 @@ module.exports = async (req, res) => {
 
       let num_sequencial = 1;
       const data_emissao = new Date();
-      const data_vencimento = addDiasUteis(data_emissao, 3)
+      const data_vencimento = addDiasUteis(data_emissao, 3);
 
       const headerArquivo = createHeaderArquivo({
         ...matriz,
@@ -85,7 +88,7 @@ module.exports = async (req, res) => {
 
       arquivo.push(headerArquivo);
 
-      let emails = []
+      let emails = [];
 
       for (const boleto of boletos) {
         ++num_sequencial;
@@ -131,12 +134,12 @@ module.exports = async (req, res) => {
                   Link para visualizar o boleto:</p>
                   <a href='${link}'>${link}</a>
                 `,
-          })
+          });
         }
 
-
         // * ATUALIZAÇÃO DO BOLETO:
-        await conn.execute(`UPDATE datasys_caixas_boletos 
+        await conn.execute(
+          `UPDATE datasys_caixas_boletos 
           SET 
             status = 'emitido',
             data_emissao = ?,
@@ -145,14 +148,9 @@ module.exports = async (req, res) => {
             nosso_numero = ?, 
             id_conta_bancaria = ? 
           WHERE 
-            id = ?`, [
-          data_emissao,
-          data_vencimento,
-          boleto.id,
-          boleto.id,
-          id_conta_bancaria,
-          boleto.id,
-        ]);
+            id = ?`,
+          [data_emissao, data_vencimento, boleto.id, boleto.id, id_conta_bancaria, boleto.id]
+        );
       }
 
       // * REGISTRO DA EXPORTAÇÃO:

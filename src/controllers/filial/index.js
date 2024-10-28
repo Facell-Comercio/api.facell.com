@@ -492,7 +492,7 @@ function getAllUfs(req) {
             ${where}
             `;
       const [rows] = await conn.execute(query, params);
-      console.log(rows);
+      // console.log(rows);
       resolve(rows);
     } catch (error) {
       logger.error({
