@@ -1,5 +1,7 @@
 const { db } = require("../../../../mysql");
 const csv = require("csv-parser");
+const { logger } = require("../../../../logger");
+const {formatDate} = require('date-fns')
 
 function transformarNumeroBRparaFloat(texto) {
   if (!texto) return null;
@@ -114,6 +116,59 @@ exports.updateClienteInadimplencia = async (req, res) => {
     res.status(400).json({ message: error.message })
   } finally {
 
+  }
+}
+
+exports.getClientesInadimplencia = async (req, res) => {
+  let conn;
+  try {
+    // console.log(req.query);
+
+    const { data_inicial, data_final, grupo_economico, incluir_adimplentes } = req.query;
+    conn = await db.getConnection();
+
+    if (!data_inicial || !data_final) {
+      throw new Error("Preencha a data inicial e final")
+    }
+    if (!grupo_economico) {
+      throw new Error('Grupo econômico não informado!')
+    }
+    const facell_docs = grupo_economico == 'FACELL' ? 'facell_docs' : 'facell_docs_fort';
+    const params = []
+    let where = ` WHERE 1=1
+    AND cod_cliente IS NOT NULL 
+    AND cod_cliente != ''
+    AND modalidade NOT LIKE '%PRÉ%' 
+    AND modalidade NOT LIKE '%TROCA DE%' 
+    AND modalidade NOT LIKE '%UPGRADE%' 
+    AND modalidade NOT LIKE '%ATIVAÇÃO LIVE TIM%' 
+    AND modalidade NOT LIKE '%C6 BANK%' 
+    AND plaOpera NOT LIKE '%DEPENDENTE%' 
+    AND plaOpera NOT LIKE '%EXPRESS%' 
+    AND dtAtivacao BETWEEN ? AND ? `
+    params.push(formatDate(data_inicial, 'yyyy-MM-dd'))
+    params.push(formatDate(data_final, 'yyyy-MM-dd'))
+
+    if (!(incluir_adimplentes == 1 || incluir_adimplentes == 'true')) {
+      where += ` AND status_inadimplencia != 'Adimplente' `
+    }
+
+    let query = `SELECT DISTINCT cod_cliente FROM ${facell_docs} ${where}`;
+    // console.log(query)
+    // console.log(params)
+
+    const [rows] = await conn.execute(query, params)
+    
+    const clientes = rows && rows.map(row => row.cod_cliente) || []
+    res.status(200).json({ clientes, qtde: clientes.length })
+  } catch (error) {
+    logger.error({
+      module: 'QUALIDADE', origin: 'ESTEIRA', method: 'GET_CLIENTES_INADIMPLENCIA',
+      data: { name: error.name, stack: error.stack, message: error.message }
+    })
+    res.status(400).json({ message: error.message })
+  } finally {
+    if (conn) conn.release();
   }
 }
 

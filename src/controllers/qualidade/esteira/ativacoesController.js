@@ -240,6 +240,7 @@ exports.updateClienteCBCF = async (req, res) => {
 }
 
 exports.updateClienteExpress = async (req, res) => {
+  console.log('Update cliente express')
   try {
     const {
       cliente,
@@ -428,7 +429,6 @@ exports.getGSMClientesCBCF = async (req, res) => {
   let conn;
   try {
     // console.log(req.query);
-
     const { data_inicial, data_final, grupo_economico, incluir_ativos } = req.query;
     conn = await db.getConnection();
 
