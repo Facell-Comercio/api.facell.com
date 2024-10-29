@@ -18,7 +18,7 @@ module.exports = async (req) => {
         status_plano_list,
         status_contato_list,
         isExportacao,
-      } = req.query.filters || {};
+      } = req.query?.filters || {};
 
       let where = " WHERE 1=1 ";
       const params = [];

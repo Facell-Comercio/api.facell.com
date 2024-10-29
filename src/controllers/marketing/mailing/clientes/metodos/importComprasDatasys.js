@@ -2,32 +2,33 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 
 module.exports = async (req, res) => {
-  const { range_datas } = req.body;
+  return new Promise(async (resolve, reject) => {
+    const { range_datas } = req.body;
 
-  let conn;
+    let conn;
 
-  try {
-    conn = await db.getConnection();
-    await conn.beginTransaction();
+    try {
+      conn = await db.getConnection();
+      await conn.beginTransaction();
 
-    let where = " WHERE 1 = 1 ";
-    if (range_datas) {
-      const { from: data_de, to: data_ate } = range_datas;
-      if (data_de && data_ate) {
-        where += ` AND DATE(dataPedido) BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
-      } else {
-        if (data_de) {
-          where += ` AND DATE(dataPedido) >= '${data_de.split("T")[0]}' `;
-        }
-        if (data_ate) {
-          where += ` AND DATE(dataPedido) <= '${data_ate.split("T")[0]}' `;
+      let where = " WHERE 1 = 1 ";
+      if (range_datas) {
+        const { from: data_de, to: data_ate } = range_datas;
+        if (data_de && data_ate) {
+          where += ` AND DATE(dataPedido) BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
+        } else {
+          if (data_de) {
+            where += ` AND DATE(dataPedido) >= '${data_de.split("T")[0]}' `;
+          }
+          if (data_ate) {
+            where += ` AND DATE(dataPedido) <= '${data_ate.split("T")[0]}' `;
+          }
         }
       }
-    }
 
-    const queryConsulta = `
+      const queryConsulta = `
           SELECT
             grupoEstoque AS grupo_estoque,
             subgrupo,
@@ -54,23 +55,23 @@ module.exports = async (req, res) => {
           FROM datasys_vendas
             ${where}
         `;
-    const [compras] = await conn.execute(queryConsulta);
+      const [compras] = await conn.execute(queryConsulta);
 
-    let totalCompras = compras.length;
+      let totalCompras = compras.length;
 
-    conn.config.namedPlaceholders = true;
-    const arrayCompras = [];
-    const maxLength = 10000;
+      conn.config.namedPlaceholders = true;
+      const arrayCompras = [];
+      const maxLength = 10000;
 
-    for (const compra of compras) {
-      if (compra.gsm === null) {
-        compra.gsm = "";
-      }
-      if (compra.subgrupo === null) {
-        compra.subgrupo = "";
-      }
-      //*
-      arrayCompras.push(`
+      for (const compra of compras) {
+        if (compra.gsm === null) {
+          compra.gsm = "";
+        }
+        if (compra.subgrupo === null) {
+          compra.subgrupo = "";
+        }
+        //*
+        arrayCompras.push(`
         (${db.escape(compra.grupo_estoque)},
         ${db.escape(compra.subgrupo)},
         ${db.escape(compra.gsm)},
@@ -95,8 +96,8 @@ module.exports = async (req, res) => {
         ${db.escape(compra.data_compra)})
       `);
 
-      if (arrayCompras.length === maxLength || totalCompras === 1) {
-        const queryInsert = `
+        if (arrayCompras.length === maxLength || totalCompras === 1) {
+          const queryInsert = `
             INSERT IGNORE INTO marketing_mailing_compras
             (
               grupo_estoque,
@@ -125,26 +126,26 @@ module.exports = async (req, res) => {
               VAlUES
               ${arrayCompras.join(",")}
             `;
-        await conn.execute(queryInsert, compra);
-        arrayCompras.length = 0;
-        // console.log(`10K clientes`);
+          await conn.execute(queryInsert, compra);
+          arrayCompras.length = 0;
+        }
+
+        totalCompras--;
       }
 
-      totalCompras--;
+      await conn.commit();
+      resolve({ message: "Success" });
+    } catch (error) {
+      logger.error({
+        module: "MARKETING",
+        origin: "MAILING",
+        method: "INSERT_CAMPANHA",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      if (conn) await conn.rollback();
+      reject(error);
+    } finally {
+      if (conn) conn.release();
     }
-
-    await conn.commit();
-    res.status(200).json({ message: "Success" });
-  } catch (error) {
-    logger.error({
-      module: "MARKETING",
-      origin: "MAILING",
-      method: "INSERT_CAMPANHA",
-      data: { message: error.message, stack: error.stack, name: error.name },
-    });
-    if (conn) await conn.rollback();
-    res.status(500).json({ message: error.message });
-  } finally {
-    if (conn) conn.release();
-  }
+  });
 };

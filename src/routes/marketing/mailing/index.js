@@ -9,6 +9,7 @@ router.use("/clientes", clientes);
 
 //* APARELHOS
 router.get("/aparelhos", controller.getAllAparelhos);
+router.get("/aparelhos/estoque", controller.getEstoqueAparelho);
 
 //* VENDEDORES
 router.get("/vendedores", controller.getAllVendedores);

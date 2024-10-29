@@ -15,6 +15,14 @@ router.get("/:id", async (req, res) => {
 });
 router.post("/subcampanhas", controller.insertSubcampanha);
 router.post("/duplicar", controller.duplicateCampanha);
+router.put("/import-evolux", async (req, res) => {
+  try {
+    const result = await controller.importCampanhaEvolux(req);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(400).send({ message: error.message });
+  }
+});
 
 //* CLIENTES CAMPANHA
 router.get("/clientes/:id", controller.getOneClienteCampanha);

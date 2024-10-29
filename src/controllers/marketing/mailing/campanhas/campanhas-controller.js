@@ -16,6 +16,7 @@ module.exports = {
   getAllVendedores: require("../getAllVendedores"),
 
   exportSubcampanha: require("./metodos/exportSubcampanha"),
+  importCampanhaEvolux: require("./metodos/importCampanhaEvolux"),
 
   deleteClientesCampanhaLote: require("./metodos/deleteClientesCampanhaLote"),
 };

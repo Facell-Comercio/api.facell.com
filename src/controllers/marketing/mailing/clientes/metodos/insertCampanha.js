@@ -73,8 +73,8 @@ module.exports = async (req, res) => {
       totalClientes--;
     }
 
-    // await conn.commit();
-    await conn.rollback();
+    await conn.commit();
+    // await conn.rollback();
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({

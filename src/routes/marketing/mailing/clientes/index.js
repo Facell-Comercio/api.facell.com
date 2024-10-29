@@ -12,6 +12,13 @@ router.get("/", async (req, res) => {
   }
 });
 router.post("/", controller.insertCampanha);
-router.post("/import-compras", controller.importComprasDatasys);
+router.post("/import-compras", async (req, res) => {
+  try {
+    const result = await controller.importComprasDatasys(req);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(400).send({ message: error.message });
+  }
+});
 
 module.exports = router;
