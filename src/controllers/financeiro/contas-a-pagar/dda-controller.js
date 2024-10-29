@@ -155,12 +155,14 @@ async function importDDA(req) {
           let qtdeImportada = 0;
           // Passagem pelos lotes
           const lotes = objRemessa.lotes;
+
           if (!lotes || !lotes.length) {
             throw new Error("Aquivo vazio ou não foi possível acessar os lotes de boletos...");
           }
           for (const lote of lotes) {
             // Passagem pelos segmentos G
             const segmentos = lote.detalhe?.filter((d) => d.cod_seg_registro_lote === "G");
+
             if (!segmentos || !segmentos.length) {
               continue;
             }
@@ -183,22 +185,22 @@ async function importDDA(req) {
               // console.log(params)
               await conn.execute(
                 `INSERT IGNORE fin_dda 
-                    (
-                        cnpj_filial,
-                        cod_banco,
-                        cod_barras,
-                        cnpj_fornecedor,
-                        nome_fornecedor,
-                        data_vencimento,
-                        valor,
-                        documento,
-                        data_emissao,
-                        agencia,
-                        dac,
-                        modalidade_carteira,
-                        especie_boleto
-                    ) 
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+                (
+                  cnpj_filial,
+                  cod_banco,
+                  cod_barras,
+                  cnpj_fornecedor,
+                  nome_fornecedor,
+                  data_vencimento,
+                  valor,
+                  documento,
+                  data_emissao,
+                  agencia,
+                  dac,
+                  modalidade_carteira,
+                  especie_boleto
+                ) 
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
                 params
               );
 
@@ -231,11 +233,11 @@ async function importDDA(req) {
       await conn.commit();
 
       await autoVincularDDA();
+
       // resolve({ qtdeImportada })
       resolve(result);
     } catch (error) {
       await conn.rollback();
-      reject(error);
       logger.error({
         module: "FINANCEIRO",
         origin: "DDA",
@@ -246,6 +248,7 @@ async function importDDA(req) {
           name: error.name,
         },
       });
+      reject(error);
     } finally {
       conn.release();
     }
@@ -258,7 +261,6 @@ async function autoVincularDDA() {
     try {
       await conn.beginTransaction();
 
-      log;
       const [boletos] = await conn.execute(`
         SELECT 
           id, cnpj_filial, cnpj_fornecedor, valor
@@ -282,11 +284,11 @@ async function autoVincularDDA() {
             LEFT JOIN fin_fornecedores ff ON ff.id = t.id_fornecedor
             LEFT JOIN filiais f ON f.id = t.id_filial
             WHERE 
-                dda.id_vencimento IS NULL
-                AND dda.id_fatura IS NULL
-                AND v.valor = ?
-                AND f.cnpj = ?
-                AND ff.cnpj = ?
+              dda.id_vencimento IS NULL
+              AND dda.id_fatura IS NULL
+              AND v.valor = ?
+              AND f.cnpj = ?
+              AND ff.cnpj = ?
             LIMIT 1
             `,
           params
@@ -302,11 +304,11 @@ async function autoVincularDDA() {
             LEFT JOIN fin_fornecedores ff ON ff.id = cc.id_fornecedor
             LEFT JOIN filiais f ON f.id = cc.id_matriz
             WHERE
-                dda.id_vencimento IS NULL
-                AND dda.id_fatura IS NULL
-                AND ccf.valor = ?
-                AND f.cnpj = ?
-                AND ff.cnpj = ?
+              dda.id_vencimento IS NULL
+              AND dda.id_fatura IS NULL
+              AND ccf.valor = ?
+              AND f.cnpj = ?
+              AND ff.cnpj = ?
             LIMIT 1
             `,
           params
@@ -325,7 +327,7 @@ async function autoVincularDDA() {
           (boleto.vinculado = true), (boleto.id_vencimento = vencimento.id);
         }
         if (fatura) {
-          await conn.execute(`UPDATE fin_dda SET id_fatura = ? WHERE id = ?`, [
+          await conn.execute("UPDATE fin_dda SET id_fatura = ? WHERE id = ?", [
             fatura.id,
             boleto.id,
           ]);
@@ -342,6 +344,16 @@ async function autoVincularDDA() {
       resolve(boletos);
     } catch (error) {
       await conn.rollback();
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "DDA",
+        method: "AUTOVINCULAR",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -353,12 +365,20 @@ async function exportDDA() {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
-      const [boletos] = await conn.execute(`SELECT 
-                *
-                FROM fin_dda `);
+      const [boletos] = await conn.execute("SELECT * FROM fin_dda ");
 
       resolve(boletos);
     } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "DDA",
+        method: "EXPORTAR",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
@@ -372,10 +392,20 @@ async function limparDDA() {
     try {
       // * Apaga todos os boletos do DDA que não estejam vinculados a Vencimentos e que sejam +30 dias inferior à data atual
       await conn.execute(
-        `DELETE FROM fin_dda WHERE id_vencimento IS NULL and data_emissao < DATE_SUB(NOW(), INTERVAL 30 DAY)`
+        "DELETE FROM fin_dda WHERE id_vencimento IS NULL and data_emissao < DATE_SUB(NOW(), INTERVAL 30 DAY)"
       );
       resolve(true);
     } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "DDA",
+        method: "LIMPAR",
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
+      });
       reject(error);
     } finally {
       conn.release();
