@@ -153,7 +153,9 @@ async function importarPacotesThales(req, res) {
           reject('Erro no processamento do CSV')
         })
     })
-
+    const relatorio_esteira = grupo_economico == 'FACELL' ? 'thales-facell' : 'thales-fort';
+    await conn.execute(`UPDATE facell_esteira_att SET data = now() WHERE relatorio = ?`, [relatorio_esteira])
+    
     res.status(200).json({ qtde: result || 0 })
   } catch (error) {
     console.log(error);
@@ -167,6 +169,7 @@ async function importarPacotesThales(req, res) {
     if (conn) conn.release();
   }
 }
+
 // THALES
 async function listarDocs(req) {
   return new Promise(async (resolve, reject) => {
