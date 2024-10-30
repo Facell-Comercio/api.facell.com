@@ -3,7 +3,7 @@ const { logger } = require('./logger');
 require("dotenv").config();
 
 const isProduction = process.env.NODE_ENV == 'production'
-const timeout = isProduction ? 1000 * 60 * 5 : 1000 * 60;
+const timeout = isProduction ? 1000 * 60 * 5 : 1000 * 60; // 5min em prod, 1min em dev;
 const host = process.env.DB_HOST;
 const database = process.env.DB_DATABASE;
 const user = process.env.DB_USER;
@@ -19,7 +19,7 @@ const db = mysql.createPool({
   charset: "utf8mb4_general_ci",
   waitForConnections: true,
   connectTimeout: 60000,
-  connectionLimit: 15,
+  connectionLimit: 50,
 });
 
 async function mantainInfiniteConnection() {
@@ -28,7 +28,7 @@ async function mantainInfiniteConnection() {
     conn = await db.getConnection();
     await conn.execute('SELECT 1')
 
-    if(isProduction){
+    if(!isProduction){
       console.log('Conexão com o banco reforçada...');
     }
   } catch (error) {
