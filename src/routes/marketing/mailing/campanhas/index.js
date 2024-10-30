@@ -5,7 +5,7 @@ const controller = require("../../../../controllers/marketing/mailing/mailing-co
 //* CAMPANHAS
 router.get("/", controller.getAllCampanhas);
 router.get("/export-evolux", controller.exportSubcampanha);
-router.get("/:id", async (req, res) => {
+router.post("/:id", async (req, res) => {
   try {
     const result = await controller.getOneCampanha(req);
     res.status(200).send(result);

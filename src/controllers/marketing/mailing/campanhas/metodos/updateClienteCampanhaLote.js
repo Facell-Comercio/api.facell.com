@@ -1,6 +1,6 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const { ensureArray } = require("../../../../../helpers/mask");
+const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = async (req, res) => {
   let conn;

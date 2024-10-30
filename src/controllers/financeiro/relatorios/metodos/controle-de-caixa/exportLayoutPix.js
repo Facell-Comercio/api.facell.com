@@ -2,7 +2,7 @@ const { formatDate } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const XLSX = require("xlsx");
-const { ensureArray } = require("../../../../../helpers/mask");
+const { ensureArray } = require("../../../../../helpers/formaters");
 const gerarBufferExcelFiliais = require("./helper/gerarBufferExcelFiliais");
 
 module.exports = async (req, res) => {

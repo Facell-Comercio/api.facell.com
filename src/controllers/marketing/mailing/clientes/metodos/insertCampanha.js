@@ -20,8 +20,8 @@ module.exports = async (req, res) => {
 
     //* CONSULTANDO OS CLIENTES DE ACORDO COM OS FILTROS
     const clientes = await getAllCompras({
-      query: { filters },
       body: {
+        filters,
         conn_externa: conn,
       },
     });

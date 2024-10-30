@@ -1,6 +1,6 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const { ensureArray } = require("../../../../../helpers/mask");
+const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -11,6 +11,7 @@ module.exports = async (req) => {
 
     try {
       const { id } = req.params || {};
+      const { filters } = req.body || {};
       const {
         plano_atual_list,
         produto_list,
@@ -18,15 +19,15 @@ module.exports = async (req) => {
         status_plano_list,
         status_contato_list,
         isExportacao,
-      } = req.query?.filters || {};
+      } = filters || {};
 
       let where = " WHERE 1=1 ";
       const params = [];
 
-      if (plano_atual_list && plano_atual_list.length > 0) {
+      if (plano_atual_list && ensureArray(plano_atual_list).length > 0) {
         where += ` AND mc.plano_atual IN('${ensureArray(plano_atual_list).join("','")}') `;
       }
-      if (produto_list && produto_list.length > 0) {
+      if (produto_list && ensureArray(produto_list).length > 0) {
         where += ` AND mc.produto_ultima_compra IN('${ensureArray(produto_list).join("','")}') `;
       }
       if (produto_fidelizado !== undefined && produto_fidelizado !== "all") {
@@ -36,7 +37,7 @@ module.exports = async (req) => {
           where += " AND (mc.produto_fidelizado = 0 OR mc.produto_fidelizado IS NULL) ";
         }
       }
-      if (status_contato_list && status_contato_list.length > 0) {
+      if (status_contato_list && ensureArray(status_contato_list).length > 0) {
         where += ` AND mr.status_contato IN('${ensureArray(status_contato_list).join("','")}') `;
       }
       if (isExportacao) {
@@ -46,7 +47,7 @@ module.exports = async (req) => {
           AND mrs.status_contato LIKE "CHAMADA ATENDIDA")
           `;
       }
-      if (status_plano_list && status_plano_list.length > 0) {
+      if (status_plano_list && ensureArray(status_plano_list).length > 0) {
         where += ` AND mc.status_plano IN('${ensureArray(status_plano_list).join("','")}') `;
       }
       if (id) {

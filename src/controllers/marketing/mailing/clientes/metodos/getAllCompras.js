@@ -1,7 +1,7 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { formatDate } = require("date-fns");
-const { ensureArray } = require("../../../../../helpers/mask");
+const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -9,8 +9,7 @@ module.exports = async (req) => {
 
     try {
       // Filtros
-      const { filters, pagination } = req.query;
-      const { conn_externa } = req.body;
+      const { conn_externa, filters, pagination } = req.body;
       const { pageIndex, pageSize } = pagination || {
         pageIndex: 0,
         pageSize: 15,
@@ -300,7 +299,6 @@ module.exports = async (req) => {
       ${limit}
       `;
 
-      // console.log(query, params);
       const [rows] = await conn.execute(query, params);
       const objResponse = {
         rows: rows,
@@ -308,6 +306,7 @@ module.exports = async (req) => {
         rowCount: qtdeTotal,
         filters: defaultFilters,
       };
+
       resolve(objResponse);
     } catch (error) {
       logger.error({

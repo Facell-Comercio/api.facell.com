@@ -3,7 +3,7 @@ const { logger } = require("../../../../logger");
 const fs = require("fs/promises");
 const { remessaToObject } = require("../remessa/CNAB240/to-object");
 const { normalizeCodigoBarras } = require("../remessa/CNAB240/to-string/masks");
-const { ensureArray } = require("../../../helpers/mask");
+const { ensureArray } = require("../../../helpers/formaters");
 
 async function getAll(req) {
   return new Promise(async (resolve, reject) => {

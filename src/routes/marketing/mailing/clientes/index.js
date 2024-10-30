@@ -3,10 +3,10 @@ const router = require("express").Router();
 const controller = require("../../../../controllers/marketing/mailing/mailing-controller");
 
 //* CLIENTES COMPRAS
-router.get("/", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const result = await controller.getAllCompras(req);
-    res.status(200).send(result);
+    res.json(result);
   } catch (error) {
     res.status(400).send({ message: error.message });
   }

@@ -2,7 +2,7 @@ const XLSX = require("xlsx");
 const fs = require("fs").promises;
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
-const { ensureArray } = require("../../../../../helpers/mask");
+const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {

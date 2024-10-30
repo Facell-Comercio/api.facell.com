@@ -20,6 +20,8 @@ module.exports = async (req, res) => {
         },
       });
 
+      // DOCUMENTAÇÃO
+      // https://evolux.atlassian.net/wiki/spaces/DOC/pages/1958412335/API+-+Relat+rio+-+Discador+-+Hist+rico+de+Chamadas
       console.log(campanha);
 
       await conn.commit();

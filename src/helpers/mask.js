@@ -212,15 +212,6 @@ function excelDateToJSDate(serial) {
   return new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-function ensureArray(data) {
-  if (!data) return null;
-  if (Array.isArray(data)) {
-    return data;
-  }
-  // Converte o objeto de volta para um array
-  return Object.keys(data).map((key) => data[key]);
-}
-
 function objectToStringLine(object) {
   return Object.values(object).reduce((acc, value) => {
     if (value instanceof Date) {
@@ -270,7 +261,6 @@ module.exports = {
   normalizeCodigoBarras48,
   normalizeURLChaveEnderecamentoPIX,
   excelDateToJSDate,
-  ensureArray,
   objectToStringLine,
   normalizeNumberFixed,
   parseCurrency,
