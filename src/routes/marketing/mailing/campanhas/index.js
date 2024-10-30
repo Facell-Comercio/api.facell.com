@@ -17,19 +17,6 @@ router.post(
   }
 );
 
-router.post(
-  "/import-evolux-diario",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
-  async (req, res) => {
-    try {
-      const result = await controller.importCampanhaEvoluxDiario(req);
-      res.status(200).send(result);
-    } catch (error) {
-      res.status(400).send({ message: error.message });
-    }
-  }
-);
-
 //* CAMPANHAS
 router.get(
   "/",
