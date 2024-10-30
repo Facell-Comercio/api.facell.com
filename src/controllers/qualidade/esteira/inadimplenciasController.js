@@ -56,10 +56,10 @@ const processarClienteInadimplencia = ({ conn_externa, cliente, data_inicial, da
         {
           cod_cliente,
           status_inadimplencia,
-          sgr_fat1_vencimento: sgr_fat1_vencimento || null,
-          sgr_fat1_valor: sgr_fat1_valor || null,
-          sgr_fat2_valor: sgr_fat2_valor || null,
-          sgr_fat2_vencimento: sgr_fat2_vencimento || null,
+          sgr_fat1_vencimento: sgr_fat1_vencimento ? formatDate(sgr_fat1_vencimento , 'yyyy-MM-dd') : null,
+          sgr_fat1_valor: transformarNumeroBRparaFloat(sgr_fat1_valor) || null,
+          sgr_fat2_valor: transformarNumeroBRparaFloat(sgr_fat2_valor) || null,
+          sgr_fat2_vencimento: sgr_fat2_vencimento ? formatDate(sgr_fat2_vencimento , 'yyyy-MM-dd') : null,
           data_inicial,
           data_final,
         }
@@ -86,20 +86,20 @@ exports.updateClienteInadimplencia = async (req, res) => {
     if (!cliente) throw new Error('Cliente não recebido!')
     const {
       cod_cliente,
-      status_inadimplencia,
+      status,
       fat1_datavenc,
       fat1_valor,
       fat2_datavenc,
       fat2_valor,
 
     } = cliente;
-    if (!(cod_cliente && status_inadimplencia)) {
+    if (!(cod_cliente && status)) {
       throw new Error('Código do cliente ou status não recebidos!')
     }
     await processarClienteInadimplencia({
       cliente: {
         cod_cliente,
-        status_inadimplencia,
+        status_inadimplencia: status,
         sgr_fat1_vencimento: fat1_datavenc || null,
         sgr_fat1_valor: fat1_valor || null,
         sgr_fat2_vencimento: fat2_datavenc || null,
@@ -112,7 +112,10 @@ exports.updateClienteInadimplencia = async (req, res) => {
 
     res.status(200).json({ message: 'Sucesso!' })
   } catch (error) {
-
+    logger.error({
+      module: 'QUALIDADE', origin: 'ESTEIRA', method: 'UPDATE_CLIENTE_INADIMPLENCIA',
+      data: { name: error.name, stack: error.stack, message: error.message }
+    })
     res.status(400).json({ message: error.message })
   } finally {
 
