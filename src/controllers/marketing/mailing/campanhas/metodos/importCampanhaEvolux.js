@@ -1,6 +1,6 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const { formatDate, subHours, startOfDay, endOfDay, parseISO } = require("date-fns");
+const { parseISO } = require("date-fns");
 require("dotenv").config();
 
 function startOfDayUTC(dateString) {
@@ -47,7 +47,6 @@ module.exports = async (req, res) => {
         const url = `https://facell.evolux.io/api/v1/dialer/calls_history?start_date=${startOfDayUTC(
           range_datas.from
         )}&end_date=${endOfDayUTC(range_datas.to)}&limit=${limit}&page=${page}`;
-        console.log(url);
 
         const resultadoFetch = await fetch(url, {
           method: "GET",
