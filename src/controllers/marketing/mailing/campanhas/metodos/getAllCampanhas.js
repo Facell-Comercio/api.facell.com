@@ -51,8 +51,8 @@ module.exports = async (req, res) => {
     }
     const [campanhas] = await conn.execute(
       `SELECT * FROM marketing_mailing_campanhas
-        ${where} 
-        ORDER BY data_inicio
+        ${where}
+        ORDER BY data_inicio, id DESC
         ${limit}
         `,
       params
@@ -60,6 +60,14 @@ module.exports = async (req, res) => {
 
     //* CONTANDO A QUANTIDADE DE CLIENTES
     for (const campanha of campanhas) {
+      const [rowCampanhaParent] = await conn.execute(
+        "SELECT nome FROM marketing_mailing_campanhas WHERE id = ?",
+        [campanha.id_parent]
+      );
+      const campanhaParent = rowCampanhaParent && rowCampanhaParent[0];
+
+      campanha.nome_parent = campanhaParent?.nome || "";
+
       const [subcampanhas] = await conn.execute(
         `SELECT id FROM marketing_mailing_campanhas WHERE id_parent = ?`,
         [campanha.id]
@@ -79,6 +87,7 @@ module.exports = async (req, res) => {
       pageCount: Math.ceil(qtdeTotal / pageSize),
       rowCount: qtdeTotal,
     };
+
     res.status(200).json(objResponse);
   } catch (error) {
     logger.error({

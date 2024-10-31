@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
 
     const [estoques] = await conn.execute(
       `
-      SELECT de.saldo as qtde, f.uf
+      SELECT SUM(de.saldo) as qtde, f.uf
       FROM datasys_estoque de
       LEFT JOIN filiais f ON f.nome = de.filial_estoque
       ${where}

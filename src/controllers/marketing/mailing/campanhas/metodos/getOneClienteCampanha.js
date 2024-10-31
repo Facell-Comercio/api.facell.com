@@ -44,7 +44,13 @@ module.exports = async (req, res) => {
     }
 
     const [resultados] = await conn.execute(
-      "SELECT *, TIMESTAMP(data_contato, hora_contato) as datetime_contato FROM marketing_mailing_resultados WHERE id_cliente =?",
+      `
+      SELECT *,
+      TIMESTAMP(data_contato, hora_contato_inicio) as datetime_contato_inicio,
+      TIMESTAMP(data_contato, hora_contato_resposta) as datetime_contato_resposta,
+      TIMESTAMP(data_contato, hora_contato_final) as datetime_contato_final
+      FROM marketing_mailing_resultados
+      WHERE id_cliente =?`,
       [id]
     );
 
