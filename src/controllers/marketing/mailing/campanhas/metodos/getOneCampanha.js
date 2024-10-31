@@ -51,11 +51,68 @@ module.exports = async (req) => {
       if (status_plano_list && ensureArray(status_plano_list).length > 0) {
         where += ` AND mc.status_plano IN('${ensureArray(status_plano_list).join("','")}') `;
       }
-      if (planos_fidelizaveis !== undefined && planos_fidelizaveis) {
-        where = +`
-          AND 1=1
+
+      //& INÍCIO - CONDIÇÕES DE EXIBIÇÃO SOMENTE DE PLANOS FIDELIZÁVEIS
+      // Excluir os planos não fidelizáveis – na coluna FRANQUIA (excluir todos os controles,
+      // exceto smart e redes sociais ( esses são valido); excluir os Light (o cliente tem desconto
+      // especial no plano, por isso não tem no aparelho); excluir todos os express. (cartão de credito);
+      // fixos, live, empresarial, dependentes...
+      // •	CONTROLES (EXCETO SMART E REDES SOCIAIS)
+      // •	LIGHT
+      // •	EXPRESS
+      // •	FIXOS
+      // •	LIVE
+      // •	PÓS SOCIAL
+      // •	TIM BLACK DEPENDENTE
+      // •	PLANO TIM M2M 20MB
+      // •	PLANO TIM COMMUNITY WEB
+      // •	TIM MAIS C DEPENDENTE
+      // •	PLANO TIM OFFICE
+
+      if (planos_fidelizaveis !== undefined && planos_fidelizaveis !== "all") {
+        if (planos_fidelizaveis === "1") {
+          where += `
+          AND NOT (
+            (mc.plano_atual LIKE "%contro%" AND NOT mc.plano_atual LIKE "%controle smart%") OR
+            (mc.plano_atual LIKE "%ctrl%" AND NOT mc.plano_atual LIKE "%ctrl redes%") OR
+            mc.plano_atual LIKE "%light%" OR
+            mc.plano_atual LIKE "%express%" OR
+            mc.plano_atual LIKE "%fix%" OR
+            mc.plano_atual LIKE "%live%" OR
+            mc.plano_atual LIKE "%pos social%" OR
+            mc.plano_atual LIKE "%black depend%" OR
+            mc.plano_atual LIKE "%m2m 20%" OR
+            mc.plano_atual LIKE "%community%" OR
+            mc.plano_atual LIKE "%c depend%" OR
+            mc.plano_atual LIKE "%office%" OR
+            mc.plano_atual IS NULL OR
+            mc.plano_atual = ''
+          )
         `;
+        }
+        if (planos_fidelizaveis === "0") {
+          where += `
+          AND (
+            (mc.plano_atual LIKE "%contro%" AND NOT mc.plano_atual LIKE "%controle smart%") OR
+            (mc.plano_atual LIKE "%ctrl%" AND NOT mc.plano_atual LIKE "%ctrl redes%") OR
+            mc.plano_atual LIKE "%light%" OR
+            mc.plano_atual LIKE "%express%" OR
+            mc.plano_atual LIKE "%fix%" OR
+            mc.plano_atual LIKE "%live%" OR
+            mc.plano_atual LIKE "%pos social%" OR
+            mc.plano_atual LIKE "%black depend%" OR
+            mc.plano_atual LIKE "%m2m 20%" OR
+            mc.plano_atual LIKE "%community%" OR
+            mc.plano_atual LIKE "%c depend%" OR
+            mc.plano_atual LIKE "%office%" OR
+            mc.plano_atual IS NULL OR
+            mc.plano_atual = ''
+          )
+        `;
+        }
       }
+
+      //& FIM - CONDIÇÕES DE EXIBIÇÃO SOMENTE DE PLANOS FIDELIZÁVEIS
 
       if (id) {
         where += " AND mc.id_campanha =? ";

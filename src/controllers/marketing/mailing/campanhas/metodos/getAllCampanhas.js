@@ -58,6 +58,15 @@ module.exports = async (req, res) => {
       params
     );
 
+    console.log(
+      `SELECT * FROM marketing_mailing_campanhas
+        ${where}
+        ORDER BY data_inicio, id DESC
+        ${limit}
+        `,
+      params
+    );
+
     //* CONTANDO A QUANTIDADE DE CLIENTES
     for (const campanha of campanhas) {
       const [rowCampanhaParent] = await conn.execute(
