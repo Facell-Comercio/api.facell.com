@@ -1,6 +1,5 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const updateClienteMarketingCompras = require("./updateClienteMarketingCompras");
 
 module.exports = async (req, res) => {
   let conn;
@@ -8,7 +7,6 @@ module.exports = async (req, res) => {
   try {
     // Filtros
     const { id, active, public } = req.body;
-    console.log(req.body);
 
     const params = [];
     const sets = [];
