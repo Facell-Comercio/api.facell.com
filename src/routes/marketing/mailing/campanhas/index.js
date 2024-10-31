@@ -28,6 +28,11 @@ router.get(
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   controller.exportSubcampanha
 );
+router.put(
+  "/",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.updateCampanha
+);
 router.post("/:id", checkUserAuthorization("MARKETING", "OR", "MASTER", true), async (req, res) => {
   try {
     const result = await controller.getOneCampanha(req);
@@ -36,6 +41,18 @@ router.post("/:id", checkUserAuthorization("MARKETING", "OR", "MASTER", true), a
     res.status(400).send({ message: error.message });
   }
 });
+router.post(
+  "/robo/:id",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  async (req, res) => {
+    try {
+      const result = await controller.getOneCampanhaRobo(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
 router.post(
   "/subcampanhas",
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
