@@ -43,7 +43,7 @@ module.exports = async (req) => {
       }
       if (isExportacao) {
         where += `AND NOT EXISTS(
-          SELECT 1 FROM marketing_mailing_resultados mrs
+          SELECT 1 FROM marketing_mailing_interacoes mrs
           WHERE mrs.id_cliente = mc.id
           AND mrs.status_contato LIKE "CHAMADA ATENDIDA")
           `;
@@ -76,7 +76,7 @@ module.exports = async (req) => {
 
       const [clientes] = await conn.execute(
         `SELECT DISTINCT mc.* FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
         params
       );
@@ -125,7 +125,7 @@ module.exports = async (req) => {
       const [plano_atual_list_filters] = await conn.execute(
         `SELECT DISTINCT mc.plano_atual as value
         FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
         params
       );
@@ -134,7 +134,7 @@ module.exports = async (req) => {
       const [produto_list_filters] = await conn.execute(
         `SELECT DISTINCT mc.produto_ultima_compra as value
         FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
         params
       );
@@ -143,7 +143,7 @@ module.exports = async (req) => {
       const [status_plano_list_filters] = await conn.execute(
         `SELECT DISTINCT mc.status_plano as value
         FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
         params
       );
@@ -152,7 +152,7 @@ module.exports = async (req) => {
       const [vendedores_list_filters] = await conn.execute(
         `SELECT DISTINCT mc.vendedor as value
         FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
         params
       );
@@ -161,7 +161,7 @@ module.exports = async (req) => {
       const [status_contato_list_filters] = await conn.execute(
         `SELECT DISTINCT mr.status_contato as value
         FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
         params
       );
@@ -183,7 +183,7 @@ module.exports = async (req) => {
             SELECT DISTINCT
               mc.id
             FROM marketing_mailing_clientes mc
-            LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+            LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
             ${where}
           ) AS subconsulta
            `,
@@ -205,7 +205,7 @@ module.exports = async (req) => {
         `
         SELECT mc.*
         FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         WHERE mc.id_campanha IN ('${idsCampanhas.join("','")}')`
       );
 

@@ -41,12 +41,12 @@ router.post("/:id", checkUserAuthorization("MARKETING", "OR", "MASTER", true), a
     res.status(400).send({ message: error.message });
   }
 });
-router.post(
-  "/robo/:id",
+router.get(
+  "/gsms/:id",
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   async (req, res) => {
     try {
-      const result = await controller.getOneCampanhaRobo(req);
+      const result = await controller.getOneCampanhaGSMS(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });

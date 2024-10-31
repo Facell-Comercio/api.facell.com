@@ -1,7 +1,7 @@
 module.exports = {
   getAllCampanhas: require("./metodos/getAllCampanhas"),
   getOneCampanha: require("./metodos/getOneCampanha"),
-  getOneCampanhaRobo: require("./metodos/getOneCampanhaRobo"),
+  getOneCampanhaGSMS: require("./metodos/getOneCampanhaGSMS"),
   getOneClienteCampanha: require("./metodos/getOneClienteCampanha"),
 
   insertSubcampanha: require("./metodos/insertSubcampanha"),

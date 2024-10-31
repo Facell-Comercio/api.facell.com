@@ -137,7 +137,7 @@ module.exports = async (req, res) => {
         where += `
           AND NOT EXISTS (
           SELECT 1
-          FROM marketing_mailing_resultados mr
+          FROM marketing_mailing_interacoes mr
           WHERE mr.id_cliente = mc.id
           )
           `;
@@ -145,7 +145,7 @@ module.exports = async (req, res) => {
         where += `
           AND EXISTS (
           SELECT 1
-          FROM marketing_mailing_resultados mr
+          FROM marketing_mailing_interacoes mr
           WHERE mr.id_cliente = mc.id
           )
           `;

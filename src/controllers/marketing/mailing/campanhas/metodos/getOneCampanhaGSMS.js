@@ -1,6 +1,5 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -34,10 +33,9 @@ module.exports = async (req) => {
 
       const [allClientes] = await conn.execute(
         `
-        SELECT mc.*
-        FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_resultados mr ON mr.id_cliente = mc.id
-        WHERE mc.id_campanha IN ('${idsCampanhas.join("','")}')`
+        SELECT id, gsm
+        FROM marketing_mailing_clientes
+        WHERE id_campanha IN ('${idsCampanhas.join("','")}')`
       );
 
       campanha.all_clientes = allClientes;
@@ -48,7 +46,7 @@ module.exports = async (req) => {
       logger.error({
         module: "MARKETING",
         origin: "MAILING",
-        method: "GET_ONE_CAMPANHA_ROBO",
+        method: "GET_ONE_CAMPANHA_GSMS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

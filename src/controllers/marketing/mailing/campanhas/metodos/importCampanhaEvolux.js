@@ -78,9 +78,10 @@ module.exports = async (req, res) => {
       for (const resultado of resultados.flat()) {
         await conn.execute(
           `
-            INSERT IGNORE INTO marketing_mailing_resultados
+            INSERT IGNORE INTO marketing_mailing_interacoes
             (
               id,
+              plataforma,
               id_cliente,
               nome_campanha,
               nome_assinante,
@@ -94,10 +95,11 @@ module.exports = async (req, res) => {
               observacao,
               classificacao,
               id_user
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
           [
             resultado.id, // ID
+            "evolux", // PLATAFORMA
             resultado.subscriber.external_id, // ID_CLIENTE
             resultado.campaign.name, // NOME_CAMPANHA
             resultado.subscriber.name, // NOME_ASSINANTE
