@@ -18,7 +18,7 @@ module.exports = async = (req) => {
       }
 
       const { descricao, range_data } = filters_extratos_bancarios || {};
-      const { descricao_titulo, range_data_vencimento, id_fornecedor, num_doc } =
+      const { descricao_titulo, range_data_vencimento, id_fornecedor, num_doc, id_vencimento } =
         filters_vencimentos || {};
 
       let whereTransacoes = " WHERE 1=1 ";
@@ -53,6 +53,10 @@ module.exports = async = (req) => {
       if (id_matriz) {
         whereVencimentos += ` AND f.id_matriz =? `;
         paramsVencimentos.push(id_matriz);
+      }
+      if (id_vencimento) {
+        whereVencimentos += ` AND tv.id =? `;
+        paramsVencimentos.push(id_vencimento);
       }
       if (descricao_titulo) {
         whereVencimentos += ` AND t.descricao LIKE CONCAT('%',?,'%') `;

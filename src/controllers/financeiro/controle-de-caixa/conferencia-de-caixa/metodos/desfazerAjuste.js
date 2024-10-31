@@ -23,7 +23,7 @@ module.exports = async ({ conn, id_ajuste }) => {
             WHERE id = ?;
         `,
           ajuste.saida === "valor_dinheiro"
-            ? [ajuste.valor, ajuste.valor, ajuste.id_caixa]
+            ? [ajuste.valor, ajuste.id_caixa]
             : [ajuste.valor, ajuste.id_caixa]
         );
       }

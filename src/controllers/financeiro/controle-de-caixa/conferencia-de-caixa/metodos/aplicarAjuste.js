@@ -41,7 +41,7 @@ module.exports = async ({ conn, id_ajuste, req }) => {
             WHERE id = ?;
         `,
           ajuste.saida === "valor_dinheiro"
-            ? [ajuste.valor, ajuste.valor, ajuste.id_caixa]
+            ? [ajuste.valor, ajuste.id_caixa]
             : [ajuste.valor, ajuste.id_caixa]
         );
       }
@@ -57,6 +57,15 @@ module.exports = async ({ conn, id_ajuste, req }) => {
         );
       }
       await updateSaldo({ conn, id_caixa: ajuste.id_caixa });
+
+      await conn.execute(
+        `
+        UPDATE datasys_caixas_ajustes 
+        SET id_user_aprovador = ?,
+        data_aprovacao = ?
+        WHERE id = ?`,
+        [req.user.id, new Date(), id_ajuste]
+      );
 
       resolve({ message: "Sucesso" });
     } catch (error) {

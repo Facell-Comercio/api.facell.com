@@ -15,6 +15,7 @@ const departamento = require("./departamento-router");
 const permissao = require("./permissao-router");
 const testes = require("./testes-router");
 const notification = require("./notification-router");
+const qualidade = require("./qualidade/qualidade-router");
 
 const datasys = require("./datasys");
 const tim = require("./tim");
@@ -58,6 +59,7 @@ router.use("/storage", storageRouter);
 router.use("/financeiro", financeiroRouter);
 router.use("/marketing", marketingRouter);
 router.use("/comercial", comercialRouter);
+router.use("/qualidade", qualidade);
 router.use("/pessoal", pessoalRouter);
 router.use("/grupo-economico", grupoEconomico);
 router.use("/filial", filial);

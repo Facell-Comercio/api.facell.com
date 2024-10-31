@@ -261,7 +261,12 @@ function getAllVencimentosEFaturas(req) {
     if (fornecedor) {
       where += ` AND (
         forn2.nome LIKE CONCAT('%',?,'%')
-        OR forn.nome LIKE CONCAT('%',?,'%')) `;
+        OR forn2.cnpj LIKE CONCAT('%',?,'%')
+        OR forn.nome LIKE CONCAT('%',?,'%')
+        OR forn.cnpj LIKE CONCAT('%',?,'%')
+        ) `;
+      params.push(fornecedor);
+      params.push(fornecedor);
       params.push(fornecedor);
       params.push(fornecedor);
     }
