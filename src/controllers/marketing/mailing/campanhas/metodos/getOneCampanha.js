@@ -39,7 +39,7 @@ module.exports = async (req) => {
         }
       }
       if (status_contato_list && ensureArray(status_contato_list).length > 0) {
-        where += ` AND mr.status_contato IN('${ensureArray(status_contato_list).join("','")}') `;
+        where += ` AND mr.status IN('${ensureArray(status_contato_list).join("','")}') `;
       }
       if (isExportacao) {
         where += `AND NOT EXISTS(
@@ -159,7 +159,7 @@ module.exports = async (req) => {
 
       //~ STATUS CHAMADA
       const [status_contato_list_filters] = await conn.execute(
-        `SELECT DISTINCT mr.status_contato as value
+        `SELECT DISTINCT mr.status as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}`,
