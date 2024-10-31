@@ -18,6 +18,7 @@ module.exports = async (req) => {
         produto_fidelizado,
         status_plano_list,
         status_contato_list,
+        uf_list,
         isExportacao,
         planos_fidelizaveis,
       } = filters || {};
@@ -40,6 +41,9 @@ module.exports = async (req) => {
       }
       if (status_contato_list && ensureArray(status_contato_list).length > 0) {
         where += ` AND mr.status IN('${ensureArray(status_contato_list).join("','")}') `;
+      }
+      if (uf_list && ensureArray(uf_list).length > 0) {
+        where += ` AND mc.uf IN('${ensureArray(uf_list).join("','")}') `;
       }
       if (isExportacao) {
         where += `AND NOT EXISTS(
@@ -223,12 +227,22 @@ module.exports = async (req) => {
         params
       );
 
+      //~ UFS
+      const [uf_list_filters] = await conn.execute(
+        `SELECT DISTINCT mc.uf as value
+        FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        ${where}`,
+        params
+      );
+
       campanha.filters = {
         plano_atual_list: plano_atual_list_filters.filter((item) => !!item.value) || [],
         produto_list: produto_list_filters.filter((item) => !!item.value) || [],
         status_plano_list: status_plano_list_filters.filter((item) => !!item.value) || [],
         vendedores_list: vendedores_list_filters.filter((item) => !!item.value) || [],
         status_contato_list: status_contato_list_filters.filter((item) => !!item.value) || [],
+        uf_list: uf_list_filters.filter((item) => !!item.value) || [],
       };
 
       //~ FIM - FILTERS LIST
