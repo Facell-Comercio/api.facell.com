@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
       cliente.desconto = parseFloat(cliente.valor_pre) - parseFloat(cliente.valor_plano);
     }
 
-    const [resultados] = await conn.execute(
+    const [interacoes] = await conn.execute(
       `
       SELECT *,
       TIMESTAMP(data_contato, hora_contato_inicio) as datetime_contato_inicio,
@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
       [id]
     );
 
-    cliente.resultados = resultados;
+    cliente.interacoes = interacoes;
 
     res.status(200).json(cliente);
   } catch (error) {
