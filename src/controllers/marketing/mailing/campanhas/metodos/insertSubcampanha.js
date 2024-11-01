@@ -4,16 +4,19 @@ const getOneCampanha = require("./getOneCampanha");
 
 module.exports = async (req, res) => {
   const { user } = req;
-  if (!user) {
-    reject("Usuário não autenticado!");
-    return false;
-  }
-  // Filtros
-  const { nome, id_parent, filters } = req.body;
 
   let conn;
 
   try {
+    const { nome, id_parent, filters } = req.body;
+
+    if (!nome) {
+      throw new Error("Nome da subcampanha não informado");
+    }
+    if (!id_parent) {
+      throw new Error("ID da campanha pai não informado");
+    }
+
     conn = await db.getConnection();
     await conn.beginTransaction();
 
@@ -29,7 +32,7 @@ module.exports = async (req, res) => {
     //* INSERINDO A CAMPANHA
     const [resultSubcampanha] = await conn.execute(
       "INSERT INTO marketing_mailing_campanhas (nome, id_user, id_parent) VALUES (?,?,?)",
-      [nome, user.id, id_parent]
+      [nome.toUpperCase(), user.id, id_parent]
     );
     const id_subcampanha = resultSubcampanha.insertId;
     for (const cliente of campanha.clientes) {
@@ -50,7 +53,7 @@ module.exports = async (req, res) => {
     });
     if (conn) await conn.rollback();
     if (String(error.message).includes("Duplicate entry")) {
-      res.status(500).json({ message: "Cliente já cadastrado!" });
+      res.status(500).json({ message: "Subcampanha já cadastrada!" });
     } else {
       res.status(500).json({ message: error.message });
     }

@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
         }
       }
 
-      const queryConsulta = `
+      const queryConsultaFacell = `
           SELECT
             grupoEstoque AS grupo_estoque,
             subgrupo,
@@ -55,8 +55,37 @@ module.exports = async (req, res) => {
           FROM datasys_vendas
             ${where}
         `;
-      const [compras] = await conn.execute(queryConsulta);
+      const [comprasFacell] = await conn.execute(queryConsultaFacell);
+      const queryConsultaFort = `
+          SELECT
+            grupoEstoque AS grupo_estoque,
+            subgrupo,
+            gsm,
+            gsmPortado AS gsm_portado,
+            cpfCliente AS cpf_cliente,
+            nomeCliente AS cliente,
+            cpfVendedor AS cpf_vendedor,
+            nomeVendedor AS vendedor,
+            planoHabilitacao AS plano_habilitado,
+            descricao AS produto_compra,
+            modalidadeVenda AS modalidade,
+            codProduto AS codigo_produto,
+            descontoPlano AS desconto_plano,
+            valorCaixa AS valor_caixa,
+            filial,
+            area AS uf,
+            tipoPedido AS tipo_pedido,
+            fornecedor,
+            fabricante,
+            fidAparelho AS fid_aparelho,
+            fidPlano AS fid_plano,
+            dataPedido as data_compra
+          FROM datasys_vendas_fort
+            ${where}
+        `;
+      const [comprasFort] = await conn.execute(queryConsultaFort);
 
+      const compras = [...comprasFacell, ...comprasFort];
       let totalCompras = compras.length;
 
       conn.config.namedPlaceholders = true;

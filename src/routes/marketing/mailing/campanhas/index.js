@@ -63,6 +63,11 @@ router.get(
     }
   }
 );
+router.delete(
+  "/:id",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.deleteSubcampanha
+);
 
 //* CLIENTES CAMPANHA
 router.get(

@@ -49,7 +49,7 @@ module.exports = async (req) => {
         where += `AND NOT EXISTS(
           SELECT 1 FROM marketing_mailing_interacoes mrs
           WHERE mrs.id_cliente = mc.id
-          AND mrs.status_contato LIKE "CHAMADA ATENDIDA")
+          AND mrs.status LIKE "CHAMADA ATENDIDA")
           `;
       }
       if (status_plano_list && ensureArray(status_plano_list).length > 0) {
@@ -260,6 +260,7 @@ module.exports = async (req) => {
            `,
         params
       );
+
       campanha.qtde_clientes =
         (rowQtdeClientes && rowQtdeClientes[0] && rowQtdeClientes[0].qtde) || 0;
       campanha.clientes = clientes;
@@ -274,7 +275,7 @@ module.exports = async (req) => {
 
       const [allClientes] = await conn.execute(
         `
-        SELECT mc.*
+        SELECT DISTINCT mc.*
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         WHERE mc.id_campanha IN ('${idsCampanhas.join("','")}')`

@@ -92,8 +92,6 @@ module.exports = async (req, res) => {
     } else {
       throw new Error("Tipo de importação inválida");
     }
-
-    res.status(200).json(result);
   } catch (error) {
     logger.error({
       module: "MARKETING",

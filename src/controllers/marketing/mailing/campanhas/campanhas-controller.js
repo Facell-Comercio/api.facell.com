@@ -21,4 +21,5 @@ module.exports = {
   importCampanhaEvolux: require("./metodos/importCampanhaEvolux"),
 
   deleteClientesCampanhaLote: require("./metodos/deleteClientesCampanhaLote"),
+  deleteSubcampanha: require("./metodos/deleteSubcampanha"),
 };

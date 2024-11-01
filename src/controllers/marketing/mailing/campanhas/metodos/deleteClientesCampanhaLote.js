@@ -26,14 +26,29 @@ module.exports = async (req, res) => {
       },
     });
 
-    //* DELETANDO CLIENTES DA CAMPANHA
-    for (const cliente of campanha.clientes) {
-      await conn.execute("DELETE FROM marketing_mailing_clientes WHERE id = ?", [cliente.id]);
+    const { id_parent } = campanha;
+
+    //* SE FOR UMA SUBCAMPANHA
+    //* RETORNAR CLIENTES PARA A CAMPANHA PARENT
+    if (id_parent) {
+      for (const cliente of campanha.clientes) {
+        await conn.execute("UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id = ?", [
+          id_parent,
+          cliente.id,
+        ]);
+      }
+    }
+
+    //* SE FOR UMA CAMPANHA
+    //* DELETA OS CLIENTES DA CAMPANHA
+    if (!id_parent) {
+      for (const cliente of campanha.clientes) {
+        await conn.execute("DELETE FROM marketing_mailing_clientes WHERE id = ?", [cliente.id]);
+      }
     }
 
     const campanhaFinal = await getOneCampanha({
       params: { id: id_campanha },
-      query: { filters },
       body: {
         conn_externa: conn,
       },
