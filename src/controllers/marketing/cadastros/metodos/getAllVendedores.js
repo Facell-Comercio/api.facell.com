@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
       params.push(offset);
     }
     const [vendedores] = await conn.execute(
-      `SELECT * FROM marketing_vendedores ${where} ${limit}`,
+      `SELECT * FROM marketing_vendedores ${where}  ORDER BY id DESC ${limit}`,
       params
     );
 

@@ -14,6 +14,11 @@ router.get(
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   controller.getOnePlano
 );
+router.post(
+  "/planos",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.insertOnePlano
+);
 
 //* VENDEDORES
 router.get(
@@ -25,6 +30,11 @@ router.get(
   "/vendedores/:id",
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   controller.getOneVendedor
+);
+router.post(
+  "/vendedores",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.insertOneVendedor
 );
 
 module.exports = router;
