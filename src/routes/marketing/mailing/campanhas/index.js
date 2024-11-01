@@ -33,6 +33,16 @@ router.put(
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   controller.updateCampanha
 );
+router.post(
+  "/subcampanhas",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.insertSubcampanha
+);
+router.post(
+  "/duplicar",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.duplicateCampanha
+);
 router.post("/:id", checkUserAuthorization("MARKETING", "OR", "MASTER", true), async (req, res) => {
   try {
     const result = await controller.getOneCampanha(req);
@@ -52,16 +62,6 @@ router.get(
       res.status(400).send({ message: error.message });
     }
   }
-);
-router.post(
-  "/subcampanhas",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
-  controller.insertSubcampanha
-);
-router.post(
-  "/duplicar",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
-  controller.duplicateCampanha
 );
 
 //* CLIENTES CAMPANHA
