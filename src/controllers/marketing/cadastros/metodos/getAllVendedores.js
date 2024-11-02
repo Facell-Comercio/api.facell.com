@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { termo } = filters || {};
+    const { termo, active } = filters || {};
 
     let where = "WHERE 1=1";
     const params = [];
@@ -21,6 +21,10 @@ module.exports = async (req, res) => {
     if (termo) {
       where += " AND nome LIKE CONCAT('%',?, '%')";
       params.push(termo);
+    }
+    if (active !== undefined) {
+      where += " AND active = ?";
+      params.push(active);
     }
 
     conn = conn_externa || (await db.getConnection());

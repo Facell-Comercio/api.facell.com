@@ -43,19 +43,11 @@ module.exports = async (req, res) => {
     );
 
     const [plano_produto_nao_fidelizado] = await conn.execute(
-      `SELECT DISTINCT produto_nao_fidelizado as value
-      FROM tim_planos_cbcf_vs_precos
-      WHERE 1=1 ${
-        planoProdutoNaoFidelizado ? `AND produto_nao_fidelizado LIKE CONCAT('%',?, '%')` : ""
-      }`,
-      [planoProdutoNaoFidelizado || null]
+      "SELECT DISTINCT produto_nao_fidelizado as value FROM tim_planos_cbcf_vs_precos"
     );
 
     const [plano_produto_fidelizado] = await conn.execute(
-      `SELECT DISTINCT produto_fidelizado as value
-      FROM tim_planos_cbcf_vs_precos
-      WHERE 1=1 ${planoProdutoFidelizado ? `AND produto_fidelizado LIKE CONCAT('%',?, '%')` : ""}`,
-      [planoProdutoFidelizado || null]
+      "SELECT DISTINCT produto_fidelizado as value FROM tim_planos_cbcf_vs_precos"
     );
 
     const objResponse = {

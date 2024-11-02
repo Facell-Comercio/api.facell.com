@@ -9,7 +9,6 @@ module.exports = async (req, res) => {
 
   try {
     const { id, nome, active } = req.body;
-    console.log(req.body);
 
     conn = conn_externa || (await db.getConnection());
 
