@@ -3,9 +3,14 @@ module.exports = {
   getAllVendedores: require("./metodos/getAllVendedores"),
   getOnePlano: require("./metodos/getOnePlano"),
   getOneVendedor: require("./metodos/getOneVendedor"),
+  getEstoqueAparelho: require("../mailing/getEstoqueAparelho"),
 
   insertOnePlano: require("./metodos/insertOnePlano"),
   insertOneVendedor: require("./metodos/insertOneVendedor"),
-  // updateOnePlano: require("./metodos/updateOnePlano"),
-  // updateOneVendedor: require("./metodos/updateOneVendedor"),
+
+  updatePlano: require("./metodos/updatePlano"),
+  updateVendedor: require("./metodos/updateVendedor"),
+
+  deletePlano: require("./metodos/deletePlano"),
+  deleteVendedor: require("./metodos/deleteVendedor"),
 };

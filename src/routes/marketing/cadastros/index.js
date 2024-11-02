@@ -19,6 +19,16 @@ router.post(
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   controller.insertOnePlano
 );
+router.put(
+  "/planos",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.updatePlano
+);
+router.delete(
+  "/planos/:id",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.updatePlano
+);
 
 //* VENDEDORES
 router.get(
@@ -35,6 +45,16 @@ router.post(
   "/vendedores",
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),
   controller.insertOneVendedor
+);
+router.put(
+  "/vendedores",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.updateVendedor
+);
+router.delete(
+  "/vendedores/:id",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.deleteVendedor
 );
 
 module.exports = router;

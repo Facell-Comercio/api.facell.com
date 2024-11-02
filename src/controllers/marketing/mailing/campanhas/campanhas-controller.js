@@ -15,7 +15,6 @@ module.exports = {
   definirVendedoresLote: require("./metodos/definirVendedoresLote"),
 
   getAllAparelhos: require("../getAllAparelhos"),
-  getAllVendedores: require("../getAllVendedores"),
 
   exportSubcampanha: require("./metodos/exportSubcampanha"),
   importCampanhaEvolux: require("./metodos/importCampanhaEvolux"),

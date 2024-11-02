@@ -10,11 +10,10 @@ module.exports = async (req, res) => {
   try {
     const { id, plano, produto_nao_fidelizado, produto_fidelizado } = req.body;
     conn = conn_externa || (await db.getConnection());
+    await conn.beginTransaction();
 
-    if (id) {
-      throw new Error(
-        "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
-      );
+    if (!id) {
+      throw new Error("ID não informado");
     }
     if (!plano) {
       throw new Error("Plano não informado");
@@ -27,22 +26,19 @@ module.exports = async (req, res) => {
     }
 
     await conn.execute(
-      "INSERT INTO tim_planos_cbcf_vs_precos (plano, produto_nao_fidelizado, produto_fidelizado) VALUES (?,?,?)",
-      [plano, produto_nao_fidelizado, produto_fidelizado]
+      "UPDATE tim_planos_cbcf_vs_precos SET plano = ?, produto_nao_fidelizado = ?, produto_fidelizado = ? WHERE id = ?",
+      [plano, produto_nao_fidelizado, produto_fidelizado, id]
     );
+    await conn.commit();
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
       module: "MARKETING",
       origin: "CADASTROS",
-      method: "INSERT_ONE_PLANO",
+      method: "UPDATE_PLANO",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
-    if (String(error.message).includes("Duplicate entry")) {
-      res.status(500).json({ message: "Plano já cadastrado!" });
-    } else {
-      res.status(500).json({ message: error.message });
-    }
+    res.status(500).json({ message: error.message });
   } finally {
     if (conn && !conn_externa) conn.release();
   }

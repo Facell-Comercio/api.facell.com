@@ -20,11 +20,4 @@ router.get(
   controller.getEstoqueAparelho
 );
 
-//* VENDEDORES
-router.get(
-  "/vendedores",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
-  controller.getAllVendedores
-);
-
 module.exports = router;

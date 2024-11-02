@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
       params.push(offset);
     }
     const [vendedores] = await conn.execute(
-      `SELECT * FROM marketing_vendedores ${where}  ORDER BY id DESC ${limit}`,
+      `SELECT * FROM marketing_vendedores ${where} ORDER BY id DESC ${limit}`,
       params
     );
 
@@ -47,7 +47,6 @@ module.exports = async (req, res) => {
       pageCount: Math.ceil(qtdeTotal / pageSize),
       rowCount: qtdeTotal,
     };
-
     res.status(200).json(objResponse);
   } catch (error) {
     logger.error({

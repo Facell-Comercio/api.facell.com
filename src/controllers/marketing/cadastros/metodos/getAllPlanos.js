@@ -38,27 +38,23 @@ module.exports = async (req, res) => {
       params.push(offset);
     }
     const [planos] = await conn.execute(
-      `SELECT * FROM tim_planos_cbcf_vs_precos ${where} ${limit}`,
+      `SELECT * FROM tim_planos_cbcf_vs_precos ${where} ORDER BY id DESC ${limit}`,
       params
     );
 
     const [plano_produto_nao_fidelizado] = await conn.execute(
-      `SELECT DISTINCT produto_nao_fidelizado
+      `SELECT DISTINCT produto_nao_fidelizado as value
       FROM tim_planos_cbcf_vs_precos
       WHERE 1=1 ${
-        planoProdutoNaoFidelizado
-          ? `AND produto_nao_fidelizado as value LIKE CONCAT('%',?, '%')`
-          : ""
+        planoProdutoNaoFidelizado ? `AND produto_nao_fidelizado LIKE CONCAT('%',?, '%')` : ""
       }`,
       [planoProdutoNaoFidelizado || null]
     );
 
     const [plano_produto_fidelizado] = await conn.execute(
-      `SELECT DISTINCT produto_fidelizado
+      `SELECT DISTINCT produto_fidelizado as value
       FROM tim_planos_cbcf_vs_precos
-      WHERE 1=1 ${
-        planoProdutoFidelizado ? `AND produto_fidelizado as value LIKE CONCAT('%',?, '%')` : ""
-      }`,
+      WHERE 1=1 ${planoProdutoFidelizado ? `AND produto_fidelizado LIKE CONCAT('%',?, '%')` : ""}`,
       [planoProdutoFidelizado || null]
     );
 
