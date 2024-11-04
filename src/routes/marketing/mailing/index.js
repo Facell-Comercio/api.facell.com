@@ -10,19 +10,19 @@ router.use("/clientes", clientes);
 
 router.post(
   "/nova-campanha",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+
   controller.insertCampanha
 );
 
 //* APARELHOS
 router.get(
   "/aparelhos",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+
   controller.getAllAparelhos
 );
 router.get(
   "/aparelhos/estoque",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+
   controller.getEstoqueAparelho
 );
 

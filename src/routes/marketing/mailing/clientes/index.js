@@ -4,7 +4,7 @@ const controller = require("../../../../controllers/marketing/mailing/mailing-co
 const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 //* CLIENTES COMPRAS
-router.post("/", checkUserAuthorization("MARKETING", "OR", "MASTER", true), async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const result = await controller.getAllCompras(req);
     res.json(result);
@@ -15,7 +15,7 @@ router.post("/", checkUserAuthorization("MARKETING", "OR", "MASTER", true), asyn
 
 router.post(
   "/import-compras",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+
   async (req, res) => {
     try {
       const result = await controller.importComprasDatasys(req);
