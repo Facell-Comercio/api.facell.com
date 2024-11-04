@@ -46,6 +46,7 @@ module.exports = async (req, res) => {
     }
 
     const vendedoresWithIndex = vendedores.map((vendedor) => ({ ...vendedor, index: 0 }));
+    const vendedoresMap = new Map();
     //* ATRIBUINDO VENDEDORES
     for (let i = 0; i < qtde_clientes; i += 0) {
       for (const vendedor of vendedoresWithIndex) {
@@ -53,13 +54,22 @@ module.exports = async (req, res) => {
           continue;
         }
 
-        await conn.execute("UPDATE marketing_mailing_clientes SET vendedor = ? WHERE id = ?", [
-          vendedor.nome,
-          clientes[i].id,
-        ]);
+        // Adicionar cliente ao Map correspondente ao vendedor
+        if (!vendedoresMap.has(vendedor.nome)) {
+          vendedoresMap.set(vendedor.nome, []);
+        }
+        vendedoresMap.get(vendedor.nome).push(clientes[i].id);
+
         vendedor.index = vendedor.index + 1;
         i++;
       }
+    }
+    // Executar uma query de update por vendedor
+    for (const [nome, ids] of vendedoresMap.entries()) {
+      await conn.execute(
+        `UPDATE marketing_mailing_clientes SET vendedor = ? WHERE id IN ('${ids.join("','")}')`,
+        [nome]
+      );
     }
 
     await conn.commit();

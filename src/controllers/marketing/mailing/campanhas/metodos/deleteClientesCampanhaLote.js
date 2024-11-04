@@ -31,12 +31,17 @@ module.exports = async (req, res) => {
     //* SE FOR UMA SUBCAMPANHA
     //* RETORNAR CLIENTES PARA A CAMPANHA PARENT
     if (id_parent) {
-      for (const cliente of campanha.clientes) {
-        await conn.execute("UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id = ?", [
-          id_parent,
-          cliente.id,
-        ]);
+      const clientesIds = campanha.clientes?.map((cliente) => cliente.id) || [];
+      if (clientesIds.length === 0) {
+        res.status(200).json({ message: "Nenhum cliente encontrado para esta campanha!" });
+        return;
       }
+      await conn.execute(
+        `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN ('${clientesIds.join(
+          "','"
+        )}')`,
+        [id_parent]
+      );
     }
 
     //* SE FOR UMA CAMPANHA

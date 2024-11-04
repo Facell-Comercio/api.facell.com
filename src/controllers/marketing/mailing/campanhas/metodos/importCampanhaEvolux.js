@@ -75,9 +75,33 @@ module.exports = async (req, res) => {
         page++;
       }
 
+      const arrayResultados = [];
+      const maxLength = 10000;
+      let totalResultados = resultados.flat().length;
+
       for (const resultado of resultados.flat()) {
-        await conn.execute(
-          `
+        arrayResultados.push(
+          `(
+            ${db.escape(resultado.id)}, -- ID
+            ${db.escape("evolux")}, -- PLATAFORMA
+            ${db.escape(resultado.subscriber.external_id)}, -- ID CLIENTE
+            ${db.escape(resultado.campaign.name)}, -- NOME CAMPANHA
+            ${db.escape(resultado.subscriber.name)}, -- NOME ASSINANTE
+            ${db.escape(resultado.outcome)}, -- STATUS
+            ${db.escape(new Date(resultado.start_time))}, -- DATA
+            ${db.escape(new Date(resultado.start_time))}, -- HORA CONTATO INICIO
+            ${db.escape(new Date(resultado.answer_time))}, -- HORA CONTATO RESPOSTA
+            ${db.escape(new Date(resultado.end_time))}, -- HORA CONTATO FINAL
+            ${db.escape(resultado.talking_duration)}, -- DURACAO CHAMADA
+            ${db.escape(resultado.agent.name)}, -- OPERADOR
+            ${db.escape(resultado.hangup_cause || null)}, -- OBSERVACAO
+            ${db.escape(resultado.classification || null)}, -- CLASSIFICACAO
+            ${db.escape(req.user.id)} -- ID USER
+          )`
+        );
+
+        if (arrayResultados.length === maxLength || totalResultados === 1) {
+          const query = `
             INSERT IGNORE INTO marketing_mailing_interacoes
             (
               id,
@@ -90,31 +114,18 @@ module.exports = async (req, res) => {
               hora_contato_inicio,
               hora_contato_resposta,
               hora_contato_final,
-              duracao,
+              duracao_chamada,
               operador,
               observacao,
               classificacao,
               id_user
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            `,
-          [
-            resultado.id, // ID
-            "evolux", // PLATAFORMA
-            resultado.subscriber.external_id, // ID_CLIENTE
-            resultado.campaign.name, // NOME_CAMPANHA
-            resultado.subscriber.name, // NOME_ASSINANTE
-            resultado.outcome, //STATUS_CONTATO
-            new Date(resultado.start_time), // DATA_CONTATO
-            new Date(resultado.start_time), // HORA_CONTATO_INICIO
-            new Date(resultado.answer_time), // HORA_CONTATO_RESPOSTA
-            new Date(resultado.end_time), // HORA_CONTATO_FINAL
-            resultado.talking_duration, // DURACAO_CHAMADA
-            resultado.agent.name, // OPERADOR_CONTATO
-            resultado.hangup_cause || null, // OBSERVACAO
-            resultado.classification || null, // CLASSIFICACAO
-            req.user.id || null, // ID_USER
-          ]
-        );
+            ) VALUES ${arrayResultados.join(",")}
+            `;
+
+          await conn.execute(query);
+          arrayResultados.length = 0;
+        }
+        totalResultados--;
       }
 
       // DOCUMENTAÇÃO
