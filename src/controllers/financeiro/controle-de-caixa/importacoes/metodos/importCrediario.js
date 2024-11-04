@@ -41,6 +41,9 @@ module.exports = async (req) => {
       conn.config.namedPlaceholders = true;
 
       for (const row of formattedData) {
+        if (!row["CNPJ LOJA"]) {
+          throw new Error(`Campo "CNPJ LOJA" não informado!`);
+        }
         const cnpj = row["CNPJ LOJA"].replace(/[^a-zA-Z0-9]/g, "");
         const [rowFilial] = await conn.execute(`SELECT id FROM filiais WHERE cnpj = :cnpj `, {
           cnpj,
