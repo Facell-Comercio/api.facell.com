@@ -23,16 +23,20 @@ module.exports = async (req) => {
         throw new Error(`Campanha não encontrada`);
       }
 
+      const [subcampanhas] = await conn.execute(
+        `SELECT * FROM marketing_mailing_campanhas WHERE id_parent = ?`,
+        [id]
+      );
+      campanha.subcampanhas = subcampanhas;
+
+      const idsCampanhas = [id, subcampanhas.map((subcampanha) => subcampanha.id)].flat();
+
       const [allClientes] = await conn.execute(
         `
         SELECT DISTINCT mc.*
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        LEFT JOIN marketing_mailing_campanhas c ON mc.id_campanha = c.id OR mc.id_campanha IN (
-            SELECT id FROM marketing_mailing_campanhas WHERE id_parent = ?
-        )
-        WHERE c.id = ?`,
-        [id, id]
+        WHERE mc.id_campanha IN ('${idsCampanhas.join("','")}')`
       );
 
       campanha.all_clientes = allClientes;
