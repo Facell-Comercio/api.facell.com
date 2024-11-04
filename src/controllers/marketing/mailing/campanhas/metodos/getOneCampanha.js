@@ -11,7 +11,7 @@ module.exports = async (req) => {
 
     try {
       const { id } = req.params || {};
-      const { filters } = req.body || {};
+      const { filters, pagination } = req.body || {};
       const {
         plano_atual_list,
         produto_list,
@@ -22,6 +22,10 @@ module.exports = async (req) => {
         isExportacao,
         planos_fidelizaveis,
       } = filters || {};
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
 
       let where = " WHERE 1=1 ";
       const params = [];
@@ -135,52 +139,6 @@ module.exports = async (req) => {
         throw new Error(`Campanha não encontrada`);
       }
 
-      const [clientes] = await conn.execute(
-        `SELECT DISTINCT mc.* FROM marketing_mailing_clientes mc
-        LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        ${where}`,
-        params
-      );
-
-      const [rowsPrecos] = await conn.execute(
-        `
-        SELECT *
-        FROM tim_tabela_precos
-        WHERE data_final IS NULL
-        GROUP BY descricao_comercial`
-      );
-      if (!rowsPrecos || rowsPrecos.length === 0) {
-        throw new Error("Nenhum preço disponível para os produtos dos planos");
-      }
-
-      const [rowsPlanos] = await conn.execute("SELECT * FROM tim_planos_cbcf_vs_precos");
-      if (!rowsPlanos || rowsPlanos.length === 0) {
-        throw new Error("Nenhum plano encontrado");
-      }
-
-      //* DEFINIÇÃO DOS VALORES DO PRODUTO DE CADA CLIENTE
-      for (const cliente of clientes) {
-        if (!cliente.produto_ofertado) {
-          continue;
-        }
-        const plano = rowsPlanos.find((value) =>
-          value.plano.toLowerCase().trim().includes(cliente.plano_atual.trim().toLowerCase())
-        );
-
-        let valor_plano_col = "val_pre";
-        if (plano) {
-          valor_plano_col = cliente.produto_fidelizado
-            ? plano.produto_fidelizado
-            : plano.produto_nao_fidelizado;
-        }
-        const precos = rowsPrecos.find((preco) =>
-          preco.descricao_comercial.includes(cliente.produto_ofertado)
-        );
-        cliente.valor_pre = precos.val_pre || 0;
-        cliente.valor_plano = precos[valor_plano_col] || 0;
-        cliente.desconto = parseFloat(cliente.valor_pre) - parseFloat(cliente.valor_plano);
-      }
-
       //~ INÍCIO - FILTERS LIST
       //~ PLANO ATUAL
       const [plano_atual_list_filters] = await conn.execute(
@@ -263,6 +221,60 @@ module.exports = async (req) => {
 
       campanha.qtde_clientes =
         (rowQtdeClientes && rowQtdeClientes[0] && rowQtdeClientes[0].qtde) || 0;
+
+      const limit = pagination ? " LIMIT ? OFFSET ? " : "";
+      if (limit) {
+        const offset = pageIndex * pageSize;
+        params.push(pageSize);
+        params.push(offset);
+      }
+
+      const [clientes] = await conn.execute(
+        `SELECT DISTINCT mc.* FROM marketing_mailing_clientes mc
+          LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+          ${where} ORDER BY mc.cliente ${limit}`,
+        params
+      );
+
+      const [rowsPrecos] = await conn.execute(
+        `
+          SELECT *
+          FROM tim_tabela_precos
+          WHERE data_final IS NULL
+          GROUP BY descricao_comercial`
+      );
+      if (!rowsPrecos || rowsPrecos.length === 0) {
+        throw new Error("Nenhum preço disponível para os produtos dos planos");
+      }
+
+      const [rowsPlanos] = await conn.execute("SELECT * FROM tim_planos_cbcf_vs_precos");
+      if (!rowsPlanos || rowsPlanos.length === 0) {
+        throw new Error("Nenhum plano encontrado");
+      }
+
+      //* DEFINIÇÃO DOS VALORES DO PRODUTO DE CADA CLIENTE
+      for (const cliente of clientes) {
+        if (!cliente.produto_ofertado) {
+          continue;
+        }
+        const plano = rowsPlanos.find((value) =>
+          value.plano.toLowerCase().trim().includes(cliente.plano_atual.trim().toLowerCase())
+        );
+
+        let valor_plano_col = "val_pre";
+        if (plano) {
+          valor_plano_col = cliente.produto_fidelizado
+            ? plano.produto_fidelizado
+            : plano.produto_nao_fidelizado;
+        }
+        const precos = rowsPrecos.find((preco) =>
+          preco.descricao_comercial.includes(cliente.produto_ofertado)
+        );
+        cliente.valor_pre = precos.val_pre || 0;
+        cliente.valor_plano = precos[valor_plano_col] || 0;
+        cliente.desconto = parseFloat(cliente.valor_pre) - parseFloat(cliente.valor_plano);
+      }
+
       campanha.clientes = clientes;
 
       const [subcampanhas] = await conn.execute(

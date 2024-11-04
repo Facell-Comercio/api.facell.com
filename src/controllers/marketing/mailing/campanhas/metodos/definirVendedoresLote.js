@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
         conn_externa: conn,
       },
     });
-    const { clientes, qtde_clientes } = campanha;
+    const { qtde_clientes, clientes } = campanha;
 
     //* VALIDAÇÃO DE QTDE CLIENTES EM VENDEDORES
     const qtde_clientes_vendedores = vendedores.reduce(
@@ -45,25 +45,31 @@ module.exports = async (req, res) => {
       throw new Error("Há vendedores sem nome");
     }
 
-    const vendedoresWithIndex = vendedores.map((vendedor) => ({ ...vendedor, index: 0 }));
+    const vendedoresWithIndex = vendedores
+      .map((vendedor) => ({ ...vendedor, index: 0 }))
+      .sort((a, b) => {
+        if (a.nome < b.nome) return -1;
+        if (a.nome > b.nome) return 1;
+        return 0;
+      });
     const vendedoresMap = new Map();
     //* ATRIBUINDO VENDEDORES
-    for (let i = 0; i < qtde_clientes; i += 0) {
-      for (const vendedor of vendedoresWithIndex) {
-        if (vendedor.index === parseInt(vendedor.qtde_clientes)) {
-          continue;
-        }
-
+    let index = 0;
+    for (const vendedor of vendedoresWithIndex) {
+      for (let i = 0; i < parseInt(vendedor.qtde_clientes); i += 0) {
         // Adicionar cliente ao Map correspondente ao vendedor
         if (!vendedoresMap.has(vendedor.nome)) {
           vendedoresMap.set(vendedor.nome, []);
         }
-        vendedoresMap.get(vendedor.nome).push(clientes[i].id);
+
+        vendedoresMap.get(vendedor.nome).push(clientes[index].id);
 
         vendedor.index = vendedor.index + 1;
         i++;
+        index++;
       }
     }
+
     // Executar uma query de update por vendedor
     for (const [nome, ids] of vendedoresMap.entries()) {
       await conn.execute(
