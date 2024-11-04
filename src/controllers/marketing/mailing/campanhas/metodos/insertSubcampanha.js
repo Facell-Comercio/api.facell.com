@@ -29,18 +29,24 @@ module.exports = async (req, res) => {
       },
     });
 
+    const clientesIds = campanha.clientes?.map((cliente) => cliente.id) || [];
+    if (clientesIds.length === 0) {
+      res.status(200).json({ message: "Nenhum cliente encontrado para esta campanha!" });
+      return;
+    }
     //* INSERINDO A CAMPANHA
     const [resultSubcampanha] = await conn.execute(
       "INSERT INTO marketing_mailing_campanhas (nome, id_user, id_parent) VALUES (?,?,?)",
       [nome.toUpperCase(), user.id, id_parent]
     );
     const id_subcampanha = resultSubcampanha.insertId;
-    for (const cliente of campanha.clientes) {
-      await conn.execute("UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id = ?", [
-        id_subcampanha,
-        cliente.id,
-      ]);
-    }
+
+    await conn.execute(
+      `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN ('${clientesIds.join(
+        "','"
+      )}')`,
+      [id_subcampanha]
+    );
 
     await conn.commit();
     res.status(200).json({ message: "Success" });

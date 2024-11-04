@@ -12,11 +12,7 @@ router.post("/", checkUserAuthorization("MARKETING", "OR", "MASTER", true), asyn
     res.status(400).send({ message: error.message });
   }
 });
-router.post(
-  "/",
-  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
-  controller.insertCampanha
-);
+
 router.post(
   "/import-compras",
   checkUserAuthorization("MARKETING", "OR", "MASTER", true),

@@ -8,6 +8,12 @@ const clientes = require("./clientes");
 router.use("/campanhas", campanhas);
 router.use("/clientes", clientes);
 
+router.post(
+  "/nova-campanha",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.insertCampanha
+);
+
 //* APARELHOS
 router.get(
   "/aparelhos",
