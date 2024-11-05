@@ -15,16 +15,13 @@ module.exports = function deleteConciliacao(req) {
       await conn.beginTransaction();
 
       //* Deleta a conciliação bancária
-      await conn.execute(
-        `DELETE FROM fin_conciliacao_bancaria WHERE id = ? LIMIT 1`,
-        [id]
-      );
+      await conn.execute(`DELETE FROM fin_conciliacao_bancaria WHERE id = ? LIMIT 1`, [id]);
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "DELETE_CONCILIACAO",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

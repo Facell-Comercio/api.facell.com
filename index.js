@@ -3,7 +3,8 @@ const path = require("path");
 
 const express = require("express");
 const cors = require("cors");
-const socketIo = require("socket.io");
+// const socketIo = require("socket.io");
+// const socketRoot = require("./src/socket");
 const { logger } = require("./logger");
 
 require("./mysql");
@@ -28,8 +29,11 @@ app.use(
     exposedHeaders: ["Content-Disposition"],
   })
 );
+
 // const configureSocketModule = require('./src/socket/socket')
+// ^ Rotas públicas de arquivos estáticos:
 app.use("/", express.static(path.join(__dirname, "public")));
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.use("/temp", express.static(path.join(__dirname, "public", "temp")));
 
@@ -44,13 +48,24 @@ server.listen(PORTA, () => {
     module: "ROOT",
     origin: "INDEX",
     method: "LISTEN",
-    data: { message: "Backend Datasys is running... na porta " + PORTA },
+    data: {
+      stack: "",
+      name: "Running",
+      message: "Backend Datasys is running... na porta " + PORTA,
+    },
   });
 });
+
+// Configura socket.io
 // const io = socketIo(server, {
-//     cors: {
-//         origin: ["http://localhost"],
-//         methods: ["GET","POST"],
-//     }
+//   cors: {
+//     origin: [
+//       "http://localhost:5173",
+//       "http://localhost:5174",
+//       "http://localhost",
+//       "https://app.facell.com",
+//     ],
+//     methods: ["GET", "POST"],
+//   },
 // });
-// configureChatModule(io)
+// socketRoot(io);

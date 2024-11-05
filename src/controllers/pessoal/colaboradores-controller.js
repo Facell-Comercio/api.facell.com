@@ -65,7 +65,6 @@ function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
       };
-      console.log(objResponse);
 
       resolve(objResponse);
     } catch (error) {
@@ -161,7 +160,7 @@ function update(req) {
   return new Promise(async (resolve, reject) => {
     const { id, nome, cpf, active } = req.body;
     let conn;
-    console.log(req.body);
+    // console.log(req.body);
     try {
       conn = await db.getConnection();
       if (!id) {

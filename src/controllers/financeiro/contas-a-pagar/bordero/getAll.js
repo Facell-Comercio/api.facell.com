@@ -16,6 +16,7 @@ module.exports = function getAll(req) {
       pageSize: 15,
     };
     const {
+      id_bordero,
       id_conta_bancaria,
       banco,
       id_grupo_economico,
@@ -32,6 +33,10 @@ module.exports = function getAll(req) {
     let where = ` WHERE 1=1 `;
     const params = [];
 
+    if (id_bordero) {
+      where += ` AND bordero.id = ? `;
+      params.push(id_bordero);
+    }
     if (id_conta_bancaria) {
       where += ` AND bordero.id_conta_bancaria = ? `;
       params.push(id_conta_bancaria);

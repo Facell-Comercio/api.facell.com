@@ -1,10 +1,8 @@
-const { format, startOfDay, addMonths } = require("date-fns");
+const { format, startOfDay, addMonths, formatDate } = require("date-fns");
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 
-const {
-  checkUserDepartment,
-} = require("../../../../helpers/checkUserDepartment");
+const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
 const { checkCodigoBarras } = require("../../../../helpers/chekers");
 
 const {
@@ -19,8 +17,9 @@ const { persistFile } = require("../../../storage-controller");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
+    let conn;
     try {
+      conn = await db.getConnection();
       await conn.beginTransaction();
       const { user } = req;
       const data = req.body;
@@ -149,9 +148,7 @@ module.exports = function insertOne(req) {
         // ^ Validar vencimento se possui todos os campos obrigatórios
         if (!vencimento.data_vencimento) {
           throw new Error(
-            `O vencimento não possui data de vencimento! Vencimento: ${JSON.stringify(
-              vencimento
-            )}`
+            `O vencimento não possui data de vencimento! Vencimento: ${JSON.stringify(vencimento)}`
           );
         }
         if (!vencimento.data_prevista) {
@@ -162,9 +159,7 @@ module.exports = function insertOne(req) {
           );
         }
         if (!valorVencimento) {
-          throw new Error(
-            `O vencimento não possui valor! Item: ${JSON.stringify(vencimento)}`
-          );
+          throw new Error(`O vencimento não possui valor! Item: ${JSON.stringify(vencimento)}`);
         }
         vencimento.valor = valorVencimento;
       }
@@ -174,39 +169,29 @@ module.exports = function insertOne(req) {
         // ^ Validar vencimento se possui todos os campos obrigatórios
         if (!item_rateio.id_filial) {
           throw new Error(
-            `ID Filial não informado para o item de rateio: ${JSON.stringify(
-              item_rateio
-            )}`
+            `ID Filial não informado para o item de rateio: ${JSON.stringify(item_rateio)}`
           );
         }
         if (!item_rateio.id_centro_custo) {
           throw new Error(
-            `ID CENTRO DE CUSTO não informado para o item de rateio: ${JSON.stringify(
-              item_rateio
-            )}`
+            `ID CENTRO DE CUSTO não informado para o item de rateio: ${JSON.stringify(item_rateio)}`
           );
         }
         if (!item_rateio.id_plano_conta) {
           throw new Error(
-            `ID PLANO DE CONTAS não informado para o item de rateio: ${JSON.stringify(
-              item_rateio
-            )}`
+            `ID PLANO DE CONTAS não informado para o item de rateio: ${JSON.stringify(item_rateio)}`
           );
         }
         const valorRateio = parseFloat(item_rateio.valor);
         const percentualRateio = parseFloat(item_rateio.percentual);
         if (!valorRateio) {
           throw new Error(
-            `Valor não informado para o item de rateio: ${JSON.stringify(
-              item_rateio
-            )}`
+            `Valor não informado para o item de rateio: ${JSON.stringify(item_rateio)}`
           );
         }
         if (!percentualRateio) {
           throw new Error(
-            `Percentual não informado para o item de rateio: ${JSON.stringify(
-              item_rateio
-            )}`
+            `Percentual não informado para o item de rateio: ${JSON.stringify(item_rateio)}`
           );
         }
         item_rateio.valor = valorRateio;
@@ -219,9 +204,7 @@ module.exports = function insertOne(req) {
         [id_grupo_economico]
       );
       const grupoValidaOrcamento =
-        rowGrupoEconomico &&
-        rowGrupoEconomico[0] &&
-        !!+rowGrupoEconomico[0]["orcamento"];
+        rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]["orcamento"];
 
       // * Obter o Orçamento:
       const [rowOrcamento] = await conn.execute(
@@ -229,10 +212,7 @@ module.exports = function insertOne(req) {
         [format(new Date(), "yyyy-MM"), id_grupo_economico]
       );
 
-      if (
-        grupoValidaOrcamento &&
-        (!rowOrcamento || rowOrcamento.length === 0)
-      ) {
+      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
         throw new Error("Orçamento não localizado!");
       }
       if (rowOrcamento.length > 1) {
@@ -240,20 +220,24 @@ module.exports = function insertOne(req) {
           `${rowOrcamento.length} orçamentos foram localizados, isso é um erro! Procurar a equipe de desenvolvimento.`
         );
       }
-      const orcamentoAtivo =
-        rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
-      const id_orcamento =
-        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
+      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
+      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // * Persitir os anexos
       const nova_url_nota_fiscal = await persistFile({
         fileUrl: url_nota_fiscal,
       });
-      const nova_url_xml = await persistFile({ fileUrl: url_xml });
-      const nova_url_boleto = await persistFile({ fileUrl: url_boleto });
+      const nova_url_xml = await persistFile({
+        fileUrl: url_xml,
+      });
+      const nova_url_boleto = await persistFile({
+        fileUrl: url_boleto,
+      });
       const nova_url_contrato = await persistFile({ fileUrl: url_contrato });
       const nova_url_planilha = await persistFile({ fileUrl: url_planilha });
-      const nova_url_txt = await persistFile({ fileUrl: url_txt });
+      const nova_url_txt = await persistFile({
+        fileUrl: url_txt,
+      });
 
       // * Criação do Título a Pagar
       const [resultInsertTitulo] = await conn.execute(
@@ -344,18 +328,12 @@ module.exports = function insertOne(req) {
 
       // * Atualizar recorrência
       if (id_recorrencia) {
-        await conn.execute(
-          `UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id = ?`,
-          [id_recorrencia]
-        );
+        await conn.execute(`UPDATE fin_cp_titulos_recorrencias SET lancado = true WHERE id = ?`, [
+          id_recorrencia,
+        ]);
         await conn.execute(
           `INSERT INTO fin_cp_titulos_recorrencias (id_user, id_titulo, data_vencimento, valor) VALUES (?, ?, ?, ?)`,
-          [
-            user.id,
-            newId,
-            addMonths(new Date(vencimentos[0].data_vencimento), 1),
-            valor,
-          ]
+          [user.id, newId, addMonths(new Date(vencimentos[0].data_vencimento), 1), valor]
         );
       }
 
@@ -365,7 +343,8 @@ module.exports = function insertOne(req) {
 
         //* Código de Barras
         let cod_barras = vencimento.cod_barras;
-        if (id_forma_pagamento == "10") {
+        if (id_forma_pagamento == "10" || id_forma_pagamento == "11") {
+          // console.log("Código de Barras");
           cod_barras = normalizeCodigoBarras48(vencimento.cod_barras);
         } else {
           cod_barras = normalizeCodigoBarras(vencimento.cod_barras);
@@ -374,6 +353,7 @@ module.exports = function insertOne(req) {
         if (
           !!cod_barras &&
           id_forma_pagamento != "10" &&
+          id_forma_pagamento != "11" &&
           !checkCodigoBarras(cod_barras)
         ) {
           throw new Error(`Linha Digitável inválida: ${cod_barras}`);
@@ -397,18 +377,15 @@ module.exports = function insertOne(req) {
           if (!cartao) {
             throw new Error("Cartão corporativo não encontrado!");
           }
-          if (
-            parseInt(cartao.dia_vencimento) !==
-            new Date(vencimento.data_vencimento).getDate()
-          ) {
+          if (parseInt(cartao.dia_vencimento) !== new Date(vencimento.data_vencimento).getDate()) {
             throw new Error("Dia de Vencimento inválido!");
           }
           //* Consulta alguns dados da fatura
           const [rowFaturas] = await conn.execute(
             `
-                            SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
-                            WHERE id_cartao = ? AND data_vencimento = ?
-                        `,
+              SELECT id, valor, closed FROM fin_cartoes_corporativos_faturas 
+              WHERE id_cartao = ? AND data_vencimento = ?
+            `,
             [id_cartao, startOfDay(vencimento.data_vencimento)]
           );
           const fatura = rowFaturas && rowFaturas[0];
@@ -418,17 +395,12 @@ module.exports = function insertOne(req) {
             //* Verifica se a fatura está fechada
             if (fatura.closed) {
               throw new Error(
-                `A fatura de data vencimento ${normalizeDate(
-                  startOfDay(vencimento.data_vencimento)
+                `A fatura de data vencimento ${formatDate(
+                  startOfDay(vencimento.data_vencimento),
+                  "dd/MM/yyyy"
                 )} já está fechada!`
               );
             }
-            const valor =
-              parseFloat(fatura.valor) + parseFloat(vencimento.valor);
-            await conn.execute(
-              `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ? `,
-              [valor, fatura.id]
-            );
             id_fatura = fatura.id;
           }
 
@@ -444,7 +416,7 @@ module.exports = function insertOne(req) {
                 id_cartao,
                 startOfDay(vencimento.data_vencimento),
                 startOfDay(vencimento.data_prevista),
-                vencimentos[0].valor,
+                vencimento.valor,
               ]
             );
             if (!result.insertId) {
@@ -497,11 +469,7 @@ module.exports = function insertOne(req) {
                             AND id_centro_custo = ?
                             AND id_plano_contas = ?
                             `,
-            [
-              id_orcamento,
-              item_rateio.id_centro_custo,
-              item_rateio.id_plano_conta,
-            ]
+            [id_orcamento, item_rateio.id_centro_custo, item_rateio.id_plano_conta]
           );
 
           if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
@@ -511,19 +479,13 @@ module.exports = function insertOne(req) {
           }
 
           const contaOrcamentoAtiva =
-            rowOrcamentoConta &&
-            rowOrcamentoConta[0] &&
-            !!+rowOrcamentoConta[0]["active"];
+            rowOrcamentoConta && rowOrcamentoConta[0] && !!+rowOrcamentoConta[0]["active"];
 
           const id_orcamento_conta =
-            rowOrcamentoConta &&
-            rowOrcamentoConta[0] &&
-            rowOrcamentoConta[0]["id"];
+            rowOrcamentoConta && rowOrcamentoConta[0] && rowOrcamentoConta[0]["id"];
 
           let valor_previsto =
-            rowOrcamentoConta &&
-            rowOrcamentoConta[0] &&
-            rowOrcamentoConta[0]["valor_previsto"];
+            rowOrcamentoConta && rowOrcamentoConta[0] && rowOrcamentoConta[0]["valor_previsto"];
           valor_previsto = parseFloat(valor_previsto);
 
           // Obter o Valor Realizado da Conta do Orçamento :
@@ -534,10 +496,7 @@ module.exports = function insertOne(req) {
             [id_orcamento_conta]
           );
           let valor_total_consumo =
-            (rowConsumoOrcamento &&
-              rowConsumoOrcamento[0] &&
-              rowConsumoOrcamento[0]["valor"]) ||
-            0;
+            (rowConsumoOrcamento && rowConsumoOrcamento[0] && rowConsumoOrcamento[0]["valor"]) || 0;
           valor_total_consumo = parseFloat(valor_total_consumo);
 
           // Calcular o saldo da conta do orçamento:
@@ -553,11 +512,7 @@ module.exports = function insertOne(req) {
           // * Persistir a conta de consumo do orçamento:
           await conn.execute(
             `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
-            [
-              id_orcamento_conta,
-              resultInsertItemRateio.insertId,
-              item_rateio.valor,
-            ]
+            [id_orcamento_conta, resultInsertItemRateio.insertId, item_rateio.valor]
           );
         }
       }
@@ -571,18 +526,22 @@ module.exports = function insertOne(req) {
       );
 
       await conn.commit();
-      resolve({ message: "Sucesso!" });
+      resolve({ message: "Sucesso!", id_titulo: newId });
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
         method: "INSERT_ONE",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
-      conn.release();
+      if (conn) conn.release();
     }
   });
 };

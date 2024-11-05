@@ -18,7 +18,7 @@ module.exports = function getFatura(req) {
         [id]
       );
       const fatura = rowFaturas && rowFaturas[0];
-
+      
       //* Compras aprovadas
       const [rowComprasAprovadas] = await conn.execute(
         `

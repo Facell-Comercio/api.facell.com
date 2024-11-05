@@ -12,22 +12,25 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASSWORD, // Sua senha de email
   },
 });
-function enviarEmail({ assunto, destinatarios, corpo, anexo }) {
+function enviarEmail({ assunto, destinatarios, corpo, corpo_html, anexo }) {
   return new Promise(async (resolve, reject) => {
     const mailOptions = {
       from: process.env.EMAIL_USERNAME,
       to: destinatarios.join(", "),
       subject: assunto,
       text: corpo,
+      html: corpo_html,
     };
 
     // Enviar o e-mail
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         logger.error({
-          module: 'ROOT', origin: 'EMAIL', method: 'ENVIA_EMAIL',
-          data: { message: error.message, stack: error.stack, name: error.name }
-        })
+          module: "ROOT",
+          origin: "EMAIL",
+          method: "ENVIA_EMAIL",
+          data: { message: error.message, stack: error.stack, name: error.name },
+        });
         reject("Erro ao tentar enviar o email");
         return false;
       }

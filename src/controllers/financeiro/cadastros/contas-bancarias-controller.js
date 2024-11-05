@@ -1,4 +1,4 @@
-const {logger} = require("../../../../logger");
+const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserPermission } = require("../../../helpers/checkUserPermission");
 
@@ -31,15 +31,20 @@ function getAll(req) {
       descricao,
       active,
       id_matriz,
+      onlyDatasys,
+      isCaixa,
+      showInactive,
     } = filters || {};
-    var where = ` WHERE 1=1 `;
+    let where = ` WHERE 1=1 `;
+
     const params = [];
 
+    if (!(showInactive == "true" || showInactive == 1)) {
+      where += ` AND cb.active = 1 `;
+    }
+
     if (!isMaster) {
-      if (
-        !contas_bancarias_habilitadas ||
-        contas_bancarias_habilitadas.length === 0
-      ) {
+      if (!contas_bancarias_habilitadas || contas_bancarias_habilitadas.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
@@ -54,7 +59,7 @@ function getAll(req) {
       where += ` AND f.id = ? `;
       params.push(id_filial);
     }
-    if (id_matriz) {
+    if (id_matriz && id_matriz !== "all") {
       where += ` AND f.id_matriz = ? `;
       params.push(id_matriz);
     }
@@ -67,7 +72,7 @@ function getAll(req) {
       else where += ` AND fb.nome LIKE CONCAT('%',?,'%') `;
       params.push(banco);
     }
-    if (id_grupo_economico) {
+    if (id_grupo_economico && id_grupo_economico !== "all") {
       where += ` AND ge.id = ? `;
       params.push(id_grupo_economico);
     }
@@ -78,6 +83,13 @@ function getAll(req) {
     if (active) {
       where += ` AND cb.active = ? `;
       params.push(active);
+    }
+    if (isCaixa !== undefined && isCaixa !== "all") {
+      if (Number(isCaixa)) {
+        where += " AND cb.caixa = 1";
+      } else {
+        where += " AND cb.caixa = 0";
+      }
     }
 
     const offset = pageIndex * pageSize;
@@ -94,16 +106,15 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       params.push(pageSize);
       params.push(offset);
       var query = `
             SELECT 
-              f.id_matriz, cb.id, cb.descricao, f.nome as filial, ge.nome, 
+              f.id_matriz, cb.*, f.nome as filial, ge.nome, 
               fb.nome as banco, ge.nome as grupo_economico, 
-              ftc.tipo as tipo_conta, cb.active
+              ftc.tipo as tipo_conta, cb.active, cb.caixa
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -144,7 +155,9 @@ function getOne(req) {
     try {
       const [rowPlanoContas] = await conn.execute(
         `
-            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia, cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, fb.nome as banco, ftc.tipo as tipo_conta, cb.active 
+            SELECT cb.id, cb.id_filial, cb.id_tipo_conta, cb.id_banco, cb.agencia, cb.dv_agencia,
+            cb.conta, cb.dv_conta, cb.descricao, f.nome as filial, f.id_matriz, ge.nome as grupo_economico, 
+            fb.nome as banco, ftc.tipo as tipo_conta, cb.active, cb.caixa
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
             LEFT JOIN fin_bancos fb ON fb.id = cb.id_banco
@@ -154,6 +167,7 @@ function getOne(req) {
             `,
         [id]
       );
+
       const planoContas = rowPlanoContas && rowPlanoContas[0];
       resolve(planoContas);
       return;
@@ -194,11 +208,7 @@ function insertOne(req) {
         }
         campos += `${key}`;
         values += `?`;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       const query = `INSERT INTO fin_contas_bancarias (${campos}) VALUES (${values});`;
@@ -240,11 +250,7 @@ function update(req) {
           updateQuery += ", "; // Adicionar vírgula entre os campos
         }
         updateQuery += `${key} = ? `;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       params.push(id);

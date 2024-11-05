@@ -10,33 +10,39 @@ function getAll(req) {
       reject("Usuário não autenticado!");
       return false;
     }
-    // Filtros
-    const { filters, pagination } = req.query;
-    const { termo } = filters || {};
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
-    const params = [];
+    let conn
+    try {
+      conn = await db.getConnection();
+      // Filtros
+      const { filters, pagination } = req.query;
+      const { termo, active } = filters || {};
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
+      const params = [];
 
-    var where = ` WHERE 1=1 `;
-    if (termo) {
-      const termoCnpj = termo.trim().replace(/[^a-zA-Z0-9 ]/g, '')
+      var where = ` WHERE 1=1 `;
 
-      where += ` AND (
+      if(active == undefined || active){
+          where += ` AND ff.active = 1 `
+      }
+      if (termo) {
+        const termoCnpj = termo.trim().replace(/[^a-zA-Z0-9 ]/g, '')
+
+        where += ` AND (
                 ff.nome LIKE CONCAT('%', ?, '%')  OR
                 ff.razao LIKE CONCAT('%', ?, '%')  OR
                 ff.cnpj = ?
             )`;
-      params.push(termo.trim());
-      params.push(termo.trim());
-      params.push(termoCnpj);
-    }
+        params.push(termo.trim());
+        params.push(termo.trim());
+        params.push(termoCnpj);
+      }
 
-    const offset = pageIndex * pageSize;
+      const offset = pageIndex * pageSize;
 
-    const conn = await db.getConnection();
-    try {
+
 
       const [rowTotal] = await conn.execute(
         `SELECT count(ff.id) as qtde FROM fin_fornecedores ff
@@ -73,7 +79,7 @@ function getAll(req) {
       });
       reject(error);
     } finally {
-      conn.release();
+      if(conn) conn.release();
     }
   });
 }
@@ -229,7 +235,7 @@ function update(req) {
     } = req.body;
 
     const conn = await db.getConnection();
-    
+
     try {
       if (!id) {
         throw new Error("ID não informado!");
@@ -263,33 +269,33 @@ function update(req) {
 
         WHERE id = ?`,
 
-      [
-        cnpj,
-        nome,
-        razao,
-        cep,
-        logradouro,
-        numero,
-        complemento,
-        bairro,
-        municipio,
-        uf,
-        email,
-        telefone,
-        id_forma_pagamento || null,
-        id_tipo_chave_pix || null,
-        chave_pix,
-        id_banco || null,
-        agencia,
-        dv_agencia,
-        id_tipo_conta || null,
-        conta,
-        dv_conta,
-        cnpj_favorecido,
-        favorecido,
-        active,
-        id
-      ])
+        [
+          cnpj,
+          nome,
+          razao,
+          cep,
+          logradouro,
+          numero,
+          complemento,
+          bairro,
+          municipio,
+          uf,
+          email,
+          telefone,
+          id_forma_pagamento || null,
+          id_tipo_chave_pix || null,
+          chave_pix,
+          id_banco || null,
+          agencia,
+          dv_agencia,
+          id_tipo_conta || null,
+          conta,
+          dv_conta,
+          cnpj_favorecido,
+          favorecido,
+          active,
+          id
+        ])
 
 
       resolve({ message: "Sucesso!" });

@@ -3,45 +3,47 @@ const { db } = require("../../../../../mysql");
 
 module.exports = function getConciliacoes(req) {
   return new Promise(async (resolve, reject) => {
-    const { user } = req;
-    // user.perfil = 'Financeiro'
-    if (!user) {
-      reject("Usuário não autenticado!");
-      return false;
-    }
-    // Filtros
-    const { filters, pagination } = req.query;
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
-    const { id_filial, range_data } = filters || {};
-    let where = ` WHERE 1=1 `;
-    const params = [];
-
-    if (id_filial) {
-      where += ` AND (fcbe.id_filial = ? OR t.id_filial = ?) `;
-      params.push(id_filial);
-      params.push(id_filial);
-    }
-
-    if (range_data) {
-      const { from: data_de, to: data_ate } = range_data;
-      if (data_de && data_ate) {
-        where += ` AND cb.created_at BETWEEN '${data_de.split("T")[0]}' AND '${
-          data_ate.split("T")[0]
-        }'  `;
-      } else {
-        if (data_de) {
-          where += ` AND cb.created_at = '${data_de.split("T")[0]}' `;
-        }
-        if (data_ate) {
-          where += ` AND cb.created_at = '${data_ate.split("T")[0]}' `;
-        }
-      }
-    }
     let conn;
     try {
+      const { user } = req;
+      // user.perfil = 'Financeiro'
+      if (!user) {
+        reject("Usuário não autenticado!");
+        return false;
+      }
+      // Filtros
+      const { filters, pagination } = req.query;
+      const { pageIndex, pageSize } = pagination || {
+        pageIndex: 0,
+        pageSize: 15,
+      };
+
+      const { id_filial, range_data } = filters || {};
+      let where = ` WHERE 1=1 `;
+      const params = [];
+
+      if (id_filial) {
+        where += ` AND (fcbe.id_filial = ? OR t.id_filial = ?) `;
+        params.push(id_filial);
+        params.push(id_filial);
+      }
+
+      if (range_data) {
+        const { from: data_de, to: data_ate } = range_data;
+        if (data_de && data_ate) {
+          where += ` AND cb.created_at BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
+        } else {
+          if (data_de) {
+            where += ` AND cb.created_at = '${data_de.split("T")[0]}' `;
+          }
+          if (data_ate) {
+            where += ` AND cb.created_at = '${data_ate.split("T")[0]}' `;
+          }
+        }
+      }
+
       conn = await db.getConnection();
 
       const [rowsConciliacoes] = await conn.execute(
@@ -67,10 +69,7 @@ module.exports = function getConciliacoes(req) {
         params
       );
       const totalConciliacoes =
-        (rowsConciliacoes &&
-          rowsConciliacoes.length > 0 &&
-          rowsConciliacoes[0]["total"]) ||
-        0;
+        (rowsConciliacoes && rowsConciliacoes.length > 0 && rowsConciliacoes[0]["total"]) || 0;
 
       const offset = pageIndex * pageSize;
 
@@ -130,7 +129,7 @@ module.exports = function getConciliacoes(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "GET_CONCILIACOES",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

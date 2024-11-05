@@ -1,19 +1,16 @@
-const { formatDate } = require('date-fns');
-const { logger } = require('../../../../../logger');
-const { db } = require('../../../../../mysql');
+const { formatDate } = require("date-fns");
+const { logger } = require("../../../../../logger");
+const { db } = require("../../../../../mysql");
+const { normalizeNumberFixed } = require("../../../../helpers/mask");
 
 module.exports = function conciliacaoAutomatica(req) {
   return new Promise(async (resolve, reject) => {
-    let {
-      vencimentos: itensConciliacao,
-      transacoes,
-      id_conta_bancaria,
-    } = req.body;
+    let { vencimentos: itensConciliacao, transacoes, id_conta_bancaria } = req.body;
     let conn;
     try {
       conn = await db.getConnection();
       if (!id_conta_bancaria) {
-        throw new Error('A conta bancária não foi informada!');
+        throw new Error("A conta bancária não foi informada!");
       }
       // console.log(itensConciliacao);
       await conn.beginTransaction();
@@ -23,11 +20,11 @@ module.exports = function conciliacaoAutomatica(req) {
         const itemConciliacao = itensConciliacao[v];
         // console.log(vencimento);
         let obj = {
-          'ID TÍTULO': itemConciliacao.id_titulo,
-          'DESCRIÇÃO TÍTULO': itemConciliacao.descricao,
+          "ID TÍTULO": itemConciliacao.id_titulo,
+          "DESCRIÇÃO TÍTULO": itemConciliacao.descricao,
           FORNECEDOR: itemConciliacao.nome_fornecedor,
           FILIAL: itemConciliacao.filial,
-          CONCILIADO: 'NÃO',
+          CONCILIADO: "NÃO",
         };
 
         let indexTransacaoConciliada = -1;
@@ -35,66 +32,51 @@ module.exports = function conciliacaoAutomatica(req) {
         for (let t = 0; t < transacoesLength; t++) {
           const transacao = transacoes[t];
           if (
-            formatDate(
-              itemConciliacao.data_pagamento,
-              'dd-MM-yyyy'
-            ).toString() ==
-              formatDate(transacao.data_transacao, 'dd-MM-yyyy').toString() &&
-            itemConciliacao.valor == transacao.valor
+            formatDate(itemConciliacao.data_pagamento, "dd-MM-yyyy").toString() ==
+              formatDate(transacao.data_transacao, "dd-MM-yyyy").toString() &&
+            normalizeNumberFixed(itemConciliacao.valor_pago, 2) ==
+              normalizeNumberFixed(transacao.valor, 2)
           ) {
             //^ UPDATE do Vencimento
             const [result] = await conn.execute(
               `INSERT INTO fin_conciliacao_bancaria (id_user, tipo, id_conta_bancaria) VALUES (?,?,?);`,
-              [req.user.id, 'AUTOMATICA', id_conta_bancaria]
+              [req.user.id, "AUTOMATICA", id_conta_bancaria]
             );
             const newId = result.insertId;
             if (!newId) {
-              throw new Error('Falha ao inserir a conciliação!');
+              throw new Error("Falha ao inserir a conciliação!");
             }
 
             //^ INSERT registro conciliação item TRANSAÇÃO
             await conn.execute(
               `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?);`,
-              [newId, transacao.id, transacao.valor, 'transacao']
+              [newId, transacao.id, transacao.valor, "transacao"]
             );
 
             // ^ Adiciona o título nos itens da conciliação bancária
             //* No caso do item ser um vencimento
-            if (itemConciliacao.tipo === 'vencimento') {
+            if (itemConciliacao.tipo === "vencimento") {
               await conn.execute(
                 `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-                [
-                  newId,
-                  itemConciliacao.id_vencimento,
-                  itemConciliacao.valor_pago,
-                  'pagamento',
-                ]
+                [newId, itemConciliacao.id_vencimento, itemConciliacao.valor_pago, "pagamento"]
               );
             }
             //* No caso do item ser uma fatura
-            if (itemConciliacao.tipo === 'fatura') {
+            if (itemConciliacao.tipo === "fatura") {
               await conn.execute(
                 `INSERT INTO fin_conciliacao_bancaria_itens (id_conciliacao, id_item, valor, tipo) VALUES (?,?,?,?)`,
-                [
-                  newId,
-                  itemConciliacao.id_vencimento,
-                  itemConciliacao.valor_pago,
-                  'fatura',
-                ]
+                [newId, itemConciliacao.id_vencimento, itemConciliacao.valor_pago, "fatura"]
               );
             }
 
             obj = {
               ...obj,
-              'DATA PAGAMENTO': formatDate(
-                transacao.data_transacao,
-                'dd/MM/yyyy'
-              ),
-              'VALOR PAGO': transacao.valor,
-              'ID TRANSAÇÃO': transacao.id_transacao,
-              'DESCRIÇÃO TRANSAÇÃO': transacao.descricao,
+              "DATA PAGAMENTO": formatDate(transacao.data_transacao, "dd/MM/yyyy"),
+              "VALOR PAGO": transacao.valor,
+              "ID TRANSAÇÃO": transacao.id_transacao,
+              "DESCRIÇÃO TRANSAÇÃO": transacao.descricao,
               DOC: transacao.doc,
-              CONCILIADO: 'SIM',
+              CONCILIADO: "SIM",
             };
             indexTransacaoConciliada = t;
             break;
@@ -102,9 +84,7 @@ module.exports = function conciliacaoAutomatica(req) {
         }
         // Verificar se é diferente de -1
         if (indexTransacaoConciliada !== -1) {
-          transacoes = transacoes.filter(
-            (_, index) => index !== indexTransacaoConciliada
-          );
+          transacoes = transacoes.filter((_, index) => index !== indexTransacaoConciliada);
         }
         result.push(obj);
       }
@@ -113,9 +93,9 @@ module.exports = function conciliacaoAutomatica(req) {
       resolve(result);
     } catch (error) {
       logger.error({
-        module: 'FINANCEIRO',
-        origin: 'CONCILIÇÃO BANCÁRIA CP',
-        method: 'AUTOMATICA',
+        module: "FINANCEIRO",
+        origin: "CONCILIACAO_BANCARIA_CP",
+        method: "AUTOMATICA",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       if (conn) await conn.rollback();

@@ -14,9 +14,10 @@ const { replaceFileUrl } = require("../../../storage-controller");
 
 module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
-    const conn = await db.getConnection();
+    let conn;
 
     try {
+      conn = await db.getConnection();
       const { user } = req;
 
       await conn.beginTransaction();
@@ -144,10 +145,7 @@ module.exports = function update(req) {
       }
 
       // Obter dados do Titulo no banco:
-      const [rowTitulo] = await conn.execute(
-        `SELECT * FROM fin_cp_titulos WHERE id = ?`,
-        [id]
-      );
+      const [rowTitulo] = await conn.execute(`SELECT * FROM fin_cp_titulos WHERE id = ?`, [id]);
       const titulo = rowTitulo && rowTitulo[0];
       if (!titulo) throw new Error("Título não localizado!");
 
@@ -183,10 +181,7 @@ module.exports = function update(req) {
                     WHERE cf.closed AND tv.id_titulo = ?`,
           [id]
         );
-        if (
-          vencimentosEmFaturaFechada &&
-          vencimentosEmFaturaFechada.length > 0
-        ) {
+        if (vencimentosEmFaturaFechada && vencimentosEmFaturaFechada.length > 0) {
           throw new Error(
             `Você não pode alterar a solicitação pois ${vencimentosEmFaturaFechada.length} vencimentos já estão em fatura de cartão fechada.`
           );
@@ -207,9 +202,7 @@ module.exports = function update(req) {
         [id_grupo_economico]
       );
       const grupoValidaOrcamento =
-        rowGrupoEconomico &&
-        rowGrupoEconomico[0] &&
-        !!+rowGrupoEconomico[0]["orcamento"];
+        rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]["orcamento"];
 
       // * Obter o Orçamento:
       const [rowOrcamento] = await conn.execute(
@@ -217,10 +210,7 @@ module.exports = function update(req) {
         [format(titulo.created_at, "yyyy-MM"), id_grupo_economico]
       );
 
-      if (
-        grupoValidaOrcamento &&
-        (!rowOrcamento || rowOrcamento.length === 0)
-      ) {
+      if (grupoValidaOrcamento && (!rowOrcamento || rowOrcamento.length === 0)) {
         throw new Error("Orçamento não localizado!");
       }
       if (rowOrcamento.length > 1) {
@@ -229,10 +219,8 @@ module.exports = function update(req) {
         );
       }
 
-      const orcamentoAtivo =
-        rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
-      const id_orcamento =
-        rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
+      const orcamentoAtivo = rowOrcamento && rowOrcamento[0] && !!+rowOrcamento[0]["active"];
+      const id_orcamento = rowOrcamento && rowOrcamento[0] && rowOrcamento[0]["id"];
 
       // ~ Início de Manipulação de Rateio //////////////////////
       // * Validação de orçamento e atualização do rateio
@@ -243,40 +231,26 @@ module.exports = function update(req) {
         }
 
         // ! Excluir Antigo rateio
-        await conn.execute(
-          `DELETE FROM fin_cp_titulos_rateio WHERE id_titulo = ?`,
-          [id]
-        );
+        await conn.execute(`DELETE FROM fin_cp_titulos_rateio WHERE id_titulo = ?`, [id]);
 
         // * Persistir o rateio
         for (const item_rateio of itens_rateio) {
           const valorRateio = parseFloat(item_rateio.valor);
+
           if (!valorRateio) {
-            throw new Error(
-              `O Rateio não possui Valor! Rateio: ${JSON.stringify(
-                item_rateio
-              )}`
-            );
+            throw new Error(`O Rateio não possui Valor! Rateio: ${JSON.stringify(item_rateio)}`);
           }
           if (!item_rateio.id_filial) {
-            throw new Error(
-              `O Rateio não possui Filial! Rateio: ${JSON.stringify(
-                item_rateio
-              )}`
-            );
+            throw new Error(`O Rateio não possui Filial! Rateio: ${JSON.stringify(item_rateio)}`);
           }
           if (!item_rateio.id_centro_custo) {
             throw new Error(
-              `O Rateio não possui Centro de custo! Rateio: ${JSON.stringify(
-                item_rateio
-              )}`
+              `O Rateio não possui Centro de custo! Rateio: ${JSON.stringify(item_rateio)}`
             );
           }
           if (!item_rateio.id_plano_conta) {
             throw new Error(
-              `O Rateio não possui Plano de contas! Rateio: ${JSON.stringify(
-                item_rateio
-              )}`
+              `O Rateio não possui Plano de contas! Rateio: ${JSON.stringify(item_rateio)}`
             );
           }
 
@@ -299,11 +273,7 @@ module.exports = function update(req) {
                                 AND id_centro_custo = ?
                                 AND id_plano_contas = ?
                                 `,
-              [
-                id_orcamento,
-                item_rateio.id_centro_custo,
-                item_rateio.id_plano_conta,
-              ]
+              [id_orcamento, item_rateio.id_centro_custo, item_rateio.id_plano_conta]
             );
 
             if (!rowOrcamentoConta || rowOrcamentoConta.length === 0) {
@@ -313,18 +283,12 @@ module.exports = function update(req) {
             }
 
             const contaOrcamentoAtiva =
-              rowOrcamentoConta &&
-              rowOrcamentoConta[0] &&
-              !!+rowOrcamentoConta[0]["active"];
+              rowOrcamentoConta && rowOrcamentoConta[0] && !!+rowOrcamentoConta[0]["active"];
 
             id_orcamento_conta =
-              rowOrcamentoConta &&
-              rowOrcamentoConta[0] &&
-              rowOrcamentoConta[0]["id"];
+              rowOrcamentoConta && rowOrcamentoConta[0] && rowOrcamentoConta[0]["id"];
             let valor_previsto =
-              rowOrcamentoConta &&
-              rowOrcamentoConta[0] &&
-              rowOrcamentoConta[0]["valor_previsto"];
+              rowOrcamentoConta && rowOrcamentoConta[0] && rowOrcamentoConta[0]["valor_previsto"];
             valor_previsto = parseFloat(valor_previsto);
 
             // Obter o Valor Realizado da Conta do Orçamento:
@@ -335,9 +299,7 @@ module.exports = function update(req) {
               [id_orcamento_conta]
             );
             let valor_total_consumo =
-              (rowConsumoOrcamento &&
-                rowConsumoOrcamento[0] &&
-                rowConsumoOrcamento[0]["valor"]) ||
+              (rowConsumoOrcamento && rowConsumoOrcamento[0] && rowConsumoOrcamento[0]["valor"]) ||
               0;
             valor_total_consumo = parseFloat(valor_total_consumo);
 
@@ -352,6 +314,7 @@ module.exports = function update(req) {
             }
           } // fim da validação do orçamento;
 
+          // * Persistência de rateio
           const [result] = await conn.execute(
             `INSERT INTO fin_cp_titulos_rateio (id_titulo, id_filial, id_centro_custo, id_plano_conta, percentual, valor) VALUES (?,?,?,?,?,?)`,
             [
@@ -360,14 +323,14 @@ module.exports = function update(req) {
               item_rateio.id_centro_custo,
               item_rateio.id_plano_conta,
               item_rateio.percentual,
-              valorRateio,
+              valorRateio.toFixed(4),
             ]
           );
           if (id_orcamento_conta) {
             // * Persistir a conta de consumo do orçamento:
             await conn.execute(
               `INSERT INTO fin_orcamento_consumo (id_orcamento_conta, id_item_rateio, valor) VALUES (?,?,?)`,
-              [id_orcamento_conta, result.insertId, valorRateio]
+              [id_orcamento_conta, result.insertId, valorRateio.toFixed(2)]
             );
           }
         }
@@ -377,10 +340,7 @@ module.exports = function update(req) {
       // * Manipulação de vencimentos - caso update_vencimentos = true //////////////////////
       if (update_vencimentos) {
         // ! Excluir Antigos Vencimentos
-        await conn.execute(
-          `DELETE FROM fin_cp_titulos_vencimentos WHERE id_titulo = ?`,
-          [id]
-        );
+        await conn.execute(`DELETE FROM fin_cp_titulos_vencimentos WHERE id_titulo = ?`, [id]);
 
         // * Salvar os novos vencimentos
         // Passamos por cada vencimento novo, validando campos e inserindo no banco
@@ -403,18 +363,15 @@ module.exports = function update(req) {
             );
           }
           if (!valorVencimento) {
-            throw new Error(
-              `O vencimento não possui valor! Item: ${JSON.stringify(
-                vencimento
-              )}`
-            );
+            throw new Error(`O vencimento não possui valor! Item: ${JSON.stringify(vencimento)}`);
           }
 
           // * Persistir o vencimento
 
           //* Código de Barras
           let cod_barras = vencimento.cod_barras;
-          if (id_forma_pagamento == "10") {
+          if (id_forma_pagamento == "10" || id_forma_pagamento == "11") {
+            // console.log("Código de Barras");
             cod_barras = normalizeCodigoBarras48(vencimento.cod_barras);
           } else {
             cod_barras = normalizeCodigoBarras(vencimento.cod_barras);
@@ -423,6 +380,7 @@ module.exports = function update(req) {
           if (
             !!cod_barras &&
             id_forma_pagamento != "10" &&
+            id_forma_pagamento != "11" &&
             !checkCodigoBarras(cod_barras)
           ) {
             throw new Error(`Linha Digitável inválida: ${cod_barras}`);
@@ -435,6 +393,7 @@ module.exports = function update(req) {
           // }
 
           //* Início - Lógica de Cartões /////////////////
+          let fatura = null;
           let id_fatura = null;
           if (isCartao) {
             //* Consulta alguns dados do cartão e data de vencimento
@@ -447,8 +406,7 @@ module.exports = function update(req) {
               throw new Error("Cartão corporativo não encontrado!");
             }
             if (
-              parseInt(cartao.dia_vencimento) !==
-              new Date(vencimento.data_vencimento).getDate()
+              parseInt(cartao.dia_vencimento) !== new Date(vencimento.data_vencimento).getDate()
             ) {
               throw new Error("Dia de Vencimento inválido!");
             }
@@ -460,27 +418,7 @@ module.exports = function update(req) {
                             `,
               [id_cartao, startOfDay(vencimento.data_vencimento)]
             );
-            const fatura = rowFaturas && rowFaturas[0];
-
-            //* Caso exista uma fatura -> Atualiza o valor
-            if (fatura) {
-              //* Verifica se a fatura está fechada
-              if (fatura.closed) {
-                throw new Error(
-                  `A fatura de data vencimento ${normalizeDate(
-                    startOfDay(vencimento.data_vencimento)
-                  )} já está fechada!`
-                );
-              }
-              const valor =
-                parseFloat(fatura.valor) + parseFloat(vencimento.valor);
-              await conn.execute(
-                `UPDATE fin_cartoes_corporativos_faturas SET valor = ? + valor WHERE id = ?
-                                `,
-                [valor, fatura.id]
-              );
-              id_fatura = fatura.id;
-            }
+            fatura = rowFaturas && rowFaturas[0];
 
             //* Caso não exista uma fatura -> Cria uma nova
             if (!fatura) {
@@ -493,7 +431,7 @@ module.exports = function update(req) {
                   id_cartao,
                   startOfDay(vencimento.data_vencimento),
                   startOfDay(vencimento.data_prevista),
-                  vencimentos[0].valor,
+                  vencimento.valor,
                 ]
               );
               if (!result.insertId) {
@@ -502,8 +440,20 @@ module.exports = function update(req) {
               id_fatura = result.insertId;
             }
           }
-          //* Fim - Lógica de Cartões /////////////////
+          if (isCartao && fatura) {
+            id_fatura = fatura.id;
+            //^ Verifica se a fatura está fechada
+            if (fatura.closed) {
+              throw new Error(
+                `A fatura de data vencimento ${normalizeDate(
+                  startOfDay(vencimento.data_vencimento)
+                )} já está fechada!`
+              );
+            }
+          }
+          //~ Fim - Lógica de Cartões /////////////////
 
+          // * Insert do vencimento:
           await conn.execute(
             `INSERT INTO fin_cp_titulos_vencimentos (id_titulo, data_vencimento, data_prevista, valor, cod_barras, qr_code, id_fatura) VALUES (?,?,?,?,?,?,?)`,
             [
@@ -632,9 +582,9 @@ module.exports = function update(req) {
       let historico = `EDITADO POR: ${normalizeFirstAndLastName(user.nome)}.\n`;
 
       if (valor != titulo.valor) {
-        historico += `VALOR: DE: ${normalizeCurrency(
-          titulo.valor
-        )} PARA: ${normalizeCurrency(valor)}\n`;
+        historico += `VALOR: DE: ${normalizeCurrency(titulo.valor)} PARA: ${normalizeCurrency(
+          valor
+        )}\n`;
       }
       if (descricao != titulo.descricao) {
         historico += `DESCRICAO:\n \t DE: '${titulo.descricao}'\n \tPARA: '${descricao}'\n`;
@@ -652,9 +602,7 @@ module.exports = function update(req) {
             venc_anterior.data_prevista,
             "dd/MM/yyyy"
           )}' \n`;
-          historico += `\t VALOR: '${normalizeCurrency(
-            venc_anterior.valor
-          )}' \n`;
+          historico += `\t VALOR: '${normalizeCurrency(venc_anterior.valor)}' \n`;
         });
       }
 
@@ -670,12 +618,16 @@ module.exports = function update(req) {
         module: "FINANCEIRO",
         origin: "TITULOS A PAGAR",
         method: "UPDATE",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
-      await conn.rollback();
+      if (conn) await conn.rollback();
       reject(error);
     } finally {
-      conn.release();
+      if (conn) conn.release();
     }
   });
 };

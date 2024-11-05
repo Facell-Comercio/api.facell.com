@@ -123,9 +123,8 @@ function downloadMovimentoContabil(req, res) {
       let itemsExcel = [];
       let where = ` WHERE t.id_status > 3`;
       if (data_de && data_ate) {
-        where += ` AND tv.data_pagamento BETWEEN '${
-          data_de.split('T')[0]
-        }' AND '${data_ate.split('T')[0]}'  `;
+        where += ` AND tv.data_pagamento BETWEEN '${data_de.split('T')[0]
+          }' AND '${data_ate.split('T')[0]}'  `;
       } else {
         if (data_de) {
           where += ` AND tv.data_pagamento >= '${data_de.split('T')[0]}' `;
@@ -146,14 +145,14 @@ function downloadMovimentoContabil(req, res) {
       }
 
       // * Passar por cada dia gerando uma pasta do dia e gerar os files
-      const [titulos] = await conn.execute(
+      const [vencimentos] = await conn.execute(
         `
         SELECT
           tv.id,
           tv.id_titulo,
           ff.cnpj, ff.nome as nome_fornecedor,
           f.nome as filial, f.cnpj as cnpj_filial,
-          t.descricao, t.num_doc, tv.valor,
+          t.descricao, t.num_doc, tv.valor, tv.valor_pago,
           tv.data_pagamento, cb.descricao as banco,
           t.url_nota_fiscal,
           t.url_xml,
@@ -161,11 +160,11 @@ function downloadMovimentoContabil(req, res) {
           t.url_contrato,
           t.url_planilha,
           t.url_txt
-        FROM fin_cp_titulos as t
-        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_titulo  = t.id
+        FROM fin_cp_titulos_vencimentos tv
+        LEFT JOIN fin_cp_titulos t ON t.id = tv.id_titulo
         LEFT JOIN filiais as f ON f.id = t.id_filial
         LEFT JOIN grupos_economicos ge ON ge.id = f.id_grupo_economico
-        LEFT JOIN fin_cp_bordero_itens as tb ON tv.id_titulo = t.id
+        LEFT JOIN fin_cp_bordero_itens as tb ON tb.id_vencimento = tv.id OR tb.id_fatura = tv.id_fatura
         LEFT JOIN fin_cp_bordero as b ON b.id = tb.id_bordero
         LEFT JOIN fin_fornecedores as ff ON ff.id = t.id_fornecedor
         LEFT JOIN fin_contas_bancarias as cb ON cb.id = b.id_conta_bancaria
@@ -174,9 +173,10 @@ function downloadMovimentoContabil(req, res) {
         `,
         params
       );
+      
 
       // * Adiciona os títulos no array do excel e no Objeto de dia
-      itemsExcel = titulos.map((vencimento) => ({
+      itemsExcel = vencimentos.map((vencimento) => ({
         'ID VENCIMENTO': vencimento.id,
         'ID TÍTULO': vencimento.id_titulo,
         'CPF/CNPJ': normalizeCnpjNumber(vencimento.cnpj || ''),
@@ -186,6 +186,7 @@ function downloadMovimentoContabil(req, res) {
         DESCRIÇÃO: vencimento.descricao || '',
         'Nº DOC': vencimento.num_doc || '',
         'VALOR TÍTULO': parseFloat(vencimento.valor) || '',
+        'VALOR PAGO': parseFloat(vencimento.valor_pago) || '',
         'DT PAG': vencimento.data_pagamento || '',
         BANCO: vencimento.banco || '',
         'NOTA FISCAL': vencimento.url_nota_fiscal,
@@ -200,15 +201,23 @@ function downloadMovimentoContabil(req, res) {
         throw new Error('Movimento Contábil Vazio');
       }
 
+
       // * Geração do buffer da planilha excel
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(itemsExcel);
+
+      // Configura os hiperlinks:
+      Object.keys(worksheet).forEach(cell => {
+        if (worksheet[cell].v && String(worksheet[cell].v).includes('http')) {
+          worksheet[cell].l = { Target: worksheet[cell].v };
+        }
+      });
+
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Planilha1');
       const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
-      
-      const filename = `MOVIMENTO CONTABIL - ${
-        grupo_economico ? grupo_economico + ' - ' : ''
-      }${conta_bancaria ? conta_bancaria : ''}.xlsx`;
+
+      const filename = `MOVIMENTO CONTABIL - ${grupo_economico ? grupo_economico + ' - ' : ''
+        }${conta_bancaria ? conta_bancaria : ''}.xlsx`;
       res.set(
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
