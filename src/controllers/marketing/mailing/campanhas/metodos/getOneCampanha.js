@@ -88,11 +88,12 @@ module.exports = async (req) => {
             mc.plano_atual LIKE "%fix%" OR
             mc.plano_atual LIKE "%live%" OR
             mc.plano_atual LIKE "%pos social%" OR
-            mc.plano_atual LIKE "%black depend%" OR
-            mc.plano_atual LIKE "%m2m 20%" OR
+            mc.plano_atual LIKE "%depend%" OR
+            mc.plano_atual LIKE "%m2m %" OR
             mc.plano_atual LIKE "%community%" OR
-            mc.plano_atual LIKE "%c depend%" OR
             mc.plano_atual LIKE "%office%" OR
+            mc.plano_atual LIKE "%empresa%" OR
+            mc.plano_atual LIKE "%torpedo%" OR
             mc.plano_atual IS NULL OR
             mc.plano_atual = ''
           )
@@ -108,11 +109,12 @@ module.exports = async (req) => {
             mc.plano_atual LIKE "%fix%" OR
             mc.plano_atual LIKE "%live%" OR
             mc.plano_atual LIKE "%pos social%" OR
-            mc.plano_atual LIKE "%black depend%" OR
-            mc.plano_atual LIKE "%m2m 20%" OR
+            mc.plano_atual LIKE "%depend%" OR
+            mc.plano_atual LIKE "%m2m %" OR
             mc.plano_atual LIKE "%community%" OR
-            mc.plano_atual LIKE "%c depend%" OR
             mc.plano_atual LIKE "%office%" OR
+            mc.plano_atual LIKE "%empresa%" OR
+            mc.plano_atual LIKE "%torpedo%" OR
             mc.plano_atual IS NULL OR
             mc.plano_atual = ''
           )

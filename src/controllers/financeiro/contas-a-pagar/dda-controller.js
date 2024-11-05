@@ -4,6 +4,8 @@ const fs = require("fs/promises");
 const { remessaToObject } = require("../remessa/CNAB240/to-object");
 const { normalizeCodigoBarras } = require("../remessa/CNAB240/to-string/masks");
 const { ensureArray } = require("../../../helpers/formaters");
+const XLSX = require("xlsx");
+const { formatDate } = require("date-fns");
 
 async function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -361,13 +363,88 @@ async function autoVincularDDA() {
   });
 }
 
-async function exportDDA() {
+async function exportDDA(req, res) {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
-      const [boletos] = await conn.execute("SELECT * FROM fin_dda ");
+      const { filters } = req.query;
 
-      resolve(boletos);
+      const {
+        id_filial,
+        nome_fornecedor,
+        cod_barras,
+        vinculados,
+        naoVinculados,
+        filiais_list,
+        tipo_data,
+        range_data,
+      } = filters || {};
+
+      let where = ` WHERE 1=1 `;
+      const params = [];
+
+      if (vinculados !== undefined) {
+        if (vinculados == "false") {
+          where += ` AND dda.id_vencimento IS NULL `;
+        }
+      }
+      if (id_filial) {
+        where += ` AND f.id = ? `;
+        params.push(id_filial);
+      }
+
+      if (nome_fornecedor) {
+        where += ` AND  dda.nome_fornecedor LIKE CONCAT("%",?,"%")  `;
+        params.push(nome_fornecedor);
+      }
+
+      if (cod_barras) {
+        const codBarras = normalizeCodigoBarras(cod_barras);
+        where += ` AND dda.cod_barras = ?  `;
+        params.push(codBarras);
+      }
+
+      if (tipo_data && range_data) {
+        const { from: data_de, to: data_ate } = range_data;
+        if (data_de && data_ate) {
+          where += ` AND dda.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
+        } else {
+          if (data_de) {
+            where += ` AND dda.${tipo_data} = '${data_de.split("T")[0]}' `;
+          }
+          if (data_ate) {
+            where += ` AND dda.${tipo_data} = '${data_ate.split("T")[0]}' `;
+          }
+        }
+      }
+
+      if (ensureArray(filiais_list)) {
+        where += ` AND f.id IN(${ensureArray(filiais_list).join(",")}) `;
+      }
+
+      const [boletos] = await conn.execute(
+        `
+        SELECT dda.* FROM fin_dda as dda
+        LEFT JOIN filiais f ON f.cnpj = dda.cnpj_filial
+        LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = dda.id_vencimento
+        ${where}`,
+        params
+      );
+
+      // * Geração do buffer da planilha excel
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(boletos);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+      const filename = `EXPORTACAO DDA ${formatDate(new Date(), "dd-MM-yyyy hh.mm")}.xlsx`;
+
+      res.set("Content-Type", "text/plain");
+      res.set("Content-Disposition", `attachment; filename=${filename}`);
+      res.send(buffer);
+
+      resolve();
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
