@@ -44,8 +44,7 @@ router.post("/import", async (req, res) => {
 
 router.get("/export", async (req, res) => {
   try {
-    const result = await exportDDA(req);
-    res.status(200).json(result);
+    await exportDDA(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
