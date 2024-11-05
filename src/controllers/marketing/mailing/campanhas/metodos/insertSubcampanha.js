@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
     //* INSERINDO A CAMPANHA
     const [resultSubcampanha] = await conn.execute(
       "INSERT INTO marketing_mailing_campanhas (nome, id_user, id_parent) VALUES (?,?,?)",
-      [nome.toUpperCase(), user.id, id_parent]
+      [String(nome).trim().toUpperCase(), user.id, id_parent]
     );
     const id_subcampanha = resultSubcampanha.insertId;
 
