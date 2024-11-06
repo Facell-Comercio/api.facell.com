@@ -254,14 +254,28 @@ module.exports = async (req) => {
         throw new Error("Nenhum plano encontrado");
       }
 
+      //~ Cria um Map para os planos usando o nome como chave
+      const planosMap = new Map();
+      for (const plano of rowsPlanos) {
+        const planoNome = String(plano.plano).toLowerCase().trim();
+        planosMap.set(planoNome, plano);
+      }
+
+      //~ Cria um Map para os preços usando a descrição como chave
+      const precosMap = new Map();
+      for (const preco of rowsPrecos) {
+        precosMap.set(preco.descricao_comercial, preco);
+      }
+
       //* DEFINIÇÃO DOS VALORES DO PRODUTO DE CADA CLIENTE
       for (const cliente of clientes) {
-        if (!cliente.produto_ofertado) {
+        if (!cliente.plano_atual || !cliente.produto_ofertado) {
           continue;
         }
-        const plano = rowsPlanos.find((value) =>
-          value.plano.toLowerCase().trim().includes(cliente.plano_atual.trim().toLowerCase())
-        );
+
+        // Busca o plano correspondente no Map
+        const planoNome = cliente.plano_atual.trim().toLowerCase();
+        const plano = planosMap.get(planoNome);
 
         let valor_plano_col = "val_pre";
         if (plano) {
@@ -269,9 +283,11 @@ module.exports = async (req) => {
             ? plano.produto_fidelizado
             : plano.produto_nao_fidelizado;
         }
-        const precos = rowsPrecos.find((preco) =>
-          preco.descricao_comercial.includes(cliente.produto_ofertado)
-        );
+
+        // Busca o preço correspondente no Map
+        const precos = precosMap.get(cliente.produto_ofertado);
+
+        // Atribui os valores ao cliente
         cliente.valor_pre = precos.val_pre || 0;
         cliente.valor_plano = precos[valor_plano_col] || 0;
         cliente.desconto = parseFloat(cliente.valor_pre) - parseFloat(cliente.valor_plano);

@@ -1,6 +1,5 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const getOneCampanha = require("./getOneCampanha");
 
 module.exports = async (req, res) => {
   let conn;

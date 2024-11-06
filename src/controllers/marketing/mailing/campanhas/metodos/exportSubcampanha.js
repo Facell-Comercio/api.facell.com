@@ -26,7 +26,6 @@ module.exports = async (req, res) => {
         conn_externa: conn,
       },
     });
-    console.log(campanha.nome);
 
     const { clientes } = campanha;
 
