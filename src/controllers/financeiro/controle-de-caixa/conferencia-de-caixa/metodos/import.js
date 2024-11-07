@@ -40,7 +40,7 @@ async function importarCaixa({
         `SELECT SUM(valorCaixa) as valor FROM ${datasys_vendas} 
         WHERE 
           grupoEstoque = 'RECARGA ELETRONICA'
-          AND filial = ? 
+          AND filial = ?
           AND Date(dataPedido) = ?`,
         [filial.nome, data]
       );

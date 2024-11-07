@@ -28,6 +28,9 @@ module.exports = async (req, res) => {
         }
       }
 
+      // console.log("INICIOU");
+      // console.time("Tempo total da importação");
+      // console.time("Tempo da consulta");
       const queryConsultaFacell = `
           SELECT
             grupoEstoque AS grupo_estoque,
@@ -51,7 +54,8 @@ module.exports = async (req, res) => {
             fabricante,
             fidAparelho AS fid_aparelho,
             fidPlano AS fid_plano,
-            dataPedido as data_compra
+            dataPedido as data_compra,
+            1 as id_grupo_economico
           FROM datasys_vendas
             ${where}
         `;
@@ -79,7 +83,8 @@ module.exports = async (req, res) => {
             fabricante,
             fidAparelho AS fid_aparelho,
             fidPlano AS fid_plano,
-            dataPedido as data_compra
+            dataPedido as data_compra,
+            9 as id_grupo_economico
           FROM datasys_vendas_fort
             ${where}
         `;
@@ -88,9 +93,12 @@ module.exports = async (req, res) => {
       const compras = [...comprasFacell, ...comprasFort];
       let totalCompras = compras.length;
 
-      conn.config.namedPlaceholders = true;
+      // console.log("CONSULTOU");
+      // console.timeEnd("Tempo da consulta");
       const arrayCompras = [];
       const maxLength = 10000;
+
+      // let totalInseridos = 1;
 
       for (const compra of compras) {
         if (compra.gsm === null) {
@@ -122,7 +130,8 @@ module.exports = async (req, res) => {
         ${db.escape(compra.fabricante)},
         ${db.escape(compra.fid_aparelho)},
         ${db.escape(compra.fid_plano)},
-        ${db.escape(compra.data_compra)})
+        ${db.escape(compra.data_compra)},
+        ${db.escape(compra.id_grupo_economico)})
       `);
 
         if (arrayCompras.length === maxLength || totalCompras === 1) {
@@ -150,17 +159,23 @@ module.exports = async (req, res) => {
               fabricante,
               fid_aparelho,
               fid_plano,
-              data_compra
+              data_compra,
+              id_grupo_economico
               )
               VAlUES
               ${arrayCompras.join(",")}
             `;
-          await conn.execute(queryInsert, compra);
+          await conn.execute(queryInsert);
           arrayCompras.length = 0;
+          // console.log(`${totalInseridos}/${compras.length}`);
+          // console.timeEnd("Tempo do lote");
+          // console.time("Tempo do lote");
         }
 
+        // totalInseridos++;
         totalCompras--;
       }
+      // console.timeEnd("Tempo total da importação");
 
       await conn.commit();
       resolve({ message: "Success" });
