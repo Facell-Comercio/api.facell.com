@@ -460,7 +460,9 @@ exports.getGSMClientesCBCF = async (req, res) => {
       where += ` AND status_ativacao != 'Ativo' `
     }
 
-    let query = `SELECT DISTINCT gsm FROM ${facell_docs} ${where}`;
+    let query = `SELECT DISTINCT 
+    CASE WHEN DATEDIFF(CURDATE(), dtAtivacao) < 4 and modalidade LIKE 'PORT%' THEN gsmProvisorio ELSE gsm END as gsm
+    FROM ${facell_docs} ${where}`;
     // console.log(query)
     // console.log(params)
 
@@ -512,7 +514,9 @@ exports.getGSMClientesExpress = async (req, res) => {
     if (!(incluir_ativos == 1 || incluir_ativos == 'true')) {
       where += ` AND status_ativacao != 'Ativo' `
     }
-    let query = `SELECT DISTINCT gsm FROM ${facell_docs} ${where}`;
+    let query = `SELECT DISTINCT 
+    CASE WHEN DATEDIFF(CURDATE(), dtAtivacao) < 4 and modalidade LIKE 'PORT%' THEN gsmProvisorio ELSE gsm END as gsm
+    FROM ${facell_docs} ${where}`;
     // console.log(query)
     // console.log(params)
 
