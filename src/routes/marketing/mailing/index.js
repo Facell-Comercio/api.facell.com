@@ -50,4 +50,24 @@ router.post("/import-excel", checkUserPermission("MASTER"), async (req, res) => 
   });
 });
 
+//* IMPORT EXCELL
+router.put("/update-excel", checkUserPermission("MASTER"), async (req, res) => {
+  multipleUpload(req, res, async (err) => {
+    if (err) {
+      console.log(err);
+
+      return res
+        .status(500)
+        .json({ message: "Ocorreu algum problema com o(s) arquivo(s) enviado(s)" });
+    } else {
+      try {
+        const result = await controller.updateClientesExcel(req);
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(400).json({ message: error.message });
+      }
+    }
+  });
+});
+
 module.exports = router;

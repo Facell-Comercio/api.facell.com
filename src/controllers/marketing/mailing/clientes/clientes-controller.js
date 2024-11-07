@@ -4,4 +4,5 @@ module.exports = {
   importComprasDatasys: require("./metodos/importComprasDatasys"),
 
   importClientesExcel: require("./metodos/importClientesExcel"),
+  updateClientesExcel: require("./metodos/updateClientesExcel"),
 };
