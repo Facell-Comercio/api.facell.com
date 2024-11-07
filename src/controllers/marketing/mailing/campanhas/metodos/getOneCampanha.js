@@ -19,6 +19,7 @@ module.exports = async (req) => {
         status_plano_list,
         status_contato_list,
         uf_list,
+        vendedores_list,
         isExportacao,
         planos_fidelizaveis,
       } = filters || {};
@@ -48,6 +49,9 @@ module.exports = async (req) => {
       }
       if (uf_list && ensureArray(uf_list).length > 0) {
         where += ` AND mc.uf IN('${ensureArray(uf_list).join("','")}') `;
+      }
+      if (vendedores_list && ensureArray(vendedores_list).length > 0) {
+        where += ` AND mc.vendedor IN('${ensureArray(vendedores_list).join("','")}') `;
       }
       if (isExportacao) {
         where += `AND NOT EXISTS(
