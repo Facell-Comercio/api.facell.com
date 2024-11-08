@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
     if (!operador) {
       throw new Error("Operador não informado");
     }
-    if (!operador) {
+    if (!observacao) {
       throw new Error("Observação não informada");
     }
 

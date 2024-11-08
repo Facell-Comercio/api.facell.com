@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
     }
     if (observacao) {
       where += " AND observacao LIKE CONCAT('%',?, '%')";
-      params.push(operador);
+      params.push(observacao);
     }
     if (cliente) {
       where += " AND nome_assinante LIKE CONCAT('%',?, '%')";
