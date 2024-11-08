@@ -10,17 +10,17 @@ module.exports = async (req, res) => {
   try {
     const { id } = req.params;
     conn = conn_externa || (await db.getConnection());
-
-    if (!id) {
-      throw new Error("ID do vendedor é obrigatório");
-    }
-    await conn.execute(`UPDATE marketing_vendedores WHERE id = ?`, [id]);
-    res.status(200).json({ message: "Success" });
+    const [rowInteracao] = await conn.execute(
+      `SELECT * FROM marketing_mailing_interacoes WHERE id = ?`,
+      [id]
+    );
+    const interacao = rowInteracao && rowInteracao[0];
+    res.status(200).json(interacao);
   } catch (error) {
     logger.error({
       module: "MARKETING",
       origin: "CADASTROS",
-      method: "DELETE_VENDEDOR",
+      method: "GET_ONE_INTERACAO",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
     res.status(500).json({ message: error.message });
