@@ -87,6 +87,7 @@ module.exports = async (req, res) => {
             ${db.escape(resultado.subscriber.external_id)}, -- ID CLIENTE
             ${db.escape(resultado.campaign.name)}, -- NOME CAMPANHA
             ${db.escape(resultado.subscriber.name)}, -- NOME ASSINANTE
+            ${db.escape(resultado.subscriber.number)}, -- NÚMERO ASSINANTE
             ${db.escape(resultado.outcome)}, -- STATUS
             ${db.escape(new Date(resultado.start_time))}, -- DATA
             ${db.escape(new Date(resultado.start_time))}, -- HORA CONTATO INICIO
@@ -109,6 +110,7 @@ module.exports = async (req, res) => {
               id_cliente,
               nome_campanha,
               nome_assinante,
+              gsm,
               status,
               data,
               hora_contato_inicio,
