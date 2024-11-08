@@ -12,15 +12,15 @@ module.exports = async (req, res) => {
     conn = conn_externa || (await db.getConnection());
 
     if (!id) {
-      throw new Error("ID do vendedor é obrigatório");
+      throw new Error("ID da interação é obrigatório");
     }
-    await conn.execute(`UPDATE marketing_vendedores WHERE id = ?`, [id]);
+    await conn.execute(`UPDATE marketing_mailing_interacoes WHERE id = ?`, [id]);
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
       module: "MARKETING",
       origin: "CADASTROS",
-      method: "DELETE_VENDEDOR",
+      method: "DELETE_INTERACAO_MANUAL",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
     res.status(500).json({ message: error.message });

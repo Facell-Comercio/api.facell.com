@@ -46,11 +46,12 @@ module.exports = async (req, res) => {
     const [interacoes] = await conn.execute(
       `
       SELECT *,
-      TIMESTAMP(data, hora_contato_inicio) as datetime_contato_inicio,
-      TIMESTAMP(data, hora_contato_resposta) as datetime_contato_resposta,
-      TIMESTAMP(data, hora_contato_final) as datetime_contato_final
+        CASE WHEN data IS NULL THEN NULL ELSE TIMESTAMP(data, hora_contato_inicio) END AS datetime_contato_inicio,
+        CASE WHEN data IS NULL THEN NULL ELSE TIMESTAMP(data, hora_contato_resposta) END AS datetime_contato_resposta,
+        CASE WHEN data IS NULL THEN NULL ELSE TIMESTAMP(data, hora_contato_final) END AS datetime_contato_final
       FROM marketing_mailing_interacoes
-      WHERE id_cliente =?`,
+      WHERE id_cliente = ?;
+      `,
       [id]
     );
 
