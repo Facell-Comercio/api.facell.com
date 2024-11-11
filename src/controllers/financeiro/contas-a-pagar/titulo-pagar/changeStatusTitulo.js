@@ -4,6 +4,7 @@ const {
     normalizeFirstAndLastName,
 } = require("../../../../helpers/mask");
 const { logger } = require("../../../../../logger");
+const { enviarEmail } = require("../../../../helpers/email");
 
 module.exports = function changeStatusTitulo(req) {
     return new Promise(async (resolve, reject) => {
@@ -32,7 +33,13 @@ module.exports = function changeStatusTitulo(req) {
 
             // * Obter titulo e status
             const [rowTitulo] = await conn.execute(
-                `SELECT id_status FROM fin_cp_titulos WHERE id = ? `,
+                `SELECT 
+                    t.id_status, 
+                    u.email as email_solicitante 
+                FROM fin_cp_titulos t 
+                LEFT JOIN users u ON u.id = t.id_solicitante
+                WHERE 
+                    t.id = ? `,
                 [id_titulo]
             );
             // Rejeitar caso título não encontrado
@@ -76,8 +83,19 @@ module.exports = function changeStatusTitulo(req) {
                 [id_novo_status, id_titulo]
             );
 
-            // !: Caso Negado - Inativar Consumo Orçamento
+            // !: Caso Negado - Disparar Email + Inativar Consumo Orçamento
             if (id_novo_status == "2") {
+                // Dispara um email:
+                await enviarEmail({
+                    assunto: `SOLICITAÇÃO DE PAGAMENTO NEGADA - #${id_titulo}`,
+                    destinatarios: [titulo.email_solicitante],
+                    corpo: `A sua solicitação foi negada pelo financeiro. 
+                    \n Motivo: ${motivo}
+                    \n Acesse o painel para mais detalhes: 
+                    \n https://app.facell.com/financeiro/contas-a-pagar?tab=painel`
+                })
+
+                // Inativa consumo do orçamento
                 await conn.execute(
                     `UPDATE fin_orcamento_consumo foc SET foc.active = false
           WHERE foc.id_item_rateio

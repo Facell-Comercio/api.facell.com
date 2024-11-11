@@ -26,10 +26,7 @@ module.exports = function insertOne(req) {
         (acc, item) => acc + parseFloat(item.valor_pago),
         0
       );
-      const transacoesSoma = transacoes.reduce(
-        (acc, item) => acc + parseFloat(item.valor),
-        0
-      );
+      const transacoesSoma = transacoes.reduce((acc, item) => acc + parseFloat(item.valor), 0);
       // ^ Verificando os valores de títulos e transações batem
       if (itensConciliacaoSoma.toFixed(2) !== transacoesSoma.toFixed(2)) {
         throw new Error("A soma dos vencimentos e das transações não batem!");
@@ -80,7 +77,7 @@ module.exports = function insertOne(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "INSERT",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

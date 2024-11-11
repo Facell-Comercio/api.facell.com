@@ -50,7 +50,7 @@ module.exports = function getAllFaturasBordero(req) {
         params.push(id_bordero);
       }
       if (id_titulo) {
-        where += ` AND ccf.id_titulo = ? `;
+        where += ` AND tv.id_titulo = ? `;
         params.push(id_titulo);
       }
       if (descricao) {
@@ -134,9 +134,9 @@ module.exports = function getAllFaturasBordero(req) {
       if (tipo_data && range_data) {
         const { from: data_de, to: data_ate } = range_data;
         if (data_de && data_ate) {
-          where += ` AND ccf.${tipo_data} BETWEEN '${
-            data_de.split("T")[0]
-          }' AND '${data_ate.split("T")[0]}'  `;
+          where += ` AND ccf.${tipo_data} BETWEEN '${data_de.split("T")[0]}' AND '${
+            data_ate.split("T")[0]
+          }'  `;
         } else {
           if (data_de) {
             where += ` AND ccf.${tipo_data} >= '${data_de.split("T")[0]}' `;
@@ -160,6 +160,7 @@ module.exports = function getAllFaturasBordero(req) {
             LEFT JOIN filiais f ON f.id = fcc.id_matriz
             LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
             LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
+            LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
             LEFT JOIN fin_conciliacao_bancaria_itens cbi 
               ON cbi.id_item = ccf.id
               AND cbi.tipo = 'fatura'
@@ -176,28 +177,30 @@ module.exports = function getAllFaturasBordero(req) {
       params.push(offset);
 
       const [rows] = await conn.execute(
-        `SELECT DISTINCT 
+        `SELECT DISTINCT
             ccf.id,
-            ccf.id as id_titulo, 
-            ccf.id as id_vencimento, 
-            ccf.status, 
+            ccf.id as id_titulo,
+            ccf.id as id_vencimento,
+            ccf.status,
             ccf.data_prevista as previsao,
-            NULL as id_status, 
+            ccf.data_vencimento,
+            NULL as id_status,
             UPPER(fcc.descricao) as descricao,
-            ccf.valor as valor_total, 
-            ccf.valor_pago, 
+            ccf.valor as valor_total,
+            ccf.valor_pago,
             ccf.tipo_baixa,
             ccf.data_pagamento,
             ccf.obs,
-            f.nome as filial, 
+            f.nome as filial,
             fcc.id_matriz,
             forn.nome as nome_fornecedor,
-            "-" as num_doc,  
+            "-" as num_doc,
             "Cartão" as forma_pagamento,
             6 as id_forma_pagamento,
             bi.remessa,
             cbi.id as conciliado,
-            cbi.id_conciliacao as id_conciliacao
+            cbi.id_conciliacao as id_conciliacao,
+            dda.id as id_dda
           FROM fin_cartoes_corporativos_faturas ccf
           LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
           LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id_fatura = ccf.id
@@ -206,6 +209,7 @@ module.exports = function getAllFaturasBordero(req) {
           LEFT JOIN filiais f ON f.id = fcc.id_matriz
           LEFT JOIN fin_cp_bordero_itens bi ON bi.id_fatura = ccf.id
           LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
+          LEFT JOIN fin_dda dda ON dda.id_fatura = ccf.id
           LEFT JOIN fin_conciliacao_bancaria_itens cbi 
             ON cbi.id_item = ccf.id
             AND cbi.tipo = 'fatura'
@@ -227,7 +231,11 @@ module.exports = function getAllFaturasBordero(req) {
         module: "FINANCEIRO",
         origin: "CARTÕES",
         method: "GET_ALL_FATURAS_BORDERO",
-        data: { message: error.message, stack: error.stack, name: error.name },
+        data: {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+        },
       });
       reject(error);
     } finally {

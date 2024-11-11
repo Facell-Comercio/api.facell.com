@@ -13,7 +13,7 @@ module.exports = function getOne(req) {
         `
               SELECT 
                 b.id, b.data_pagamento, b.id_conta_bancaria, 
-                cb.descricao as conta_bancaria, f.id_matriz, fb.nome as banco
+                cb.descricao as conta_bancaria, f.id_matriz, LPAD(fb.codigo, 3, '0') as codigo_banco, fb.nome as banco
               FROM fin_cp_bordero b
               LEFT JOIN fin_cp_bordero_itens tb ON tb.id_bordero = b.id
               LEFT JOIN fin_cp_titulos_vencimentos tv ON tv.id = tb.id_vencimento

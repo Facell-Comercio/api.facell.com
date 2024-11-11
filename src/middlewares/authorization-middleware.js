@@ -1,9 +1,9 @@
 const { checkUserDepartment } = require("../helpers/checkUserDepartment");
 const { checkUserPermission } = require("../helpers/checkUserPermission");
 
-function checkUserAuthorization(departamento, operador, permissao) {
+function checkUserAuthorization(departamento, operador, permissao, gestor_departamento) {
   return function (req, res, next) {
-    const passDepart = checkUserDepartment(req, departamento);
+    const passDepart = checkUserDepartment(req, departamento, gestor_departamento);
     const passPermissao = checkUserPermission(req, permissao);
 
     if (operador === "AND") {

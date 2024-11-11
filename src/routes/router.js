@@ -4,6 +4,7 @@ const authRouter = require("./auth-router");
 const uploadRouter = require("./upload-router");
 const storageRouter = require("./storage-router");
 const financeiroRouter = require("./financeiro/financeiro-router");
+const marketingRouter = require("./marketing/marketing-router");
 const comercialRouter = require("./comercial/comercial-router");
 const pessoalRouter = require("./pessoal/pessoal-router");
 const grupoEconomico = require("./grupo-economico-router");
@@ -13,6 +14,8 @@ const logs = require("./logs-router");
 const departamento = require("./departamento-router");
 const permissao = require("./permissao-router");
 const testes = require("./testes-router");
+const notification = require("./notification-router");
+const qualidade = require("./qualidade/qualidade-router");
 
 const datasys = require("./datasys");
 const tim = require("./tim");
@@ -22,6 +25,7 @@ const {
   removerRateio,
   subirAnexosParaDrive,
 } = require("../controllers/testes-controller");
+const { visualizarBoletoCaixa } = require("../controllers/financeiro/controle-de-caixa/boletos");
 
 // const datasysRouter = require('./datasys/datasys')
 // const timRouter = require('./tim/router')
@@ -38,18 +42,24 @@ router.post("/operacao-teste", async (req, res) => {
   }
 });
 
+// ^ Rotas públicas
 router.get("/", (req, res) => {
   res.status(200).json({ msg: "Sucesso!" });
 });
 router.use("/auth", authRouter);
 router.use("/testes", testes);
+router.get("/visualizar.boleto.caixa", visualizarBoletoCaixa);
 
+// ^ Rotas privadas:
 router.use("/", authMiddleware);
 
+router.use("/notification", notification);
 router.use("/upload", uploadRouter);
 router.use("/storage", storageRouter);
 router.use("/financeiro", financeiroRouter);
+router.use("/marketing", marketingRouter);
 router.use("/comercial", comercialRouter);
+router.use("/qualidade", qualidade);
 router.use("/pessoal", pessoalRouter);
 router.use("/grupo-economico", grupoEconomico);
 router.use("/filial", filial);

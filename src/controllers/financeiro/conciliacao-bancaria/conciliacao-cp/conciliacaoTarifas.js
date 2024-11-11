@@ -88,12 +88,9 @@ module.exports = function conciliacaoTarifas(req) {
               `Aparentemente essa é uma tarifa duplicada, isso não era para ocorrer, contate o time de desenvolvimento`
             );
           }
-          const dadosTarifaPadrao =
-            rowDadosTarifaPadrao && rowDadosTarifaPadrao[0];
+          const dadosTarifaPadrao = rowDadosTarifaPadrao && rowDadosTarifaPadrao[0];
           if (!dadosTarifaPadrao) {
-            throw new Error(
-              `A tarifa não foi encontrada no cadastro de tarifas padrão`
-            );
+            throw new Error(`A tarifa não foi encontrada no cadastro de tarifas padrão`);
           }
 
           //* Criação da solicitação
@@ -224,7 +221,7 @@ module.exports = function conciliacaoTarifas(req) {
         } catch (errorTarifa) {
           logger.error({
             module: "FINANCEIRO",
-            origin: "CONCILIÇÃO BANCÁRIA CP",
+            origin: "CONCILIACAO_BANCARIA_CP",
             method: "LANÇAMENTO TARIFA INDIVIDIAL",
             data: {
               message: errorTarifa.message,
@@ -248,7 +245,7 @@ module.exports = function conciliacaoTarifas(req) {
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
-        origin: "CONCILIÇÃO BANCÁRIA CP",
+        origin: "CONCILIACAO_BANCARIA_CP",
         method: "LANÇAMENTO TARIFAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });

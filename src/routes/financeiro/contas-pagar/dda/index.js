@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const multer = require('multer');
+const multer = require("multer");
 
 const {
   getAll,
@@ -23,12 +23,14 @@ router.get("/", async (req, res) => {
   }
 });
 
-const multipleUpload = upload.array('files', 100);
+const multipleUpload = upload.array("files", 100);
 
 router.post("/import", async (req, res) => {
   multipleUpload(req, res, async (err) => {
     if (err) {
-      return res.status(500).json({ message: 'Ocorreu algum problema com o(s) arquivo(s) enviado(s)' })
+      return res
+        .status(500)
+        .json({ message: "Ocorreu algum problema com o(s) arquivo(s) enviado(s)" });
     } else {
       try {
         const result = await importDDA(req);
@@ -37,13 +39,12 @@ router.post("/import", async (req, res) => {
         res.status(400).json({ message: error.message });
       }
     }
-  })
+  });
 });
 
-router.post("/export", async (req, res) => {
+router.get("/export", async (req, res) => {
   try {
-    const result = await exportDDA(req);
-    res.status(200).json(result);
+    await exportDDA(req, res);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
