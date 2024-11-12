@@ -9,7 +9,9 @@ module.exports = async (req, res) => {
 
   try {
     const { mes, ano } = req.body;
+
     conn = conn_externa || (await db.getConnection());
+    await conn.beginTransaction();
     let where = `
       WHERE 1=1
       AND fd.status_inadimplencia = 'Inadimplente'
@@ -20,30 +22,40 @@ module.exports = async (req, res) => {
         fd.modalidade LIKE 'DEPEN%' OR
         fd.modalidade LIKE 'UPGR%'
       ) `;
-    let whereDelete = " WHERE 1=1 AND status LIKE 'ANALISE PENDENTE'";
+    let whereDelete = " WHERE 1=1 AND vic.id IS NULL AND vi.status LIKE 'em_analise'";
     const params = [];
     const paramsDelete = [];
     if (mes) {
       where += ` AND MONTH(fd.dtAtivacao) = ? `;
       params.push(mes);
 
-      whereDelete += ` AND MONTH(ref) = ? `;
+      whereDelete += ` AND MONTH(vi.ref) = ? `;
       paramsDelete.push(mes);
     }
     if (ano) {
       where += ` AND YEAR(fd.dtAtivacao) = ? `;
       params.push(ano);
 
-      whereDelete += ` AND YEAR(ref) = ? `;
+      whereDelete += ` AND YEAR(vi.ref) = ? `;
       paramsDelete.push(ano);
     }
-    const [facellDocs] = await conn.execute(`SELECT * FROM facell_docs fd ${where}`, params);
+
+    const [facellDocs] = await conn.execute(
+      `SELECT *, "inadiplente" as tipo, "inadiplente" as motivo FROM facell_docs fd ${where}`,
+      params
+    );
     const [facellDocsFort] = await conn.execute(
-      `SELECT * FROM facell_docs_fort fd ${where}`,
+      `SELECT *, "inadiplente" as tipo, "inadiplente" as motivo FROM facell_docs_fort fd ${where}`,
       params
     );
 
-    await conn.execute(`DELETE FROM comissao_vendas_invalidas ${where}`, paramsDelete);
+    await conn.execute(
+      `
+      DELETE vi FROM comissao_vendas_invalidas vi
+      LEFT JOIN comissao_vendas_invalidas_contestacoes vic ON vic.id_venda = vi.id
+      ${whereDelete}`,
+      paramsDelete
+    );
 
     const vendas_invalidas = [...facellDocs, ...facellDocsFort];
 
@@ -54,20 +66,21 @@ module.exports = async (req, res) => {
     let totalVendas = vendas_invalidas.length;
     for (const venda of vendas_invalidas) {
       arrayVendas.push(`(
-        ${db.escape(venda.dtAtivacao)},     -- REF
-        ${db.escape(null)},                 -- TIPO
-        ${db.escape(null)},                 -- SEGMENTO
-        ${db.escape(null)},                 -- DATA VENDA
-        ${db.escape(venda.pedido)},         -- PEDIDO
-        ${db.escape(venda.gsm)},            -- GSM
-        ${db.escape(venda.gsmProvisorio)},  -- GSM PROVISORIO
-        ${db.escape(venda.imei)},           -- IMEI
-        ${db.escape(venda.aparelho)},       -- APARELHO
-        ${db.escape(venda.modalidade)},     -- MODALIDADE
-        ${db.escape(venda.plano_ativado)},  -- PLANO
-        ${db.escape(venda.cpf_cliente)},    -- CPF CLIENTE
-        ${db.escape(venda.cpfVendedor)},    -- CPF VENDEDOR
-        ${db.escape(null)}                  -- VALOR
+        ${db.escape(venda.dtAtivacao)},         -- REF
+        ${db.escape(venda.tipo)},               -- TIPO
+        ${db.escape(venda.motivo)},             -- MOTIVO
+        ${db.escape(venda.datasys_categoria)},  -- SEGMENTO
+        ${db.escape(venda.dtAtivacao)},         -- DATA VENDA
+        ${db.escape(venda.pedido)},             -- PEDIDO
+        ${db.escape(venda.gsm)},                -- GSM
+        ${db.escape(venda.gsmProvisorio)},      -- GSM PROVISORIO
+        ${db.escape(venda.imei)},               -- IMEI
+        ${db.escape(venda.aparelho)},           -- APARELHO
+        ${db.escape(venda.modalidade)},         -- MODALIDADE
+        ${db.escape(venda.plano_ativado)},      -- PLANO
+        ${db.escape(venda.cpf_cliente)},        -- CPF CLIENTE
+        ${db.escape(venda.cpfVendedor)},        -- CPF VENDEDOR
+        ${db.escape(venda.valor_receita)}       -- VALOR
         
       )`);
 
@@ -76,6 +89,7 @@ module.exports = async (req, res) => {
         INSERT IGNORE INTO comissao_vendas_invalidas (
           ref,
           tipo,
+          motivo,
           segmento,
           data_venda,
           pedido,
@@ -98,13 +112,14 @@ module.exports = async (req, res) => {
       totalInseridos++;
       totalVendas--;
     }
-    await conn.execute(`INSERT INTO marketing_vendedores (nome) VALUES (?)`, [nome]);
+    // await conn.rollback();
+    await conn.commit();
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
-      module: "MARKETING",
-      origin: "CADASTROS",
-      method: "INSERT_ONE_VENDEDOR",
+      module: "COMERCIAL",
+      origin: "VENDAS_INVALIDAS",
+      method: "PROCESSAR_VENDAS_INVALIDAS",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
 
