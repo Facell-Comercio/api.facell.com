@@ -46,7 +46,6 @@ module.exports = async (req) => {
         }
       }
       if (produto_nao_ofertado !== undefined && produto_nao_ofertado !== "all") {
-        console.log(produto_nao_ofertado);
         if (Number(produto_nao_ofertado)) {
           where += " AND mc.produto_ofertado IS NULL ";
         } else {
