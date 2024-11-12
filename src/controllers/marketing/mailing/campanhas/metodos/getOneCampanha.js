@@ -166,7 +166,8 @@ module.exports = async (req) => {
 
       //~ PRODUTO ÚLTIMA COMPRA
       const [produto_list_filters] = await conn.execute(
-        `SELECT CONCAT(mc.produto_ultima_compra, " (",COUNT(mc.id),")") as value
+        `SELECT CONCAT(mc.produto_ultima_compra, " (",COUNT(mc.id),")") as label,
+        mc.produto_ultima_compra as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         ${where}
