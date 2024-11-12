@@ -22,6 +22,7 @@ module.exports = async (req) => {
         vendedores_list,
         isExportacao,
         planos_fidelizaveis,
+        produto_nao_ofertado,
       } = filters || {};
       const { pageIndex, pageSize } = pagination || {
         pageIndex: 0,
@@ -42,6 +43,14 @@ module.exports = async (req) => {
           where += " AND mc.produto_fidelizado = 1 ";
         } else {
           where += " AND (mc.produto_fidelizado = 0 OR mc.produto_fidelizado IS NULL) ";
+        }
+      }
+      if (produto_nao_ofertado !== undefined && produto_nao_ofertado !== "all") {
+        console.log(produto_nao_ofertado);
+        if (Number(produto_nao_ofertado)) {
+          where += " AND mc.produto_ofertado IS NULL ";
+        } else {
+          where += " AND mc.produto_ofertado IS NOT NULL ";
         }
       }
       if (status_contato_list && ensureArray(status_contato_list).length > 0) {
@@ -151,16 +160,19 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.plano_atual as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        ${where}`,
+        ${where}
+        ORDER BY mc.plano_atual ASC`,
         params
       );
 
       //~ PRODUTO ÚLTIMA COMPRA
       const [produto_list_filters] = await conn.execute(
-        `SELECT DISTINCT mc.produto_ultima_compra as value
+        `SELECT CONCAT(mc.produto_ultima_compra, " (",COUNT(mc.id),")") as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        ${where}`,
+        ${where}
+        GROUP BY mc.produto_ultima_compra
+        ORDER BY mc.produto_ultima_compra ASC`,
         params
       );
 
@@ -169,7 +181,8 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.status_plano as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        ${where}`,
+        ${where}
+        ORDER BY mc.status_plano ASC`,
         params
       );
 
@@ -178,7 +191,8 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.vendedor as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        ${where}`,
+        ${where}
+        ORDER BY mc.vendedor ASC`,
         params
       );
 
