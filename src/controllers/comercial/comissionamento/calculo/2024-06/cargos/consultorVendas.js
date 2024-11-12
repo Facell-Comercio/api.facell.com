@@ -1,36 +1,34 @@
 "use strict";
-const fs = require("fs");
-const db = require("../../../../../../../../mysql");
-const Espelho = require("../../../espelhos/modelo_espelho");
-const { formatarValor } = require("../../../helper");
-const { verificaEscalonamento } = require("../helper");
-const path = require("path");
-
-const consultor = async ({ ref, meta, politica }) => {
+const { db } = require('../../../../../../../mysql');
+module.exports = ({ ref, meta, politica }) => {
   return new Promise(async (resolve, reject) => {
     // console.log('[START_CALC_CONSULTOR]', meta.nome)
-    const espelho = new Espelho(meta.ciclo, meta.nome?.toUpperCase(), [], []);
-    var fileUrl
+    const espelho = {
+      filial,
+      nome,
+      cargo,
+      data_inicial,
+      data_final,
+      proporcional,
+      parametros: [],
+      itens,
+    }
 
     try {
       const ano = parseInt(ref.split("-")[0]);
       const mes = parseInt(ref.split("-")[1]);
 
       if (!meta) {
-        reject("Meta não localizada!");
-        return false;
+        throw new Error("Meta não localizada!");
       }
       if (!meta.ciclo) {
-        reject("Ciclo não informado!");
-        return false;
+        throw new Error("Ciclo não informado!");
       }
       if (!meta.ref) {
-        reject("Referência não informada!");
-        return false;
+        throw new Error("Referência não informada!");
       }
       if (!meta.cpf) {
-        reject("CPF não informado!");
-        return false;
+        throw new Error("CPF não informado!");
       }
 
       meta.data_inicial = formatarValor(meta.data_inicial, "data");
@@ -40,23 +38,9 @@ const consultor = async ({ ref, meta, politica }) => {
       espelho.cargo = meta.cargo;
       espelho.grupo_economico = meta.grupo_economico;
       espelho.filial = meta.filial;
-
-      espelho.resumo.push({
-        info: "Grupo Econômico",
-        descr: `${espelho.grupo_economico} | Filial: ${espelho.filial}`,
-      });
-      espelho.resumo.push({
-        info: "Nome",
-        descr: `${espelho.nome} | CPF: ${espelho.cpf}`,
-      });
-      espelho.resumo.push({ info: "Cargo", descr: espelho.cargo });
-      espelho.resumo.push({
-        info: "Período",
-        descr: `${meta.data_inicial
-          ?.split("-")
-          .reverse()
-          .join("/")} até ${meta.data_final?.split("-").reverse().join("/")}`,
-      });
+      espelho.nome = meta.nome;
+      espelho.data_inicial = meta.data_inicial;
+      espelho.data_final = meta.data_final;
 
       // * Verificar se é BLUE ou EMBAIXADOR DE ACESS
       espelho.embaixador_de_acess = meta.tags
@@ -65,13 +49,7 @@ const consultor = async ({ ref, meta, politica }) => {
         ? true
         : false;
       if (espelho.embaixador_de_acess) {
-        espelho.resumo.push({ info: "Embaixador de acessórios", descr: "SIM" });
-      }
-      espelho.consultor_blue = meta.tags?.toLowerCase().includes("blue")
-        ? true
-        : false;
-      if (espelho.consultor_blue) {
-        espelho.resumo.push({ info: "Consultor Blue", descr: "SIM" });
+        espelho.itens.push({ tipo: 'bonus', segmento: 'ACESSORIO', descricao: 'EMBAIXADOR DE ACESSÓRIOS', meta: 0, realizado: 0, atingimento: 1, valor: 300, })
       }
 
       // todas as metas
@@ -1458,5 +1436,3 @@ const consultor = async ({ ref, meta, politica }) => {
     }
   });
 };
-
-module.exports = consultor;
