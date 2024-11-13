@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
       params.push(segmento);
     }
     if (motivo) {
-      where += ` AND motivo =? `;
+      where += ` AND motivo LIKE CONCAT('%',?,'%') `;
       params.push(motivo);
     }
     if (termo) {
