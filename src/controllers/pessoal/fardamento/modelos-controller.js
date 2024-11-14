@@ -65,6 +65,7 @@ function getAll(req) {
         }
     });
 }
+
 function insertOne(req) {
     return new Promise(async (resolve,reject)=>{
         const {id, modelo} = req.body;
@@ -85,13 +86,61 @@ function insertOne(req) {
                 [modelo]
             );
         } catch(error){
-
+            logger.error({
+                module: "PESSOAL/FARDAMENTOS",
+                origin: "MODELOS",
+                method: "INSERT_ONE",
+                data: { message: error.message, stack: error.stack, name: error.name },
+            });
+            if (conn) await conn.rollback();
+            reject(error);
         } finally {
-            
+            conn.release();
+        }
+    });
+}
+
+function update(req) {
+    return new Promise(async(resolve,reject)=>{
+        const {id, modelo} = req.body;
+        let conn;
+        try{
+            conn = await db.getConnection();
+            if (!id) {
+                throw new Error ("ID não informado!");
+            }
+            if (!modelo) {
+                throw new Error ("É necessário informar o modelo!");
+            }
+            await conn.beginTransaction();
+            await conn.execute(
+                `
+                UPDATE fardamentos_modelos SET
+                    modelo = ?
+                WHERE id = ?`,
+                [modelo, id]
+            );
+            await conn.commit();
+            resolve({message: "Sucesso!"});
+            return;
+        } catch(error) {
+            logger.error({
+                module: "PESSOAL/FARDAMENTOS",
+                origin: "MODELOS",
+                method: "UPDATE",
+                data: {message: error.message, stack: error.stack, name: error.name},
+            });
+            if (conn) await conn.rollback();
+            reject(error);
+            return;
+        } finally {
+            conn.release();
         }
     });
 }
 
 module.exports = {
     getAll,
-}
+    insertOne,
+    update,
+};
