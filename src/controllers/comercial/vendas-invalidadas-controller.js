@@ -10,4 +10,6 @@ module.exports = {
 
   processarVendasInvalidadas: require("./vendas-invalidadas/processarVendasInvalidadas"),
   excluirVendasInvalidadas: require("./vendas-invalidadas/excluirVendasInvalidadas"),
+
+  rateioAutomaticoVendasInvalidas: require("./vendas-invalidadas/rateioAutomaticoVendasInvalidas"),
 };

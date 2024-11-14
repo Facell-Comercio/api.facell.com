@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   let conn;
 
   try {
-    const { id, contestacao, id_venda } = req.body;
+    const { id, contestacao, id_venda_invalida } = req.body;
     const user = req.user;
     conn = conn_externa || (await db.getConnection());
     if (id) {
@@ -19,13 +19,13 @@ module.exports = async (req, res) => {
     if (!contestacao) {
       throw new Error("É necessário informar a contestação!");
     }
-    if (!id_venda) {
+    if (!id_venda_invalida) {
       throw new Error("É necessário informar o ID da venda!");
     }
 
     await conn.execute(
-      "INSERT INTO comissao_vendas_invalidas_contestacoes (id_venda, contestacao,id_user) VALUES (?,?,?)",
-      [id_venda, contestacao, user.id]
+      "INSERT INTO comissao_vendas_invalidas_contestacoes (id_venda_invalida, contestacao,id_user) VALUES (?,?,?)",
+      [id_venda_invalida, contestacao, user.id]
     );
     res.status(200).json({ message: "Success" });
   } catch (error) {

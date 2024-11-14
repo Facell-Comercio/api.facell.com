@@ -27,15 +27,15 @@ module.exports = async (req, res) => {
       params.push(ano);
     }
     if (status) {
-      where += ` AND status = ? `;
+      where += ` AND status LIKE ? `;
       params.push(status);
     }
     if (tipo) {
-      where += ` AND tipo =? `;
+      where += ` AND tipo LIKE ? `;
       params.push(tipo);
     }
     if (segmento) {
-      where += ` AND segmento =? `;
+      where += ` AND segmento LIKE ? `;
       params.push(segmento);
     }
     if (motivo) {

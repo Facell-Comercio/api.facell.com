@@ -27,13 +27,19 @@ module.exports = async (req, res) => {
       FROM comissao_vendas_invalidas_contestacoes ic
       LEFT JOIN users u ON u.id = ic.id_user
       LEFT JOIN users ur ON ur.id = ic.id_user_resposta
-      WHERE ic.id_venda = ?`,
+      WHERE ic.id_venda_invalida = ?`,
+      [id]
+    );
+
+    const [rateios] = await conn.execute(
+      "SELECT * FROM comissao_vendas_invalidas_rateio WHERE id_venda_invalida = ?",
       [id]
     );
 
     res.status(200).json({
       ...vendaInvalida,
       contestacoes,
+      rateios,
     });
   } catch (error) {
     logger.error({

@@ -45,6 +45,18 @@ router.put(
   checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
   controller.updateStatusContestacao
 );
+router.put(
+  "/rateio-automatico",
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  async (req, res) => {
+    try {
+      const result = await controller.rateioAutomaticoVendasInvalidas(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
 router.delete(
   "/",
   checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
