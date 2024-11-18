@@ -4,7 +4,8 @@ const vales = require("./vales");
 const metas = require("./metas");
 const agregadores = require("./agregadores");
 const comissionamento = require("./comissionamento");
-const vendasInvalidadas = require("./comissionamento/vendas-invalidadas");
+const comercial = require("../../controllers/comercial/comercial-controller");
+const checkUserPermissionMiddleware = require("../../middlewares/permission-middleware");
 
 // Vales
 router.use("/vales", vales);
@@ -15,5 +16,19 @@ router.use("/agregadores", agregadores);
 
 // Comissionamento
 router.use("/comissionamento", comissionamento);
+
+// OUTROS
+router.get(
+  "/metas-agregadores",
+  checkUserPermissionMiddleware(["VER_COLABORADORES", "GERENCIAR_COLABORADORES", "MASTER"]),
+  async (req, res) => {
+    try {
+      const result = await comercial.getAllMetasAgregadores(req);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
 
 module.exports = router;

@@ -113,15 +113,6 @@ module.exports = function getOne(req) {
               ]
             );
 
-            console.log([
-              venda.id,
-              filial.id,
-              venda.cpf_vendedor,
-              vendedor.nome,
-              vendedor.cargo,
-              parseFloat(estorno * 0.7),
-              0.7,
-            ]);
             obj["VALOR VENDEDOR"] = parseFloat(estorno * 0.7);
             obj["PERCENTUAL VENDEDOR"] = 0.7;
 
@@ -200,7 +191,6 @@ module.exports = function getOne(req) {
         } catch (erro) {
           obj["STATUS RATEIO AUTOMÁTICO"] = "ERRO";
           obj["OBSERVAÇÃO"] = String(erro.message).toUpperCase();
-          console.log(erro);
         } finally {
           retorno.push(obj);
         }

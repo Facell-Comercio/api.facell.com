@@ -36,10 +36,15 @@ module.exports = async (req, res) => {
       [id]
     );
 
+    const podeGerarVales =
+      ["improcedente", "ciente"].includes(vendaInvalida.status) &&
+      rateios.filter((rateio) => rateio.id_vale === null).length > 0;
+
     res.status(200).json({
       ...vendaInvalida,
       contestacoes,
       rateios,
+      podeGerarVales,
     });
   } catch (error) {
     logger.error({
