@@ -4,17 +4,17 @@ const {
     getAll,
     insertOne,
     update,
-} = require("../../../controllers/pessoal/fardamento/modelos-controller");
-const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
+} = require("../../../../controllers/pessoal/fardamento/tamanhos-controller");
+const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 router.get(
     "/",
     checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-    async(req,res)=>{
+    async(req,res) =>{
         try{
             const result = await getAll(req);
             res.status(200).json(result);
-        } catch (error){
+        } catch(error){
             res.status(500).json({message: error.message});
         }
     }
@@ -23,12 +23,12 @@ router.get(
 router.post(
     "/",
     checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
-    async(req,res)=>{
+    async(req,res) =>{
         try{
             const result = await insertOne(req);
             res.status(200).json(result);
-                } catch (error) {
-                    res.status(500).json({message: error.message});
+        }catch(error){
+            res.status(500).json({message: error.message});
         }
     }
 );
@@ -40,8 +40,10 @@ router.put(
         try{
             const result = await update(req);
             res.status(200).json(result);
-        } catch (error) {
-            res.status(500).json({message: error.message});
+        }catch (error){
+            res.status(500).json*({message: error.message});
         }
     }
 );
+
+module.exports = router;
