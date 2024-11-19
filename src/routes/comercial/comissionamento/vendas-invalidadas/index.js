@@ -56,7 +56,7 @@ router.post(
 );
 router.post(
   "/vales",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
   async (req, res) => {
     try {
       const result = await controller.criacaoAutomaticaVales(req);

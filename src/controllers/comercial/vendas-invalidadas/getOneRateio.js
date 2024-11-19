@@ -12,7 +12,7 @@ module.exports = async (req, res) => {
     conn = conn_externa || (await db.getConnection());
 
     const [rowRateio] = await conn.execute(
-      "SELECT *, percentual * 100 as percentual FROM comissao_vendas_invalidas_rateio WHERE id = ?",
+      "SELECT *, percentual * 100 as percentual, id_vale IS NULL AS canEdit FROM comissao_vendas_invalidas_rateio WHERE id = ?",
       [id]
     );
     const rateio = rowRateio && rowRateio[0];

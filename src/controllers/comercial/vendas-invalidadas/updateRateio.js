@@ -77,6 +77,15 @@ module.exports = async (req, res) => {
       );
     }
 
+    const [rowRateio] = await conn.execute(
+      "SELECT id, id_vale FROM comissao_vendas_invalidas_rateio WHERE id =?",
+      [id]
+    );
+    const rateio = rowRateio && rowRateio[0];
+    if (rateio.id_vale) {
+      throw new Error("Não é possível atualizar este rateio pois já está vinculado a um vale!");
+    }
+
     await conn.execute(
       `UPDATE comissao_vendas_invalidas_rateio SET
         id_venda_invalida = ?,

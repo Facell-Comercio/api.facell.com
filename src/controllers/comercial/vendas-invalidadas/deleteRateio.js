@@ -13,6 +13,14 @@ module.exports = async (req, res) => {
     if (!id) {
       throw new Error("É necessário informar o ID!");
     }
+    const [rowRateio] = await conn.execute(
+      "SELECT id, id_vale FROM comissao_vendas_invalidas_rateio WHERE id =?",
+      [id]
+    );
+    const rateio = rowRateio && rowRateio[0];
+    if (rateio.id_vale) {
+      throw new Error("Não é possível deletar este rateio pois já está vinculado a um vale!");
+    }
     await conn.execute("DELETE FROM comissao_vendas_invalidas_rateio WHERE id = ?", [id]);
     res.status(200).json({ message: "Success" });
   } catch (error) {

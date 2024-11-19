@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
     );
 
     const [rateios] = await conn.execute(
-      "SELECT * FROM comissao_vendas_invalidas_rateio WHERE id_venda_invalida = ?",
+      "SELECT *, id_vale IS NULL as canEdit FROM comissao_vendas_invalidas_rateio WHERE id_venda_invalida = ?",
       [id]
     );
 

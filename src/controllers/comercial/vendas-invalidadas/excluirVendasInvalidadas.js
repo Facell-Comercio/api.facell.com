@@ -11,20 +11,48 @@ module.exports = async (req, res) => {
     const { mes, ano } = req.query;
 
     conn = conn_externa || (await db.getConnection());
-    let where = " WHERE 1=1 ";
+    let where = `
+        WHERE 1=1
+        vi.id NOT IN (
+            SELECT vir.id_venda_invalida
+            FROM comissao_vendas_invalidas_rateio vir
+            WHERE vir.id_vale IS NOT NULL
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM comissao_vendas_invalidas_contestacoes vic
+            WHERE vic.id_venda_invalida = vi.id
+        ) `;
     const params = [];
     if (mes) {
-      where += ` AND MONTH(ref) = ? `;
+      where += ` AND MONTH(vi.ref) = ? `;
       params.push(mes);
     }
     if (ano) {
-      where += ` AND YEAR(ref) = ? `;
+      where += ` AND YEAR(vi.ref) = ? `;
       params.push(ano);
     }
 
-    await conn.execute(`DELETE FROM comissao_vendas_invalidas ${where}`, params);
+    await conn.execute(
+      `
+      DELETE vi FROM comissao_vendas_invalidas vi
+      LEFT JOIN comissao_vendas_invalidas_contestacoes vic ON vic.id_venda_invalida = vi.id
+      LEFT JOIN comissao_vendas_invalidas_rateio vir ON vir.id_venda_invalida = vi.id
+      ${where}`,
+      params
+    );
 
-    await conn.commit();
+    console.log(
+      `
+      DELETE vi FROM comissao_vendas_invalidas vi
+      LEFT JOIN comissao_vendas_invalidas_contestacoes vic ON vic.id_venda_invalida = vi.id
+      LEFT JOIN comissao_vendas_invalidas_rateio vir ON vir.id_venda_invalida = vi.id
+      ${where}`,
+      params
+    );
+
+    // await conn.commit();
+    await conn.rollback();
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
