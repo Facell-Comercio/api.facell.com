@@ -4,12 +4,9 @@ const {
     getAll,
     insertOne,
     update,
-} = require("../../../../controllers/pessoal/fardamento/tamanhos-controller");
-const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
-
+} = require("../../../controllers/pessoal/fardamento/tamanhos-controller");
 router.get(
     "/",
-    checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
     async(req,res) =>{
         try{
             const result = await getAll(req);
@@ -22,7 +19,6 @@ router.get(
 
 router.post(
     "/",
-    checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
     async(req,res) =>{
         try{
             const result = await insertOne(req);
@@ -35,7 +31,6 @@ router.post(
 
 router.put(
     "/",
-    checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
     async(req,res) =>{
         try{
             const result = await update(req);

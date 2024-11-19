@@ -3,11 +3,9 @@ const { db } = require("../../../../mysql");
 
 function getAll(req) {
     return new Promise(async (resolve,reject)=>{
-        const {user} = req;
-        if (!user) {
-            reject("Usuário não autenticado!");
-            return false;
-        }
+
+        let conn;
+        try {
         //FILTROS
         const {filters, pagination} = req.query;
         const {modelo} = filters || {};
@@ -23,8 +21,6 @@ function getAll(req) {
             params.push(modelo);
         }
 
-        let conn;
-        try {
             conn = await db.getConnection();
             const [rowTotal] = await conn.execute(
                 `SELECT count(fm.id) as qtde FROM fardamentos_modelos fm
@@ -88,7 +84,7 @@ function insertOne(req) {
                 [modelo]
             );
             await conn.commit();
-            resolve({ message: "Sucesso" });
+            resolve({ message: "Sucesso!" });
         } catch(error){
             logger.error({
                 module: "PESSOAL/FARDAMENTOS",
