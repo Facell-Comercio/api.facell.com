@@ -1,4 +1,4 @@
-const { format, startOfDay } = require("date-fns");
+const { format, startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { replaceFileUrl } = require("../../../../storage-controller");
@@ -30,6 +30,9 @@ module.exports = async = (req) => {
         tim_pedido,
         tim_pedido_sap,
         valor,
+        valor_liquido,
+        ir,
+        iss,
         descricao,
 
         vencimentos,
@@ -212,6 +215,9 @@ module.exports = async = (req) => {
                 data_emissao = ?,
                 num_doc = ?,
                 valor = ?,
+                valor_liquido = ?,
+                ir = ?,
+                iss = ?,
                 descricao = ?,
 
                 tim_pedido = ?,
@@ -239,6 +245,9 @@ module.exports = async = (req) => {
           data_emissao ? startOfDay(data_emissao) : null,
           num_doc || null,
           valor,
+          valor_liquido,
+          ir,
+          iss,
           descricao,
 
           tim_pedido || null,
@@ -276,10 +285,6 @@ module.exports = async = (req) => {
           historico += `\t VENCIMENTO ${index + 1}: \n`;
           historico += `\t DATA VENC.: '${formatDate(
             venc_anterior.data_vencimento,
-            "dd/MM/yyyy"
-          )}' \n`;
-          historico += `\t DATA PREV..: '${formatDate(
-            venc_anterior.data_prevista,
             "dd/MM/yyyy"
           )}' \n`;
           historico += `\t VALOR: '${normalizeCurrency(venc_anterior.valor)}' \n`;

@@ -146,7 +146,7 @@ module.exports = async = (req) => {
       const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       let query = `
               SELECT DISTINCT
-                  t.id, s.status, t.created_at, t.num_doc, t.descricao, t.valor,
+                  t.id, s.status, t.created_at, t.num_doc, t.descricao, t.valor_liquido as valor,
                   f.nome as filial, f.id_matriz,
                   forn.nome as fornecedor, forn.cnpj as cnpj_fornecedor, u.nome as criador
               FROM fin_cr_titulos t

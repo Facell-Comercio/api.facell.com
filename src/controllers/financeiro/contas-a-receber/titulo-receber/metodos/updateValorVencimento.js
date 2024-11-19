@@ -4,12 +4,7 @@ const { normalizeNumberFixed } = require("../../../../../helpers/mask");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      valor,
-
-      conn_externa,
-    } = req.body || {};
+    const { id, valor, conn_externa } = req.body || {};
     let conn;
     try {
       conn = conn_externa || (await db.getConnection());
@@ -23,7 +18,7 @@ module.exports = async = (req) => {
         throw new Error("ID do vencimento não informado!");
       }
       if (!valor) {
-        throw new Error("Valor do atualizado não informado!");
+        throw new Error("Valor do vencimento atualizado não informado!");
       }
 
       const [rowVencimento] = await conn.execute(
