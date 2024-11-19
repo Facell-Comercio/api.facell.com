@@ -1,7 +1,8 @@
-const { parse, startOfDay } = require("date-fns");
+const { parse, startOfDay, startOfMonth } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { excelDateToJSDate } = require("../../../helpers/mask");
+const { checkCPF } = require("../../../helpers/chekers");
 
 module.exports = function lancamentoLote(req) {
   return new Promise(async (resolve, reject) => {
@@ -19,13 +20,30 @@ module.exports = function lancamentoLote(req) {
       conn = await db.getConnection();
       await conn.beginTransaction();
 
+      throw new Error("Importação ainda em melhorias...");
+
       const retorno = [];
       for (const vale of vales) {
-        const { data_inicio_cobranca, cpf, filial, origem, obs, valor } = vale;
+        const {
+          data_inicio_cobranca,
+          cpf,
+          nome_colaborador,
+          filial,
+          origem,
+          obs,
+          valor,
+        } = vale;
         let obj = {
           ...vale,
         };
         try {
+          let cpfNormalizado = cpf;
+          if (cpfNormalizado.length < 11) {
+            cpfNormalizado = String(cpfNormalizado).padStart(11, "0");
+          }
+          if (!checkCPF(cpfNormalizado)) {
+            throw new Error(`CPF inválido`);
+          }
           const [rowFiliais] = await conn.execute(
             `
             SELECT id FROM filiais WHERE nome LIKE CONCAT('%',?,'%')
@@ -38,21 +56,6 @@ module.exports = function lancamentoLote(req) {
           }
           if (parseFloat(valor) <= 0) {
             throw new Error(`Valor do vale não pode ser zero`);
-          }
-          if (cpf.length !== 11) {
-            throw new Error(`CPF inválido`);
-          }
-
-          //^ Quando houver tabela de colaboradores
-          const [rowColaborador] = await conn.execute(
-            `
-            SELECT id, nome FROM colaboradores WHERE cpf = ?
-          `,
-            [cpf]
-          );
-          const colaborador = rowColaborador && rowColaborador[0];
-          if (!colaborador) {
-            throw new Error(`Colaborador não encontrado no sistema`);
           }
 
           const [result] = await conn.execute(
@@ -71,10 +74,9 @@ module.exports = function lancamentoLote(req) {
               id_criador
             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
             [
-              startOfDay(excelDateToJSDate(data_inicio_cobranca)),
-              colaborador.id,
-              colaborador.nome,
-              cpf,
+              startOfMonth(excelDateToJSDate(data_inicio_cobranca)),
+              nome_colaborador,
+              cpfNormalizado,
               id_filial,
               origem,
               1,

@@ -25,13 +25,15 @@ module.exports = function update(req) {
       if (!id) {
         throw new Error("ID não informado!");
       }
+      if (!checkCPF(cpf_colaborador)) {
+        throw new Error("CPF inválido!");
+      }
       conn = await db.getConnection();
       await conn.beginTransaction();
 
       await conn.execute(
         `UPDATE vales SET
           data_inicio_cobranca = ?,
-          id_colaborador= ?,
           nome_colaborador = ?,
           cpf_colaborador = ?,
           id_filial = ?,
@@ -41,7 +43,6 @@ module.exports = function update(req) {
         WHERE id = ?`,
         [
           startOfDay(data_inicio_cobranca),
-          id_colaborador,
           nome_colaborador,
           cpf_colaborador,
           id_filial,

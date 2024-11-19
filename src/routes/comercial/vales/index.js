@@ -12,9 +12,7 @@ const {
   updateAbatimento,
   deleteAbatimento,
   lancamentoLote,
-} = require("../../../controllers/comercial/comercial-controller");
-
-//! Refazer as validações de autorização
+} = require("../../../controllers/comercial/vales-controller");
 
 router.get(
   "/",

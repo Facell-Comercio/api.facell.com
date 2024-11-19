@@ -42,7 +42,7 @@ function getAll(req) {
       conn = await db.getConnection();
 
       const [rowTotal] = await conn.execute(
-        `SELECT count(c.id) as qtde FROM colaboradores c
+        `SELECT count(c.id) as qtde FROM colabs c
         ${where}
         `,
         params
@@ -55,7 +55,7 @@ function getAll(req) {
       params.push(offset);
 
       let query = `
-        SELECT * FROM colaboradores c
+        SELECT * FROM colabs c
         ${where}
         LIMIT ? OFFSET ?
       `;
@@ -90,7 +90,7 @@ function getOne(req) {
       const [rowColaborador] = await conn.execute(
         `
             SELECT *
-            FROM colaboradores
+            FROM colabs
             WHERE id = ?
             `,
         [id]
@@ -134,7 +134,7 @@ function insertOne(req) {
       await conn.beginTransaction();
 
       await conn.execute(
-        `INSERT INTO colaboradores (
+        `INSERT INTO colabs (
             nome, cpf, active
         ) VALUES (?,?,?)`,
         [nome, cpf, active]
@@ -175,7 +175,7 @@ function update(req) {
       await conn.beginTransaction();
       await conn.execute(
         `
-        UPDATE colaboradores SET
+        UPDATE colabs SET
             nome = ?, cpf = ?, active = ?
         WHERE id = ?`,
         [nome, cpf, active, id]
