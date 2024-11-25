@@ -19,6 +19,7 @@ module.exports = async (req) => {
         status_plano_list,
         status_contato_list,
         uf_list,
+        vendedores_list,
         isExportacao,
         planos_fidelizaveis,
       } = filters || {};
@@ -48,6 +49,9 @@ module.exports = async (req) => {
       }
       if (uf_list && ensureArray(uf_list).length > 0) {
         where += ` AND mc.uf IN('${ensureArray(uf_list).join("','")}') `;
+      }
+      if (vendedores_list && ensureArray(vendedores_list).length > 0) {
+        where += ` AND mc.vendedor IN('${ensureArray(vendedores_list).join("','")}') `;
       }
       if (isExportacao) {
         where += `AND NOT EXISTS(
@@ -88,11 +92,12 @@ module.exports = async (req) => {
             mc.plano_atual LIKE "%fix%" OR
             mc.plano_atual LIKE "%live%" OR
             mc.plano_atual LIKE "%pos social%" OR
-            mc.plano_atual LIKE "%black depend%" OR
-            mc.plano_atual LIKE "%m2m 20%" OR
+            mc.plano_atual LIKE "%depend%" OR
+            mc.plano_atual LIKE "%m2m %" OR
             mc.plano_atual LIKE "%community%" OR
-            mc.plano_atual LIKE "%c depend%" OR
             mc.plano_atual LIKE "%office%" OR
+            mc.plano_atual LIKE "%empresa%" OR
+            mc.plano_atual LIKE "%torpedo%" OR
             mc.plano_atual IS NULL OR
             mc.plano_atual = ''
           )
@@ -108,11 +113,12 @@ module.exports = async (req) => {
             mc.plano_atual LIKE "%fix%" OR
             mc.plano_atual LIKE "%live%" OR
             mc.plano_atual LIKE "%pos social%" OR
-            mc.plano_atual LIKE "%black depend%" OR
-            mc.plano_atual LIKE "%m2m 20%" OR
+            mc.plano_atual LIKE "%depend%" OR
+            mc.plano_atual LIKE "%m2m %" OR
             mc.plano_atual LIKE "%community%" OR
-            mc.plano_atual LIKE "%c depend%" OR
             mc.plano_atual LIKE "%office%" OR
+            mc.plano_atual LIKE "%empresa%" OR
+            mc.plano_atual LIKE "%torpedo%" OR
             mc.plano_atual IS NULL OR
             mc.plano_atual = ''
           )
@@ -252,14 +258,28 @@ module.exports = async (req) => {
         throw new Error("Nenhum plano encontrado");
       }
 
+      //~ Cria um Map para os planos usando o nome como chave
+      const planosMap = new Map();
+      for (const plano of rowsPlanos) {
+        const planoNome = String(plano.plano).toLowerCase().trim();
+        planosMap.set(planoNome, plano);
+      }
+
+      //~ Cria um Map para os preços usando a descrição como chave
+      const precosMap = new Map();
+      for (const preco of rowsPrecos) {
+        precosMap.set(preco.descricao_comercial, preco);
+      }
+
       //* DEFINIÇÃO DOS VALORES DO PRODUTO DE CADA CLIENTE
       for (const cliente of clientes) {
-        if (!cliente.produto_ofertado) {
+        if (!cliente.plano_atual || !cliente.produto_ofertado) {
           continue;
         }
-        const plano = rowsPlanos.find((value) =>
-          value.plano.toLowerCase().trim().includes(cliente.plano_atual.trim().toLowerCase())
-        );
+
+        // Busca o plano correspondente no Map
+        const planoNome = cliente.plano_atual.trim().toLowerCase();
+        const plano = planosMap.get(planoNome);
 
         let valor_plano_col = "val_pre";
         if (plano) {
@@ -267,9 +287,11 @@ module.exports = async (req) => {
             ? plano.produto_fidelizado
             : plano.produto_nao_fidelizado;
         }
-        const precos = rowsPrecos.find((preco) =>
-          preco.descricao_comercial.includes(cliente.produto_ofertado)
-        );
+
+        // Busca o preço correspondente no Map
+        const precos = precosMap.get(cliente.produto_ofertado);
+
+        // Atribui os valores ao cliente
         cliente.valor_pre = precos.val_pre || 0;
         cliente.valor_plano = precos[valor_plano_col] || 0;
         cliente.desconto = parseFloat(cliente.valor_pre) - parseFloat(cliente.valor_plano);

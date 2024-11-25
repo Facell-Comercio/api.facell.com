@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
     const rowsClientes = clientes.rows;
     const [resultCampanha] = await conn.execute(
       "INSERT INTO marketing_mailing_campanhas (nome, data_inicio, id_user) VALUES (?, ?, ?)",
-      [nome, startOfDay(data_inicio), user.id]
+      [String(nome).trim().toUpperCase(), startOfDay(data_inicio), user.id]
     );
     const campanha_id = resultCampanha.insertId;
 

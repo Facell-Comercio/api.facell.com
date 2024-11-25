@@ -1,6 +1,6 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
-const getOneCampanha = require("./getOneCampanha");
+const getOneCampanhaGSMS = require("./getOneCampanhaGSMS");
 
 module.exports = async (req, res) => {
   const { user } = req;
@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
     await conn.beginTransaction();
 
     //* CONSULTANDO A CAMPANHA DE ACORDO COM OS FILTROS
-    const campanha = await getOneCampanha({
+    const campanha = await getOneCampanhaGSMS({
       params: { id: id_campanha },
       body: {
         filters,
@@ -52,7 +52,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    const campanhaFinal = await getOneCampanha({
+    const campanhaFinal = await getOneCampanhaGSMS({
       params: { id: id_campanha },
       body: {
         conn_externa: conn,

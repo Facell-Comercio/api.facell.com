@@ -57,4 +57,31 @@ router.delete(
   controller.deleteVendedor
 );
 
+//* INTERACOES MANUAIS
+router.get(
+  "/interacoes-manuais",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.getAllInteracoesManuais
+);
+router.get(
+  "/interacoes-manuais/:id",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.getOneInteracaoManual
+);
+router.post(
+  "/interacoes-manuais",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.insertOneInteracaoManual
+);
+router.put(
+  "/interacoes-manuais",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.updateInteracaoManual
+);
+router.delete(
+  "/interacoes-manuais/:id",
+  checkUserAuthorization("MARKETING", "OR", "MASTER", true),
+  controller.deleteInteracaoManual
+);
+
 module.exports = router;

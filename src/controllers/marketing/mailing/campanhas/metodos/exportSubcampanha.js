@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
       XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
       const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
 
-      const filename = `EXPORTACAO SUBCAMPANHA EVOLUX ${formatDate(
+      const filename = `EXPORTACAO ${campanha.nome.toUpperCase()} EVOLUX ${formatDate(
         new Date(),
         "dd-MM-yyyy hh.mm"
       )}.xlsx`;
@@ -75,20 +75,18 @@ module.exports = async (req, res) => {
       res.send(buffer);
     } else if (type === "csv") {
       const csv = XLSX.utils.sheet_to_csv(worksheet);
-      const bom = "\uFEFF"; // Adiciona o BOM para UTF-8
-      const csvWithBom = bom + csv;
 
-      const filename = `EXPORTACAO SUBCAMPANHA EVOLUX ${formatDate(
+      const filename = `EXPORTACAO ${campanha.nome.toUpperCase()} EVOLUX ${formatDate(
         new Date(),
         "dd-MM-yyyy hh.mm"
       )}.csv`;
 
-      // Define os cabeçalhos para CSV
-      res.set("Content-Type", "text/csv;charset=utf-8;");
+      // Define os cabeçalhos para CSV, sem especificar o charset
+      res.set("Content-Type", "text/csv");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
 
-      // Envia o CSV com BOM, convertendo para buffer
-      res.send(Buffer.from(csvWithBom, "utf-8"));
+      // Envia o CSV diretamente, convertendo para buffer
+      res.send(Buffer.from(csv, "latin1")); // Usando latin1 para evitar UTF-8
     } else {
       throw new Error("Tipo de importação inválida");
     }
