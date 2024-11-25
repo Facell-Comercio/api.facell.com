@@ -1,6 +1,7 @@
 "use strict";
 const { logger } = require('../../../../../../../logger');
 const { db } = require('../../../../../../../mysql');
+
 module.exports = ({ ref, meta, politica }) => {
   return new Promise(async (resolve, reject) => {
     let conn;
@@ -82,14 +83,11 @@ module.exports = ({ ref, meta, politica }) => {
       try {
         // Buscar se já existe o espelho, se existir, então excluir o pdf e o registro:
         const [rowEspelhoAntigo] = await conn.execute(
-          `SELECT fileUrl FROM comissao_espelhos WHERE ref = ? and filial = ? and cpf = ? and cargo = ?`,
+          `SELECT id FROM comissao_espelhos WHERE ref = ? and filial = ? and cpf = ? and cargo = ?`,
           [ref, espelho.filial, espelho.cpf, espelho.cargo]
         );
-
-        if (
-          rowEspelhoAntigo &&
-          rowEspelhoAntigo[0]
-        ) {
+        const espelhoBanco = rowEspelhoAntigo && rowEspelhoAntigo[0]
+        if (espelhoBanco) {
 
           await conn.execute(
             `UPDATE comissao 
@@ -97,19 +95,19 @@ module.exports = ({ ref, meta, politica }) => {
               updated = now(),
               nome = ${conn.escape(espelho.nome)}, 
               comissao = ${conn.escape(espelho.comissao)}, 
-              bonus = ${conn.escape(espelho.bonus)}, 
-              fileUrl = ${conn.escape(fileUrl)}
+              bonus = ${conn.escape(espelho.bonus)}
 
-            WHERE ref = ? and filial = ? and cpf = ? and cargo = ?`,
-            [ref, espelho.filial, espelho.cpf, espelho.cargo]
+            WHERE id = ?`,
+            [espelhoBanco.id]
           );
+
         } else {
           // Vamos inserir já que não existe:
           await conn.execute(
             `INSERT INTO comissao (
-          ref, ciclo, filial, cpf, nome, cargo, comissao, bonus, fileUrl
+          ref, ciclo, filial, cpf, nome, cargo, comissao, bonus
           ) VALUES (
-          ?, ?, ? ,? ,?, ?, ?, ?, ?
+          ?, ?, ? ,? ,?, ?, ?, ?
         );`,
             [
               ref,
@@ -120,7 +118,6 @@ module.exports = ({ ref, meta, politica }) => {
               espelho.cargo,
               espelho.comissao,
               espelho.bonus,
-              fileUrl,
             ]
           );
         }
@@ -139,6 +136,7 @@ module.exports = ({ ref, meta, politica }) => {
         module: 'COMISSÃO', origin: 'CÁLCULO', method: 'CONSULTOR_DE_VENDAS',
         data: { stack: error.stack, name: error.name, message: error.message }
       })
+      
       try {
         if (conn) await conn.execute(`UPDATE metas SET status_espelho = 'Erro', obs_espelho = ? WHERE id = ? `, [error.message, meta.id])
       } catch (error) {
@@ -147,7 +145,7 @@ module.exports = ({ ref, meta, politica }) => {
           data: { stack: error.stack, name: error.name, message: error.message }
         })
       }
-      if (conn) conn.rollback();
+
       return reject("[CÁLCULO]:" + error.message);;
     } finally {
       if (conn) conn.release();
