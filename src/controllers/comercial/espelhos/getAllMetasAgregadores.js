@@ -12,15 +12,15 @@ module.exports = async (req, res) => {
 
   try {
     const { filters } = req.query || {};
-    const { id_grupo_economico, mes, ano, tipo, status_list, filial_list, cargo_list } =
+    const { grupo_economico, mes, ano, tipo_meta, status_list, filial_list, cargo_list } =
       filters || {};
     conn = conn_externa || (await db.getConnection());
 
     const params = [];
     let where = " WHERE 1=1 ";
-    if (id_grupo_economico) {
-      where += " AND id_grupo_economico LIKE ?";
-      params.push(id_grupo_economico);
+    if (grupo_economico) {
+      where += " AND grupo_economico LIKE ?";
+      params.push(grupo_economico);
     }
     if (mes) {
       where += " AND MONTH(ciclo) =?";
@@ -39,14 +39,24 @@ module.exports = async (req, res) => {
     if (cargo_list && ensureArray(cargo_list).length) {
       where += ` AND cargo IN ('${ensureArray(cargo_list).join("','")}')`;
     }
-
+    console.log(
+      `SELECT *, "meta" as tipo FROM facell_metas ${where} AND cargo <> "FILIAL"`,
+      params
+    );
     const rows = [];
-    if (tipo && (tipo === "all" || tipo === "meta")) {
-      const [metas] = await conn.execute(`SELECT * FROM facell_metas ${where}`, params);
+    if (tipo_meta && (tipo_meta === "all" || tipo_meta === "meta")) {
+      const [metas] = await conn.execute(
+        `SELECT *, "meta" as tipo FROM facell_metas ${where} AND cargo <> "FILIAL"`,
+        params
+      );
       rows.push(metas);
     }
-    if (tipo && (tipo === "all" || tipo === "agregador")) {
-      const [agregadores] = await conn.execute(`SELECT * FROM facell_agregadores ${where}`, params);
+
+    if (tipo_meta && (tipo_meta === "all" || tipo_meta === "agregador")) {
+      const [agregadores] = await conn.execute(
+        `SELECT *, "agregador" as tipo FROM facell_agregadores ${where}`,
+        params
+      );
       rows.push(agregadores);
     }
 
@@ -56,6 +66,7 @@ module.exports = async (req, res) => {
         cargosMap.set(row.cargo, row.cargo);
       }
     });
+
     const cargos = Array.from(cargosMap.keys());
     res.status(200).json({ rows: rows.flat(), cargos_list: cargos });
   } catch (error) {

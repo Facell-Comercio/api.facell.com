@@ -9,6 +9,7 @@ module.exports = async (req, res) => {
 
   try {
     const { id } = req.params;
+
     conn = conn_externa || (await db.getConnection());
 
     const [rowItem] = await conn.execute(
@@ -17,7 +18,7 @@ module.exports = async (req, res) => {
     );
     const item = rowItem && rowItem[0];
     if (!item) {
-      throw new Error("Item não encontrada!");
+      throw new Error("Item não encontrado!");
     }
     res.status(200).json(item);
   } catch (error) {
