@@ -13,13 +13,7 @@ module.exports = function getOne(req) {
 
     const params = [];
     let where = " WHERE 1=1 ";
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
+    if (!checkUserPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"])) {
       where += ` AND fa.cpf = ? `;
       params.push(user.cpf);
     }
@@ -49,8 +43,7 @@ module.exports = function getOne(req) {
       if (!agregador) {
         throw new Error(`O agregador de id ${id} não foi encontrado`);
       }
-      const metas =
-        agregador.metas_agregadas && agregador.metas_agregadas.split(";");
+      const metas = agregador.metas_agregadas && agregador.metas_agregadas.split(";");
 
       const [rowsMetas] = await conn.execute(`
         SELECT 
@@ -60,7 +53,7 @@ module.exports = function getOne(req) {
         FROM facell_metas fm
         LEFT JOIN filiais f ON f.id = fm.id_filial
         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-        WHERE ${metas ? `fm.cpf IN (${metas.join(",")})` : "1<>1"}
+        WHERE ${metas ? `fm.cpf IN ('${metas.join("','")}')` : "1<>1"}
         `);
 
       resolve({ ...agregador, metas: rowsMetas });

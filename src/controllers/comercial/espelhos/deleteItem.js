@@ -1,5 +1,6 @@
 const { db } = require("../../../../mysql");
 const { logger } = require("../../../../logger");
+const updateTotalItem = require("./updateTotalItem");
 
 module.exports = async (req, res) => {
   // Filtros
@@ -8,32 +9,33 @@ module.exports = async (req, res) => {
   let conn;
 
   try {
-    const { id, status, resposta } = req.body;
-    const user = req.user;
+    const { id } = req.params;
     conn = conn_externa || (await db.getConnection());
+    await conn.beginTransaction();
+
     if (!id) {
-      throw new Error("ID da contestação é obrigatório");
-    }
-    if (!status) {
-      throw new Error("Status da contestação é obrigatório");
-    }
-    if (!resposta) {
-      throw new Error("Resposta da contestação é obrigatório");
+      throw new Error("É necessário informar o ID!");
     }
 
-    await conn.execute(
-      "UPDATE comissao_contestacoes SET status = ?, resposta = ?, id_user_resposta = ?, data_resposta = ? WHERE id = ?",
-      [status, resposta, user.id, new Date(), id]
-    );
+    await updateTotalItem({
+      conn_externa: conn,
+      valor: 0,
+      id_item: id,
+    });
+
+    await conn.execute("DELETE FROM comissao_itens WHERE id = ?", [id]);
+
+    await conn.commit();
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
       module: "COMERCIAL",
       origin: "ESPELHOS",
-      method: "UPDATE_STATUS_CONTESTACAO",
+      method: "DELETE_ITEM",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
 
+    if (conn) await conn.rollback();
     res.status(500).json({ message: error.message });
   } finally {
     if (conn && !conn_externa) conn.release();

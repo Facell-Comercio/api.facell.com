@@ -67,6 +67,11 @@ router.post(
   }
 );
 router.put(
+  "/lote",
+  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  controller.updateLote
+);
+router.put(
   "/contestacoes",
   checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
   controller.updateStatusContestacao

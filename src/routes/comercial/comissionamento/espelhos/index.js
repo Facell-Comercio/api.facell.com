@@ -11,12 +11,21 @@ router.get("/", async (req, res) => {
   }
 });
 router.get("/contestacoes", controller.getAllContestacoes);
+router.get("/vendas-invalidadas", controller.getAllVendasInvalidadas);
+router.get("/itens", controller.getAllItens);
+router.get("/metas-agregadores", controller.getAllMetasAgregadores);
 router.get("/:id", controller.getOne);
 router.get("/contestacoes/:id", controller.getOneContestacao);
+router.get("/itens/:id", controller.getOneItem);
 
 router.post("/contestacoes", controller.insertOneContestacao);
+router.post("/itens", controller.insertOneItem);
+
 router.put("/contestacoes", controller.updateStatusContestacao);
+router.put("/itens", controller.updateItem);
+
 router.delete("/contestacoes/:id", controller.deleteContestacao);
+router.delete("/itens/:id", controller.deleteItem);
 
 router.put("/recalcular/:id", controller.recalcularEspelho);
 router.delete("/:id", controller.deleteOne);

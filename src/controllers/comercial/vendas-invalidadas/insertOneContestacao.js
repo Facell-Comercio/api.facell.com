@@ -11,6 +11,7 @@ module.exports = async (req, res) => {
     const { id, contestacao, id_venda_invalida } = req.body;
     const user = req.user;
     conn = conn_externa || (await db.getConnection());
+    await conn.beginTransaction();
     if (id) {
       throw new Error(
         "Um ID foi recebido, quando na verdade não poderia! Deve ser feita uma atualização do item!"
@@ -27,6 +28,12 @@ module.exports = async (req, res) => {
       "INSERT INTO comissao_vendas_invalidas_contestacoes (id_venda_invalida, contestacao,id_user) VALUES (?,?,?)",
       [id_venda_invalida, contestacao, user.id]
     );
+
+    await conn.execute("UPDATE comissao_vendas_invalidas SET status = ? WHERE id = ?", [
+      "em_analise",
+      id_venda_invalida,
+    ]);
+    await conn.commit();
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
@@ -36,6 +43,7 @@ module.exports = async (req, res) => {
       data: { message: error.message, stack: error.stack, name: error.name },
     });
 
+    if (conn) await conn.rollback();
     res.status(500).json({ message: error.message });
   } finally {
     if (conn && !conn_externa) conn.release();

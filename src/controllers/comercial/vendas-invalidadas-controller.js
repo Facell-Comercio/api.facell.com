@@ -4,6 +4,7 @@ module.exports = {
   getOneVendaInvalidada: require("./vendas-invalidadas/getOneVendaInvalidada"),
   processarVendasInvalidadas: require("./vendas-invalidadas/processarVendasInvalidadas"),
   excluirVendasInvalidadas: require("./vendas-invalidadas/excluirVendasInvalidadas"),
+  updateLote: require("./vendas-invalidadas/updateLote"),
   rateioAutomaticoVendasInvalidas: require("./vendas-invalidadas/rateioAutomaticoVendasInvalidas"),
 
   // CONTESTAÇÕES

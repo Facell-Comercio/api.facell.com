@@ -1,5 +1,6 @@
 const { db } = require("../../../../mysql");
 const { logger } = require("../../../../logger");
+const { normalizeNumberFixed } = require("../../../helpers/mask");
 const { ensureArray } = require("../../../helpers/formaters");
 
 module.exports = async (req, res) => {
@@ -9,12 +10,8 @@ module.exports = async (req, res) => {
   let conn;
 
   try {
-    const { pagination, filters } = req.query;
+    const { status, filters } = req.body;
     const { mes, ano, status_list, tipo_list, segmento_list, motivo, termo } = filters || {};
-    const { pageIndex, pageSize } = pagination || {
-      pageIndex: 0,
-      pageSize: 15,
-    };
 
     conn = conn_externa || (await db.getConnection());
     let where = " WHERE 1=1 ";
@@ -52,48 +49,23 @@ module.exports = async (req, res) => {
       params.push(termo, termo, termo, termo);
     }
 
-    const [rowTotal] = await conn.execute(
-      `SELECT COUNT(*) AS qtde
-            FROM (
-              SELECT
-                fd.id
-              FROM comissao_vendas_invalidas fd
-              ${where}
-            ) 
-            as subconsulta
-            `,
-      params
-    );
-    const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
-
-    const limit = pagination ? " LIMIT ? OFFSET ? " : "";
-    if (limit) {
-      const offset = pageIndex * pageSize;
-      params.push(pageSize);
-      params.push(offset);
-    }
-
-    const [rows] = await conn.execute(
-      `SELECT * FROM comissao_vendas_invalidas fd ${where} ORDER BY id DESC ${limit}`,
-      params
-    );
-
-    const objResponse = {
-      rows: rows,
-      pageCount: Math.ceil(qtdeTotal / pageSize),
-      rowCount: qtdeTotal,
-    };
-
-    res.status(200).json(objResponse);
+    await conn.execute(`UPDATE comissao_vendas_invalidas SET status = ? ${where}`, [
+      status,
+      ...params,
+    ]);
+    res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
       module: "COMERCIAL",
       origin: "VENDAS_INVALIDAS",
-      method: "GET_ALL_VENDAS_INVALIDAS",
+      method: "UPDATE_RATEIO",
       data: { message: error.message, stack: error.stack, name: error.name },
     });
-
-    res.status(500).json({ message: error.message });
+    let message = String(error.message);
+    if (message.toUpperCase().includes("DUPLICATE ENTRY")) {
+      message = "Rateio duplicado! Colaborador já usado em outro rateio nesta venda!";
+    }
+    res.status(500).json({ message });
   } finally {
     if (conn && !conn_externa) conn.release();
   }
