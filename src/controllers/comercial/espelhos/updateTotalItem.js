@@ -19,10 +19,10 @@ module.exports = async ({ conn_externa, tipo, valor, id_item, id_comissao }) => 
         ]); // RETIRA O VALOR ANTERIOR
       }
 
-      await conn.execute(`UPDATE comissao SET ${type} = ${type} + ? WHERE id = ? `, [
-        valor,
-        id_comissao,
-      ]); // ACRESCENTA O VALOR NO TOTALIZADOR
+      await conn.execute(
+        `UPDATE comissao SET ${type} = ${type} + ?, updated = NOW() WHERE id = ? `,
+        [valor, id_comissao]
+      ); // ACRESCENTA O VALOR NO TOTALIZADOR
       resolve();
     } catch (error) {
       reject(error);

@@ -39,10 +39,7 @@ module.exports = async (req, res) => {
     if (cargo_list && ensureArray(cargo_list).length) {
       where += ` AND cargo IN ('${ensureArray(cargo_list).join("','")}')`;
     }
-    console.log(
-      `SELECT *, "meta" as tipo FROM facell_metas ${where} AND cargo <> "FILIAL"`,
-      params
-    );
+
     const rows = [];
     if (tipo_meta && (tipo_meta === "all" || tipo_meta === "meta")) {
       const [metas] = await conn.execute(

@@ -49,8 +49,7 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       params.push(pageSize);
       params.push(offset);
@@ -86,7 +85,7 @@ function getAll(req) {
 function getOne(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    let conn
+    let conn;
     try {
       conn = await db.getConnection();
       const [rowUser] = await conn.execute(
@@ -102,13 +101,57 @@ function getOne(req) {
 
       const [permissoes] = await conn.execute(
         `
-            SELECT up.*, p.nome
+            SELECT up.*, p.nome, m.nome as modulo, "manual" as tipo
             FROM users_permissoes up
             INNER JOIN permissoes p ON p.id = up.id_permissao
+            LEFT JOIN modulos m ON m.id = p.id_modulo
             WHERE up.id_user = ?
             `,
         [id]
       );
+
+      const [perfis] = await conn.execute(
+        `
+            SELECT up.*, p.perfil
+            FROM users_perfis up
+            INNER JOIN perfis p ON p.id = up.id_perfil
+            WHERE up.id_user = ? AND p.active = 1
+            `,
+        [id]
+      );
+
+      const [permissoes_perfil] = await conn.execute(
+        `
+        SELECT DISTINCT pp.*, p.nome, m.nome as modulo, "perfil" as tipo
+        FROM perfis_permissoes pp
+        INNER JOIN permissoes p ON p.id = pp.id_permissao
+        LEFT JOIN modulos m ON m.id = p.id_modulo
+        WHERE pp.id_perfil IN (
+          SELECT p.id
+            FROM users_perfis up
+            INNER JOIN perfis p ON p.id = up.id_perfil
+            WHERE up.id_user = ? AND p.active = 1
+        )
+        `,
+        [id]
+      );
+
+      const permissoesUnicas = new Map();
+
+      [...permissoes, ...permissoes_perfil].flat(Infinity).forEach((p) => {
+        // Verificar se já existe um item no Map com o mesmo id_perfil
+        if (!permissoesUnicas.has(p.id_permissao)) {
+          permissoesUnicas.set(p.id_permissao, p);
+        } else {
+          // Se já existe, priorizar a permissão do tipo 'manual'
+          const existingPermission = permissoesUnicas.get(p.id_permissao);
+          if (p.tipo === "manual" && existingPermission.tipo !== "manual") {
+            permissoesUnicas.set(p.id_permissao, p);
+          }
+        }
+      });
+
+      user.permissoes = Array.from(permissoesUnicas.values());
 
       const [departamentos] = await conn.execute(
         `
@@ -145,13 +188,12 @@ function getOne(req) {
 
       const objUser = {
         ...user,
-        permissoes,
+        perfis,
         departamentos,
         filiais,
         centros_custo,
       };
       resolve(objUser);
-
     } catch (error) {
       logger.error({
         module: "ADM",
@@ -160,7 +202,6 @@ function getOne(req) {
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
-
     } finally {
       if (conn) conn.release();
     }
@@ -169,7 +210,7 @@ function getOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    let conn
+    let conn;
     try {
       const {
         id,
@@ -185,6 +226,8 @@ function update(req) {
         updateCentrosCusto,
         permissoes,
         updatePermissoes,
+        perfis,
+        updatePerfis,
       } = req.body;
 
       conn = await db.getConnection();
@@ -199,9 +242,7 @@ function update(req) {
       }
       await conn.beginTransaction();
 
-      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
-        id,
-      ]);
+      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [id]);
       const user = rowUser && rowUser[0];
       if (!user) {
         throw new Error("Usuário não localizado!");
@@ -229,10 +270,7 @@ function update(req) {
         }
       }
       if (updateDepartamentos) {
-        await conn.execute(
-          `DELETE FROM users_departamentos WHERE id_user = ?`,
-          [id]
-        );
+        await conn.execute(`DELETE FROM users_departamentos WHERE id_user = ?`, [id]);
         for (const udp of departamentos) {
           await conn.execute(
             `INSERT INTO users_departamentos (id_user, id_departamento, gestor) VALUES (?,?,?)`,
@@ -241,10 +279,7 @@ function update(req) {
         }
       }
       if (updateCentrosCusto) {
-        await conn.execute(
-          `DELETE FROM users_centros_custo WHERE id_user = ?`,
-          [id]
-        );
+        await conn.execute(`DELETE FROM users_centros_custo WHERE id_user = ?`, [id]);
         for (const ucc of centros_custo) {
           await conn.execute(
             `INSERT INTO users_centros_custo (id_user, id_centro_custo, gestor) VALUES (?,?,?)`,
@@ -253,14 +288,23 @@ function update(req) {
         }
       }
       if (updatePermissoes) {
-        await conn.execute(`DELETE FROM users_permissoes WHERE id_user = ?`, [
-          id,
-        ]);
+        await conn.execute(`DELETE FROM users_permissoes WHERE id_user = ?`, [id]);
         for (const user_permissao of permissoes) {
-          await conn.execute(
-            `INSERT INTO users_permissoes (id_user, id_permissao) VALUES (?,?)`,
-            [id, user_permissao.id_permissao]
-          );
+          if (user_permissao.tipo !== "perfil") {
+            await conn.execute(
+              `INSERT INTO users_permissoes (id_user, id_permissao) VALUES (?,?)`,
+              [id, user_permissao.id_permissao]
+            );
+          }
+        }
+      }
+      if (updatePerfis) {
+        await conn.execute(`DELETE FROM users_perfis WHERE id_user = ?`, [id]);
+        for (const user_perfil of perfis) {
+          await conn.execute(`INSERT INTO users_perfis (id_user, id_perfil) VALUES (?,?)`, [
+            id,
+            user_perfil.id_perfil,
+          ]);
         }
       }
 
@@ -268,7 +312,7 @@ function update(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      if(conn) await conn.rollback();
+      if (conn) await conn.rollback();
       logger.error({
         module: "ADM",
         origin: "USERS",
@@ -277,15 +321,14 @@ function update(req) {
       });
       reject(error);
     } finally {
-      if(conn) conn.release();
+      if (conn) conn.release();
     }
   });
 }
 
 function updateImg(req) {
   return new Promise(async (resolve, reject) => {
-    
-    let conn
+    let conn;
     try {
       const { img_url } = req.body;
       const { id } = req.params;
@@ -298,9 +341,7 @@ function updateImg(req) {
       }
       await conn.beginTransaction();
 
-      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [
-        id,
-      ]);
+      const [rowUser] = await conn.execute(`SELECT * FROM users WHERE id = ?`, [id]);
       const user = rowUser && rowUser[0];
       if (!user) {
         throw new Error("Usuário não localizado!");
@@ -312,10 +353,7 @@ function updateImg(req) {
       });
 
       // Atualização de dados do usuário
-      await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
-        nova_img_url,
-        id,
-      ]);
+      await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [nova_img_url, id]);
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
@@ -327,14 +365,14 @@ function updateImg(req) {
       });
       reject(error);
     } finally {
-      if(conn) conn.release();
+      if (conn) conn.release();
     }
   });
 }
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    let conn
+    let conn;
     try {
       const {
         id,
@@ -350,14 +388,14 @@ function insertOne(req) {
         updateCentrosCusto,
         permissoes,
         updatePermissoes,
+        perfis,
+        updatePerfis,
       } = req.body;
-  
+
       conn = await db.getConnection();
 
       if (id) {
-        throw new Error(
-          "ID do usuário enviado, por favor, atualize ao invés de tentar inserir!"
-        );
+        throw new Error("ID do usuário enviado, por favor, atualize ao invés de tentar inserir!");
       }
       if (!nome) {
         throw new Error("Nome não enviado!");
@@ -377,10 +415,7 @@ function insertOne(req) {
 
       const nova_img_url = await persistFile({ fileUrl: img_url });
 
-      await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [
-        nova_img_url,
-        newId,
-      ]);
+      await conn.execute("UPDATE users SET img_url = ? WHERE id = ?", [nova_img_url, newId]);
 
       // Atualização de arrays
       if (updateFiliais) {
@@ -409,10 +444,21 @@ function insertOne(req) {
       }
       if (updatePermissoes) {
         for (const user_permissao of permissoes) {
-          await conn.execute(
-            `INSERT INTO users_permissoes (id_user, id_permissao) VALUES (?,?)`,
-            [newId, user_permissao.id_permissao]
-          );
+          if (user_permissao.tipo !== "perfil") {
+            await conn.execute(
+              `INSERT INTO users_permissoes (id_user, id_permissao) VALUES (?,?)`,
+              [newId, user_permissao.id_permissao]
+            );
+          }
+        }
+      }
+      if (updatePerfis) {
+        await conn.execute(`DELETE FROM users_perfis WHERE id_user = ?`, [id]);
+        for (const user_perfil of perfis) {
+          await conn.execute(`INSERT INTO users_perfis (id_user, id_perfil) VALUES (?,?)`, [
+            id,
+            user_perfil.id_perfil,
+          ]);
         }
       }
 
@@ -420,7 +466,7 @@ function insertOne(req) {
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
-      if(conn) await conn.rollback();
+      if (conn) await conn.rollback();
       logger.error({
         module: "ADM",
         origin: "USERS",
@@ -429,7 +475,7 @@ function insertOne(req) {
       });
       reject(error);
     } finally {
-      if(conn) conn.release();
+      if (conn) conn.release();
     }
   });
 }
