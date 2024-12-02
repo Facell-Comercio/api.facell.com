@@ -75,7 +75,7 @@ router.delete(
 );
 router.delete(
   "/contestacoes/:id",
-  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_CONTESTAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_RESPONDER", "MASTER"]),
   controller.deleteContestacao
 );
 router.delete(

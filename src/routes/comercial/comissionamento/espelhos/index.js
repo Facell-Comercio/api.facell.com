@@ -80,7 +80,7 @@ router.put(
 //* DELETE
 router.delete(
   "/contestacoes/:id",
-  hasPermissionMiddleware(["COMISSOES:ESPELHOS_CONTESTAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_RESPONDER", "MASTER"]),
   controller.deleteContestacao
 );
 router.delete(
