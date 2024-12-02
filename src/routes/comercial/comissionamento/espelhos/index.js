@@ -21,4 +21,6 @@ router.delete("/contestacoes/:id", controller.deleteContestacao);
 router.put("/recalcular/:id", controller.recalcularEspelho);
 router.delete("/:id", controller.deleteOne);
 
+router.post('/', controller.calcularEspelhos)
+
 module.exports = router;

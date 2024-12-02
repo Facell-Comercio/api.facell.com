@@ -11,5 +11,6 @@ module.exports = {
   updateStatusContestacao: require("./espelhos/updateStatusContestacao"),
   deleteContestacao: require("./espelhos/deleteContestacao"),
 
+  calcularEspelhos: require("./espelhos/calcularEspelhos"),
   recalcularEspelho: require("./espelhos/recalcularEspelho"),
 };
