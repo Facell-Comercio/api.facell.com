@@ -67,7 +67,7 @@ router.get(
   }
 );
 
-router.post("/", hasPermissionMiddleware(["METAS:METAS_GERAR", "MASTER"]), async (req, res) => {
+router.post("/", hasPermissionMiddleware(["METAS:METAS_CRIAR", "MASTER"]), async (req, res) => {
   try {
     const result = await insertOne(req);
     res.status(200).json(result);
@@ -78,7 +78,7 @@ router.post("/", hasPermissionMiddleware(["METAS:METAS_GERAR", "MASTER"]), async
 
 router.post(
   "/import",
-  hasPermissionMiddleware(["METAS:METAS_GERAR", "MASTER"]),
+  hasPermissionMiddleware(["METAS:METAS_CRIAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await importMetas(req);

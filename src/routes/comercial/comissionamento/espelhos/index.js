@@ -51,7 +51,7 @@ router.get(
 //* POST
 router.post(
   "/contestacoes",
-  hasPermissionMiddleware(["COMISSOES:ESPELHOS_GERAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_CONTESTAR", "MASTER"]),
   controller.insertOneContestacao
 );
 router.post(
@@ -63,7 +63,7 @@ router.post(
 //* PUT
 router.put(
   "/contestacoes",
-  hasPermissionMiddleware(["COMISSOES:ESPELHOS_CONTESTAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_RESPONDER", "MASTER"]),
   controller.updateContestacao
 );
 router.put(

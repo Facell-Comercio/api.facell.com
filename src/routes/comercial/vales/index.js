@@ -46,7 +46,7 @@ router.get(
   }
 );
 
-router.post("/", hasPermissionMiddleware(["VALES:GERAR", "MASTER"]), async (req, res) => {
+router.post("/", hasPermissionMiddleware(["VALES:CRIAR", "MASTER"]), async (req, res) => {
   try {
     const result = await insertOne(req);
     res.status(200).json(result);
@@ -57,7 +57,7 @@ router.post("/", hasPermissionMiddleware(["VALES:GERAR", "MASTER"]), async (req,
 
 router.post(
   "/lancamento-lote",
-  hasPermissionMiddleware(["VALES:GERAR", "MASTER"]),
+  hasPermissionMiddleware(["VALES:CRIAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await lancamentoLote(req);
@@ -70,7 +70,7 @@ router.post(
 
 router.post(
   "/abatimentos",
-  hasPermissionMiddleware(["VALES:GERAR", "MASTER"]),
+  hasPermissionMiddleware(["VALES:CRIAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertAbatimento(req);

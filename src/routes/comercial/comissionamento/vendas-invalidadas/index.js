@@ -33,7 +33,7 @@ router.post(
 );
 router.post(
   "/contestacoes",
-  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_CONTESTAR", "MASTER"]),
   controller.insertOneContestacao
 );
 router.post(
@@ -41,7 +41,7 @@ router.post(
   hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.insertOneRateio
 );
-router.post("/vales", hasPermissionMiddleware(["VALES:GERAR", "MASTER"]), async (req, res) => {
+router.post("/vales", hasPermissionMiddleware(["VALES:CRIAR", "MASTER"]), async (req, res) => {
   try {
     const result = await controller.criacaoAutomaticaVales(req);
     res.status(200).json(result);
@@ -58,7 +58,7 @@ router.put(
 );
 router.put(
   "/contestacoes",
-  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_CONTESTAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_RESPONDER", "MASTER"]),
   controller.updateContestacao
 );
 router.put(
@@ -80,7 +80,7 @@ router.delete(
 );
 router.delete(
   "/rateios/:id",
-  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EXCLUIR", "MASTER"]),
   controller.deleteRateio
 );
 

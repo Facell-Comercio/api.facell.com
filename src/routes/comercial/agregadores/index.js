@@ -47,7 +47,7 @@ router.get(
 
 router.post(
   "/",
-  hasPermissionMiddleware(["METAS:AGREGADORES_GERAR", "MASTER"]),
+  hasPermissionMiddleware(["METAS:AGREGADORES_CRIAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertOne(req);
@@ -60,7 +60,7 @@ router.post(
 
 router.post(
   "/import",
-  hasPermissionMiddleware(["METAS:AGREGADORES_GERAR", "MASTER"]),
+  hasPermissionMiddleware(["METAS:AGREGADORES_CRIAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await importAgregadores(req);
