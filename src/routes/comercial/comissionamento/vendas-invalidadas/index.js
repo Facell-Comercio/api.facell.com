@@ -70,7 +70,7 @@ router.put(
 //* DELETE
 router.delete(
   "/",
-  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EXCLUIR", "MASTER"]),
   controller.excluirVendasInvalidadas
 );
 router.delete(
@@ -80,7 +80,7 @@ router.delete(
 );
 router.delete(
   "/rateios/:id",
-  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EXCLUIR", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.deleteRateio
 );
 
