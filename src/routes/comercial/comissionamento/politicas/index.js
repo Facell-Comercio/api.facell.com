@@ -18,11 +18,11 @@ const {
   copyPolitica,
   getAllCargos,
 } = require("../../../../controllers/comercial/politicas-controller");
-const checkUserPermissionMiddleware = require("../../../../middlewares/permission-middleware");
+const hasPermissionMiddleware = require("../../../../middlewares/permission-middleware");
 
 router.get(
   "/",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await getAll(req);
@@ -35,7 +35,7 @@ router.get(
 
 router.get(
   "/politica",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await getOne(req);
@@ -48,7 +48,7 @@ router.get(
 
 router.get(
   "/modelos/:id",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await getOneModelo(req);
@@ -61,7 +61,7 @@ router.get(
 
 router.get(
   "/modelos/itens/:id",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await getOneModeloItem(req);
@@ -74,7 +74,7 @@ router.get(
 
 router.post(
   "/",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertOne(req);
@@ -87,7 +87,7 @@ router.post(
 
 router.post(
   "/copy",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await copyPolitica(req);
@@ -100,7 +100,7 @@ router.post(
 
 router.post(
   "/cargos",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertCargoPolitica(req);
@@ -113,7 +113,7 @@ router.post(
 
 router.post(
   "/modelos",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertModelo(req);
@@ -126,7 +126,7 @@ router.post(
 
 router.post(
   "/modelos/itens",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertModeloItem(req);
@@ -139,7 +139,7 @@ router.post(
 
 router.put(
   "/",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await update(req);
@@ -152,7 +152,7 @@ router.put(
 
 router.put(
   "/modelos",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await updateModelo(req);
@@ -165,7 +165,7 @@ router.put(
 
 router.put(
   "/modelos/itens",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await updateModeloItem(req);
@@ -178,7 +178,7 @@ router.put(
 
 router.delete(
   "/cargos/:id",
-  checkUserPermissionMiddleware(["GERENCIAR_POLITICAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:POLITICAS_EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await removeCargoPolitica(req);

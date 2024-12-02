@@ -1,6 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 module.exports = function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -10,16 +10,8 @@ module.exports = function getAll(req) {
       return false;
     }
     const { filters, pagination } = req.query;
-    const {
-      id_filial,
-      id_grupo_economico,
-      nome,
-      cpf,
-      cargo,
-      mes,
-      ano,
-      tipo_agregacao,
-    } = filters || {};
+    const { id_filial, id_grupo_economico, nome, cpf, cargo, mes, ano, tipo_agregacao } =
+      filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -29,15 +21,11 @@ module.exports = function getAll(req) {
 
     let where = ` WHERE 1=1 `;
 
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
-      where += ` AND fa.cpf = ? `;
-      params.push(user.cpf);
+    if (!hasPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"])) {
+      if (user.cpf) {
+        where += ` AND fa.cpf = ? `;
+        params.push(user.cpf);
+      }
     }
 
     if (id_filial) {
@@ -83,7 +71,7 @@ module.exports = function getAll(req) {
               FROM (
                 SELECT 
                   fa.id
-                FROM facell_agregadores fa
+                FROM metas_agregadores fa
                 LEFT JOIN filiais f ON f.id = fa.id_filial
                 LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
                 ${where}
@@ -107,7 +95,7 @@ module.exports = function getAll(req) {
                 fa.*,
                 f.nome as filial,
                 gp.nome as grupo_economico
-              FROM facell_agregadores fa
+              FROM metas_agregadores fa
               LEFT JOIN filiais f ON f.id = fa.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}

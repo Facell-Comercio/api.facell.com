@@ -13,48 +13,29 @@ const {
   deleteAbatimento,
   lancamentoLote,
 } = require("../../../controllers/comercial/vales-controller");
+const hasPermissionMiddleware = require("../../../middlewares/permission-middleware");
 
-router.get(
-  "/",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VALES",
-    "VISUALIZAR_VALES",
-    "MASTER",
-  ]),
-  async (req, res) => {
-    try {
-      const result = await getAll(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/", hasPermissionMiddleware(["VALES:VER", "MASTER"]), async (req, res) => {
+  try {
+    const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VALES",
-    "VISUALIZAR_VALES",
-    "MASTER",
-  ]),
-  async (req, res) => {
-    try {
-      const result = await getOne(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/:id", hasPermissionMiddleware(["VALES:VER", "MASTER"]), async (req, res) => {
+  try {
+    const result = await getOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.get(
   "/abatimentos/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VALES",
-    "VISUALIZAR_VALES",
-    "MASTER",
-  ]),
+  hasPermissionMiddleware(["VALES:VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await getOneAbatimento(req);
@@ -65,22 +46,18 @@ router.get(
   }
 );
 
-router.post(
-  "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await insertOne(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.post("/", hasPermissionMiddleware(["VALES:GERAR", "MASTER"]), async (req, res) => {
+  try {
+    const result = await insertOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.post(
   "/lancamento-lote",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
+  hasPermissionMiddleware(["VALES:GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await lancamentoLote(req);
@@ -93,7 +70,7 @@ router.post(
 
 router.post(
   "/abatimentos",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
+  hasPermissionMiddleware(["VALES:GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await insertAbatimento(req);
@@ -104,22 +81,18 @@ router.post(
   }
 );
 
-router.put(
-  "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await update(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.put("/", hasPermissionMiddleware(["VALES:EDITAR", "MASTER"]), async (req, res) => {
+  try {
+    const result = await update(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.put(
   "/abatimentos",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
+  hasPermissionMiddleware(["VALES:EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await updateAbatimento(req);
@@ -130,22 +103,18 @@ router.put(
   }
 );
 
-router.delete(
-  "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await deleteVale(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.delete("/:id", hasPermissionMiddleware(["VALES:EDITAR", "MASTER"]), async (req, res) => {
+  try {
+    const result = await deleteVale(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.delete(
   "/abatimentos/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
+  hasPermissionMiddleware(["VALES:EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await deleteAbatimento(req);

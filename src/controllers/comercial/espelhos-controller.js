@@ -7,7 +7,7 @@ module.exports = {
   getAllContestacoes: require("./espelhos/getAllContestacoes"),
   getOneContestacao: require("./espelhos/getOneContestacao"),
   insertOneContestacao: require("./espelhos/insertOneContestacao"),
-  updateStatusContestacao: require("./espelhos/updateStatusContestacao"),
+  updateContestacao: require("./espelhos/updateContestacao"),
   deleteContestacao: require("./espelhos/deleteContestacao"),
 
   // ITENS

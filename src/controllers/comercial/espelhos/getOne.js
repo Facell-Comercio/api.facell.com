@@ -22,8 +22,8 @@ module.exports = async (req, res) => {
         COALESCE(fm.data_inicial, fa.data_inicial) AS data_inicial,
         COALESCE(fm.data_final, fa.data_final) AS data_final
       FROM comissao c
-      LEFT JOIN facell_metas fm ON fm.id = c.id_meta
-      LEFT JOIN facell_agregadores fa ON fa.id = c.id_agregador
+      LEFT JOIN metas fm ON fm.id = c.id_meta
+      LEFT JOIN metas_agregadores fa ON fa.id = c.id_agregador
       WHERE c.id =?
       `,
       [id]

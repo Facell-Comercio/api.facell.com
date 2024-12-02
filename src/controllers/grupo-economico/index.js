@@ -1,12 +1,12 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 const { checkUserDepartment } = require("../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { hasPermission } = require("../../helpers/hasPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const grupos_economicos_habilitados = [];
 
@@ -100,7 +100,7 @@ function getAll(req) {
 function getAllMatriz(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
+    const isMaster = hasPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
 
     const grupos_economicos_habilitados = [];
 

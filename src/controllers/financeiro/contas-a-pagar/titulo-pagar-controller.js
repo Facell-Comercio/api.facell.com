@@ -1,6 +1,6 @@
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 const { logger } = require("../../../../logger");
 
 //! Remanejar para Borderô
@@ -20,7 +20,7 @@ function getAllCpVencimentosBordero(req) {
     // Filtros
     var where = ` WHERE 1=1 `;
     // Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const {
@@ -209,7 +209,7 @@ function getAllCpItemsBordero(req) {
     let where = ` WHERE 1=1 `;
 
     // Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const {

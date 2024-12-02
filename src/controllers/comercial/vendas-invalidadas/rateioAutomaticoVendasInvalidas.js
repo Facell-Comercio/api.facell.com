@@ -57,7 +57,7 @@ module.exports = function getOne(req) {
         try {
           const [rowVendedor] = await conn.execute(
             `
-            SELECT id, cpf, nome, cargo FROM facell_metas
+            SELECT id, cpf, nome, cargo FROM metas
             WHERE cpf = ? AND MONTH(ref) =? AND YEAR(ref) =?
             LIMIT 1`,
             [venda.cpf_vendedor, mes, ano]
@@ -118,7 +118,7 @@ module.exports = function getOne(req) {
 
             const dataVenda = formatDate(venda.data_venda, "yyyy-MM-dd");
             const [gerentes] = await conn.execute(
-              `SELECT * FROM facell_agregadores
+              `SELECT * FROM metas_agregadores
               WHERE cargo IN ('GERENTE DE LOJA','GERENTE GERAL DE LOJA')
               AND filial LIKE ?
               AND ? BETWEEN data_inicial AND data_final`,

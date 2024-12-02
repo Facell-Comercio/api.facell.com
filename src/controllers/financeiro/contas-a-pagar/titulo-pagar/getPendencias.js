@@ -1,24 +1,21 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../../helpers/hasPermission");
 
 module.exports = function getPendencias(req) {
-    return new Promise(async (resolve, reject) => {
-      const { user } = req;
-  
-      const conn = await db.getConnection();
-      try {
-        if (
-          checkUserDepartment(req, "FINANCEIRO") ||
-          checkUserPermission(req, "MASTER")
-        ) {
-          resolve(0);
-          return;
-        }
-  
-        const [rowQtdeTotal] = await conn.execute(
-          `SELECT COUNT(*) AS qtde
+  return new Promise(async (resolve, reject) => {
+    const { user } = req;
+
+    const conn = await db.getConnection();
+    try {
+      if (checkUserDepartment(req, "FINANCEIRO") || hasPermission(req, "MASTER")) {
+        resolve(0);
+        return;
+      }
+
+      const [rowQtdeTotal] = await conn.execute(
+        `SELECT COUNT(*) AS qtde
           FROM (
             SELECT
               t.id 
@@ -36,22 +33,22 @@ module.exports = function getPendencias(req) {
             AND t.id_solicitante = '${user.id}'
           ) AS subconsulta
           `
-        );
-        //^ Retirado do WHERE
-        // t.id_status = 4 OR t.id_status = 5
-        //       OR
-        const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
-        resolve(totalVencimentos);
-      } catch (error) {
-        logger.error({
-          module: "FINANCEIRO",
-          origin: "TITULOS A PAGAR",
-          method: "GET_PENDENCIAS_NOTAS_FISCAIS_TITULOS",
-          data: { message: error.message, stack: error.stack, name: error.name },
-        });
-        reject(error);
-      } finally {
-        conn.release();
-      }
-    });
-  }
+      );
+      //^ Retirado do WHERE
+      // t.id_status = 4 OR t.id_status = 5
+      //       OR
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      resolve(totalVencimentos);
+    } catch (error) {
+      logger.error({
+        module: "FINANCEIRO",
+        origin: "TITULOS A PAGAR",
+        method: "GET_PENDENCIAS_NOTAS_FISCAIS_TITULOS",
+        data: { message: error.message, stack: error.stack, name: error.name },
+      });
+      reject(error);
+    } finally {
+      conn.release();
+    }
+  });
+};

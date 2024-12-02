@@ -10,7 +10,7 @@ module.exports = {
   // CONTESTAÇÕES
   getOneContestacao: require("./vendas-invalidadas/getOneContestacao"),
   insertOneContestacao: require("./vendas-invalidadas/insertOneContestacao"),
-  updateStatusContestacao: require("./vendas-invalidadas/updateStatusContestacao"),
+  updateContestacao: require("./vendas-invalidadas/updateContestacacao"),
   deleteContestacao: require("./vendas-invalidadas/deleteContestacao"),
 
   // RATEIOS

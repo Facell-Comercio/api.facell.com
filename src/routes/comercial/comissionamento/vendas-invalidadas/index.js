@@ -1,111 +1,86 @@
 const router = require("express").Router();
-const checkUserAuthorization = require("../../../../middlewares/authorization-middleware");
 
 const controller = require("../../../../controllers/comercial/comercial-controller");
+const hasPermissionMiddleware = require("../../../../middlewares/permission-middleware");
 
+//* GET
 router.get(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VENDAS_INVALIDAS",
-    "VISUALIZAR_VENDAS_INVALIDAS",
-    "MASTER",
-  ]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_VER", "MASTER"]),
   controller.getAllVendasInvalidadas
 );
 router.get(
   "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VENDAS_INVALIDAS",
-    "VISUALIZAR_VENDAS_INVALIDAS",
-    "MASTER",
-  ]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_VER", "MASTER"]),
   controller.getOneVendaInvalidada
 );
 router.get(
   "/contestacoes/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VENDAS_INVALIDAS",
-    "VISUALIZAR_VENDAS_INVALIDAS",
-    "MASTER",
-  ]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_VER", "MASTER"]),
   controller.getOneContestacao
 );
 router.get(
   "/rateios/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_VENDAS_INVALIDAS",
-    "VISUALIZAR_VENDAS_INVALIDAS",
-    "MASTER",
-  ]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_VER", "MASTER"]),
   controller.getOneRateio
 );
+
+//* POST
 router.post(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_GERAR", "MASTER"]),
   controller.processarVendasInvalidadas
 );
 router.post(
   "/contestacoes",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.insertOneContestacao
 );
 router.post(
   "/rateios",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.insertOneRateio
 );
-router.post(
-  "/vales",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VALES", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await controller.criacaoAutomaticaVales(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.post("/vales", hasPermissionMiddleware(["VALES:GERAR", "MASTER"]), async (req, res) => {
+  try {
+    const result = await controller.criacaoAutomaticaVales(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
+
+//* PUT
 router.put(
   "/lote",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.updateLote
 );
 router.put(
   "/contestacoes",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
-  controller.updateStatusContestacao
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_CONTESTAR", "MASTER"]),
+  controller.updateContestacao
 );
 router.put(
   "/rateios",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.updateRateio
 );
-router.put(
-  "/rateio-automatico",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await controller.rateioAutomaticoVendasInvalidas(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  }
-);
+
+//* DELETE
 router.delete(
   "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.excluirVendasInvalidadas
 );
 router.delete(
   "/contestacoes/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_CONTESTAR", "MASTER"]),
   controller.deleteContestacao
 );
 router.delete(
   "/rateios/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_VENDAS_INVALIDAS", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_EDITAR", "MASTER"]),
   controller.deleteRateio
 );
 

@@ -53,7 +53,9 @@ module.exports = async (req, res) => {
           p.*, m.nome as modulo
         FROM permissoes p
         LEFT JOIN modulos m ON m.id = p.id_modulo
-        ${where} ${limit}
+        ${where}
+        ORDER BY m.nome ASC, p.nome ASC
+        ${limit}
         `,
       params
     );

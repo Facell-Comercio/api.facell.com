@@ -1,6 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 module.exports = function getOne(req) {
   return new Promise(async (resolve, reject) => {
@@ -13,7 +13,7 @@ module.exports = function getOne(req) {
 
     const params = [];
     let where = " WHERE 1=1 ";
-    if (!checkUserPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"])) {
+    if (!hasPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"]) && user.cpf) {
       where += ` AND fa.cpf = ? `;
       params.push(user.cpf);
     }
@@ -32,7 +32,7 @@ module.exports = function getOne(req) {
                 (fa.proporcional * 100) as proporcional,
                 f.nome as filial,
                 gp.id as id_grupo_economico, gp.nome as grupo_econômico
-              FROM facell_agregadores fa
+              FROM metas_agregadores fa
               LEFT JOIN filiais f ON f.id = fa.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
@@ -50,7 +50,7 @@ module.exports = function getOne(req) {
         fm.*,
         f.nome as filial,
         gp.nome as grupo_economico
-        FROM facell_metas fm
+        FROM metas fm
         LEFT JOIN filiais f ON f.id = fm.id_filial
         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
         WHERE ${metas ? `fm.cpf IN ('${metas.join("','")}')` : "1<>1"}

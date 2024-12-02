@@ -58,7 +58,7 @@ module.exports = function insertOne(req) {
       await conn.beginTransaction();
 
       const [result] = await conn.execute(
-        `INSERT INTO facell_agregadores (
+        `INSERT INTO metas_agregadores (
           ref,
           ciclo,
           data_inicial,

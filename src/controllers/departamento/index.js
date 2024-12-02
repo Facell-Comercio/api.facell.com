@@ -1,7 +1,7 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 const { checkUserDepartment } = require("../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { hasPermission } = require("../../helpers/hasPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -37,8 +37,7 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       params.push(pageSize);
       params.push(offset);
@@ -110,10 +109,7 @@ function getUserDepartamentos(req) {
     const conn = await db.getConnection();
     var where = ` WHERE 1=1 AND ud.id IS NOT NULL `;
     //^ Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, "FINANCEIRO") &&
-      !checkUserPermission(req, "MASTER")
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND ud.id_user = '${user.id}' `;
     }
 
@@ -156,10 +152,11 @@ function update(req) {
       await conn.beginTransaction();
 
       // Atualização de dados do usuário
-      await conn.execute(
-        "UPDATE departamentos SET nome = ?, active = ? WHERE id = ?",
-        [nome, active, id]
-      );
+      await conn.execute("UPDATE departamentos SET nome = ?, active = ? WHERE id = ?", [
+        nome,
+        active,
+        id,
+      ]);
 
       await conn.commit();
       resolve({ message: "Sucesso!" });

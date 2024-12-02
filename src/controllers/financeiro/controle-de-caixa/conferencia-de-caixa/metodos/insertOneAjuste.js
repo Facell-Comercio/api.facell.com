@@ -3,7 +3,7 @@ const { logger } = require("../../../../../../logger");
 const { startOfDay } = require("date-fns");
 const aplicarAjuste = require("./aplicarAjuste");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../../../helpers/hasPermission");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
@@ -38,7 +38,7 @@ module.exports = async (req) => {
       const aprovado =
         tipo_ajuste === "transferencia" ||
         (tipo_ajuste !== "transferencia" &&
-          (checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER")));
+          (checkUserDepartment(req, "FINANCEIRO", true) || hasPermission(req, "MASTER")));
 
       const [result] = await conn.execute(
         `INSERT INTO datasys_caixas_ajustes (

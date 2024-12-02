@@ -1,6 +1,6 @@
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 const { logger } = require("../../../../logger");
 require("dotenv").config();
 
@@ -20,7 +20,7 @@ function getAll(req) {
     // Filtros
     var where = ` WHERE 1=1 `;
     // Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const {
@@ -753,7 +753,7 @@ function getVencimentosAPagar(req) {
     // Filtros
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
 
@@ -881,7 +881,7 @@ function getVencimentosEmBordero(req) {
     // Filtros
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
 
@@ -1014,7 +1014,7 @@ function getVencimentosPagos(req) {
     // Filtros
     var where = ` WHERE t.id_forma_pagamento <> 6 `;
     // Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
 

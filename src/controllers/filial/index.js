@@ -1,11 +1,11 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { hasPermission } = require("../../helpers/hasPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const filiais_habilitadas = [];
 
@@ -447,7 +447,7 @@ function insertOne(req) {
 function getAllUfs(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const filiais_habilitadas = [];
 

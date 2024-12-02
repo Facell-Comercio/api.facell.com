@@ -47,8 +47,8 @@ module.exports = async (req, res) => {
         `SELECT COUNT(*) AS qtde
             FROM (
               SELECT c.id FROM comissao c
-              LEFT JOIN facell_metas fm ON fm.id = c.id_meta
-              LEFT JOIN facell_agregadores fa ON fa.id = c.id_agregador
+              LEFT JOIN metas fm ON fm.id = c.id_meta
+              LEFT JOIN metas_agregadores fa ON fa.id = c.id_agregador
               ${where}
             ) 
             as subconsulta
@@ -60,8 +60,8 @@ module.exports = async (req, res) => {
       const [ids] = await conn.execute(
         `
         SELECT c.id FROM comissao c
-        LEFT JOIN facell_metas fm ON fm.id = c.id_meta
-        LEFT JOIN facell_agregadores fa ON fa.id = c.id_agregador
+        LEFT JOIN metas fm ON fm.id = c.id_meta
+        LEFT JOIN metas_agregadores fa ON fa.id = c.id_agregador
         ${where}
         `,
         params
@@ -72,8 +72,8 @@ module.exports = async (req, res) => {
             FROM (
               SELECT DISTINCT cc.id FROM comissao c
               LEFT JOIN comissao_contestacoes cc ON cc.id_comissao = c.id
-              LEFT JOIN facell_metas fm ON fm.id = c.id_meta
-              LEFT JOIN facell_agregadores fa ON fa.id = c.id_agregador
+              LEFT JOIN metas fm ON fm.id = c.id_meta
+              LEFT JOIN metas_agregadores fa ON fa.id = c.id_agregador
               ${where}
               AND cc.id IS NOT NULL
             ) 
@@ -99,8 +99,8 @@ module.exports = async (req, res) => {
         COALESCE(fm.cargo, fa.cargo) AS cargo,
         COALESCE(fm.nome, fa.nome) AS nome
       FROM comissao c
-      LEFT JOIN facell_metas fm ON fm.id = c.id_meta
-      LEFT JOIN facell_agregadores fa ON fa.id = c.id_agregador
+      LEFT JOIN metas fm ON fm.id = c.id_meta
+      LEFT JOIN metas_agregadores fa ON fa.id = c.id_agregador
       ${where} ${limit}
       `,
         params

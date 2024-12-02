@@ -1,8 +1,10 @@
 const router = require("express").Router();
 
 const controller = require("../../../../controllers/comercial/espelhos-controller");
+const hasPermissionMiddleware = require("../../../../middlewares/permission-middleware");
 
-router.get("/", async (req, res) => {
+//* GET
+router.get("/", hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]), async (req, res) => {
   try {
     const result = await controller.getAll(req);
     res.status(200).json(result);
@@ -10,24 +12,87 @@ router.get("/", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-router.get("/contestacoes", controller.getAllContestacoes);
-router.get("/vendas-invalidadas", controller.getAllVendasInvalidadas);
-router.get("/itens", controller.getAllItens);
-router.get("/metas-agregadores", controller.getAllMetasAgregadores);
-router.get("/:id", controller.getOne);
-router.get("/contestacoes/:id", controller.getOneContestacao);
-router.get("/itens/:id", controller.getOneItem);
+router.get(
+  "/contestacoes",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getAllContestacoes
+);
+router.get(
+  "/vendas-invalidadas",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getAllVendasInvalidadas
+);
+router.get(
+  "/itens",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getAllItens
+);
+router.get(
+  "/metas-agregadores",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getAllMetasAgregadores
+);
+router.get(
+  "/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getOne
+);
+router.get(
+  "/contestacoes/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getOneContestacao
+);
+router.get(
+  "/itens/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_VER", "MASTER"]),
+  controller.getOneItem
+);
 
-router.post("/contestacoes", controller.insertOneContestacao);
-router.post("/itens", controller.insertOneItem);
+//* POST
+router.post(
+  "/contestacoes",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_GERAR", "MASTER"]),
+  controller.insertOneContestacao
+);
+router.post(
+  "/itens",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_GERAR", "MASTER"]),
+  controller.insertOneItem
+);
 
-router.put("/contestacoes", controller.updateStatusContestacao);
-router.put("/itens", controller.updateItem);
+//* PUT
+router.put(
+  "/contestacoes",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_CONTESTAR", "MASTER"]),
+  controller.updateContestacao
+);
+router.put(
+  "/itens",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_EDITAR", "MASTER"]),
+  controller.updateItem
+);
+router.put(
+  "/recalcular/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_CALCULAR", "MASTER"]),
+  controller.recalcularEspelho
+);
 
-router.delete("/contestacoes/:id", controller.deleteContestacao);
-router.delete("/itens/:id", controller.deleteItem);
+//* DELETE
+router.delete(
+  "/contestacoes/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_CONTESTAR", "MASTER"]),
+  controller.deleteContestacao
+);
+router.delete(
+  "/itens/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_EDITAR", "MASTER"]),
+  controller.deleteItem
+);
 
-router.put("/recalcular/:id", controller.recalcularEspelho);
-router.delete("/:id", controller.deleteOne);
+router.delete(
+  "/:id",
+  hasPermissionMiddleware(["COMISSOES:ESPELHOS_EDITAR", "MASTER"]),
+  controller.deleteOne
+);
 
 module.exports = router;

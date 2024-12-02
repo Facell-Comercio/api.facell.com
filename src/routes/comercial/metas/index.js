@@ -12,10 +12,12 @@ const {
   getComparison,
   importMetas,
 } = require("../../../controllers/comercial/metas-controller");
+const hasPermissionMiddleware = require("../../../middlewares/permission-middleware");
 
 router.get(
   "/",
 
+  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await getAll(req);
@@ -26,25 +28,34 @@ router.get(
   }
 );
 
-router.get("/export-metas", async (req, res) => {
-  try {
-    await exportLayoutMetas(req, res);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+router.get(
+  "/export-metas",
+  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
+  async (req, res) => {
+    try {
+      await exportLayoutMetas(req, res);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
-router.get("/comparison", async (req, res) => {
-  try {
-    const result = await getComparison(req, res);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+router.get(
+  "/comparison",
+  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
+  async (req, res) => {
+    try {
+      const result = await getComparison(req, res);
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
-});
+);
 
 router.get(
   "/:id",
+  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
 
   async (req, res) => {
     try {
@@ -56,22 +67,18 @@ router.get(
   }
 );
 
-router.post(
-  "/",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await insertOne(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.post("/", hasPermissionMiddleware(["METAS:METAS_GERAR", "MASTER"]), async (req, res) => {
+  try {
+    const result = await insertOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.post(
   "/import",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
+  hasPermissionMiddleware(["METAS:METAS_GERAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await importMetas(req);
@@ -82,7 +89,7 @@ router.post(
   }
 );
 
-router.put("/", async (req, res) => {
+router.put("/", hasPermissionMiddleware(["METAS:METAS_EDITAR", "MASTER"]), async (req, res) => {
   try {
     const result = await update(req);
     res.status(200).json(result);
@@ -93,7 +100,7 @@ router.put("/", async (req, res) => {
 
 router.delete(
   "/:id",
-  checkUserAuthorization("FINANCEIRO", "OR", ["GERENCIAR_METAS", "MASTER"]),
+  hasPermissionMiddleware(["METAS:METAS_EDITAR", "MASTER"]),
   async (req, res) => {
     try {
       const result = await deleteMeta(req);

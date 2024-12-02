@@ -55,10 +55,7 @@ module.exports = function importMetas(req) {
           ...meta,
           ref: formatDate(excelDateToJSDate(ref), "dd/MM/yyyy"),
           ciclo: formatDate(excelDateToJSDate(ciclo), "dd/MM/yyyy"),
-          data_inicial: formatDate(
-            excelDateToJSDate(data_inicial),
-            "dd/MM/yyyy"
-          ),
+          data_inicial: formatDate(excelDateToJSDate(data_inicial), "dd/MM/yyyy"),
           data_final: formatDate(excelDateToJSDate(data_final), "dd/MM/yyyy"),
         };
         try {
@@ -84,10 +81,7 @@ module.exports = function importMetas(req) {
             }
             cpf_padrao = normalizeNumberOnly(cpf);
           } else {
-            const [filiais] = await conn.execute(
-              `SELECT id FROM filiais f WHERE nome = ?`,
-              [cpf]
-            );
+            const [filiais] = await conn.execute(`SELECT id FROM filiais f WHERE nome = ?`, [cpf]);
             if (!(filiais && filiais.length && filiais[0].id)) {
               throw new Error(`CPF inválido`);
             }
@@ -121,7 +115,7 @@ module.exports = function importMetas(req) {
 
           if (id) {
             await conn.execute(
-              `UPDATE facell_metas SET
+              `UPDATE metas SET
                 ref =  ?,
                 ciclo =  ?,
                 data_inicial =  ?,
@@ -183,7 +177,7 @@ module.exports = function importMetas(req) {
             );
           } else {
             const [result] = await conn.execute(
-              `INSERT INTO facell_metas (
+              `INSERT INTO metas (
                 ref,
                 ciclo,
                 data_inicial,

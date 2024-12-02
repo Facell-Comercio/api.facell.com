@@ -1,12 +1,12 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, 'FINANCEIRO');
+    const isMaster = hasPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
 
     const centros_custo_habilitados = [];
 
@@ -20,17 +20,13 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { nome, id_grupo_economico, active, id_matriz, termo } =
-      filters || {};
+    const { nome, id_grupo_economico, active, id_matriz, termo } = filters || {};
 
     let where = ` WHERE 1=1 `;
     const params = [];
 
     if (!isMaster) {
-      if (
-        !centros_custo_habilitados ||
-        centros_custo_habilitados.length === 0
-      ) {
+      if (!centros_custo_habilitados || centros_custo_habilitados.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
@@ -75,8 +71,7 @@ function getAll(req) {
         params
       );
 
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       const limit = pagination ? " LIMIT ? OFFSET ? " : "";
       if (limit) {
@@ -170,11 +165,7 @@ function insertOne(req) {
         }
         campos += `${key}`;
         values += `?`;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       const query = `INSERT INTO fin_centros_custo (${campos}) VALUES (${values});`;
@@ -215,11 +206,7 @@ function update(req) {
           updateQuery += ", "; // Adicionar vírgula entre os campos
         }
         updateQuery += `${key} = ? `;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       params.push(id);

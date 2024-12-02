@@ -46,10 +46,7 @@ module.exports = function importAgregadores(req) {
           ...agregador,
           ref: formatDate(excelDateToJSDate(ref), "dd/MM/yyyy"),
           ciclo: formatDate(excelDateToJSDate(ciclo), "dd/MM/yyyy"),
-          data_inicial: formatDate(
-            excelDateToJSDate(data_inicial),
-            "dd/MM/yyyy"
-          ),
+          data_inicial: formatDate(excelDateToJSDate(data_inicial), "dd/MM/yyyy"),
           data_final: formatDate(excelDateToJSDate(data_final), "dd/MM/yyyy"),
         };
         try {
@@ -92,7 +89,7 @@ module.exports = function importAgregadores(req) {
           }
           if (id) {
             await conn.execute(
-              `UPDATE facell_agregadores SET
+              `UPDATE metas_agregadores SET
                 ref =  ?,
                 ciclo =  ?,
                 data_inicial =  ?,
@@ -136,7 +133,7 @@ module.exports = function importAgregadores(req) {
             );
           } else {
             const [result] = await conn.execute(
-              `INSERT INTO facell_agregadores (
+              `INSERT INTO metas_agregadores (
                 ref,
                 ciclo,
                 data_inicial,

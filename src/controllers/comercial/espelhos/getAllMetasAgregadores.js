@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
     const rows = [];
     if (tipo_meta && (tipo_meta === "all" || tipo_meta === "meta")) {
       const [metas] = await conn.execute(
-        `SELECT *, "meta" as tipo FROM facell_metas ${where} AND cargo <> "FILIAL"`,
+        `SELECT *, "meta" as tipo FROM metas ${where} AND cargo <> "FILIAL"`,
         params
       );
       rows.push(metas);
@@ -51,7 +51,7 @@ module.exports = async (req, res) => {
 
     if (tipo_meta && (tipo_meta === "all" || tipo_meta === "agregador")) {
       const [agregadores] = await conn.execute(
-        `SELECT *, "agregador" as tipo FROM facell_agregadores ${where}`,
+        `SELECT *, "agregador" as tipo FROM metas_agregadores ${where}`,
         params
       );
       rows.push(agregadores);

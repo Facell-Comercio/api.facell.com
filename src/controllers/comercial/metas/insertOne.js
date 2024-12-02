@@ -80,7 +80,7 @@ module.exports = function insertOne(req) {
       await conn.beginTransaction();
 
       const [result] = await conn.execute(
-        `INSERT INTO facell_metas (
+        `INSERT INTO metas (
           ref,
           ciclo,
           data_inicial,

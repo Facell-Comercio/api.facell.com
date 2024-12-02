@@ -160,7 +160,8 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.produto_ultima_compra as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        ${where}`,
+        ${where}
+        ORDER BY mc.produto_ultima_compra ASC`,
         params
       );
 

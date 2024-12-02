@@ -1,7 +1,7 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserFilial } = require("../../../helpers/checkUserFilial");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 module.exports = function getOne(req) {
   return new Promise(async (resolve, reject) => {
@@ -16,17 +16,9 @@ module.exports = function getOne(req) {
     const filiaisGestor = user.filiais
       .filter((filial) => filial.gestor)
       .map((filial) => filial.id_filial);
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
+    if (!hasPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"]) && user.cpf) {
       if (filiaisGestor.length > 0) {
-        where += ` AND (fm.id_filial IN ('${filiaisGestor.join(
-          "','"
-        )}') OR fm.cpf = ?)`;
+        where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
         params.push(user.cpf);
       } else {
         where += ` AND fm.cpf = ? `;
@@ -48,7 +40,7 @@ module.exports = function getOne(req) {
                 (fm.proporcional * 100) as proporcional,
                 f.nome as filial,
                 gp.id as id_grupo_economico, gp.nome as grupo_econômico
-              FROM facell_metas fm
+              FROM metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
@@ -63,11 +55,8 @@ module.exports = function getOne(req) {
       resolve({
         ...meta,
         canEdit:
-          checkUserPermission(req, [
-            "MASTER",
-            "GERENCIAR_METAS",
-            "VISUALIZAR_METAS",
-          ]) || checkUserFilial(req, meta.id_filial, true),
+          hasPermission(req, ["MASTER", "METAS:METAS_EDITAR"]) ||
+          checkUserFilial(req, meta.id_filial, true),
       });
     } catch (error) {
       logger.error({

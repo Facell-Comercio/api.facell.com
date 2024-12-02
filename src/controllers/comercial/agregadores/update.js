@@ -59,7 +59,7 @@ module.exports = function update(req) {
       await conn.beginTransaction();
 
       await conn.execute(
-        `UPDATE facell_agregadores SET
+        `UPDATE metas_agregadores SET
           ref = ?,
           ciclo = ?,
           data_inicial = ?,
