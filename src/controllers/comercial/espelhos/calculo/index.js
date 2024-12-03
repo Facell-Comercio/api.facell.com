@@ -19,7 +19,7 @@ exports.calcular = (data) => {
             if (metas && metas.length > 0) {
                 for (const meta of metas) {
                     // Obtem a meta no banco
-                    const [rowsMetaBanco] = await conn.execute(`SELECT * FROM metas WHERE id = ?`, [meta.id])
+                    const [rowsMetaBanco] = await conn.execute(`SELECT *, 'meta' as tipo FROM metas WHERE id = ?`, [meta.id])
                     const metaBanco = rowsMetaBanco && rowsMetaBanco[0];
                     
                     // Seleciona a pasta correta conforme a data de referência da meta
@@ -37,7 +37,7 @@ exports.calcular = (data) => {
             if (agregadores && agregadores.length > 0) {
                 for (const agregador of agregadores) {
                     // Obtem a meta no banco
-                    const [rowsAgregadorBanco] = await conn.execute(`SELECT * FROM metas_agregadores WHERE id = ?`, [agregador.id]);
+                    const [rowsAgregadorBanco] = await conn.execute(`SELECT *, 'agregador' as tipo FROM metas_agregadores WHERE id = ?`, [agregador.id]);
                     const agregadorBanco = rowsAgregadorBanco && rowsAgregadorBanco[0];
                     
                     // Seleciona a pasta correta conforme a data de referência da meta

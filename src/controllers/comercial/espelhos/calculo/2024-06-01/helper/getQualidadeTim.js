@@ -1,4 +1,39 @@
-const [rowsQualidade] = await db.execute(
-    "SELECT qualidade FROM comissao_qualidade_tim WHERE ref = ? and cpf = ?",
-    [ref, meta.filial]
-  );
+import { db } from "../../../../../../../mysql";
+
+export const getQualidade = ({ meta }) => {
+  return new Promise(async (resolve, reject) => {
+    let conn;
+    try {
+      conn = await db.getConnection();
+      conn.config.namedPlaceholders = true;
+
+      let query = '';
+      let params = {};
+      let where = `WHERE
+        AND ano = :ano 
+        AND mes = :mes 
+        AND filial = :filial
+        `;
+      if (!meta.ref) throw new Error(`Meta sem referência. Valor: ${meta.ref}`);
+      if (!meta.filial) throw new Error(`Meta sem filial. Valor: ${meta.filial}`);
+
+      params.ano = dateFormat(meta.ref, 'yyyy');
+      params.mes = dateFormat(meta.ref, 'MM');
+      params.filial = meta.filial;
+
+      query = `SELECT qualidade FROM view_qualidade_tim_filial
+          ${where} 
+          `
+
+      const { rowQualidadeTim } = await conn.execute(query, params)
+      const data = rowQualidadeTim && rowQualidadeTim[0];
+      if (!data) throw new Error(`Não foi possível buscar a qualidade ${params.mes}/${params.ano} da filial ${meta.filial}, pessoa: ${meta.nome}!`)
+
+      resolve({ qualidade: parseFloat(data.qualidade) || 0})
+    } catch (error) {
+      reject(error)
+    } finally {
+      if (conn) conn.release();
+    }
+  })
+}
