@@ -1,4 +1,4 @@
-import { db } from "../../../../../../../mysql";
+const { db } = require("../../../../../../../mysql");
 
 export const getQualidade = ({ meta }) => {
   return new Promise(async (resolve, reject) => {

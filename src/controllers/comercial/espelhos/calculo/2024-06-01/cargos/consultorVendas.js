@@ -30,7 +30,6 @@ module.exports = ({ meta }) => {
 
       const novosItens = await getPolitica({ meta });
 
-
       // Buscar se já existe o espelho, se existir, então update:
       const [rowEspelhoAntigo] = await conn.execute(
         `SELECT id FROM comissao_espelhos WHERE ref = ? and filial = ? and cpf = ? and cargo = ?`,
@@ -56,7 +55,11 @@ module.exports = ({ meta }) => {
         await conn.execute(
           `INSERT INTO comissao (
           ref, ciclo, filial, cpf, nome, cargo, comissao, bonus
-          ) VALUES ( ?, ?, ? ,? ,?, ?, ?, ? );`,
+          ) VALUES ( ?, ?, ? ,? ,?, ?, ?, ? );
+          ON DUPLICATE KEY UPDATE
+            comissao = VALUES(comissao),
+            bonus = VALUES(bonus) 
+          `,
           [
             ref,
             espelho.ciclo,
