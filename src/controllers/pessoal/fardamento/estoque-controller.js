@@ -58,10 +58,15 @@ function getAll(req){
             params.push(offset);
 
             let query = `
-            SELECT fe.*,fe.id 
+            SELECT 
+                fe.*,fe.id,
+                ge.nome as grupo_economico,
+                fm.modelo,
+                ft.tamanho
             FROM fardamentos_estoque fe 
-            LEFT JOIN fardamentos_tamanhos ft ON ft.id = fe.id_tamanho 
+            LEFT JOIN grupos_economicos ge ON ge.id = fe.id_grupo_economico
             LEFT JOIN fardamentos_modelos fm ON fm.id = fe.id_modelo
+            LEFT JOIN fardamentos_tamanhos ft ON ft.id = fe.id_tamanho 
             ${where} 
             LIMIT ? OFFSET ?
             `;
