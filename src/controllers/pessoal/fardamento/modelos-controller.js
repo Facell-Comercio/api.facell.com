@@ -125,7 +125,7 @@ function update(req) {
             return;
         } catch(error) {
             logger.error({
-                module: "PESSOAL/FARDAMENTOS",
+                module: "PESSOAL/FARDAMENTO",
                 origin: "MODELOS",
                 method: "UPDATE",
                 data: {message: error.message, stack: error.stack, name: error.name},
