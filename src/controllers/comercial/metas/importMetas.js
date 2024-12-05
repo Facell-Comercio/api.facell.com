@@ -65,7 +65,7 @@ module.exports = function importMetas(req) {
             SELECT f.id as id_filial, gp.nome as grupo_economico
             FROM filiais f
             LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-            WHERE f.nome = ?
+            WHERE f.nome LIKE '%?%'
           `,
             [String(filial).trim()]
           );

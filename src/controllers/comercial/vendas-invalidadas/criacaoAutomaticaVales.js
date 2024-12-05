@@ -102,7 +102,7 @@ module.exports = async (req) => {
         } catch (erro) {
           obj["STATUS"] = "ERRO";
           obj["OBSERVAÇÃO"] = String(erro.message).toUpperCase();
-          console.log(erro);
+          // console.log(erro);
         } finally {
           retorno.push(obj);
         }
