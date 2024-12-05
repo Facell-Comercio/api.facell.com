@@ -45,9 +45,9 @@ module.exports = async (req, res) => {
           `
           SELECT gu.cpf, f.id as id_filial FROM tim_gestao_usuarios gu
           LEFT JOIN filiais f ON f.tim_custcode = gu.custcode
-          WHERE gu.nome = ?
+          WHERE (gu.nome = ? OR gu.matricula = ?)
           `,
-          [String(pessoa["NOME_VENDEDOR"])]
+          [String(pessoa["NOME_VENDEDOR"]), String(pessoa["MATRICULA"])]
         );
         const pessoaBanco = rowPessoa && rowPessoa[0];
         if (!pessoaBanco?.cpf) {
