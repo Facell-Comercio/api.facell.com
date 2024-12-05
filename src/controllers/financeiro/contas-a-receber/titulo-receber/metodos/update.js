@@ -1,4 +1,4 @@
-const { format, startOfDay } = require("date-fns");
+const { format, startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { replaceFileUrl } = require("../../../../storage-controller");
