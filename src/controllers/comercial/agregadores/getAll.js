@@ -21,7 +21,7 @@ module.exports = function getAll(req) {
 
     let where = ` WHERE 1=1 `;
 
-    if (!hasPermission(req, ["MASTER", "METAS:AGREGADORES_EDITAR"])) {
+    if (!hasPermission(req, ["MASTER", "METAS:AGREGADORES_VER_TODAS"])) {
       if (user.cpf) {
         where += ` AND fa.cpf = ? `;
         params.push(user.cpf);

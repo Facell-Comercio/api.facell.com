@@ -13,7 +13,7 @@ module.exports = function getOne(req) {
 
     const params = [];
     let where = " WHERE 1=1 ";
-    if (!hasPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"]) && user.cpf) {
+    if (!hasPermission(req, ["MASTER", "METAS:AGREGADORES_VER_TODAS"]) && user.cpf) {
       where += ` AND fa.cpf = ? `;
       params.push(user.cpf);
     }
@@ -27,7 +27,7 @@ module.exports = function getOne(req) {
 
       const [rowsAgregadores] = await conn.execute(
         `
-              SELECT 
+              SELECT
                 fa.*,
                 (fa.proporcional * 100) as proporcional,
                 f.nome as filial,

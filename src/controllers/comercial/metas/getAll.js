@@ -65,7 +65,7 @@ module.exports = function getAll(req) {
       where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
     }
 
-    if (!hasPermission(req, ["MASTER", "METAS:METAS_EDITAR"])) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_EDITAR_TODAS"])) {
       if (filiaisGestor.length > 0) {
         where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
         params.push(user.cpf);
@@ -134,7 +134,7 @@ module.exports = function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
         canView:
-          hasPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"]) ||
+          hasPermission(req, ["MASTER", "METAS:METAS_EDITAR"]) ||
           checkUserFilial(
             req,
             rows.map((row) => row.filial),

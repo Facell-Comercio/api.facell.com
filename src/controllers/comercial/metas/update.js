@@ -92,7 +92,7 @@ module.exports = function update(req) {
         isEqual(startOfMonth(ref), startOfMonth(new Date()));
 
       if (
-        (!hasPermission(req, ["MASTER", "GERENCIAR_METAS"]) &&
+        (!hasPermission(req, ["MASTER", "METAS:METAS_EDITAR"]) &&
           !filiaisGestor.includes(meta.id_filial)) ||
         (filiaisGestor.includes(meta.id_filial) && !allowedData)
       ) {

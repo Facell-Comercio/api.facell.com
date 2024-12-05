@@ -53,7 +53,7 @@ module.exports = function exportLayoutMetas(req, res) {
       where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
     }
 
-    if (!hasPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"])) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_EDITAR_TODAS"])) {
       if (filiaisGestor.length > 0) {
         where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
         params.push(user.cpf);
