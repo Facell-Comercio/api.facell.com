@@ -24,6 +24,12 @@ module.exports = async = (req) => {
       if (!id_conta_bancaria) {
         throw new Error("Conta bancária não informada!");
       }
+      if (!id_extrato) {
+        throw new Error("Extrato não informado!");
+      }
+      if (vencimentos.length < 1) {
+        throw new Error("Nenhum vencimentos foi informado!");
+      }
 
       const [rowTransacoes] = await conn.execute(
         "SELECT * FROM fin_extratos_bancarios WHERE id = ?",
