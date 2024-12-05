@@ -273,13 +273,11 @@ module.exports = async = (req) => {
       if (update_vencimentos) {
         historico += `VENCIMENTOS ANTERIORES:\n `;
         vencimentos_anteriores.forEach((venc_anterior, index) => {
+          console.log(venc_anterior);
+
           historico += `\t VENCIMENTO ${index + 1}: \n`;
           historico += `\t DATA VENC.: '${formatDate(
             venc_anterior.data_vencimento,
-            "dd/MM/yyyy"
-          )}' \n`;
-          historico += `\t DATA PREV..: '${formatDate(
-            venc_anterior.data_prevista,
             "dd/MM/yyyy"
           )}' \n`;
           historico += `\t VALOR: '${normalizeCurrency(venc_anterior.valor)}' \n`;
