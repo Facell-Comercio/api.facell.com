@@ -88,18 +88,10 @@ module.exports = function importAgregadores(req) {
             throw new Error("Dados insuficientes");
           }
 
-          const [rowUser] = conn.execute(
-            `
-            SELECT u.nome, u.cpf, c.cargo FROM users u
-            LEFT JOIN comissao_cargos c ON c.id = u.id_cargo
-            WHERE u.cpf = ?
-          `,
-            [cpf_padrao]
-          );
+          const [rowUser] = conn.execute("SELECT nome FROM users u WHERE cpf = ?", [cpf_padrao]);
           const user = rowUser && rowUser[0];
 
           if (user?.nome) throw new Error("Usuário não encontrado");
-          if (user?.cargo) throw new Error("Usuário com cargo não definido");
 
           if (id) {
             await conn.execute(
@@ -133,7 +125,7 @@ module.exports = function importAgregadores(req) {
                 filial,
                 cpf_padrao,
                 user.nome,
-                user.cargo,
+                cargo,
                 tags || null,
 
                 parseFloat(proporcional),
@@ -176,7 +168,7 @@ module.exports = function importAgregadores(req) {
                 filial,
                 cpf_padrao,
                 user.nome,
-                user.cargo,
+                cargo,
                 tags || null,
 
                 parseFloat(proporcional),

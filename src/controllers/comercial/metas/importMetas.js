@@ -113,6 +113,11 @@ module.exports = function importMetas(req) {
             throw new Error("Dados insuficientes!");
           }
 
+          const [rowUser] = conn.execute("SELECT nome FROM users u WHERE cpf = ?", [cpf_padrao]);
+          const user = rowUser && rowUser[0];
+
+          if (user?.nome) throw new Error("Usuário não encontrado");
+
           if (id) {
             await conn.execute(
               `UPDATE metas SET
@@ -153,7 +158,7 @@ module.exports = function importMetas(req) {
                 grupo_economico,
                 filial,
                 cpf_padrao,
-                nome,
+                user.nome,
                 cargo,
                 tags || null,
 
@@ -214,7 +219,7 @@ module.exports = function importMetas(req) {
                 grupo_economico,
                 filial,
                 cpf_padrao,
-                nome,
+                user.nome,
                 cargo,
                 tags || null,
 
