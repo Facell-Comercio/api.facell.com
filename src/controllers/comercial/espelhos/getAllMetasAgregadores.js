@@ -31,13 +31,19 @@ module.exports = async (req, res) => {
       params.push(ano);
     }
     if (status_list && ensureArray(status_list).length) {
-      where += ` AND status_espelho IN ('${ensureArray(status_list).join("','")}')`;
+      where += ` AND status_espelho IN (${ensureArray(status_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
     if (filial_list && ensureArray(filial_list).length) {
-      where += ` AND id_filial IN ('${ensureArray(filial_list).join("','")}')`;
+      where += ` AND id_filial IN (${ensureArray(filial_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
     if (cargo_list && ensureArray(cargo_list).length) {
-      where += ` AND cargo IN ('${ensureArray(cargo_list).join("','")}')`;
+      where += ` AND cargo IN (${ensureArray(cargo_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
 
     const rows = [];

@@ -87,6 +87,20 @@ module.exports = function importAgregadores(req) {
           ) {
             throw new Error("Dados insuficientes");
           }
+
+          const [rowUser] = conn.execute(
+            `
+            SELECT u.nome, u.cpf, c.cargo FROM users u
+            LEFT JOIN comissao_cargos c ON c.id = u.id_cargo
+            WHERE u.cpf = ?
+          `,
+            [cpf_padrao]
+          );
+          const user = rowUser && rowUser[0];
+
+          if (user?.nome) throw new Error("Usuário não encontrado");
+          if (user?.cargo) throw new Error("Usuário com cargo não definido");
+
           if (id) {
             await conn.execute(
               `UPDATE metas_agregadores SET
@@ -118,8 +132,8 @@ module.exports = function importAgregadores(req) {
                 grupo_economico,
                 filial,
                 cpf_padrao,
-                nome,
-                cargo,
+                user.nome,
+                user.cargo,
                 tags || null,
 
                 parseFloat(proporcional),
@@ -161,8 +175,8 @@ module.exports = function importAgregadores(req) {
                 grupo_economico,
                 filial,
                 cpf_padrao,
-                nome,
-                cargo,
+                user.nome,
+                user.cargo,
                 tags || null,
 
                 parseFloat(proporcional),

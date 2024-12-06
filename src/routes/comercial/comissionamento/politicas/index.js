@@ -20,57 +20,41 @@ const {
 } = require("../../../../controllers/comercial/politicas-controller");
 const hasPermissionMiddleware = require("../../../../middlewares/permission-middleware");
 
-router.get(
-  "/",
-  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await getAll(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/", async (req, res) => {
+  try {
+    const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/politica",
-  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await getOne(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/politica", async (req, res) => {
+  try {
+    const result = await getOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/modelos/:id",
-  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await getOneModelo(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/modelos/:id", async (req, res) => {
+  try {
+    const result = await getOneModelo(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/modelos/itens/:id",
-  hasPermissionMiddleware(["COMISSOES:POLITICAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await getOneModeloItem(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/modelos/itens/:id", async (req, res) => {
+  try {
+    const result = await getOneModeloItem(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.post(
   "/",

@@ -27,40 +27,24 @@ router.get(
 );
 
 // GET SEGMENTOS
-router.get(
-  "/segmentos",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_POLITICAS",
-    "VISUALIZAR_POLITICAS",
-    "MASTER",
-  ]),
-  async (req, res) => {
-    try {
-      const result = await controller.getSegmentos(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/segmentos", async (req, res) => {
+  try {
+    const result = await controller.getSegmentos(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 // GET CARGOS
-router.get(
-  "/cargos",
-  checkUserAuthorization("FINANCEIRO", "OR", [
-    "GERENCIAR_POLITICAS",
-    "VISUALIZAR_POLITICAS",
-    "MASTER",
-  ]),
-  async (req, res) => {
-    try {
-      const result = await controller.getCargos(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/cargos", async (req, res) => {
+  try {
+    const result = await controller.getCargos(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 //* IMPORTAÇÕES
 router.post("/import/tim-qualidade", async (req, res) => {

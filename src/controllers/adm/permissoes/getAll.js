@@ -22,7 +22,9 @@ module.exports = async (req, res) => {
       params.push(nome);
     }
     if (modulo_list && ensureArray(modulo_list).length) {
-      where += ` AND m.nome IN ('${ensureArray(modulo_list).join("','")}')`;
+      where += ` AND m.nome IN (${ensureArray(modulo_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
 
     conn = await db.getConnection();

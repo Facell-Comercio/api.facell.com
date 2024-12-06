@@ -116,13 +116,19 @@ module.exports = async (req, res) => {
     //* WHERE
     const { plano_atual_list, produto_list, sem_contato, status_plano_list } = filters || {};
     if (plano_atual_list && plano_atual_list.length > 0) {
-      where += ` AND mc.plano_atual IN('${ensureArray(plano_atual_list).join("','")}') `;
+      where += ` AND mc.plano_atual IN(${ensureArray(plano_atual_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
     if (produto_list && produto_list.length > 0) {
-      where += ` AND mc.produto_ultima_compra IN('${ensureArray(produto_list).join("','")}') `;
+      where += ` AND mc.produto_ultima_compra IN(${ensureArray(produto_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
     if (status_plano_list && status_plano_list.length > 0) {
-      where += ` AND mc.status_plano IN('${ensureArray(status_plano_list).join("','")}') `;
+      where += ` AND mc.status_plano IN(${ensureArray(status_plano_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
     if (filters.plano_habilitado) {
       where += " AND mc.plano_habilitado = ? ";

@@ -25,13 +25,19 @@ module.exports = async (req, res) => {
       params.push(ano);
     }
     if (ensureArray(status_list) && ensureArray(status_list).length) {
-      where += ` AND status IN('${ensureArray(status_list).join("','")}') `;
+      where += ` AND status IN(${ensureArray(status_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
     if (ensureArray(tipo_list) && ensureArray(tipo_list).length) {
-      where += ` AND tipo IN('${ensureArray(tipo_list).join("','")}') `;
+      where += ` AND tipo IN(${ensureArray(tipo_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
     if (ensureArray(segmento_list) && ensureArray(segmento_list).length) {
-      where += ` AND segmento IN('${ensureArray(segmento_list).join("','")}') `;
+      where += ` AND segmento IN(${ensureArray(segmento_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
     if (motivo) {
       where += ` AND motivo LIKE CONCAT('%',?,'%') `;

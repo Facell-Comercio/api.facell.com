@@ -14,58 +14,40 @@ const {
 } = require("../../../controllers/comercial/metas-controller");
 const hasPermissionMiddleware = require("../../../middlewares/permission-middleware");
 
-router.get(
-  "/",
-
-  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await getAll(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/", async (req, res) => {
+  try {
+    const result = await getAll(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/export-metas",
-  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      await exportLayoutMetas(req, res);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/export-metas", async (req, res) => {
+  try {
+    await exportLayoutMetas(req, res);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/comparison",
-  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
-  async (req, res) => {
-    try {
-      const result = await getComparison(req, res);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/comparison", async (req, res) => {
+  try {
+    const result = await getComparison(req, res);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
-router.get(
-  "/:id",
-  hasPermissionMiddleware(["METAS:METAS_VER", "MASTER"]),
-
-  async (req, res) => {
-    try {
-      const result = await getOne(req);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await getOne(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
-);
+});
 
 router.post("/", hasPermissionMiddleware(["METAS:METAS_CRIAR", "MASTER"]), async (req, res) => {
   try {

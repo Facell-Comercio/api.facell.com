@@ -1,5 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { ensureArray } = require("../../../helpers/formaters");
 
 module.exports = (req) => {
   return new Promise(async (resolve, reject) => {
@@ -11,10 +12,18 @@ module.exports = (req) => {
 
     let conn;
     try {
+      const { filters } = req.query || {};
+
+      const { tipo_list } = filters || {};
+      let where = " WHERE 1=1 ";
+
+      if (tipo_list && ensureArray(tipo_list).length) {
+        where += ` AND tipo IN (${ensureArray(tipo_list)
+          .map((value) => db.escape(value))
+          .join(",")})`;
+      }
       conn = await db.getConnection();
-      const [rowsCargos] = await conn.execute(
-        "SELECT * FROM comissao_cargos WHERE tipo <> 'filial'"
-      );
+      const [rowsCargos] = await conn.execute(`SELECT * FROM comissao_cargos ${where}`);
 
       resolve(rowsCargos);
     } catch (error) {

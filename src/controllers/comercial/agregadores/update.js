@@ -1,6 +1,7 @@
 const { parse, startOfDay, startOfMonth } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { normalizeNumberOnly } = require("../../../helpers/mask");
 
 module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
@@ -85,7 +86,7 @@ module.exports = function update(req) {
           proporcional,
 
           nome,
-          cpf,
+          normalizeNumberOnly(cpf),
           id_filial,
           filial,
           grupo_economico,

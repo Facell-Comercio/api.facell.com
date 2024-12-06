@@ -32,10 +32,14 @@ module.exports = async (req) => {
       const params = [];
 
       if (plano_atual_list && ensureArray(plano_atual_list).length > 0) {
-        where += ` AND mc.plano_atual IN('${ensureArray(plano_atual_list).join("','")}') `;
+        where += ` AND mc.plano_atual IN(${ensureArray(plano_atual_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (produto_list && ensureArray(produto_list).length > 0) {
-        where += ` AND mc.produto_ultima_compra IN('${ensureArray(produto_list).join("','")}') `;
+        where += ` AND mc.produto_ultima_compra IN(${ensureArray(produto_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (produto_fidelizado !== undefined && produto_fidelizado !== "all") {
         if (Number(produto_fidelizado)) {
@@ -45,13 +49,19 @@ module.exports = async (req) => {
         }
       }
       if (status_contato_list && ensureArray(status_contato_list).length > 0) {
-        where += ` AND mr.status IN('${ensureArray(status_contato_list).join("','")}') `;
+        where += ` AND mr.status IN(${ensureArray(status_contato_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (uf_list && ensureArray(uf_list).length > 0) {
-        where += ` AND mc.uf IN('${ensureArray(uf_list).join("','")}') `;
+        where += ` AND mc.uf IN(${ensureArray(uf_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (vendedores_list && ensureArray(vendedores_list).length > 0) {
-        where += ` AND mc.vendedor IN('${ensureArray(vendedores_list).join("','")}') `;
+        where += ` AND mc.vendedor IN(${ensureArray(vendedores_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (isExportacao) {
         where += `AND NOT EXISTS(
@@ -61,7 +71,9 @@ module.exports = async (req) => {
           `;
       }
       if (status_plano_list && ensureArray(status_plano_list).length > 0) {
-        where += ` AND mc.status_plano IN('${ensureArray(status_plano_list).join("','")}') `;
+        where += ` AND mc.status_plano IN(${ensureArray(status_plano_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       //& INÍCIO - CONDIÇÕES DE EXIBIÇÃO SOMENTE DE PLANOS FIDELIZÁVEIS
@@ -313,7 +325,7 @@ module.exports = async (req) => {
         SELECT DISTINCT mc.*
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        WHERE mc.id_campanha IN ('${idsCampanhas.join("','")}')`
+        WHERE mc.id_campanha IN ('${idsCampanhas.map((value) => db.escape(value)).join(",")})`
       );
 
       campanha.all_clientes = allClientes;
