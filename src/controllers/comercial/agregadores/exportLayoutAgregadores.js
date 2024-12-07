@@ -136,7 +136,6 @@ module.exports = function exportLayoutAgregadores(req, res) {
           throw new Error(`O agregador de id ${id} não foi encontrado`);
         }
         const metas_agregadas = agregador.metas_agregadas && agregador.metas_agregadas.split(";");
-        console.log(metas_agregadas);
 
         const [rowsMetas] = await conn.execute(`
           SELECT 
@@ -152,8 +151,12 @@ module.exports = function exportLayoutAgregadores(req, res) {
             SUM(fm.wttx) as wttx,
             SUM(fm.live) as live
           FROM metas fm
-          WHERE ${metas_agregadas ? `fm.cpf IN (${metas_agregadas.join(",")})` : "1<>1"}
-          `);
+          WHERE fm.ref = ? AND ${
+            metas_agregadas
+              ? `fm.cpf IN ('${metas_agregadas.join("','")}')`
+              : "1<>1"
+          }
+          `, [agregador.ref]);
 
         const metas = rowsMetas && rowsMetas[0];
         agregadores.push({
