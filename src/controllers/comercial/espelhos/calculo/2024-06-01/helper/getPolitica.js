@@ -39,7 +39,10 @@ module.exports = ({ meta }) => {
             const id_modelo = (rowModelo && rowModelo[0] && rowModelo[0]['id_modelo']) || null;
 
             // Retornar modelo padrão;
-            const [itens] = await conn.execute(`SELECT * FROM comissao_politica_itens WHERE id_cargo_politica = ? AND id_modelo ${id_modelo ? '= '+id_modelo : ' is NULL '}`, [cargoPolitica.id])
+            const [itens] = await conn.execute(`SELECT cpi.*, cs.key as segmento_key 
+                FROM comissao_politica_itens cpi
+                LEFT JOIN comissao_segmentos cs ON cs.id = cpi.id_segmento
+                WHERE cpi.id_cargo_politica = ? AND cpi.id_modelo ${id_modelo ? '= '+id_modelo : ' is NULL '}`, [cargoPolitica.id])
             for(const item of itens){
                 const [escalonamento] = await conn.execute(`SELECT * FROM comissao_politica_itens_escalonamento WHERE id_item_politica =?`, [item.id])
                 item.escalonamento = escalonamento;

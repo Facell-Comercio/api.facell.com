@@ -2,6 +2,7 @@
 const { logger } = require('../../../../../../../logger');
 const { db } = require('../../../../../../../mysql');
 const getPolitica = require('../helper/getPolitica');
+const segmentos = require('../segmentos');
 
 module.exports = ({ meta }) => {
   return new Promise(async (resolve, reject) => {
@@ -29,6 +30,12 @@ module.exports = ({ meta }) => {
       }
 
       const novosItens = await getPolitica({ meta });
+      for(const novoItem of novosItens){
+        console.log(segmentos[novoItem.segmento_key])
+      }
+      console.log(novosItens)
+      throw new Error('Forced to end')
+
 
       // Buscar se já existe o espelho, se existir, então update:
       const [rowEspelhoAntigo] = await conn.execute(
