@@ -18,7 +18,7 @@ module.exports = async = (req) => {
       // Filtros
       let where = ` WHERE 1=1 `;
       //* Somente o Financeiro/Master podem ver todos
-      // if (!checkUserDepartment(req, "FINANCEIRO") && !checkUserPermission(req, "MASTER")) {
+      // if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       //   // where += ` AND t.id_user = '${user.id}'`;
       //   if (departamentosUser?.length > 0) {
       //     where += ` AND (t.id_user = '${

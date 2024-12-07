@@ -4,12 +4,13 @@ module.exports = {
   getOneVendaInvalidada: require("./vendas-invalidadas/getOneVendaInvalidada"),
   processarVendasInvalidadas: require("./vendas-invalidadas/processarVendasInvalidadas"),
   excluirVendasInvalidadas: require("./vendas-invalidadas/excluirVendasInvalidadas"),
+  updateLote: require("./vendas-invalidadas/updateLote"),
   rateioAutomaticoVendasInvalidas: require("./vendas-invalidadas/rateioAutomaticoVendasInvalidas"),
 
   // CONTESTAÇÕES
   getOneContestacao: require("./vendas-invalidadas/getOneContestacao"),
   insertOneContestacao: require("./vendas-invalidadas/insertOneContestacao"),
-  updateStatusContestacao: require("./vendas-invalidadas/updateStatusContestacao"),
+  updateContestacao: require("./vendas-invalidadas/updateContestacacao"),
   deleteContestacao: require("./vendas-invalidadas/deleteContestacao"),
 
   // RATEIOS

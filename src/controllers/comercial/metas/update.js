@@ -1,13 +1,8 @@
-const {
-  parse,
-  startOfDay,
-  startOfMonth,
-  isEqual,
-  isAfter,
-} = require("date-fns");
+const { parse, startOfDay, startOfMonth, isEqual, isAfter } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
+const { normalizeNumberOnly } = require("../../../helpers/mask");
 
 module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
@@ -88,7 +83,7 @@ module.exports = function update(req) {
       //* Validação de permissão de edição
       const [rowsMetas] = await conn.execute(
         `
-        SELECT id_filial FROM facell_metas WHERE id = ?
+        SELECT id_filial FROM metas WHERE id = ?
         `,
         [id]
       );
@@ -98,7 +93,7 @@ module.exports = function update(req) {
         isEqual(startOfMonth(ref), startOfMonth(new Date()));
 
       if (
-        (!checkUserPermission(req, ["MASTER", "GERENCIAR_METAS"]) &&
+        (!hasPermission(req, ["MASTER", "METAS:METAS_EDITAR"]) &&
           !filiaisGestor.includes(meta.id_filial)) ||
         (filiaisGestor.includes(meta.id_filial) && !allowedData)
       ) {
@@ -106,7 +101,7 @@ module.exports = function update(req) {
       }
 
       await conn.execute(
-        `UPDATE facell_metas SET
+        `UPDATE metas SET
           ref = ?,
           ciclo = ?,
           data_inicial = ?,
@@ -141,7 +136,7 @@ module.exports = function update(req) {
           proporcional,
 
           nome,
-          cpf,
+          normalizeNumberOnly(cpf),
           id_filial,
           filial,
           grupo_economico,

@@ -47,13 +47,19 @@ module.exports = async (req) => {
 
       const temGrupoEstoque = grupo_estoque_list && grupo_estoque_list.length > 0;
       if (temGrupoEstoque) {
-        where += ` AND mc.grupo_estoque IN('${ensureArray(grupo_estoque_list).join("','")}') `;
+        where += ` AND mc.grupo_estoque IN(${ensureArray(grupo_estoque_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (subgrupo_list && subgrupo_list.length > 0) {
-        where += ` AND mc.subgrupo IN('${ensureArray(subgrupo_list).join("','")}') `;
+        where += ` AND mc.subgrupo IN(${ensureArray(subgrupo_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (uf_list && uf_list.length > 0) {
-        where += ` AND mc.uf IN('${ensureArray(uf_list).join("','")}') `;
+        where += ` AND mc.uf IN(${ensureArray(uf_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (range_data_pedido) {
         const { from: data_de, to: data_ate } = range_data_pedido;
@@ -87,28 +93,36 @@ module.exports = async (req) => {
         params.push(valor_maximo);
       }
       if (filiais_list && filiais_list.length > 0) {
-        where += ` AND mc.filial IN('${ensureArray(filiais_list).join("','")}') `;
+        where += ` AND mc.filial IN(${ensureArray(filiais_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (produto_compra) {
         where += ` AND mc.produto_compra LIKE CONCAT("%",?,"%") `;
         params.push(produto_compra);
       }
       if (plano_habilitado_list && plano_habilitado_list.length > 0) {
-        where += ` AND mc.plano_habilitado IN('${ensureArray(plano_habilitado_list).join(
-          "','"
-        )}') `;
+        where += ` AND mc.plano_habilitado IN(${ensureArray(plano_habilitado_list).join("','")}') `;
       }
       if (modalidade_list && modalidade_list.length > 0) {
-        where += ` AND mc.modalidade IN('${ensureArray(modalidade_list).join("','")}') `;
+        where += ` AND mc.modalidade IN(${ensureArray(modalidade_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (fabricante_list && fabricante_list.length > 0) {
-        where += ` AND mc.fabricante IN('${ensureArray(fabricante_list).join("','")}') `;
+        where += ` AND mc.fabricante IN(${ensureArray(fabricante_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (tipo_pedido_list && tipo_pedido_list.length > 0) {
-        where += ` AND mc.tipo_pedido IN('${ensureArray(tipo_pedido_list).join("','")}') `;
+        where += ` AND mc.tipo_pedido IN(${ensureArray(tipo_pedido_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (produto_compra_list && produto_compra_list.length > 0) {
-        where += ` AND mc.produto_compra IN('${ensureArray(produto_compra_list).join("','")}') `;
+        where += ` AND mc.produto_compra IN(${ensureArray(produto_compra_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (fidelizacao_aparelho && fidelizacao_aparelho !== "all") {
         where += ` AND mc.fid_aparelho LIKE CONCAT(?,"%") `;
@@ -119,7 +133,9 @@ module.exports = async (req) => {
         params.push(fidelizacao_plano);
       }
       if (status_plano && status_plano.length > 0) {
-        where += ` AND mc.status_plano IN('${ensureArray(status_plano).join("','")}') `;
+        where += ` AND mc.status_plano IN(${ensureArray(status_plano)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (nao_desativado && Number(nao_desativado)) {
         where += ` AND mc.status_plano NOT LIKE 'DESATIVADO' `;

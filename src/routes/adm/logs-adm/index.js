@@ -1,5 +1,5 @@
-const { clearLogs } = require("../../logger");
-const { getAll, getOne } = require("../controllers/adm-logs");
+const { clearLogs } = require("../../../../logger");
+const { getAll, getOne } = require("../../../controllers/adm/adm-logs");
 
 const router = require("express").Router();
 

@@ -22,14 +22,14 @@ module.exports = async (req, res) => {
     }
 
     await conn.execute(
-      "UPDATE comissao_vendas_invalidas_contestacoes SET status = ?, resposta = ?, id_user_resposta = ? WHERE id = ?",
-      [status, resposta, user.id, id]
+      "UPDATE comissao_contestacoes SET status = ?, resposta = ?, id_user_resposta = ?, data_resposta = ? WHERE id = ?",
+      [status, resposta, user.id, new Date(), id]
     );
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({
       module: "COMERCIAL",
-      origin: "VENDAS_INVALIDAS",
+      origin: "ESPELHOS",
       method: "UPDATE_STATUS_CONTESTACAO",
       data: { message: error.message, stack: error.stack, name: error.name },
     });

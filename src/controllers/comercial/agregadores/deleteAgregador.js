@@ -17,7 +17,7 @@ module.exports = function deleteAgregador(req) {
         throw new Error("ID não informado!");
       }
       // ! Exclusão de agregador:
-      await conn.execute(`DELETE FROM facell_agregadores WHERE id = ?`, [id]);
+      await conn.execute(`DELETE FROM metas_agregadores WHERE id = ?`, [id]);
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({

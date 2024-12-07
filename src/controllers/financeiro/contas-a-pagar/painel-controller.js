@@ -1,7 +1,7 @@
-const { db } = require('../../../../mysql');
-const { checkUserPermission } = require('../../../helpers/checkUserPermission');
-const { checkUserDepartment } = require('../../../helpers/checkUserDepartment');
-const { logger } = require('../../../../logger');
+const { db } = require("../../../../mysql");
+const { hasPermission } = require("../../../helpers/hasPermission");
+const { checkUserDepartment } = require("../../../helpers/checkUserDepartment");
+const { logger } = require("../../../../logger");
 
 function getAllSolicitacoesNegadas(req) {
   return new Promise(async (resolve, reject) => {
@@ -17,10 +17,7 @@ function getAllSolicitacoesNegadas(req) {
 
     let where = ` WHERE 1=1 `;
     //^ Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, 'FINANCEIRO') &&
-      !checkUserPermission(req, 'MASTER')
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const params = [];
@@ -43,8 +40,8 @@ function getAllSolicitacoesNegadas(req) {
         ) AS subconsulta
         `
       );
-      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]['qtde']) || 0;
-      const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       const query = `
             SELECT
                 t.id, t.created_at as data_solicitacao,
@@ -76,9 +73,9 @@ function getAllSolicitacoesNegadas(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'FINANCEIRO',
-        origin: 'PAINEL',
-        method: 'GET_ALL_SOLICITAÇÕES_NEGADAS',
+        module: "FINANCEIRO",
+        origin: "PAINEL",
+        method: "GET_ALL_SOLICITAÇÕES_NEGADAS",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -102,10 +99,7 @@ function getAllNotasFiscaisPendentes(req) {
 
     let where = ` WHERE 1=1 `;
     //^ Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, 'FINANCEIRO') &&
-      !checkUserPermission(req, 'MASTER')
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND t.id_solicitante = '${user.id}' `;
     }
     const params = [];
@@ -131,8 +125,8 @@ function getAllNotasFiscaisPendentes(req) {
         ) AS subconsulta
         `
       );
-      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]['qtde']) || 0;
-      const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       const query = `
             SELECT
                 t.id, t.created_at as data_solicitacao,
@@ -168,9 +162,9 @@ function getAllNotasFiscaisPendentes(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'FINANCEIRO',
-        origin: 'PAINEL',
-        method: 'GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES',
+        module: "FINANCEIRO",
+        origin: "PAINEL",
+        method: "GET_ALL_SOLICITAÇÕES_COM_NOTAS_FISCAIS_PENDENTES",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);
@@ -194,10 +188,7 @@ function getAllRecorrenciasPendentes(req) {
 
     let where = ` WHERE 1=1 `;
     //^ Somente o Financeiro/Master podem ver todos
-    if (
-      !checkUserDepartment(req, 'FINANCEIRO') &&
-      !checkUserPermission(req, 'MASTER')
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND r.id_user = '${user.id}' `;
     }
     const params = [];
@@ -220,8 +211,8 @@ function getAllRecorrenciasPendentes(req) {
         ) AS subconsulta
         `
       );
-      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]['qtde']) || 0;
-      const limit = pagination ? 'LIMIT ? OFFSET ?' : '';
+      const totalVencimentos = (rowQtdeTotal && rowQtdeTotal[0]["qtde"]) || 0;
+      const limit = pagination ? "LIMIT ? OFFSET ?" : "";
       const query = `
           SELECT 
             r.id_titulo, r.data_vencimento,
@@ -254,9 +245,9 @@ function getAllRecorrenciasPendentes(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'FINANCEIRO',
-        origin: 'PAINEL',
-        method: 'GET_ALL_RECORRENCIAS_PENDENTES',
+        module: "FINANCEIRO",
+        origin: "PAINEL",
+        method: "GET_ALL_RECORRENCIAS_PENDENTES",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

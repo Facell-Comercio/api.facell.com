@@ -1,6 +1,6 @@
 const { logger } = require("../../../../../../logger");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../../../helpers/hasPermission");
 const updateSaldo = require("./updateSaldo");
 
 module.exports = async ({ conn, id_ajuste, req }) => {
@@ -13,7 +13,7 @@ module.exports = async ({ conn, id_ajuste, req }) => {
       const ajuste = rowsAjustes && rowsAjustes[0];
       if (
         ajuste.tipo_ajuste !== "transferencia" &&
-        !(checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER"))
+        !(checkUserDepartment(req, "FINANCEIRO", true) || hasPermission(req, "MASTER"))
       ) {
         throw new Error("Você não tem permissão para aplicar este ajuste!");
       }

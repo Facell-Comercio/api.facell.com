@@ -56,19 +56,22 @@ function trimHeaders(ws) {
 }
 
 // Função para processar o arquivo xlsx
-function importFromExcel(filePath) {
+function importFromExcel(filePath, options) {
   // Ler o arquivo
   const workbook = XLSX.readFile(filePath);
 
   // Selecionar a primeira planilha
-  const worksheetName = workbook.SheetNames[0];
+  const index =
+    options?.sheetName && workbook.SheetNames.findIndex((sheet) => sheet == options.sheetName);
+
+  const worksheetName = workbook.SheetNames[options?.sheetName ? index : 0];
   const worksheet = workbook.Sheets[worksheetName];
 
   // Aplicar trim nos cabeçalhos
   trimHeaders(worksheet);
 
   // Converter os dados da planilha em um array de objetos
-  return XLSX.utils.sheet_to_json(worksheet);
+  return XLSX.utils.sheet_to_json(worksheet, options?.options);
 }
 
 module.exports = {

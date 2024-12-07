@@ -1,7 +1,7 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 const { checkUserFilial } = require("../../helpers/checkUserFilial");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { hasPermission } = require("../../helpers/hasPermission");
 const agregadoresController = require("./agregadores-controller");
 const configuracoesController = require("./configuracoes-controller");
 const metasController = require("./metas-controller");
@@ -72,13 +72,15 @@ function getAllMetasAgregadores(req) {
       params.push(filial);
     }
 
-    if (!checkUserPermission(req, ["MASTER", "GERENCIAR_METAS", "VISUALIZAR_METAS"])) {
+    if (!hasPermission(req, ["MASTER", "VALES:VER"])) {
       if (filiaisGestor.length > 0) {
         where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
         params.push(user.cpf);
       } else {
-        where += ` AND fm.cpf = ? `;
-        params.push(user.cpf);
+        if (user.cpf) {
+          where += ` AND fm.cpf = ? `;
+          params.push(user.cpf);
+        }
       }
     }
     if (ref) {
@@ -101,10 +103,10 @@ function getAllMetasAgregadores(req) {
 
       const [metas] = await conn.execute(
         `
-        SELECT 
+        SELECT
           fm.id, fm.ref, fm.cargo, fm.cpf, fm.nome,
           f.nome as filial, "meta" as tipo
-        FROM facell_metas fm
+        FROM metas fm
         LEFT JOIN filiais f ON f.id = fm.id_filial
         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
         ${where}
@@ -115,10 +117,10 @@ function getAllMetasAgregadores(req) {
 
       const [agregadores] = await conn.execute(
         `
-        SELECT 
+        SELECT
           fm.id, fm.ref, fm.cargo, fm.cpf, fm.nome,
           f.nome as filial, "agregador" as tipo
-        FROM facell_agregadores fm
+        FROM metas_agregadores fm
         LEFT JOIN filiais f ON f.id = fm.id_filial
         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
         ${where}

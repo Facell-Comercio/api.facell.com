@@ -1,6 +1,6 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 module.exports = function getComparison(req) {
   return new Promise(async (resolve, reject) => {
@@ -15,16 +15,7 @@ module.exports = function getComparison(req) {
       .map((filial) => filial.id_filial);
 
     const { filters } = req.query;
-    const {
-      id_filial,
-      id_grupo_economico,
-      nome,
-      cpf,
-      cargo,
-      mes,
-      ano,
-      cpf_list,
-    } = filters || {};
+    const { id_filial, id_grupo_economico, nome, cpf, cargo, mes, ano, cpf_list } = filters || {};
 
     const params = [];
 
@@ -54,13 +45,7 @@ module.exports = function getComparison(req) {
       where += ` AND NOT fm.cpf IN ('${cpf_list.join("','")}') `;
     }
 
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
       if (filiaisGestor.length > 0) {
         where += ` AND fm.id_filial IN ('${filiaisGestor.join("','")}') `;
       } else {
@@ -85,7 +70,7 @@ module.exports = function getComparison(req) {
           SELECT
             fm.*,
             f.nome as filial_nome
-          FROM facell_metas fm
+          FROM metas fm
           LEFT JOIN filiais f ON f.id = fm.id_filial
           ${where}
           AND fm.cargo = "FILIAL"
@@ -109,7 +94,7 @@ module.exports = function getComparison(req) {
               SUM(fm.fixo) as fixo,
               SUM(fm.wttx) as wttx,
               SUM(fm.live) as live
-            FROM facell_metas fm
+            FROM metas fm
             WHERE fm.id_filial =?
             AND MONTH(fm.ref) =?
             AND YEAR(fm.ref) =?
@@ -124,8 +109,7 @@ module.exports = function getComparison(req) {
           controle: parseFloat(meta.controle) >= parseFloat(filial.controle),
           pos: parseFloat(meta.pos) >= parseFloat(filial.pos),
           upgrade: parseFloat(meta.upgrade) >= parseFloat(filial.upgrade),
-          qtde_aparelho:
-            parseFloat(meta.qtde_aparelho) >= parseFloat(filial.qtde_aparelho),
+          qtde_aparelho: parseFloat(meta.qtde_aparelho) >= parseFloat(filial.qtde_aparelho),
           receita: parseFloat(meta.receita) >= parseFloat(filial.receita),
           aparelho: parseFloat(meta.aparelho) >= parseFloat(filial.aparelho),
           acessorio: parseFloat(meta.acessorio) >= parseFloat(filial.acessorio),

@@ -1,11 +1,11 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
-const { checkUserPermission } = require("../../helpers/checkUserPermission");
+const { hasPermission } = require("../../helpers/hasPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const filiais_habilitadas = [];
 
@@ -19,7 +19,15 @@ function getAll(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { termo, descricao, id_grupo_economico, id_matriz, tim_cod_sap, isLojaTim } = filters || {
+    const {
+      termo,
+      descricao,
+      id_grupo_economico,
+      grupo_economico,
+      id_matriz,
+      tim_cod_sap,
+      isLojaTim,
+    } = filters || {
       termo: null,
     };
 
@@ -63,6 +71,10 @@ function getAll(req) {
       where += ` AND f.id_grupo_economico = ?`;
       params.push(id_grupo_economico);
     }
+    if (grupo_economico) {
+      where += ` AND g.nome = ?`;
+      params.push(grupo_economico);
+    }
     if (tim_cod_sap) {
       if (tim_cod_sap !== "all") {
         where += ` AND f.tim_cod_sap = ?`;
@@ -86,9 +98,10 @@ function getAll(req) {
     try {
       const [rowQtdeTotal] = await conn.execute(
         `SELECT 
-            COUNT(f.id) as qtde 
+            COUNT(f.id) as qtde
             FROM filiais f
-             ${where} `,
+            JOIN grupos_economicos g ON g.id = f.id_grupo_economico
+            ${where} `,
         params
       );
       const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
@@ -434,7 +447,7 @@ function insertOne(req) {
 function getAllUfs(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const filiais_habilitadas = [];
 
