@@ -267,7 +267,7 @@ const supervisorProcessos = async ({ ref, agregador, politica }) => {
 
       const [realizadoPitzi] = await db.execute(
         `SELECT sum(p.valor) as faturamento FROM pitzi_vendas p 
-        INNER JOIN facell_filiais f ON f.filial_pitzi = p.loja
+        INNER JOIN filiais f ON f.nome_pitzi = p.loja
         WHERE
             DATE(p.data) between ? and ?
             ${filterPitzi}
