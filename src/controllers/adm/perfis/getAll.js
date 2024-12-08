@@ -42,10 +42,9 @@ module.exports = async (req, res) => {
     const limit = pagination ? " LIMIT ? OFFSET ? " : "";
     if (limit) {
       const offset = pageIndex * pageSize;
-      params.push(pageSize);
+      params.push(parseInt(pageSize));
       params.push(offset);
     }
-
     const [rows] = await conn.execute(`SELECT * FROM perfis ${where} ${limit}`, params);
     const objResponse = {
       rows: rows,
