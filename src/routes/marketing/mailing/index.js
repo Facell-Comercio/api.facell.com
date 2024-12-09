@@ -13,19 +13,19 @@ router.use("/clientes", clientes);
 
 router.post(
   "/nova-campanha",
-
+  checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:EDITAR"], true),
   controller.insertCampanha
 );
 
 //* APARELHOS
 router.get(
   "/aparelhos",
-
+  checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:VER"]),
   controller.getAllAparelhos
 );
 router.get(
   "/aparelhos/estoque",
-
+  checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:VER"]),
   controller.getEstoqueAparelho
 );
 

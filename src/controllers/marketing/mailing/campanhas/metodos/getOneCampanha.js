@@ -1,11 +1,13 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { ensureArray } = require("../../../../../helpers/formaters");
+const { hasPermission } = require("../../../../../helpers/hasPermission");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     // Filtros
     const { conn_externa } = req.body;
+    const user = req.user;
 
     let conn;
 
@@ -31,6 +33,24 @@ module.exports = async (req) => {
 
       let where = " WHERE 1=1 ";
       const params = [];
+
+      const filiaisGestor = user.filiais
+        .filter((filial) => filial.gestor)
+        .map((filial) => filial.nome);
+
+      if (!hasPermission(req, ["MASTER", "MAILING:VER_TUDO"])) {
+        if (filiaisGestor.length > 0) {
+          where += ` AND (mc.filial IN (${filiaisGestor
+            .map((value) => db.escape(value))
+            .join(",")}) OR mv.id_user = ?)`;
+          params.push(user.id);
+        } else {
+          if (user.id) {
+            where += ` AND mv.id_user = ? `;
+            params.push(user.id);
+          }
+        }
+      }
 
       if (plano_atual_list && ensureArray(plano_atual_list).length > 0) {
         where += ` AND mc.plano_atual IN(${ensureArray(plano_atual_list)
@@ -171,6 +191,7 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.plano_atual as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}
         ORDER BY mc.plano_atual ASC`,
         params
@@ -182,6 +203,7 @@ module.exports = async (req) => {
         mc.produto_ultima_compra as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}
         ORDER BY mc.produto_ultima_compra ASC`,
         params
@@ -192,6 +214,7 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.status_plano as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}
         ORDER BY mc.status_plano ASC`,
         params
@@ -202,6 +225,7 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.vendedor as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}
         ORDER BY mc.vendedor ASC`,
         params
@@ -212,6 +236,7 @@ module.exports = async (req) => {
         `SELECT DISTINCT mr.status as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}`,
         params
       );
@@ -221,6 +246,7 @@ module.exports = async (req) => {
         `SELECT DISTINCT mc.uf as value
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}`,
         params
       );
@@ -244,6 +270,7 @@ module.exports = async (req) => {
               mc.id
             FROM marketing_mailing_clientes mc
             LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+            LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
             ${where}
           ) AS subconsulta
            `,
@@ -263,6 +290,7 @@ module.exports = async (req) => {
       const [clientes] = await conn.execute(
         `SELECT DISTINCT mc.* FROM marketing_mailing_clientes mc
           LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+          LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
           ${where} ORDER BY mc.cliente ${limit}`,
         params
       );
@@ -337,6 +365,7 @@ module.exports = async (req) => {
         SELECT DISTINCT mc.*
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         WHERE mc.id_campanha IN (${idsCampanhas.map((value) => db.escape(value)).join(",")})`
       );
 

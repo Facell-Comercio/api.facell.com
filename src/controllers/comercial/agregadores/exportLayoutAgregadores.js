@@ -25,7 +25,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
 
     let where = ` WHERE 1=1 `;
 
-    if (!hasPermission(req, ["MASTER", "METAS:AGREGADORES_VER_TODOS"])) {
+    if (!hasPermission(req, ["MASTER", "METAS:AGREGADORES_VER_TUDO"])) {
       where += ` AND fa.cpf = ? `;
       params.push(user.cpf);
     }

@@ -65,7 +65,7 @@ module.exports = function getAll(req) {
       where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
     }
 
-    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TUDO"])) {
       if (filiaisGestor.length > 0) {
         where += ` AND (fm.id_filial IN (${filiaisGestor
           .map((value) => db.escape(value))

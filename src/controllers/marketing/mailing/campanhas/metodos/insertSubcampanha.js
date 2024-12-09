@@ -23,6 +23,7 @@ module.exports = async (req, res) => {
     //* CONSULTANDO A CAMPANHA DE ACORDO COM OS FILTROS
     const campanha = await getOneCampanhaGSMS({
       params: { id: id_parent },
+      user,
       body: {
         filters,
         conn_externa: conn,
@@ -41,10 +42,12 @@ module.exports = async (req, res) => {
     );
     const id_subcampanha = resultSubcampanha.insertId;
 
+    console.log(clientesIds.map((value) => db.escape(value)).join(","));
+
     await conn.execute(
-      `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN (${clientesIds.join(
-        ","
-      )})`,
+      `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN (${clientesIds
+        .map((value) => db.escape(value))
+        .join(",")})`,
       [id_subcampanha]
     );
 

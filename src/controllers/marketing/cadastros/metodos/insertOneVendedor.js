@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   let conn;
 
   try {
-    const { id, nome } = req.body;
+    const { id, nome, id_user } = req.body;
     conn = conn_externa || (await db.getConnection());
 
     if (id) {
@@ -19,8 +19,14 @@ module.exports = async (req, res) => {
     if (!nome) {
       throw new Error("Nome do vendedor é obrigatório");
     }
+    if (!id_user) {
+      throw new Error("É necessário informar o ID do usuário!");
+    }
 
-    await conn.execute(`INSERT INTO marketing_vendedores (nome) VALUES (?)`, [nome]);
+    await conn.execute(`INSERT INTO marketing_vendedores (nome, id_user) VALUES (?,?)`, [
+      nome,
+      id_user,
+    ]);
     res.status(200).json({ message: "Success" });
   } catch (error) {
     logger.error({

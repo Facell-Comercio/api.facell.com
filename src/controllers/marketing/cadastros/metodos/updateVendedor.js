@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   let conn;
 
   try {
-    const { id, nome, active } = req.body;
+    const { id, nome, id_user, active } = req.body;
 
     conn = conn_externa || (await db.getConnection());
 
@@ -18,13 +18,15 @@ module.exports = async (req, res) => {
     if (!nome) {
       throw new Error("Nome do vendedor é obrigatório");
     }
+    if (!id_user) {
+      throw new Error("ID do usuário é obrigatório");
+    }
 
     await conn.beginTransaction();
-    await conn.execute(`UPDATE marketing_vendedores SET nome = ?, active = ? WHERE id = ?`, [
-      nome,
-      active,
-      id,
-    ]);
+    await conn.execute(
+      `UPDATE marketing_vendedores SET nome = ?, id_user = ?, active = ? WHERE id = ?`,
+      [nome, id_user, active, id]
+    );
     await conn.commit();
     res.status(200).json({ message: "Success" });
   } catch (error) {

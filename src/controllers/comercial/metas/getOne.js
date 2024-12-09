@@ -16,7 +16,7 @@ module.exports = function getOne(req) {
     const filiaisGestor = user.filiais
       .filter((filial) => filial.gestor)
       .map((filial) => filial.id_filial);
-    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"]) && user.cpf) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TUDO"]) && user.cpf) {
       if (filiaisGestor.length > 0) {
         where += ` AND (fm.id_filial IN (${filiaisGestor
           .map((value) => db.escape(value))

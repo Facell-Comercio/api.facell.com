@@ -1,10 +1,11 @@
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
+const { hasPermission } = require("../../../../../helpers/hasPermission");
 
 module.exports = async (req, res) => {
   // Filtros
   const { conn_externa } = req.body;
-
+  const user = req.user;
   let conn;
 
   try {
@@ -17,6 +18,9 @@ module.exports = async (req, res) => {
 
     let where = "WHERE 1=1";
     const params = [];
+
+    let whereCampanha = "";
+    const paramsCampanha = [];
 
     if (mes) {
       where += " AND MONTH(data_inicio) = ?";
@@ -33,6 +37,24 @@ module.exports = async (req, res) => {
     if (nome) {
       where += " AND nome LIKE CONCAT('%',?, '%')";
       params.push(nome);
+    }
+
+    const filiaisGestor = user.filiais
+      .filter((filial) => filial.gestor)
+      .map((filial) => filial.nome);
+
+    if (!hasPermission(req, ["MASTER", "MAILING:VER_TUDO"])) {
+      if (filiaisGestor.length > 0) {
+        whereCampanha += ` AND (mc.filial IN (${filiaisGestor
+          .map((value) => db.escape(value))
+          .join(",")}) OR mv.id_user = ?)`;
+        paramsCampanha.push(user.id);
+      } else {
+        if (user.id) {
+          whereCampanha += ` AND mv.id_user = ? `;
+          paramsCampanha.push(user.id);
+        }
+      }
     }
 
     conn = conn_externa || (await db.getConnection());
@@ -61,7 +83,7 @@ module.exports = async (req, res) => {
     //* CONTANDO A QUANTIDADE DE CLIENTES
     for (const campanha of campanhas) {
       const [rowCampanhaParent] = await conn.execute(
-        "SELECT nome FROM marketing_mailing_campanhas WHERE id = ?",
+        `SELECT nome FROM marketing_mailing_campanhas WHERE id = ?`,
         [campanha.id_parent]
       );
       const campanhaParent = rowCampanhaParent && rowCampanhaParent[0];
@@ -75,9 +97,13 @@ module.exports = async (req, res) => {
       const ids = subcampanhas && subcampanhas.map((campanha) => campanha.id);
       ids.push(campanha.id);
       const [clientes] = await conn.execute(
-        `SELECT COUNT(id) as qtde FROM marketing_mailing_clientes WHERE id_campanha IN (${ids
-          .map((value) => db.escape(value))
-          .join(",")})`
+        `
+        SELECT COUNT(mc.id) as qtde FROM marketing_mailing_clientes mc
+        LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
+        WHERE id_campanha IN (${ids.map((value) => db.escape(value)).join(",")})
+         ${whereCampanha}
+        `,
+        paramsCampanha
       );
       campanha.qtde_clientes = (clientes && clientes[0] && clientes[0].qtde) || 0;
     }

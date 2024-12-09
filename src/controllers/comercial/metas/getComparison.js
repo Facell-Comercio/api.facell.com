@@ -45,7 +45,7 @@ module.exports = function getComparison(req) {
       where += ` AND NOT fm.cpf IN (${cpf_list.map((value) => db.escape(value)).join(",")}) `;
     }
 
-    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TUDO"])) {
       if (filiaisGestor.length > 0) {
         where += ` AND fm.id_filial IN (${filiaisGestor
           .map((value) => db.escape(value))

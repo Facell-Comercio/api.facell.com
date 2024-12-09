@@ -21,6 +21,7 @@ module.exports = async (req, res) => {
     //* CONSULTANDO A CAMPANHA DE ACORDO COM OS FILTROS
     const campanha = await getOneCampanha({
       params: { id: id_campanha },
+      user,
       body: {
         filters: { ...filters, isExportacao: true },
         conn_externa: conn,
