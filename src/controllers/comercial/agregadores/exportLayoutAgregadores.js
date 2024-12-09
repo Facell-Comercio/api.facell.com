@@ -1,14 +1,7 @@
-const {
-  formatDate,
-  startOfDay,
-  addHours,
-  addMinutes,
-  parseISO,
-  format,
-} = require("date-fns");
+const { formatDate, startOfDay, addHours, addMinutes, parseISO, format } = require("date-fns");
 
 const XLSX = require("xlsx");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 const { formatDatabaseDate } = require("../../../helpers/mask"); //
 const { db } = require("../../../../mysql");
 const { logger } = require("../../../../logger");
@@ -21,16 +14,8 @@ module.exports = function exportLayoutAgregadores(req, res) {
       return false;
     }
     const { filters, pagination } = req.query;
-    const {
-      id_filial,
-      id_grupo_economico,
-      nome,
-      cpf,
-      cargo,
-      mes,
-      ano,
-      tipo_agregacao,
-    } = filters || {};
+    const { id_filial, id_grupo_economico, nome, cpf, cargo, mes, ano, tipo_agregacao } =
+      filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -40,13 +25,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
 
     let where = ` WHERE 1=1 `;
 
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
+    if (!hasPermission(req, ["MASTER", "METAS:AGREGADORES_VER_TODOS"])) {
       where += ` AND fa.cpf = ? `;
       params.push(user.cpf);
     }
@@ -106,7 +85,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
       //           fa.data_final,
       //           fa.proporcional,
       //           fa.tipo_agregacao
-      //         FROM facell_agregadores fa
+      //         FROM metas_agregadores fa
       //         LEFT JOIN filiais f ON f.id = fa.id_filial
       //         LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
       //         ${where}
@@ -118,7 +97,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
         `
               SELECT 
                 fa.id
-              FROM facell_agregadores fa
+              FROM metas_agregadores fa
               LEFT JOIN filiais f ON f.id = fa.id_filial
               ${where}
               ORDER BY fa.id DESC
@@ -145,7 +124,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
             fa.proporcional,
             fa.tipo_agregacao,
             fa.metas_agregadas
-          FROM facell_agregadores fa
+          FROM metas_agregadores fa
           LEFT JOIN filiais f ON f.id = fa.id_filial
           LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
           WHERE fa.id =?
@@ -156,8 +135,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
         if (!agregador) {
           throw new Error(`O agregador de id ${id} não foi encontrado`);
         }
-        const metas_agregadas =
-          agregador.metas_agregadas && agregador.metas_agregadas.split(";");
+        const metas_agregadas = agregador.metas_agregadas && agregador.metas_agregadas.split(";");
         console.log(metas_agregadas);
 
         const [rowsMetas] = await conn.execute(`
@@ -173,12 +151,8 @@ module.exports = function exportLayoutAgregadores(req, res) {
             SUM(fm.fixo) as fixo,
             SUM(fm.wttx) as wttx,
             SUM(fm.live) as live
-          FROM facell_metas fm
-          WHERE ${
-            metas_agregadas
-              ? `fm.cpf IN (${metas_agregadas.join(",")})`
-              : "1<>1"
-          }
+          FROM metas fm
+          WHERE ${metas_agregadas ? `fm.cpf IN (${metas_agregadas.join(",")})` : "1<>1"}
           `);
 
         const metas = rowsMetas && rowsMetas[0];
@@ -227,10 +201,7 @@ module.exports = function exportLayoutAgregadores(req, res) {
 
       XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
       const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-      const filename = `AGREGADORES ${formatDate(
-        new Date(),
-        "dd-MM-yyyy hh.mm"
-      )}.xlsx`;
+      const filename = `AGREGADORES ${formatDate(new Date(), "dd-MM-yyyy hh.mm")}.xlsx`;
 
       res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);

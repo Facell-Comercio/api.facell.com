@@ -1,7 +1,7 @@
 const { formatDate } = require("date-fns");
 
 const XLSX = require("xlsx");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 const { db } = require("../../../../mysql");
 const { logger } = require("../../../../logger");
 const { formatDatabaseDate } = require("../../../helpers/mask");
@@ -19,17 +19,8 @@ module.exports = function exportLayoutMetas(req, res) {
       .map((filial) => filial.id_filial);
 
     const { filters, pagination } = req.query;
-    const {
-      id_filial,
-      id_grupo_economico,
-      nome,
-      cpf,
-      cargo,
-      mes,
-      ano,
-      cpf_list,
-      agregacao,
-    } = filters || {};
+    const { id_filial, id_grupo_economico, nome, cpf, cargo, mes, ano, cpf_list, agregacao } =
+      filters || {};
 
     const params = [];
 
@@ -62,17 +53,9 @@ module.exports = function exportLayoutMetas(req, res) {
       where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
     }
 
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
       if (filiaisGestor.length > 0) {
-        where += ` AND (fm.id_filial IN ('${filiaisGestor.join(
-          "','"
-        )}') OR fm.cpf = ?)`;
+        where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
         params.push(user.cpf);
       } else {
         where += ` AND fm.cpf = ? `;
@@ -119,7 +102,7 @@ module.exports = function exportLayoutMetas(req, res) {
                 fm.fixo,
                 fm.wttx,
                 fm.live
-              FROM facell_metas fm
+              FROM metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
@@ -156,10 +139,7 @@ module.exports = function exportLayoutMetas(req, res) {
       const worksheet = XLSX.utils.json_to_sheet(metas);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
       const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-      const filename = `METAS ${formatDate(
-        new Date(),
-        "dd-MM-yyyy hh.mm"
-      )}.xlsx`;
+      const filename = `METAS ${formatDate(new Date(), "dd-MM-yyyy hh.mm")}.xlsx`;
 
       res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);

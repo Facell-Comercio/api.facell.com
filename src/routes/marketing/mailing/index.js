@@ -2,7 +2,7 @@ const router = require("express").Router();
 
 const controller = require("../../../controllers/marketing/mailing/mailing-controller");
 const checkUserAuthorization = require("../../../middlewares/authorization-middleware");
-const checkUserPermission = require("../../../middlewares/permission-middleware");
+const hasPermission = require("../../../middlewares/permission-middleware");
 const campanhas = require("./campanhas");
 const clientes = require("./clientes");
 const { localTempStorage } = require("../../../libs/multer");
@@ -31,7 +31,7 @@ router.get(
 
 //* IMPORT EXCELL
 const multipleUpload = upload.array("files", 100);
-router.post("/import-excel", checkUserPermission("MASTER"), async (req, res) => {
+router.post("/import-excel", hasPermission("MASTER"), async (req, res) => {
   multipleUpload(req, res, async (err) => {
     if (err) {
       console.log(err);
@@ -51,7 +51,7 @@ router.post("/import-excel", checkUserPermission("MASTER"), async (req, res) => 
 });
 
 //* IMPORT EXCELL
-router.put("/update-excel", checkUserPermission("MASTER"), async (req, res) => {
+router.put("/update-excel", hasPermission("MASTER"), async (req, res) => {
   multipleUpload(req, res, async (err) => {
     if (err) {
       console.log(err);

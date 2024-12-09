@@ -1,7 +1,7 @@
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../../../helpers/hasPermission");
 const aplicarAjuste = require("./aplicarAjuste");
 
 module.exports = async (req) => {
@@ -18,7 +18,7 @@ module.exports = async (req) => {
       //* Verifica se o usuário é um gestor do financeiro ou master
       const gestorOuMaster =
         checkUserDepartment(req_externo || req, "FINANCEIRO", true) ||
-        checkUserPermission(req_externo || req, "MASTER");
+        hasPermission(req_externo || req, "MASTER");
 
       //* Coleta os dados do ajuste
       const [rowsAjustes] = await conn.execute(

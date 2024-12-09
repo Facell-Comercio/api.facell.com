@@ -1,7 +1,7 @@
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../../helpers/hasPermission");
 const { objectToStringLine } = require("../../../../helpers/mask");
 const updateSaldoContaBancaria = require("../../tesouraria/metodos/updateSaldoContaBancaria");
 const crypto = require("crypto");
@@ -235,7 +235,7 @@ function reverseManualPaymentVencimento({ req, id_vencimento, conn }) {
       if (conciliado) {
         throw new Error("Pagamento já foi conciliado!");
       }
-      if (!checkUserDepartment(req, "FINACEIRO", true) && !checkUserPermission(req, "MASTER")) {
+      if (!checkUserDepartment(req, "FINACEIRO", true) && !hasPermission(req, "MASTER")) {
         throw new Error("Você não tem permissão para desfazer o pagamento!");
       }
       if (!rowVencimento.length) {
@@ -324,7 +324,7 @@ function reverseManualPaymentFatura({ req, id_fatura, conn }) {
       if (conciliado) {
         throw new Error("Pagamento já foi conciliado!");
       }
-      if (!checkUserDepartment(req, "FINACEIRO", true) && !checkUserPermission(req, "MASTER")) {
+      if (!checkUserDepartment(req, "FINACEIRO", true) && !hasPermission(req, "MASTER")) {
         throw new Error("Você não tem permissão para desfazer o pagamento!");
       }
       if (!rowFatura.length) {

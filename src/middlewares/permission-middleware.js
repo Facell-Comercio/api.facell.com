@@ -1,8 +1,8 @@
-const { checkUserPermission } = require("../helpers/checkUserPermission");
+const { hasPermission } = require("../helpers/hasPermission");
 
-function checkUserPermissionMiddleware(permission) {
+function hasPermissionMiddleware(permission) {
   return function (req, res, next) {
-    const passPermissao = checkUserPermission(req, permission);
+    const passPermissao = hasPermission(req, permission);
 
     if (passPermissao) {
       next();
@@ -14,4 +14,4 @@ function checkUserPermissionMiddleware(permission) {
   };
 }
 
-module.exports = checkUserPermissionMiddleware;
+module.exports = hasPermissionMiddleware;

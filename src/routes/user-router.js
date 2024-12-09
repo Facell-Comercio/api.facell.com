@@ -1,10 +1,4 @@
-const {
-  getAll,
-  getOne,
-  update,
-  insertOne,
-  updateImg,
-} = require("../controllers/users");
+const { getAll, getOne, update, insertOne, updateImg } = require("../controllers/users");
 
 const router = require("express").Router();
 

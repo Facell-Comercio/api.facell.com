@@ -5,7 +5,7 @@ const metas = require("./metas");
 const agregadores = require("./agregadores");
 const comissionamento = require("./comissionamento");
 const comercial = require("../../controllers/comercial/comercial-controller");
-const checkUserPermissionMiddleware = require("../../middlewares/permission-middleware");
+const hasPermissionMiddleware = require("../../middlewares/permission-middleware");
 
 // Vales
 router.use("/vales", vales);
@@ -20,7 +20,7 @@ router.use("/comissionamento", comissionamento);
 // OUTROS
 router.get(
   "/metas-agregadores",
-  checkUserPermissionMiddleware(["VER_COLABORADORES", "GERENCIAR_COLABORADORES", "MASTER"]),
+  hasPermissionMiddleware(["COMISSOES:VENDAS_INVALIDAS_VER", "MASTER"]),
   async (req, res) => {
     try {
       const result = await comercial.getAllMetasAgregadores(req);
@@ -30,5 +30,14 @@ router.get(
     }
   }
 );
+
+router.get("/cargos", async (req, res) => {
+  try {
+    const result = await comercial.getAllCargos(req);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
 module.exports = router;

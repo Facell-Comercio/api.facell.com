@@ -55,10 +55,7 @@ module.exports = function importMetas(req) {
           ...meta,
           ref: formatDate(excelDateToJSDate(ref), "dd/MM/yyyy"),
           ciclo: formatDate(excelDateToJSDate(ciclo), "dd/MM/yyyy"),
-          data_inicial: formatDate(
-            excelDateToJSDate(data_inicial),
-            "dd/MM/yyyy"
-          ),
+          data_inicial: formatDate(excelDateToJSDate(data_inicial), "dd/MM/yyyy"),
           data_final: formatDate(excelDateToJSDate(data_final), "dd/MM/yyyy"),
         };
         try {
@@ -68,7 +65,7 @@ module.exports = function importMetas(req) {
             SELECT f.id as id_filial, gp.nome as grupo_economico
             FROM filiais f
             LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
-            WHERE f.nome = ?
+            WHERE f.nome LIKE '%?%'
           `,
             [String(filial).trim()]
           );
@@ -84,10 +81,7 @@ module.exports = function importMetas(req) {
             }
             cpf_padrao = normalizeNumberOnly(cpf);
           } else {
-            const [filiais] = await conn.execute(
-              `SELECT id FROM filiais f WHERE nome = ?`,
-              [cpf]
-            );
+            const [filiais] = await conn.execute(`SELECT id FROM filiais f WHERE nome = ?`, [cpf]);
             if (!(filiais && filiais.length && filiais[0].id)) {
               throw new Error(`CPF inválido`);
             }
@@ -119,9 +113,14 @@ module.exports = function importMetas(req) {
             throw new Error("Dados insuficientes!");
           }
 
+          const [rowUser] = conn.execute("SELECT nome FROM users u WHERE cpf = ?", [cpf_padrao]);
+          const user = rowUser && rowUser[0];
+
+          if (user?.nome) throw new Error("Usuário não encontrado");
+
           if (id) {
             await conn.execute(
-              `UPDATE facell_metas SET
+              `UPDATE metas SET
                 ref =  ?,
                 ciclo =  ?,
                 data_inicial =  ?,
@@ -159,7 +158,7 @@ module.exports = function importMetas(req) {
                 grupo_economico,
                 filial,
                 cpf_padrao,
-                nome,
+                user.nome,
                 cargo,
                 tags || null,
 
@@ -183,7 +182,7 @@ module.exports = function importMetas(req) {
             );
           } else {
             const [result] = await conn.execute(
-              `INSERT INTO facell_metas (
+              `INSERT INTO metas (
                 ref,
                 ciclo,
                 data_inicial,
@@ -220,7 +219,7 @@ module.exports = function importMetas(req) {
                 grupo_economico,
                 filial,
                 cpf_padrao,
-                nome,
+                user.nome,
                 cargo,
                 tags || null,
 

@@ -17,7 +17,7 @@ module.exports = function deleteMeta(req) {
         throw new Error("ID não informado!");
       }
       // ! Exclusão de meta:
-      await conn.execute(`DELETE FROM facell_metas WHERE id = ?`, [id]);
+      await conn.execute(`DELETE FROM metas WHERE id = ?`, [id]);
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({

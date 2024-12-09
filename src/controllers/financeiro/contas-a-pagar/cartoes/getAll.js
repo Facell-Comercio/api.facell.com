@@ -1,17 +1,13 @@
-const { logger } = require('../../../../../logger');
-const { db } = require('../../../../../mysql');
-const {
-  checkUserDepartment,
-} = require('../../../../helpers/checkUserDepartment');
-const {
-  checkUserPermission,
-} = require('../../../../helpers/checkUserPermission');
+const { logger } = require("../../../../../logger");
+const { db } = require("../../../../../mysql");
+const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
+const { hasPermission } = require("../../../../helpers/hasPermission");
 module.exports = function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     // user.perfil = 'Financeiro'
     if (!user) {
-      reject('Usuário não autenticado!');
+      reject("Usuário não autenticado!");
       return false;
     }
 
@@ -42,10 +38,7 @@ module.exports = function getAll(req) {
       params.push(active);
     }
 
-    if (
-      !checkUserDepartment(req, 'FINANCEIRO') &&
-      !checkUserPermission(req, 'MASTER')
-    ) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
       where += ` AND ucc.id_user = '${user.id}' `;
     }
 
@@ -65,13 +58,13 @@ module.exports = function getAll(req) {
               `,
         params
       );
-      const limit = pagination ? ' LIMIT ? OFFSET ? ' : '';
+      const limit = pagination ? " LIMIT ? OFFSET ? " : "";
       if (limit) {
         const offset = pageIndex * pageSize;
         params.push(pageSize);
         params.push(offset);
       }
-      const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]['qtde']) || 0;
+      const qtdeTotal = (rowTotal && rowTotal[0] && rowTotal[0]["qtde"]) || 0;
 
       const [rows] = await conn.execute(
         `
@@ -98,9 +91,9 @@ module.exports = function getAll(req) {
       resolve(objResponse);
     } catch (error) {
       logger.error({
-        module: 'FINANCEIRO',
-        origin: 'CARTÕES',
-        method: 'GET_ALL',
+        module: "FINANCEIRO",
+        origin: "CARTÕES",
+        method: "GET_ALL",
         data: { message: error.message, stack: error.stack, name: error.name },
       });
       reject(error);

@@ -14,4 +14,6 @@ module.exports = {
   updateModeloItem: require("./politicas/updateModeloItem"),
 
   removeCargoPolitica: require("./politicas/removeCargoPolitica"),
+
+  getAllCargos: require("./politicas/getAllCargos"),
 };

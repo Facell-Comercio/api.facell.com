@@ -22,7 +22,6 @@ module.exports = function getOne(req) {
                 u.nome as criador
               FROM vales v
               LEFT JOIN filiais f ON f.id = v.id_filial
-              LEFT JOIN colabs c ON c.id = v.id_colaborador
               LEFT JOIN users u ON u.id = v.id_criador
               WHERE v.id = ?
               `,

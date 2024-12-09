@@ -1,5 +1,6 @@
 const { db } = require("../../../../mysql");
 const { logger } = require("../../../../logger");
+const { ensureArray } = require("../../../helpers/formaters");
 
 module.exports = async (req, res) => {
   // Filtros
@@ -9,7 +10,7 @@ module.exports = async (req, res) => {
 
   try {
     const { pagination, filters } = req.query;
-    const { mes, ano, status, tipo, segmento, motivo, termo } = filters || {};
+    const { mes, ano, status_list, tipo_list, segmento_list, motivo, termo } = filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -26,17 +27,20 @@ module.exports = async (req, res) => {
       where += ` AND YEAR(ref) = ? `;
       params.push(ano);
     }
-    if (status) {
-      where += ` AND status LIKE ? `;
-      params.push(status);
+    if (ensureArray(status_list) && ensureArray(status_list).length) {
+      where += ` AND status IN(${ensureArray(status_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
-    if (tipo) {
-      where += ` AND tipo LIKE ? `;
-      params.push(tipo);
+    if (ensureArray(tipo_list) && ensureArray(tipo_list).length) {
+      where += ` AND tipo IN(${ensureArray(tipo_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
-    if (segmento) {
-      where += ` AND segmento LIKE ? `;
-      params.push(segmento);
+    if (ensureArray(segmento_list) && ensureArray(segmento_list).length) {
+      where += ` AND segmento IN(${ensureArray(segmento_list)
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
     if (motivo) {
       where += ` AND motivo LIKE CONCAT('%',?,'%') `;
@@ -76,9 +80,10 @@ module.exports = async (req, res) => {
     }
 
     const [rows] = await conn.execute(
-      `SELECT * FROM comissao_vendas_invalidas fd ${where} ${limit}`,
+      `SELECT * FROM comissao_vendas_invalidas fd ${where} ORDER BY id DESC ${limit}`,
       params
     );
+
     const objResponse = {
       rows: rows,
       pageCount: Math.ceil(qtdeTotal / pageSize),

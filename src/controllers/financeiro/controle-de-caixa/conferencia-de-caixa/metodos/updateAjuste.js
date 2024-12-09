@@ -2,7 +2,7 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const desfazerAjuste = require("./desfazerAjuste");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
-const { checkUserPermission } = require("../../../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../../../helpers/hasPermission");
 const aprovarAjuste = require("./aprovarAjuste");
 
 module.exports = async (req) => {
@@ -48,7 +48,7 @@ module.exports = async (req) => {
 
       //* Verifica se o usuário é um gestor do financeiro ou master
       const gestorOuMaster =
-        checkUserDepartment(req, "FINANCEIRO", true) || checkUserPermission(req, "MASTER");
+        checkUserDepartment(req, "FINANCEIRO", true) || hasPermission(req, "MASTER");
 
       if (ajustadoAntes) {
         await desfazerAjuste({

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const readline = require("readline");
 const path = require("path");
-const { logger } = require("../../../logger");
+const { logger } = require("../../../../logger");
 
 const baseDir = process.cwd();
 function getAll() {
@@ -57,8 +57,7 @@ function getAll() {
         });
       }
 
-      const result =
-        readFileLines(path.join(baseDir, "logs", "info.log")) || [];
+      const result = readFileLines(path.join(baseDir, "logs", "info.log")) || [];
 
       resolve(result);
     } catch (error) {

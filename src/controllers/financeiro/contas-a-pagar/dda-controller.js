@@ -69,7 +69,9 @@ async function getAll(req) {
       }
 
       if (ensureArray(filiais_list)) {
-        where += ` AND f.id IN(${ensureArray(filiais_list).join(",")}) `;
+        where += ` AND f.id IN(${ensureArray(filiais_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       const offset = pageIndex * pageSize;
@@ -421,7 +423,9 @@ async function exportDDA(req, res) {
       }
 
       if (ensureArray(filiais_list)) {
-        where += ` AND f.id IN(${ensureArray(filiais_list).join(",")}) `;
+        where += ` AND f.id IN(${ensureArray(filiais_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       const [boletos] = await conn.execute(

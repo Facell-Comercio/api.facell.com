@@ -48,11 +48,15 @@ module.exports = async = (req) => {
         params.push(id_status);
       }
       if (ensureArray(filiais_list)) {
-        where += ` AND t.id_filial IN ('${ensureArray(filiais_list).join("','")}') `;
+        where += ` AND t.id_filial IN (${ensureArray(filiais_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       if (ensureArray(status_vencimento_list)) {
-        where += ` AND tv.status IN ('${ensureArray(status_vencimento_list).join("','")}') `;
+        where += ` AND tv.status IN (${ensureArray(status_vencimento_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       // Filtra o status mínimo do título
       if (minStatusTitulo) {

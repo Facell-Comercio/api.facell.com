@@ -1,11 +1,11 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const planos_contas_habilitados = [];
 
@@ -19,10 +19,7 @@ function getAll(req) {
     }
 
     if (!isMaster) {
-      if (
-        !planos_contas_habilitados ||
-        planos_contas_habilitados.length === 0
-      ) {
+      if (!planos_contas_habilitados || planos_contas_habilitados.length === 0) {
         resolve({
           rows: [],
           pageCount: 0,
@@ -104,8 +101,7 @@ function getAll(req) {
         params
       );
 
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
       params.push(pageSize);
       params.push(offset);
 
@@ -205,11 +201,7 @@ function insertOne(req) {
         campos += `${key}`;
         //? No fornecedor-controller estava campos += "?" e não values += "?"
         values += `?`;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       const query = `INSERT INTO fin_plano_contas (${campos}) VALUES (${values});`;
@@ -254,11 +246,7 @@ function update(req) {
           updateQuery += ", "; // Adicionar vírgula entre os campos
         }
         updateQuery += `${key} = ? `;
-        params.push(
-          typeof rest[key] == "string"
-            ? rest[key].trim() || null
-            : rest[key] ?? null
-        ); // Adicionar valor do campo ao array de parâmetros
+        params.push(typeof rest[key] == "string" ? rest[key].trim() || null : rest[key] ?? null); // Adicionar valor do campo ao array de parâmetros
       });
 
       params.push(id);

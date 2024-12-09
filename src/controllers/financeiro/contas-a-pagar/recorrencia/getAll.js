@@ -1,51 +1,40 @@
 const { format } = require("date-fns");
 const { db } = require("../../../../../mysql");
-const {
-  logger,
-} = require("../../../../../logger");
-const {
-  checkUserDepartment,
-} = require("../../../../helpers/checkUserDepartment");
-const {
-  checkUserPermission,
-} = require("../../../../helpers/checkUserPermission");
+const { logger } = require("../../../../../logger");
+const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
+const { hasPermission } = require("../../../../helpers/hasPermission");
 
-module.exports = function getAllRecorrencias(
-  req
-) {
+module.exports = function getAllRecorrencias(req) {
   return new Promise(async (resolve, reject) => {
     const { user } = req;
     const conn = await db.getConnection();
-    const departamentosUser =
-      user.departamentos.map(
-        (departamento) =>
-          departamento.id_departamento
-      );
-      
+    const departamentosUser = user.departamentos.map(
+      (departamento) => departamento.id_departamento
+    );
+
     try {
       const { user } = req;
       const { filters } = req.query || {};
       const { mes, ano, a_lancar, ownerOnly } = filters || {};
 
-      const mesValue = mes ?? format(new Date(), "MM")
-      const anoValue = ano ?? format(new Date(), "yyyy")
+      const mesValue = mes ?? format(new Date(), "MM");
+      const anoValue = ano ?? format(new Date(), "yyyy");
 
       const params = [];
       let where = "WHERE 1=1 ";
 
-      const isMaster = checkUserPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
+      const isMaster = hasPermission(req, "MASTER") || checkUserDepartment(req, "FINANCEIRO");
 
       if (!isMaster) {
         if (departamentosUser?.length > 0) {
-          where += ` AND (r.id_user = '${user.id
-            }' OR t.id_departamento IN (${departamentosUser.join(
-              ","
-            )})) `;
+          where += ` AND (r.id_user = '${
+            user.id
+          }' OR t.id_departamento IN (${departamentosUser.join(",")})) `;
         } else {
           where += ` AND r.id_user = '${user.id}' `;
         }
       }
-      if (ownerOnly == 'true') {
+      if (ownerOnly == "true") {
         where += ` AND r.id_user = '${user.id}' `;
       }
 

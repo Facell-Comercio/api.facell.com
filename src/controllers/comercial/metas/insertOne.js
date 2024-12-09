@@ -1,6 +1,7 @@
 const { parse, startOfDay, startOfMonth } = require("date-fns");
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
+const { normalizeNumberOnly } = require("../../../helpers/mask");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
@@ -80,7 +81,7 @@ module.exports = function insertOne(req) {
       await conn.beginTransaction();
 
       const [result] = await conn.execute(
-        `INSERT INTO facell_metas (
+        `INSERT INTO metas (
           ref,
           ciclo,
           data_inicial,
@@ -115,7 +116,7 @@ module.exports = function insertOne(req) {
           proporcional,
 
           nome,
-          cpf,
+          normalizeNumberOnly(cpf),
           id_filial,
           filial,
           grupo_economico,

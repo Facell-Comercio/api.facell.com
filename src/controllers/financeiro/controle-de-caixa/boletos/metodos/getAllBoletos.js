@@ -33,7 +33,9 @@ module.exports = async (req) => {
       }
 
       if (ensureArray(filiais_list)) {
-        where += ` AND f.id IN(${ensureArray(filiais_list).join(",")}) `;
+        where += ` AND f.id IN(${ensureArray(filiais_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       if (tipo_data && range_data) {

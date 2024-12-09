@@ -29,7 +29,9 @@ module.exports = async (req, res) => {
 
     let whereFiliais = " WHERE 1=1 ";
     if (uf_list && ensureArray(uf_list).length > 0) {
-      whereFiliais += ` AND uf IN ('${ensureArray(uf_list).join("','")}')`;
+      whereFiliais += ` AND uf IN (${ensureArray(uf_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
 
     const [filiais] = await conn.execute(

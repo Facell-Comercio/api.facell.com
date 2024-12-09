@@ -1,7 +1,7 @@
 const { logger } = require("../../../../logger");
 const { db } = require("../../../../mysql");
 const { checkUserFilial } = require("../../../helpers/checkUserFilial");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 
 module.exports = function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -65,21 +65,15 @@ module.exports = function getAll(req) {
       where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
     }
 
-    if (
-      !checkUserPermission(req, [
-        "MASTER",
-        "GERENCIAR_METAS",
-        "VISUALIZAR_METAS",
-      ])
-    ) {
+    if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
       if (filiaisGestor.length > 0) {
-        where += ` AND (fm.id_filial IN ('${filiaisGestor.join(
-          "','"
-        )}') OR fm.cpf = ?)`;
+        where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
         params.push(user.cpf);
       } else {
-        where += ` AND fm.cpf = ? `;
-        params.push(user.cpf);
+        if (user.cpf) {
+          where += ` AND fm.cpf = ? `;
+          params.push(user.cpf);
+        }
       }
     }
     if (mes) {
@@ -100,7 +94,7 @@ module.exports = function getAll(req) {
               FROM (
                 SELECT 
                   fm.id
-                FROM facell_metas fm
+                FROM metas fm
                 LEFT JOIN filiais f ON f.id = fm.id_filial
                 LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
                 ${where}
@@ -124,7 +118,7 @@ module.exports = function getAll(req) {
                 fm.*,
                 f.nome as filial,
                 gp.nome as grupo_economico
-              FROM facell_metas fm
+              FROM metas fm
               LEFT JOIN filiais f ON f.id = fm.id_filial
               LEFT JOIN grupos_economicos gp ON gp.id = f.id_grupo_economico
               ${where}
@@ -140,11 +134,7 @@ module.exports = function getAll(req) {
         pageCount: Math.ceil(qtdeTotal / pageSize),
         rowCount: qtdeTotal,
         canView:
-          checkUserPermission(req, [
-            "MASTER",
-            "GERENCIAR_METAS",
-            "VISUALIZAR_METAS",
-          ]) ||
+          hasPermission(req, ["MASTER", "METAS:METAS_EDITAR"]) ||
           checkUserFilial(
             req,
             rows.map((row) => row.filial),

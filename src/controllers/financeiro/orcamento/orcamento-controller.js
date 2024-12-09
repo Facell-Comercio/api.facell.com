@@ -1,6 +1,6 @@
 const { startOfDay, formatDate } = require("date-fns");
 const { db } = require("../../../../mysql");
-const { checkUserPermission } = require("../../../helpers/checkUserPermission");
+const { hasPermission } = require("../../../helpers/hasPermission");
 const { normalizeCurrency } = require("../../../helpers/mask");
 const { logger } = require("../../../../logger");
 
@@ -39,8 +39,7 @@ function getAll(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       params.push(pageSize);
       params.push(offset);
@@ -155,8 +154,7 @@ function getOne(req) {
 
 function findAccountFromParams(req) {
   return new Promise(async (resolve, reject) => {
-    const { id_grupo_economico, id_centro_custo, id_plano_conta, data_titulo } =
-      req.query;
+    const { id_grupo_economico, id_centro_custo, id_plano_conta, data_titulo } = req.query;
 
     const conn = await db.getConnection();
 
@@ -176,9 +174,7 @@ function findAccountFromParams(req) {
         [id_grupo_economico]
       );
       const grupoValidaOrcamento =
-        rowGrupoEconomico &&
-        rowGrupoEconomico[0] &&
-        !!+rowGrupoEconomico[0]["orcamento"];
+        rowGrupoEconomico && rowGrupoEconomico[0] && !!+rowGrupoEconomico[0]["orcamento"];
 
       if (!grupoValidaOrcamento) {
         resolve({ grupoValidaOrcamento: false });
@@ -278,13 +274,7 @@ function insertOne(req) {
       for (const conta of contas) {
         await conn.execute(
           `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto, active) VALUES(?,?,?,?,?)`,
-          [
-            newId,
-            conta.id_centro_custo,
-            conta.id_plano_contas,
-            conta.valor,
-            conta.active,
-          ]
+          [newId, conta.id_centro_custo, conta.id_plano_contas, conta.valor, conta.active]
         );
       }
 
@@ -324,22 +314,13 @@ function update(req) {
       await conn.beginTransaction();
 
       // * Update do active
-      await conn.execute(`UPDATE fin_orcamento SET active = ? WHERE id = ?`, [
-        active,
-        id,
-      ]);
+      await conn.execute(`UPDATE fin_orcamento SET active = ? WHERE id = ?`, [active, id]);
       // console.log(contas);
       if (contas?.length) {
         // * Insert das contas
         for (const conta of contas) {
-          const {
-            id_conta,
-            id_centro_custo,
-            id_plano_contas,
-            valor,
-            valor_inicial,
-            active,
-          } = conta;
+          const { id_conta, id_centro_custo, id_plano_contas, valor, valor_inicial, active } =
+            conta;
           // console.log(
           //   id_conta,
           //   id_centro_custo,
@@ -365,9 +346,7 @@ function update(req) {
             const realizado = (oldRow && oldRow[0] && oldRow[0].realizado) || 0;
             if (valor < realizado) {
               throw new Error(
-                `Valor não pode ser menor que o valor realizado ${normalizeCurrency(
-                  realizado
-                )}!`
+                `Valor não pode ser menor que o valor realizado ${normalizeCurrency(realizado)}!`
               );
             }
 
@@ -384,9 +363,7 @@ function update(req) {
             const { centro_custo, plano_contas } = oldRow && oldRow[0];
             const descricao = `ATUALIZAÇÃO -> ${centro_custo} - ${plano_contas} | ANTES: ${normalizeCurrency(
               valor_inicial
-            )} | DEPOIS: ${normalizeCurrency(
-              valor
-            )} | DIF.: ${normalizeCurrency(diferenca)}`;
+            )} | DEPOIS: ${normalizeCurrency(valor)} | DIF.: ${normalizeCurrency(diferenca)}`;
             await conn.execute(
               `
                     INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -453,9 +430,7 @@ function deleteItemBudget(req) {
         [id]
       );
       if (rowsConsumo.length > 0) {
-        throw new Error(
-          "Não é possível excluir um item de orçamento com consumo!"
-        );
+        throw new Error("Não é possível excluir um item de orçamento com consumo!");
       }
 
       const [oldRow] = await conn.execute(
@@ -472,12 +447,8 @@ function deleteItemBudget(req) {
         WHERE foc.id = ? `,
         [id]
       );
-      await conn.execute(
-        `DELETE FROM fin_orcamento_contas WHERE id = ? LIMIT 1`,
-        [id]
-      );
-      const { id_orcamento, centro_custo, plano_contas, valor } =
-        oldRow && oldRow[0];
+      await conn.execute(`DELETE FROM fin_orcamento_contas WHERE id = ? LIMIT 1`, [id]);
+      const { id_orcamento, centro_custo, plano_contas, valor } = oldRow && oldRow[0];
       const descricao = `EXCLUSÃO -> ${centro_custo} - ${plano_contas} - ${normalizeCurrency(
         valor
       )}`;
@@ -509,7 +480,7 @@ function getMyBudgets(req) {
   return new Promise(async (resolve, reject) => {
     // Filtros]
     const { user } = req;
-    const isMaster = checkUserPermission(req, "MASTER");
+    const isMaster = hasPermission(req, "MASTER");
 
     const orcamentos_habilitados = [];
 
@@ -522,11 +493,10 @@ function getMyBudgets(req) {
       pageIndex: 0,
       pageSize: 15,
     };
-    const { id_grupo_economico, id_centro_custo, plano_contas, mes, ano } =
-      filters || {
-        mes: (new Date().getMonth() + 1).toString(),
-        ano: new Date().getFullYear().toString(),
-      };
+    const { id_grupo_economico, id_centro_custo, plano_contas, mes, ano } = filters || {
+      mes: (new Date().getMonth() + 1).toString(),
+      ano: new Date().getFullYear().toString(),
+    };
     var where = ` WHERE 1=1 `;
     const params = [];
 
@@ -574,8 +544,7 @@ function getMyBudgets(req) {
              ${where} `,
         params
       );
-      const qtdeTotal =
-        (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
+      const qtdeTotal = (rowQtdeTotal && rowQtdeTotal[0] && rowQtdeTotal[0]["qtde"]) || 0;
 
       const limit = pagination ? " LIMIT ? OFFSET ?" : "";
       if (limit) {
@@ -766,8 +735,7 @@ function transfer(req) {
       `,
         [id_orcamento, id_centro_custo_entrada, id_conta_entrada]
       );
-      const contaEntrada =
-        rowOrcamentoContaEntrada && rowOrcamentoContaEntrada[0];
+      const contaEntrada = rowOrcamentoContaEntrada && rowOrcamentoContaEntrada[0];
 
       if (!contaEntrada) {
         // * A conta de orçamento destino não existe, então vamos cria-la:
@@ -775,12 +743,7 @@ function transfer(req) {
           `INSERT INTO fin_orcamento_contas (id_orcamento, id_centro_custo, id_plano_contas, valor_previsto)
           VALUES(?,?,?,?)
         `,
-          [
-            id_orcamento,
-            id_centro_custo_entrada,
-            id_conta_entrada,
-            valor_transferido,
-          ]
+          [id_orcamento, id_centro_custo_entrada, id_conta_entrada, valor_transferido]
         );
 
         const [newCentroCusto] = await conn.execute(
@@ -813,11 +776,11 @@ function transfer(req) {
           `UPDATE fin_orcamento_contas SET valor_previsto = valor_previsto + ? WHERE id = ?`,
           [valor_transferido, contaEntrada.id]
         );
-        const descricao = `TRANSFERÊNCIA -> VALOR: ${normalizeCurrency(
-          valor_transferido
-        )} | DE: ${contaSaida.centro_custo} - ${
-          contaSaida.plano_contas
-        } | PARA: ${contaEntrada.centro_custo} - ${contaEntrada.plano_contas}`;
+        const descricao = `TRANSFERÊNCIA -> VALOR: ${normalizeCurrency(valor_transferido)} | DE: ${
+          contaSaida.centro_custo
+        } - ${contaSaida.plano_contas} | PARA: ${contaEntrada.centro_custo} - ${
+          contaEntrada.plano_contas
+        }`;
         await conn.execute(
           `
           INSERT INTO fin_orcamento_historico (id_orcamento, id_user, descricao) VALUES (?, ?, ?)
@@ -864,10 +827,7 @@ function getIds(req) {
 
         const [rows_grupo_economico] = await conn.execute(
           "SELECT id FROM grupos_economicos ge WHERE ge.nome LIKE ? OR ge.apelido LIKE ?",
-          [
-            array.grupo_economico.toUpperCase(),
-            array.grupo_economico.toUpperCase(),
-          ]
+          [array.grupo_economico.toUpperCase(), array.grupo_economico.toUpperCase()]
         );
         const grupo_economico = rows_grupo_economico && rows_grupo_economico[0];
 
@@ -883,10 +843,7 @@ function getIds(req) {
 
           const [rows_plano_contas] = await conn.execute(
             "SELECT id FROM fin_plano_contas fpc WHERE fpc.codigo LIKE ? AND fpc.id_grupo_economico = ? AND fpc.tipo = 'Despesa'",
-            [
-              array.plano_contas.toUpperCase().split(" - ")[0],
-              id_grupo_economico,
-            ]
+            [array.plano_contas.toUpperCase().split(" - ")[0], id_grupo_economico]
           );
           const plano_contas = rows_plano_contas && rows_plano_contas[0];
           if (plano_contas) {

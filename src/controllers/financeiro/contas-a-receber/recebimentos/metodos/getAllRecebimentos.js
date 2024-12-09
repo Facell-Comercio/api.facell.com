@@ -41,7 +41,9 @@ module.exports = async = (req) => {
         params.push(id_matriz);
       }
       if (ensureArray(filiais_list)) {
-        where += ` AND t.id_filial IN (${ensureArray(filiais_list).join(",")}) `;
+        where += ` AND t.id_filial IN (${ensureArray(filiais_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (id_conta_bancaria) {
         where += ` AND tr.id_conta_bancaria =? `;
