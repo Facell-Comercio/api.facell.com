@@ -100,7 +100,7 @@ module.exports = async (req, res) => {
             tim_data_consulta
           )
           VALUES
-          ${arrayClientes.join(",")}
+          ${arrayClientes.map((value) => db.escape(value)).join(",")}
         `;
         await conn.execute(query);
         arrayClientes.length = 0;

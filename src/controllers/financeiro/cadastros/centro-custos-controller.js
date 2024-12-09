@@ -34,7 +34,9 @@ function getAll(req) {
         });
         return;
       }
-      where += `AND cc.id IN(${centros_custo_habilitados.join(",")}) `;
+      where += `AND cc.id IN(${centros_custo_habilitados
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     if (nome) {

@@ -116,7 +116,9 @@ module.exports = async (req, res) => {
     conn = conn_externa || (await db.getConnection());
     await conn.beginTransaction();
 
-    let query = `UPDATE marketing_mailing_clientes SET ${sets.join(",")} WHERE id = ?`;
+    let query = `UPDATE marketing_mailing_clientes SET ${sets
+      .map((value) => db.escape(value))
+      .join(",")} WHERE id = ?`;
 
     await conn.execute(query, params);
     if (parseInt(canUpdateClienteMarketingCompras)) {

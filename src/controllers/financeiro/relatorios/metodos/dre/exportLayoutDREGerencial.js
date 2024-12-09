@@ -26,7 +26,9 @@ module.exports = (req, res) => {
         if (departamentosUser?.length > 0) {
           where += ` AND (t.id_solicitante = '${
             user.id
-          }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
+          }' OR  t.id_departamento IN (${departamentosUser
+            .map((value) => db.escape(value))
+            .join(",")})) `;
         } else {
           where += ` AND t.id_solicitante = '${user.id}' `;
         }

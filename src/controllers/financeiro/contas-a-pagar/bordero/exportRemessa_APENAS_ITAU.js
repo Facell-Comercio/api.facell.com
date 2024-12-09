@@ -51,14 +51,12 @@ module.exports = function exportRemessa(req, res) {
       console.log(idsVencimentos, idsFaturas);
 
       if (idsVencimentos && idsVencimentos.length > 0) {
-        whereVencimentos += ` AND tv.id IN('${idsVencimentos
+        whereVencimentos += ` AND tv.id IN(${idsVencimentos
           .map((value) => db.escape(value))
           .join(",")}) `;
       }
       if (idsFaturas && idsFaturas.length > 0) {
-        whereFaturas += ` AND ccf.id IN('${idsFaturas
-          .map((value) => db.escape(value))
-          .join(",")}) `;
+        whereFaturas += ` AND ccf.id IN(${idsFaturas.map((value) => db.escape(value)).join(",")}) `;
       }
 
       await conn.beginTransaction();

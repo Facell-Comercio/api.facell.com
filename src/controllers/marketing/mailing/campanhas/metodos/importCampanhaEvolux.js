@@ -121,7 +121,7 @@ module.exports = async (req, res) => {
               observacao,
               classificacao,
               id_user
-            ) VALUES ${arrayResultados.join(",")}
+            ) VALUES ${arrayResultados.map((value) => db.escape(value)).join(",")}
             `;
 
           await conn.execute(query);

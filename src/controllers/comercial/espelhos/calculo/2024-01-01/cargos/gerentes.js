@@ -9,13 +9,8 @@ const path = require("path");
 const gerente = async ({ ref, agregador, politica }) => {
   return new Promise(async (resolve, reject) => {
     // console.log('[START_CALC_GERENTE]', agregador.nome)
-    let espelho = new Espelho(
-      agregador.ciclo,
-      agregador.nome?.toUpperCase(),
-      [],
-      []
-    );
-    var fileUrl
+    let espelho = new Espelho(agregador.ciclo, agregador.nome?.toUpperCase(), [], []);
+    var fileUrl;
 
     try {
       const ano = parseInt(ref.split("-")[0]);
@@ -32,14 +27,14 @@ const gerente = async ({ ref, agregador, politica }) => {
       }
 
       var listaMetas;
-      listaMetas = agregador.metas_agregadas
-        .split(";")
-        .map((filial) => filial.trim());
+      listaMetas = agregador.metas_agregadas.split(";").map((filial) => filial.trim());
 
       const filterMeta =
         tipo_agregacao === "FILIAL"
-          ? ` AND cargo = 'FILIAL' AND filial in('${listaMetas.join("','")}')`
-          : ` AND cpf in('${listaMetas.join("','")}')`;
+          ? ` AND cargo = 'FILIAL' AND filial in(${listaMetas
+              .map((value) => db.escape(value))
+              .join(",")})`
+          : ` AND cpf in(${listaMetas.map((value) => db.escape(value)).join(",")})`;
 
       const [rowMeta] = await db.execute(
         `SELECT 
@@ -61,19 +56,18 @@ const gerente = async ({ ref, agregador, politica }) => {
         return false;
       }
       const meta = rowMeta[0];
-      
+
       agregador.data_inicial = formatarValor(agregador.data_inicial, "data");
       agregador.data_final = formatarValor(agregador.data_final, "data");
-      
+
       espelho.cpf = agregador.cpf;
       espelho.filial = agregador.filial;
       espelho.cargo = agregador.cargo;
       espelho.data_inicial = agregador.data_inicial;
       espelho.data_final = agregador.data_final;
-      
-      const isSub =
-      espelho.cargo?.toLowerCase() === "gerente de loja" ? true : false;
-      
+
+      const isSub = espelho.cargo?.toLowerCase() === "gerente de loja" ? true : false;
+
       espelho.resumo.push({
         info: "Grupo Econômico",
         descr: `${agregador.grupo_economico} | Filial: ${agregador.filial}`,
@@ -85,45 +79,39 @@ const gerente = async ({ ref, agregador, politica }) => {
       espelho.resumo.push({ info: "Cargo", descr: agregador.cargo });
       espelho.resumo.push({
         info: "Período",
-        descr: `${agregador.data_inicial
+        descr: `${agregador.data_inicial?.split("-").reverse().join("/")} até ${agregador.data_final
           ?.split("-")
           .reverse()
-          .join("/")} até ${agregador.data_final
-            ?.split("-")
-            .reverse()
-            .join("/")}`,
-          });
-          
-          // todas as metas
-          espelho.metas = {
-            controle: parseInt(meta.controle) * agregador.proporcional || 0,
-            pos: parseInt(meta.pos) * agregador.proporcional || 0,
-            upgrade: parseInt(meta.upgrade) * agregador.proporcional || 0,
-            receita: parseFloat(meta.receita) * agregador.proporcional || 0,
-            aparelho: parseFloat(meta.aparelho) * agregador.proporcional || 0,
-            acessorio: parseFloat(meta.acessorio) * agregador.proporcional || 0,
-            pitzi: parseFloat(meta.pitzi) * agregador.proporcional || 0,
-          };
-          
-          // [QUALIDADE TIM]
-          const filterQualidade = isSub
-          ? ` and cpf = '${espelho.filial}'`
-          : ` and cpf = '${espelho.cpf}'`;
-          const [rowsQualidade] = await db.execute(
-            `SELECT qualidade FROM comissao_qualidade_tim WHERE ref = ? ${filterQualidade}`,
-            [ref]
-            );
-            
-            espelho.qualidade_tim =
-            (rowsQualidade &&
-              rowsQualidade[0] &&
-              parseFloat(rowsQualidade[0]["qualidade"])) ||
-              0;
-              
-              // [ESTEIRA_FULL]
+          .join("/")}`,
+      });
+
+      // todas as metas
+      espelho.metas = {
+        controle: parseInt(meta.controle) * agregador.proporcional || 0,
+        pos: parseInt(meta.pos) * agregador.proporcional || 0,
+        upgrade: parseInt(meta.upgrade) * agregador.proporcional || 0,
+        receita: parseFloat(meta.receita) * agregador.proporcional || 0,
+        aparelho: parseFloat(meta.aparelho) * agregador.proporcional || 0,
+        acessorio: parseFloat(meta.acessorio) * agregador.proporcional || 0,
+        pitzi: parseFloat(meta.pitzi) * agregador.proporcional || 0,
+      };
+
+      // [QUALIDADE TIM]
+      const filterQualidade = isSub
+        ? ` and cpf = '${espelho.filial}'`
+        : ` and cpf = '${espelho.cpf}'`;
+      const [rowsQualidade] = await db.execute(
+        `SELECT qualidade FROM comissao_qualidade_tim WHERE ref = ? ${filterQualidade}`,
+        [ref]
+      );
+
+      espelho.qualidade_tim =
+        (rowsQualidade && rowsQualidade[0] && parseFloat(rowsQualidade[0]["qualidade"])) || 0;
+
+      // [ESTEIRA_FULL]
       const filterRelsTim =
         tipo_agregacao == "FILIAL"
-          ? ` and filial in('${listaMetas.join("','")}')`
+          ? ` and filial in(${listaMetas.map((value) => db.escape(value)).join(",")})`
           : ` and cpf in(${listaMetas.joins(",")})`;
 
       const [rowEsteiraFull] = await db.execute(
@@ -131,10 +119,7 @@ const gerente = async ({ ref, agregador, politica }) => {
         [ref]
       );
       espelho.esteira_full =
-        (rowEsteiraFull &&
-          rowEsteiraFull[0] &&
-          parseFloat(rowEsteiraFull[0]["esteiraFull"])) ||
-        1;
+        (rowEsteiraFull && rowEsteiraFull[0] && parseFloat(rowEsteiraFull[0]["esteiraFull"])) || 1;
 
       // [APP TIM VENDAS]
       const [rowAppTimVendas] = await db.execute(
@@ -142,10 +127,7 @@ const gerente = async ({ ref, agregador, politica }) => {
         [ref]
       );
       espelho.app_tim_vendas =
-        (rowAppTimVendas &&
-          rowAppTimVendas[0] &&
-          parseFloat(rowAppTimVendas[0]["app"])) ||
-        1;
+        (rowAppTimVendas && rowAppTimVendas[0] && parseFloat(rowAppTimVendas[0]["app"])) || 1;
 
       // !DEFLATOR ESTEIRA FULL E APP TIM VENDAS
       espelho.deflatores.app_e_esteira =
@@ -186,14 +168,12 @@ const gerente = async ({ ref, agregador, politica }) => {
       } else {
         mesInadimplencia--;
       }
-      let refInadimplencia = `${anoInadimplencia}-${mesInadimplencia
-        .toString()
-        .padStart(2, "0")}`;
+      let refInadimplencia = `${anoInadimplencia}-${mesInadimplencia.toString().padStart(2, "0")}`;
 
       const filterInadimplencias =
         tipo_agregacao == "FILIAL"
-          ? ` and filial in('${listaMetas.join("','")}')`
-          : ` and cpf in('${listaMetas.join("','")}')`;
+          ? ` and filial in(${listaMetas.map((value) => db.escape(value)).join(",")})`
+          : ` and cpf in(${listaMetas.map((value) => db.escape(value)).join(",")})`;
 
       const [rowsInadimplencias] = await db.execute(
         `SELECT
@@ -222,12 +202,13 @@ const gerente = async ({ ref, agregador, politica }) => {
       // obter todos os realizados
       const filterVendas =
         tipo_agregacao == "FILIAL"
-          ? ` and v.filial in('${listaMetas.join("','")}')`
-          : ` and CONVERT(v.cpfVendedor, INTEGER) in('${listaMetas.join(
-              "','"
-            )}')`;
+          ? ` and v.filial in(${listaMetas.map((value) => db.escape(value)).join(",")})`
+          : ` and CONVERT(v.cpfVendedor, INTEGER) in(${listaMetas
+              .map((value) => db.escape(value))
+              .join(",")})})`;
 
-      const datasys_ativacoes = agregador.grupo_economico === 'FACELL' ? 'datasys_ativacoes' : 'datasys_ativacoes_fort';
+      const datasys_ativacoes =
+        agregador.grupo_economico === "FACELL" ? "datasys_ativacoes" : "datasys_ativacoes_fort";
       const [realizadoServico] = await db.execute(
         `
         SELECT 
@@ -251,7 +232,8 @@ const gerente = async ({ ref, agregador, politica }) => {
         [espelho.data_inicial, espelho.data_final]
       );
 
-      const datasys_vendas = agregador.grupo_economico === 'FACELL' ? 'datasys_vendas' : 'datasys_vendas_fort';
+      const datasys_vendas =
+        agregador.grupo_economico === "FACELL" ? "datasys_vendas" : "datasys_vendas_fort";
       const [realizadoProduto] = await db.execute(
         ` 
         SELECT 
@@ -277,8 +259,8 @@ const gerente = async ({ ref, agregador, politica }) => {
 
       const filterPitzi =
         tipo_agregacao === "FILIAL"
-          ? ` and f.filial in('${listaMetas.join("','")}')`
-          : ` and p.cpf_vendedor in('${listaMetas.join("','")}')`;
+          ? ` and f.filial in(${listaMetas.map((value) => db.escape(value)).join(",")})`
+          : ` and p.cpf_vendedor in(${listaMetas.map((value) => db.escape(value)).join(",")})`;
       const [realizadoPitzi] = await db.execute(
         `SELECT sum(p.valor) as faturamento FROM pitzi_vendas p 
         INNER JOIN filiais f ON f.nome_pitzi = p.loja
@@ -292,40 +274,24 @@ const gerente = async ({ ref, agregador, politica }) => {
       // Realizado
       // Serviço
       let real_controle =
-        (realizadoServico &&
-          realizadoServico[0] &&
-          parseInt(realizadoServico[0]["controle"])) ||
-        0;
+        (realizadoServico && realizadoServico[0] && parseInt(realizadoServico[0]["controle"])) || 0;
 
       let real_pos =
-        (realizadoServico &&
-          realizadoServico[0] &&
-          parseInt(realizadoServico[0]["pos"])) ||
-        0;
+        (realizadoServico && realizadoServico[0] && parseInt(realizadoServico[0]["pos"])) || 0;
 
       // !deflator pós
-      real_pos =
-        real_pos > espelho.trafego_zero_qtde
-          ? real_pos - espelho.trafego_zero_qtde
-          : 0;
+      real_pos = real_pos > espelho.trafego_zero_qtde ? real_pos - espelho.trafego_zero_qtde : 0;
 
       let real_upgrade =
-        (realizadoServico &&
-          realizadoServico[0] &&
-          parseInt(realizadoServico[0]["upgrade"])) ||
-        0;
+        (realizadoServico && realizadoServico[0] && parseInt(realizadoServico[0]["upgrade"])) || 0;
 
       let real_receita =
-        (realizadoServico &&
-          realizadoServico[0] &&
-          parseFloat(realizadoServico[0]["receita"])) ||
+        (realizadoServico && realizadoServico[0] && parseFloat(realizadoServico[0]["receita"])) ||
         0;
 
       // Produtos
       let real_aparelho =
-        (realizadoProduto &&
-          realizadoProduto[0] &&
-          parseFloat(realizadoProduto[0]["aparelho"])) ||
+        (realizadoProduto && realizadoProduto[0] && parseFloat(realizadoProduto[0]["aparelho"])) ||
         0;
       let real_aparelho_mov =
         (realizadoProduto &&
@@ -339,17 +305,12 @@ const gerente = async ({ ref, agregador, politica }) => {
         0;
 
       let real_acessorio =
-        (realizadoProduto &&
-          realizadoProduto[0] &&
-          parseFloat(realizadoProduto[0]["acessorio"])) ||
+        (realizadoProduto && realizadoProduto[0] && parseFloat(realizadoProduto[0]["acessorio"])) ||
         0;
 
       // Pitzi
       let real_pitzi =
-        (realizadoPitzi &&
-          realizadoPitzi[0] &&
-          parseFloat(realizadoPitzi[0]["faturamento"])) ||
-        0;
+        (realizadoPitzi && realizadoPitzi[0] && parseFloat(realizadoPitzi[0]["faturamento"])) || 0;
 
       espelho.realizado = {
         controle: real_controle,
@@ -366,9 +327,7 @@ const gerente = async ({ ref, agregador, politica }) => {
 
       // obter atingimento das metas
       let ating_pos =
-        espelho.metas.pos == 0
-          ? 1
-          : parseFloat((real_pos / espelho.metas.pos).toFixed(4));
+        espelho.metas.pos == 0 ? 1 : parseFloat((real_pos / espelho.metas.pos).toFixed(4));
       let incremento_controle =
         real_pos > espelho.metas.pos && real_controle < espelho.metas.controle
           ? real_pos - espelho.metas.pos
@@ -376,12 +335,7 @@ const gerente = async ({ ref, agregador, politica }) => {
       let ating_controle =
         espelho.metas.controle == 0
           ? 1
-          : parseFloat(
-              (
-                (real_controle + incremento_controle) /
-                espelho.metas.controle
-              ).toFixed(4)
-            );
+          : parseFloat(((real_controle + incremento_controle) / espelho.metas.controle).toFixed(4));
       let ating_upgrade =
         espelho.metas.upgrade == 0
           ? 1
@@ -400,24 +354,15 @@ const gerente = async ({ ref, agregador, politica }) => {
           ? 1
           : parseFloat((real_acessorio / espelho.metas.acessorio).toFixed(4));
       let ating_pitzi =
-        espelho.metas.pitzi == 0
-          ? 1
-          : parseFloat((real_pitzi / espelho.metas.pitzi).toFixed(4));
+        espelho.metas.pitzi == 0 ? 1 : parseFloat((real_pitzi / espelho.metas.pitzi).toFixed(4));
 
       espelho.atingimento = {
         pos: ating_pos >= 0.96 && ating_pos < 1.0 ? 1 : ating_pos,
-        controle:
-          ating_controle >= 0.96 && ating_controle < 1.0 ? 1 : ating_controle,
-        upgrade:
-          ating_upgrade >= 0.96 && ating_upgrade < 1.0 ? 1 : ating_upgrade,
-        receita:
-          ating_receita >= 0.96 && ating_receita < 1.0 ? 1 : ating_receita,
-        aparelho:
-          ating_aparelho >= 0.96 && ating_aparelho < 1.0 ? 1 : ating_aparelho,
-        acessorio:
-          ating_acessorio >= 0.96 && ating_acessorio < 1.0
-            ? 1
-            : ating_acessorio,
+        controle: ating_controle >= 0.96 && ating_controle < 1.0 ? 1 : ating_controle,
+        upgrade: ating_upgrade >= 0.96 && ating_upgrade < 1.0 ? 1 : ating_upgrade,
+        receita: ating_receita >= 0.96 && ating_receita < 1.0 ? 1 : ating_receita,
+        aparelho: ating_aparelho >= 0.96 && ating_aparelho < 1.0 ? 1 : ating_aparelho,
+        acessorio: ating_acessorio >= 0.96 && ating_acessorio < 1.0 ? 1 : ating_acessorio,
         pitzi: ating_pitzi >= 0.96 && ating_pitzi < 1.0 ? 1 : ating_pitzi,
       };
 
@@ -475,9 +420,7 @@ const gerente = async ({ ref, agregador, politica }) => {
           ? true
           : false;
       let elegivelBonusTodasMetas =
-        elegivelBonusMetasTim === true && elegivelBonusMetasFacell === true
-          ? true
-          : false;
+        elegivelBonusMetasTim === true && elegivelBonusMetasFacell === true ? true : false;
 
       // APURAÇÃO BÔNUS GE - PÓS
       const [rowMetaGE] = await db.execute(
@@ -490,10 +433,7 @@ const gerente = async ({ ref, agregador, politica }) => {
       );
 
       const metaGEpos =
-        rowMetaGE &&
-        rowMetaGE[0] &&
-        rowMetaGE[0]["meta_pos"] &&
-        parseInt(rowMetaGE[0]["meta_pos"]);
+        rowMetaGE && rowMetaGE[0] && rowMetaGE[0]["meta_pos"] && parseInt(rowMetaGE[0]["meta_pos"]);
       espelho.metas.GEpos = metaGEpos || 0;
 
       const realGEpos =
@@ -627,16 +567,14 @@ const gerente = async ({ ref, agregador, politica }) => {
         let regra;
 
         regra = espelho.regras.filter(
-          (item) =>(
-              item.escalonamento == comissao.escalonamento &&
-              item.tipo_remuneracao === "comissao" &&
-              item.descr === comissao.descr
-              )
+          (item) =>
+            item.escalonamento == comissao.escalonamento &&
+            item.tipo_remuneracao === "comissao" &&
+            item.descr === comissao.descr
         );
         if (regra && regra[0]) {
           calc_comissao =
-            comissao.calculo(regra[0].valor) *
-            (isSub && tipo_agregacao === "FILIAL" ? 0.5 : 1);
+            comissao.calculo(regra[0].valor) * (isSub && tipo_agregacao === "FILIAL" ? 0.5 : 1);
           if (calc_comissao) {
             espelho.comissao += calc_comissao;
           }
@@ -930,16 +868,10 @@ const gerente = async ({ ref, agregador, politica }) => {
           meta: 0,
           realizado: 0,
           atingimento: verificaEscalonamento(
-            Math.min(
-              espelho.menor_ating_tim || 0,
-              espelho.menor_ating_facell || 0
-            )
+            Math.min(espelho.menor_ating_tim || 0, espelho.menor_ating_facell || 0)
           ),
           escalonamento: verificaEscalonamento(
-            Math.min(
-              espelho.menor_ating_tim || 0,
-              espelho.menor_ating_facell || 0
-            )
+            Math.min(espelho.menor_ating_tim || 0, espelho.menor_ating_facell || 0)
           ),
           faturamento: 0,
           calculo: (valor) => {
@@ -959,18 +891,13 @@ const gerente = async ({ ref, agregador, politica }) => {
           meta: espelho.metas.GEpos,
           realizado: espelho.realizado.GEpos,
           atingimento: espelho.realizado.GEpos / espelho.metas.GEpos,
-          escalonamento: verificaEscalonamento(
-            espelho.realizado.GEpos / espelho.metas.GEpos
-          ),
+          escalonamento: verificaEscalonamento(espelho.realizado.GEpos / espelho.metas.GEpos),
           faturamento: 0,
           calculo: (valor) => {
             let elegivelBonusGE = espelho.elegivelBonusGE ? 1 : 0;
 
             return (
-              elegivelBonusGE *
-              valor *
-              espelho.qualidade_tim *
-              espelho.deflatores.app_e_esteira
+              elegivelBonusGE * valor * espelho.qualidade_tim * espelho.deflatores.app_e_esteira
             );
           },
         },
@@ -1015,29 +942,32 @@ const gerente = async ({ ref, agregador, politica }) => {
         rowsExcecoes.forEach((excecao) => {
           const valor_inicial = parseFloat(excecao.valor);
           const isNegative = valor_inicial < 0 ? true : false;
-          
-          if(!isNegative){
-            let valor = valor_inicial * (espelho.qualidade ? espelho.qualidade : 1) * (espelho.deflatores.app_e_esteira ? 0.5 : 1)
+
+          if (!isNegative) {
+            let valor =
+              valor_inicial *
+              (espelho.qualidade ? espelho.qualidade : 1) *
+              (espelho.deflatores.app_e_esteira ? 0.5 : 1);
             espelho.bonus += valor;
-          }else{
-            let valor = Math.abs(valor_inicial)
-            
+          } else {
+            let valor = Math.abs(valor_inicial);
+
             // Descontar do bônus
-            if(espelho.bonus >= valor){
+            if (espelho.bonus >= valor) {
               espelho.bonus -= valor;
               valor = 0;
-            }else{
+            } else {
               valor -= espelho.bonus;
-              espelho.bonus = 0
+              espelho.bonus = 0;
             }
-            
+
             // Descontar da comissão
-            if(espelho.comissao >= valor){
+            if (espelho.comissao >= valor) {
               espelho.comissao -= valor;
               valor = 0;
-            }else{
+            } else {
               valor -= espelho.comissao;
-              espelho.comissao = 0
+              espelho.comissao = 0;
             }
           }
 
@@ -1058,20 +988,16 @@ const gerente = async ({ ref, agregador, politica }) => {
 
       espelho.resumo.push({
         info: "Percentuais TIM",
-        descr: `Qualidade: ${(espelho.qualidade_tim * 100).toFixed(
-          2
-        )}% | App x Siebel: ${(espelho.app_tim_vendas * 100).toFixed(
-          2
-        )}%  | Esteira Full: ${(espelho.esteira_full * 100).toFixed(2)}%`,
+        descr: `Qualidade: ${(espelho.qualidade_tim * 100).toFixed(2)}% | App x Siebel: ${(
+          espelho.app_tim_vendas * 100
+        ).toFixed(2)}%  | Esteira Full: ${(espelho.esteira_full * 100).toFixed(2)}%`,
       });
 
       espelho.resumo.push({
         info: "Total",
-        descr: `Comissão: ${espelho.comissao.toFixed(
+        descr: `Comissão: ${espelho.comissao.toFixed(2)} | Bônus: ${espelho.bonus.toFixed(
           2
-        )} | Bônus: ${espelho.bonus.toFixed(2)}  | Comissão+Bônus: ${(
-          espelho.comissao + espelho.bonus
-        ).toFixed(2)}`,
+        )}  | Comissão+Bônus: ${(espelho.comissao + espelho.bonus).toFixed(2)}`,
       });
 
       // * GERAÇÃO DO ESPELHO:
@@ -1089,10 +1015,7 @@ const gerente = async ({ ref, agregador, politica }) => {
           [ref, espelho.filial, espelho.cpf, espelho.cargo]
         );
 
-        if (
-          rowEspelhoAntigo &&
-          rowEspelhoAntigo[0]
-        ) {
+        if (rowEspelhoAntigo && rowEspelhoAntigo[0]) {
           let oldFileUrl = rowEspelhoAntigo[0]["fileUrl"];
           if (oldFileUrl) {
             espelho.deletePDF(oldFileUrl);
@@ -1109,7 +1032,7 @@ const gerente = async ({ ref, agregador, politica }) => {
             WHERE ref = ? and filial = ? and cpf = ? and cargo = ?`,
             [ref, espelho.filial, espelho.cpf, espelho.cargo]
           );
-        }else{
+        } else {
           // Vamos inserir já que não existe:
           await db.execute(
             `INSERT INTO comissao (
@@ -1130,33 +1053,42 @@ const gerente = async ({ ref, agregador, politica }) => {
             ]
           );
         }
-        await db.execute(`UPDATE metas_agregadores SET status_espelho = 'Calculado', obs_espelho = '' WHERE id = ? `, [agregador.id])
+        await db.execute(
+          `UPDATE metas_agregadores SET status_espelho = 'Calculado', obs_espelho = '' WHERE id = ? `,
+          [agregador.id]
+        );
 
         resolve({ success: true });
         return true;
       } catch (error) {
         // tentar excluir o pdf
         try {
-          await db.execute(`UPDATE metas_agregadores SET status_espelho = 'Erro', obs_espelho = ? WHERE id = ? `, [error.message, agregador.id])
-          if(fileUrl){
+          await db.execute(
+            `UPDATE metas_agregadores SET status_espelho = 'Erro', obs_espelho = ? WHERE id = ? `,
+            [error.message, agregador.id]
+          );
+          if (fileUrl) {
             espelho.deletePDF(fileUrl);
           }
         } catch (error) {
-          console.log('[TRY_DELETE_NEW_PDF_AFTER_ERROR]',fileUrl)
+          console.log("[TRY_DELETE_NEW_PDF_AFTER_ERROR]", fileUrl);
         }
         reject("[INSERT/UPDATE]:" + error.message);
         return false;
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       // tentar excluir o pdf e atualizar status agregador
       try {
-        await db.execute(`UPDATE metas_agregadores SET status_espelho = 'Erro', obs_espelho = ? WHERE id = ? `, [error.message, agregador.id])
-        if(fileUrl){
+        await db.execute(
+          `UPDATE metas_agregadores SET status_espelho = 'Erro', obs_espelho = ? WHERE id = ? `,
+          [error.message, agregador.id]
+        );
+        if (fileUrl) {
           espelho.deletePDF(fileUrl);
         }
       } catch (error) {
-        console.log('[TRY_DELETE_NEW_PDF_AFTER_ERROR]',fileUrl)
+        console.log("[TRY_DELETE_NEW_PDF_AFTER_ERROR]", fileUrl);
       }
 
       reject("[CÁLCULO]:" + error.message);

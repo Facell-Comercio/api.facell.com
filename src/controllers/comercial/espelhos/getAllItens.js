@@ -18,7 +18,9 @@ module.exports = async (req, res) => {
     const { ids } = await getAll({ body: { conn_externa: conn }, query: { filters } });
     let id_list = ids.map((item) => item.id);
 
-    where += ` AND id_comissao IN (${id_list.map((value) => db.escape(value)).join(",")}) `;
+    if (id_list.length > 0) {
+      where += ` AND id_comissao IN (${id_list.map((value) => db.escape(value)).join(",")}) `;
+    }
 
     const [itens] = await conn.execute(
       `SELECT * FROM comissao_itens ${where} AND manual = 1 ORDER BY id DESC`,

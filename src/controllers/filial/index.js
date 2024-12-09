@@ -44,7 +44,7 @@ function getAll(req) {
         });
         return;
       }
-      where += `AND f.id IN(${filiais_habilitadas.join(",")}) `;
+      where += `AND f.id IN(${filiais_habilitadas.map((value) => db.escape(value)).join(",")}) `;
     }
 
     if (termo) {
@@ -282,7 +282,10 @@ function update(req) {
 
       params.push(id);
       // Atualização de dados do usuário
-      await conn.execute(`UPDATE filiais SET ${set.join(",")} WHERE id = ?`, params);
+      await conn.execute(
+        `UPDATE filiais SET ${set.map((value) => db.escape(value)).join(",")} WHERE id = ?`,
+        params
+      );
 
       await conn.commit();
 
@@ -424,7 +427,9 @@ function insertOne(req) {
         params.push(uf);
       }
 
-      const query = `INSERT INTO filiais (${campos.join(",")}) VALUES (${values.join(",")});`;
+      const query = `INSERT INTO filiais (${campos
+        .map((value) => db.escape(value))
+        .join(",")}) VALUES (${values.map((value) => db.escape(value)).join(",")});`;
 
       await conn.execute(query, params);
       await conn.commit();
@@ -473,7 +478,7 @@ function getAllUfs(req) {
         });
         return;
       }
-      where += `AND f.id IN(${filiais_habilitadas.join(",")}) `;
+      where += `AND f.id IN(${filiais_habilitadas.map((value) => db.escape(value)).join(",")}) `;
     }
 
     if (id_grupo_economico) {

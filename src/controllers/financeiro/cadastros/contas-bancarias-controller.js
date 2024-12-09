@@ -52,7 +52,9 @@ function getAll(req) {
         });
         return;
       }
-      where += `AND f.id IN(${contas_bancarias_habilitadas.join(",")}) `;
+      where += `AND f.id IN(${contas_bancarias_habilitadas
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     if (id_filial) {
