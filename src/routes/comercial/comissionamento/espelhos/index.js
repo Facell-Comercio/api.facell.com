@@ -95,4 +95,6 @@ router.delete(
   controller.deleteOne
 );
 
+router.post('/', controller.calcularEspelhos)
+
 module.exports = router;

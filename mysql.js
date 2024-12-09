@@ -18,8 +18,8 @@ const db = mysql.createPool({
   port: port,
   charset: "utf8mb4_general_ci",
   waitForConnections: true,
-  connectTimeout: 60000,
-  connectionLimit: 50,
+  connectionLimit: 150,
+  queueLimit: 0,
 });
 
 async function mantainInfiniteConnection() {

@@ -22,7 +22,7 @@ module.exports = function getAll(req) {
     // Filtros
     var where = ` WHERE 1=1 `;
     //* Somente o Financeiro/Master podem ver todos
-    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER")) {
+    if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER") && !hasPermission(req, "DESPESAS:VER_TODAS")) {
       // where += ` AND t.id_solicitante = '${user.id}'`;
       if (departamentosUser?.length > 0) {
         where += ` AND (t.id_solicitante = '${

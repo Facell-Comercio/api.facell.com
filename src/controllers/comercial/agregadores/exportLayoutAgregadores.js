@@ -136,7 +136,6 @@ module.exports = function exportLayoutAgregadores(req, res) {
           throw new Error(`O agregador de id ${id} não foi encontrado`);
         }
         const metas_agregadas = agregador.metas_agregadas && agregador.metas_agregadas.split(";");
-        console.log(metas_agregadas);
 
         const [rowsMetas] = await conn.execute(`
           SELECT 

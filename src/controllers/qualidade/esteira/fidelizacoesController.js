@@ -34,9 +34,7 @@ exports.getGSMFidelizacoesAparelho = async (req, res) => {
       where += ` AND status_fid_aparelho != 'Fidelizado' `
     }
 
-    const [rows] = await conn.execute(`SELECT DISTINCT 
-      CASE WHEN DATEDIFF(CURDATE(), dtAtivacao) < 4 and modalidade LIKE 'PORT%' THEN gsmProvisorio ELSE gsm END as gsm
-      FROM ${facell_docs} ${where}`, params)
+    const [rows] = await conn.execute(`SELECT DISTINCT gsm FROM ${facell_docs} ${where}`, params)
     const gsms = rows && rows.map(row => row['gsm']) || []
     res.status(200).json({ qtde: gsms.length, gsms })
   } catch (error) {

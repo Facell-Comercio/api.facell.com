@@ -318,6 +318,7 @@ module.exports = async (req, res) => {
     let totalInseridos = 1;
     let totalVendas = vendas_invalidas.length;
     for (const venda of vendas_invalidas) {
+      let valor = Math.abs(venda.tipo == 'SERVIÇO' ? parseFloat(venda.valor_receita) : parseFloat(venda.valorCaixa))
       arrayVendas.push(`(
         ${db.escape(new Date(ano, mes - 1, 1))},      -- REF
         ${db.escape(venda.tipo)},                     -- TIPO
@@ -334,7 +335,7 @@ module.exports = async (req, res) => {
         ${db.escape(venda.plano_ativado)},            -- PLANO
         ${db.escape(venda.cpf_cliente)},              -- CPF CLIENTE
         ${db.escape(venda.cpfVendedor)},              -- CPF VENDEDOR
-        ${db.escape(Math.abs(venda.valor_receita))},  -- VALOR
+        ${db.escape(valor)},                          -- VALOR
         ${db.escape(venda.valor_reembolso)},          -- VALOR REEMBOLSO
         ${db.escape(venda.compartilhado)},            -- COMPARTILHADO
         ${db.escape(venda.observacao)}                -- OBSERVACAO

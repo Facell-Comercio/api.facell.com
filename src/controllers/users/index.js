@@ -216,6 +216,7 @@ function update(req) {
         id,
         nome,
         email,
+        cpf,
         active,
         img_url,
         filiais,
@@ -237,6 +238,9 @@ function update(req) {
       if (!nome) {
         throw new Error("Nome não enviado!");
       }
+      if (!cpf) {
+        throw new Error("CPF não enviado!");
+      }
       if (!email) {
         throw new Error("Email não enviado!");
       }
@@ -255,8 +259,8 @@ function update(req) {
 
       // Atualização de dados do usuário
       await conn.execute(
-        "UPDATE users SET nome = ?, email = ?, img_url = ?, active = ? WHERE id = ?",
-        [nome, email, nova_img_url, active, id]
+        "UPDATE users SET nome = ?, email = ?, cpf = ?, img_url = ?, active = ? WHERE id = ?",
+        [nome, email, cpf, nova_img_url, active, id]
       );
 
       // Atualização de arrays
@@ -378,6 +382,7 @@ function insertOne(req) {
         id,
         nome,
         email,
+        cpf,
         active,
         img_url,
         filiais,
@@ -403,13 +408,16 @@ function insertOne(req) {
       if (!email) {
         throw new Error("Email não enviado!");
       }
+      if (!cpf) {
+        throw new Error("CPF não enviado!");
+      }
       await conn.beginTransaction();
       const id_publico = uuidv4();
 
       // Atualização de dados do usuário
       const [result] = await conn.execute(
-        "INSERT INTO users (id_publico, nome, email, active) VALUES (?,?,?,?)",
-        [id_publico, nome, email, active]
+        "INSERT INTO users (id_publico, nome, email, cpf, active) VALUES (?,?,?,?,?)",
+        [id_publico, nome, email, cpf, active]
       );
       const newId = result.insertId;
 

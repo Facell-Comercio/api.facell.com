@@ -96,21 +96,10 @@ module.exports = function importMetas(req) {
               nome &&
               data_inicial &&
               data_final &&
-              proporcional &&
-              controle &&
-              pos &&
-              upgrade &&
-              qtde_aparelho &&
-              receita &&
-              aparelho &&
-              acessorio &&
-              pitzi &&
-              fixo &&
-              wttx &&
-              live
+              proporcional
             )
           ) {
-            throw new Error("Dados insuficientes!");
+            throw new Error("PREENCHA TODOS OS CAMPOS OBRIGATÓRIOS!");
           }
 
           const [rowUser] = conn.execute("SELECT nome FROM users u WHERE cpf = ?", [cpf_padrao]);
@@ -162,18 +151,18 @@ module.exports = function importMetas(req) {
                 cargo,
                 tags || null,
 
-                parseFloat(proporcional),
-                parseInt(controle),
-                parseInt(pos),
-                parseInt(upgrade),
-                parseFloat(receita),
-                parseInt(qtde_aparelho),
-                parseFloat(aparelho),
-                parseFloat(acessorio),
-                parseFloat(pitzi),
-                parseInt(fixo),
-                parseInt(wttx),
-                parseInt(live),
+                parseFloat(proporcional || '0'),
+                parseInt(controle || '0'),
+                parseInt(pos || '0'),
+                parseInt(upgrade || '0'),
+                parseFloat(receita || '0'),
+                parseInt(qtde_aparelho || '0'),
+                parseFloat(aparelho || '0'),
+                parseFloat(acessorio || '0'),
+                parseFloat(pitzi || '0'),
+                parseInt(fixo || '0'),
+                parseInt(wttx || '0'),
+                parseInt(live || '0'),
 
                 id_filial,
 
