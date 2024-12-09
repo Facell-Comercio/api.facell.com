@@ -26,6 +26,9 @@ module.exports = async = (req) => {
         tim_pedido,
         tim_pedido_sap,
         valor,
+        valor_liquido,
+        ir,
+        iss,
         descricao,
 
         vencimentos,
@@ -153,6 +156,9 @@ module.exports = async = (req) => {
               tim_pedido_sap,
 
               valor,
+              valor_liquido,
+              ir,
+              iss,
               descricao,
               
               id_rateio,
@@ -166,7 +172,7 @@ module.exports = async = (req) => {
   
               id_status
           )
-          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
         [
           user.id,
@@ -181,6 +187,9 @@ module.exports = async = (req) => {
           tim_pedido_sap || null,
 
           valor,
+          valor_liquido || valor,
+          ir || 0,
+          iss || 0,
           descricao,
 
           id_rateio || null,
