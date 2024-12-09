@@ -382,6 +382,7 @@ function insertOne(req) {
         id,
         nome,
         email,
+        cpf,
         active,
         img_url,
         filiais,
@@ -407,13 +408,16 @@ function insertOne(req) {
       if (!email) {
         throw new Error("Email não enviado!");
       }
+      if (!cpf) {
+        throw new Error("CPF não enviado!");
+      }
       await conn.beginTransaction();
       const id_publico = uuidv4();
 
       // Atualização de dados do usuário
       const [result] = await conn.execute(
-        "INSERT INTO users (id_publico, nome, email, active) VALUES (?,?,?,?)",
-        [id_publico, nome, email, active]
+        "INSERT INTO users (id_publico, nome, email, cpf, active) VALUES (?,?,?,?,?)",
+        [id_publico, nome, email, cpf, active]
       );
       const newId = result.insertId;
 
