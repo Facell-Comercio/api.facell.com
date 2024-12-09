@@ -509,7 +509,9 @@ function getMyBudgets(req) {
         });
         return;
       }
-      where += `AND fcc.id IN(${orcamentos_habilitados.join(",")}) `;
+      where += `AND fcc.id IN(${orcamentos_habilitados
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     if (mes && ano) {

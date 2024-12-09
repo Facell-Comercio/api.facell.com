@@ -37,7 +37,9 @@ function getAll(req) {
         });
         return;
       }
-      where += `AND f.id IN(${grupos_economicos_habilitados.join(",")}) `;
+      where += `AND f.id IN(${grupos_economicos_habilitados
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     if (id_matriz) {
@@ -119,7 +121,9 @@ function getAllMatriz(req) {
         });
         return;
       }
-      where += `AND f.id IN(${grupos_economicos_habilitados.join(",")}) `;
+      where += `AND f.id IN(${grupos_economicos_habilitados
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     const conn = await db.getConnection();
@@ -231,7 +235,12 @@ function update(req) {
 
       // Atualização de dados
       params.push(id);
-      await conn.execute(`UPDATE grupos_economicos SET ${set.join(",")} WHERE id = ?`, params);
+      await conn.execute(
+        `UPDATE grupos_economicos SET ${set
+          .map((value) => db.escape(value))
+          .join(",")} WHERE id = ?`,
+        params
+      );
 
       await conn.commit();
       resolve({ message: "Sucesso!" });

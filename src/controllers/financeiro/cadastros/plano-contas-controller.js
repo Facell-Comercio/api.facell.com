@@ -27,7 +27,9 @@ function getAll(req) {
         });
         return;
       }
-      where += `AND f.id IN(${planos_contas_habilitados.join(",")}) `;
+      where += `AND f.id IN(${planos_contas_habilitados
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     // Filtros

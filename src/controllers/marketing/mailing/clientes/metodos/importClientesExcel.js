@@ -89,7 +89,7 @@ module.exports = async (req, res) => {
                 id_campanha
               )
                 VAlUES
-                ${arrayClientes.join(",")}
+                ${arrayClientes.map((value) => db.escape(value)).join(",")}
               `;
             await conn.execute(queryInsert);
 

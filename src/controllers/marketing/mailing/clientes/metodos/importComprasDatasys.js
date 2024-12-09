@@ -165,7 +165,7 @@ module.exports = async (req, res) => {
               item
               )
               VAlUES
-              ${arrayCompras.join(",")}
+              ${arrayCompras.map((value) => db.escape(value)).join(",")}
             `;
           await conn.execute(queryInsert);
           arrayCompras.length = 0;

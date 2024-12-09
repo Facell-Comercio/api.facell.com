@@ -10,7 +10,9 @@ module.exports = async (req) => {
 
       let where = ` WHERE f.tim_cod_sap IS NOT NULL and f.active = 1 `;
       if (filiais_list && filiais_list.length > 0) {
-        where += ` AND dc.id_filial IN(${filiais_list.map((value) => db.escape(value)).join(",")}) `;
+        where += ` AND dc.id_filial IN(${filiais_list
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       conn = await db.getConnection();
@@ -30,7 +32,7 @@ module.exports = async (req) => {
       ${where}
       
       GROUP BY f.id
-      `
+      `;
       const [filiais] = await conn.execute(query);
 
       const [rowTotalAjustes] = await conn.execute(

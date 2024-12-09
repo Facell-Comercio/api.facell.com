@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
           produto_ultima_compra, desconto_plano, valor_caixa, filial, id_campanha, cliente
           )
           VALUES
-          ${arrayClientes.join(",")}
+          ${arrayClientes.map((value) => db.escape(value)).join(",")}
           `;
         await conn.execute(query);
         arrayClientes.length = 0;

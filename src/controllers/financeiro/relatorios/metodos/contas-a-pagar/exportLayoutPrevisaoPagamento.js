@@ -21,12 +21,18 @@ module.exports = (req, res) => {
       // Filtros
       let where = ` tv.data_pagamento IS NULL `;
       //* Somente o Financeiro/Master podem ver todos
-      if (!checkUserDepartment(req, "FINANCEIRO") && !hasPermission(req, "MASTER") && !hasPermission(req, "DESPESAS:VER_TODAS")) {
+      if (
+        !checkUserDepartment(req, "FINANCEIRO") &&
+        !hasPermission(req, "MASTER") &&
+        !hasPermission(req, "DESPESAS:VER_TODAS")
+      ) {
         // where += ` AND t.id_solicitante = '${user.id}'`;
         if (departamentosUser?.length > 0) {
           where += ` AND (t.id_solicitante = '${
             user.id
-          }' OR  t.id_departamento IN (${departamentosUser.join(",")})) `;
+          }' OR  t.id_departamento IN (${departamentosUser
+            .map((value) => db.escape(value))
+            .join(",")})) `;
         } else {
           where += ` AND t.id_solicitante = '${user.id}' `;
         }

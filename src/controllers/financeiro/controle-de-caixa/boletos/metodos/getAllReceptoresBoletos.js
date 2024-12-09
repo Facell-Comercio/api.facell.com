@@ -19,19 +19,19 @@ module.exports = async (req) => {
       let where = "WHERE 1=1";
       const params = [];
 
-      if(id_filial){
+      if (id_filial) {
         where += ` AND f.id = ?`;
-        params.push(id_filial)
+        params.push(id_filial);
       }
-      if(filiais_list && filiais_list?.length > 0){
-          where += ` AND f.id IN('${filiais_list.join(',')}')`
+      if (filiais_list && filiais_list?.length > 0) {
+        where += ` AND f.id IN(${filiais_list.map((value) => db.escape(value)).join(",")})`;
       }
 
-      if(email){
+      if (email) {
         where += ` AND crb.email LIKE CONCAT('%', ?, '%')`;
-        params.push(email)
+        params.push(email);
       }
-      
+
       const [rowQtdeTotal] = await conn.execute(
         `SELECT COUNT(*) AS qtde FROM datasys_caixas_receptores_boletos crb
         INNER JOIN filiais f ON f.id = crb.id_filial

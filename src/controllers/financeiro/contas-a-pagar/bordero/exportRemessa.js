@@ -51,14 +51,12 @@ module.exports = function exportRemessa(req, res) {
       let whereFaturas = ` tb.id_bordero = ? `;
 
       if (idsVencimentos && idsVencimentos.length > 0) {
-        whereVencimentos += ` AND tv.id IN('${idsVencimentos
+        whereVencimentos += ` AND tv.id IN(${idsVencimentos
           .map((value) => db.escape(value))
           .join(",")}) `;
       }
       if (idsFaturas && idsFaturas.length > 0) {
-        whereFaturas += ` AND ccf.id IN('${idsFaturas
-          .map((value) => db.escape(value))
-          .join(",")}) `;
+        whereFaturas += ` AND ccf.id IN(${idsFaturas.map((value) => db.escape(value)).join(",")}) `;
       }
 
       await conn.beginTransaction();
@@ -72,7 +70,7 @@ module.exports = function exportRemessa(req, res) {
           f.razao as empresa_nome, f.logradouro as endereco_empresa,
           f.numero as endereco_num, f.complemento as endereco_compl,
           f.municipio as cidade, f.cep, f.uf,
-          cb.descricao as conta_bancaria, b.data_pagamento, 
+          cb.descricao as conta_bancaria, b.data_pagamento,
           UPPER(RPAD(fb.nome, 30, ' ')) as nome_banco,
           LPAD(fb.codigo, 3, '0') as codigo_banco
         FROM fin_cp_bordero b
