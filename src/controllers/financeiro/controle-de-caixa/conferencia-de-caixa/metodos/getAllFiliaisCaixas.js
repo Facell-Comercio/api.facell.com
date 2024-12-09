@@ -31,7 +31,6 @@ module.exports = async (req) => {
       
       GROUP BY f.id
       `
-      console.log(query)
       const [filiais] = await conn.execute(query);
 
       const [rowTotalAjustes] = await conn.execute(
