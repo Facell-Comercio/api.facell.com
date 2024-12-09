@@ -186,7 +186,7 @@ module.exports = async (req, res) => {
       `
       SELECT imei, valor_reembolso, detalhamento_reembolso
       FROM tim_reembolsos
-      WHERE imei IN (${imeiList.join(",")})
+      WHERE imei IN (${imeiList.map((value) => db.escape(value)).join(",")})
       AND (
         detalhamento_reembolso LIKE 'PRICE OFERTA' OR
         detalhamento_reembolso LIKE 'ADM' OR
@@ -274,7 +274,7 @@ module.exports = async (req, res) => {
       FROM tim_reembolsos
       WHERE observacao LIKE '%BACK%OFERTA%'
       AND detalhamento_reembolso LIKE 'PRICE%BACK%'
-      AND imei IN (${imeiListPrice.join(",")})`
+      AND imei IN (${imeiListPrice.map((value) => db.escape(value)).join(",")})`
     );
 
     // Criar um Map para associar imei -> valor_reembolso

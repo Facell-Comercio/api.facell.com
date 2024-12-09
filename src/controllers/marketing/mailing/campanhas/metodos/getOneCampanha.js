@@ -337,7 +337,7 @@ module.exports = async (req) => {
         SELECT DISTINCT mc.*
         FROM marketing_mailing_clientes mc
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
-        WHERE mc.id_campanha IN ('${idsCampanhas.map((value) => db.escape(value)).join(",")})`
+        WHERE mc.id_campanha IN (${idsCampanhas.map((value) => db.escape(value)).join(",")})`
       );
 
       campanha.all_clientes = allClientes;

@@ -23,9 +23,10 @@ module.exports = async (req) => {
       const params = [];
 
       if (status_list && status_list.length > 0) {
-        where += ` AND dcb.status IN ('${status_list
+        where += ` AND dcb.status IN (${status_list
           .filter((status) => status !== "atrasado")
-          .join("','")}') `;
+          .map((value) => db.escape(value))
+          .join(",")}) `;
 
         if (status_list.includes("atrasado")) {
           where += ` OR (dcb.status = "emitido" AND dcb.data_vencimento < CURDATE()) `;

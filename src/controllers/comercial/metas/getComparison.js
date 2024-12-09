@@ -42,12 +42,14 @@ module.exports = function getComparison(req) {
       params.push(cargo);
     }
     if (cpf_list && cpf_list.length > 0 && cpf_list[0] !== "") {
-      where += ` AND NOT fm.cpf IN ('${cpf_list.join("','")}') `;
+      where += ` AND NOT fm.cpf IN (${cpf_list.map((value) => db.escape(value)).join(",")}) `;
     }
 
     if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
       if (filiaisGestor.length > 0) {
-        where += ` AND fm.id_filial IN ('${filiaisGestor.join("','")}') `;
+        where += ` AND fm.id_filial IN (${filiaisGestor
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       } else {
         resolve([]);
       }

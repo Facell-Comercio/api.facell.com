@@ -64,14 +64,14 @@ module.exports = async (req, res) => {
       if (tipo_agregacao === "FILIAL") {
         where += `
         AND (data_venda BETWEEN ? AND ?)
-        AND filial IN ('${metas.join("','")}') `;
+        AND filial IN (${metas.map((value) => db.escape(value)).join(",")}) `;
         params.push(data_inicial, data_final);
         paramsInadimplencia.push(data_de_inadimplencia, data_ate_inadimplencia);
       }
       if (tipo_agregacao === "VENDEDOR") {
         where += `
         AND (data_venda BETWEEN ? AND ?)
-        AND cpf_vendedor IN ('${metas.join("','")}') `;
+        AND cpf_vendedor IN (${metas.map((value) => db.escape(value)).join(",")}) `;
         params.push(data_inicial, data_final);
         paramsInadimplencia.push(data_de_inadimplencia, data_ate_inadimplencia);
       }

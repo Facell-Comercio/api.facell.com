@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
 
     let query = `UPDATE marketing_mailing_campanhas SET ${sets.join(
       ","
-    )} WHERE id IN ('${idsCampanhas.join("','")}')`;
+    )} WHERE id IN (${idsCampanhas.map((value) => db.escape(value)).join(",")})`;
 
     await conn.execute(query, params);
 

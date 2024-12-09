@@ -47,7 +47,9 @@ module.exports = (req) => {
     }
 
     if (tipo_list && tipo_list.length > 0) {
-      where += ` AND eb.tipo_transacao IN ('${tipo_list.join("','")}') `;
+      where += ` AND eb.tipo_transacao IN (${tipo_list
+        .map((value) => db.escape(value))
+        .join(",")}) `;
     }
 
     let conn;

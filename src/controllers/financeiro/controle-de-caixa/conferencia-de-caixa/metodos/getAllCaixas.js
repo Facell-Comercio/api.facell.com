@@ -11,8 +11,7 @@ module.exports = async (req) => {
 
     const offset = pageIndex > 0 ? pageSize * pageIndex : 0;
 
-    const { id_filial, status_list, range_data, divergentes, nao_resolvidos } =
-      filters || {};
+    const { id_filial, status_list, range_data, divergentes, nao_resolvidos } = filters || {};
     const params = [];
     let where = ` WHERE 1=1 `;
 
@@ -21,7 +20,7 @@ module.exports = async (req) => {
       params.push(id_filial);
     }
     if (status_list && status_list.length > 0) {
-      where += ` AND dc.status IN ('${status_list.join("','")}') `;
+      where += ` AND dc.status IN (${status_list.map((value) => db.escape(value)).join(",")}) `;
     }
     if (range_data) {
       const { from: data_de, to: data_ate } = range_data;

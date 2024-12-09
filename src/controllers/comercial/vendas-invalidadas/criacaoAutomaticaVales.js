@@ -32,7 +32,7 @@ module.exports = async (req) => {
         FROM comissao_vendas_invalidas vi
         LEFT JOIN comissao_vendas_invalidas_rateio vir ON vir.id_venda_invalida = vi.id
         ${where}
-        AND vi.status IN ('improcedente','ciente')
+        AND vi.status IN (improcedente','ciente')
         AND vi.estorno > 0
         AND vir.id_vale IS NULL
         AND vir.id IS NOT NULL`,

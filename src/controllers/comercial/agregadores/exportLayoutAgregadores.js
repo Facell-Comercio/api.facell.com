@@ -152,7 +152,11 @@ module.exports = function exportLayoutAgregadores(req, res) {
             SUM(fm.wttx) as wttx,
             SUM(fm.live) as live
           FROM metas fm
-          WHERE ${metas_agregadas ? `fm.cpf IN (${metas_agregadas.join(",")})` : "1<>1"}
+          WHERE ${
+            metas_agregadas
+              ? `fm.cpf IN (${metas_agregadas.map((value) => db.escape(value)).join(",")})`
+              : "1<>1"
+          }
           `);
 
         const metas = rowsMetas && rowsMetas[0];

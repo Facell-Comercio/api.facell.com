@@ -25,7 +25,7 @@ module.exports = async (req) => {
       const params = [];
 
       if (relatorios && relatorios.length > 0) {
-        where += ` AND lir.relatorio IN('${relatorios.join("','")}')`;
+        where += ` AND lir.relatorio IN('${relatorios.map((value) => db.escape(value)).join(",")})`;
       }
 
       const [rowQtdeTotal] = await conn.execute(

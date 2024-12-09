@@ -75,9 +75,9 @@ module.exports = async (req, res) => {
       const ids = subcampanhas && subcampanhas.map((campanha) => campanha.id);
       ids.push(campanha.id);
       const [clientes] = await conn.execute(
-        `SELECT COUNT(id) as qtde FROM marketing_mailing_clientes WHERE id_campanha IN ('${ids.join(
-          "','"
-        )}')`
+        `SELECT COUNT(id) as qtde FROM marketing_mailing_clientes WHERE id_campanha IN (${ids
+          .map((value) => db.escape(value))
+          .join(",")})`
       );
       campanha.qtde_clientes = (clientes && clientes[0] && clientes[0].qtde) || 0;
     }

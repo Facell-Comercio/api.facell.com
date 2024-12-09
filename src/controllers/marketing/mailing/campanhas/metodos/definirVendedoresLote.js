@@ -73,7 +73,9 @@ module.exports = async (req, res) => {
     // Executar uma query de update por vendedor
     for (const [nome, ids] of vendedoresMap.entries()) {
       await conn.execute(
-        `UPDATE marketing_mailing_clientes SET vendedor = ? WHERE id IN ('${ids.join("','")}')`,
+        `UPDATE marketing_mailing_clientes SET vendedor = ? WHERE id IN (${ids
+          .map((value) => db.escape(value))
+          .join(",")})`,
         [nome]
       );
     }

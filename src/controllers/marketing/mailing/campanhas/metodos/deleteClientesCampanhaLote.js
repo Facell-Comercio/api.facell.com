@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
         return;
       }
       await conn.execute(
-        `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN ('${clientesIds.join(
+        `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN (${clientesIds.join(
           "','"
         )}')`,
         [id_parent]

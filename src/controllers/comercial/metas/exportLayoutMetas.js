@@ -47,7 +47,7 @@ module.exports = function exportLayoutMetas(req, res) {
       params.push(cargo);
     }
     if (cpf_list && cpf_list.length > 0 && cpf_list[0] !== "") {
-      where += ` AND NOT fm.cpf IN ('${cpf_list.join("','")}') `;
+      where += ` AND NOT fm.cpf IN (${cpf_list.map((value) => db.escape(value)).join(",")}) `;
     }
     if (agregacao) {
       where += ` AND fm.cargo ${agregacao === "FILIAL" ? "=" : "<>"} "FILIAL" `;
@@ -55,7 +55,9 @@ module.exports = function exportLayoutMetas(req, res) {
 
     if (!hasPermission(req, ["MASTER", "METAS:METAS_VER_TODAS"])) {
       if (filiaisGestor.length > 0) {
-        where += ` AND (fm.id_filial IN ('${filiaisGestor.join("','")}') OR fm.cpf = ?)`;
+        where += ` AND (fm.id_filial IN (${filiaisGestor
+          .map((value) => db.escape(value))
+          .join(",")}) OR fm.cpf = ?)`;
         params.push(user.cpf);
       } else {
         where += ` AND fm.cpf = ? `;

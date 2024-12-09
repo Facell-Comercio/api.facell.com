@@ -246,7 +246,9 @@ function getAllVencimentosEFaturas(req) {
       params.push(id_matriz);
     }
     if (forma_pagamento_list && forma_pagamento_list.length > 0) {
-      where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join("','")}')`;
+      where += ` AND t.id_forma_pagamento IN (${forma_pagamento_list
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
     if (id_filial && id_filial !== "all") {
       where += ` AND (f.id = ? OR f2.id = ?)`;
@@ -306,7 +308,9 @@ function getAllVencimentosEFaturas(req) {
 
     // Filtra os vencimentos com base no status
     if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
-      where += ` AND tv.status IN ('${enabledStatusPgto.join("','")}')`;
+      where += ` AND tv.status IN (${enabledStatusPgto
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
 
     if (tipo_data && range_data) {
@@ -609,7 +613,9 @@ function getAllVencimentosBordero(req) {
 
     // Filtra os vencimentos com base no status
     if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
-      where += ` AND tv.status IN ('${enabledStatusPgto.join("','")}')`;
+      where += ` AND tv.status IN (${enabledStatusPgto
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
 
     if (tipo_data && range_data) {

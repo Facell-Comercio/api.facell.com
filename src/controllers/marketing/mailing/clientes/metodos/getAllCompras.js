@@ -102,7 +102,9 @@ module.exports = async (req) => {
         params.push(produto_compra);
       }
       if (plano_habilitado_list && plano_habilitado_list.length > 0) {
-        where += ` AND mc.plano_habilitado IN(${ensureArray(plano_habilitado_list).join("','")}') `;
+        where += ` AND mc.plano_habilitado IN(${ensureArray(plano_habilitado_list)
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (modalidade_list && modalidade_list.length > 0) {
         where += ` AND mc.modalidade IN(${ensureArray(modalidade_list)

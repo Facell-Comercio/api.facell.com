@@ -57,7 +57,7 @@ module.exports = async = (req) => {
         params.push(id_status);
       }
       if (status_list && status_list.length > 0) {
-        where += ` AND t.id_status IN ('${status_list.join("','")}')`;
+        where += ` AND t.id_status IN (${status_list.map((value) => db.escape(value)).join(",")})`;
       }
       if (descricao) {
         where += ` AND t.descricao LIKE CONCAT('%',?,'%') `;
@@ -115,7 +115,9 @@ module.exports = async = (req) => {
         params.push(id_grupo_economico);
       }
       if (grupo_economico_list && grupo_economico_list.length > 0) {
-        where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join("','")}')`;
+        where += ` AND f.id_grupo_economico IN (${grupo_economico_list
+          .map((value) => db.escape(value))
+          .join(",")})`;
       }
 
       if (filial) {

@@ -13,7 +13,7 @@ module.exports = async (req) => {
 
     let where = ` WHERE f.tim_cod_sap IS NOT NULL and f.active = 1 `;
     if (filiais_list && filiais_list.length > 0) {
-      where += ` AND dc.id_filial IN('${filiais_list.join("','")}') `;
+      where += ` AND dc.id_filial IN('${filiais_list.map((value) => db.escape(value)).join(",")}) `;
     }
 
     let conn;
@@ -33,7 +33,7 @@ module.exports = async (req) => {
             WHERE dco.id_filial = dc.id_filial AND dco.data_caixa = dc.data) as ocorrencias
 
         FROM filiais f
-        LEFT JOIN datasys_caixas dc ON dc.id_filial = f.id AND dc.status IN ('A CONFERIR', 'CONFERIDO')
+        LEFT JOIN datasys_caixas dc ON dc.id_filial = f.id AND dc.status IN (A CONFERIR', 'CONFERIDO')
         ${where}
         
         GROUP BY f.id

@@ -28,7 +28,7 @@ todo Adaptado para ser multibancos
 module.exports = function exportRemessa(req, res) {
   return new Promise(async (resolve, reject) => {
     const { id_bordero, isPix, itens } = req.body;
-    
+
     let conn;
     try {
       conn = await db.getConnection();
@@ -40,25 +40,25 @@ module.exports = function exportRemessa(req, res) {
       const idsVencimentos =
         itens &&
         itens.length > 0 &&
-        itens
-          .filter((item) => item.tipo == "vencimento")
-          .map((item) => item.id_vencimento);
+        itens.filter((item) => item.tipo == "vencimento").map((item) => item.id_vencimento);
 
       const idsFaturas =
         itens &&
         itens.length > 0 &&
-        itens
-          .filter((item) => item.tipo == "fatura")
-          .map((item) => item.id_vencimento);
+        itens.filter((item) => item.tipo == "fatura").map((item) => item.id_vencimento);
 
       let whereVencimentos = ` tb.id_bordero = ? `;
       let whereFaturas = ` tb.id_bordero = ? `;
 
       if (idsVencimentos && idsVencimentos.length > 0) {
-        whereVencimentos += ` AND tv.id IN('${idsVencimentos.join("','")}') `;
+        whereVencimentos += ` AND tv.id IN('${idsVencimentos
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
       if (idsFaturas && idsFaturas.length > 0) {
-        whereFaturas += ` AND ccf.id IN('${idsFaturas.join("','")}') `;
+        whereFaturas += ` AND ccf.id IN('${idsFaturas
+          .map((value) => db.escape(value))
+          .join(",")}) `;
       }
 
       await conn.beginTransaction();
@@ -84,12 +84,12 @@ module.exports = function exportRemessa(req, res) {
         [id_bordero]
       );
       const borderoData = rowsBordero && rowsBordero[0];
-      if(!borderoData){
-        throw new Error('Bordero não localizado!')
+      if (!borderoData) {
+        throw new Error("Bordero não localizado!");
       }
 
-      const nome_banco = borderoData['nome_banco']
-      const codigo_banco = borderoData['codigo_banco']
+      const nome_banco = borderoData["nome_banco"];
+      const codigo_banco = borderoData["codigo_banco"];
 
       //* Verifica se é CPF ou CNPJ
       const empresa_tipo_insc = borderoData.cnpj_empresa.length === 11 ? 1 : 2;
@@ -458,16 +458,13 @@ module.exports = function exportRemessa(req, res) {
           Object.entries({
             PagamentoCorrenteItau: rowsPagamentoCorrenteItau,
             PagamentoPoupancaItau: rowsPagamentoPoupancaItau,
-            PagamentoCorrenteMesmaTitularidade:
-              rowsPagamentoCorrenteMesmaTitularidade,
+            PagamentoCorrenteMesmaTitularidade: rowsPagamentoCorrenteMesmaTitularidade,
             PagamentoTEDOutroTitular: rowsPagamentoTEDOutroTitular,
             PagamentoTEDMesmoTitular: rowsPagamentoTEDMesmoTitular,
             PagamentoBoletoItau: rowsPagamentoBoletoItau,
             PagamentoFaturaBoletoItau: rowsPagamentoFaturaBoletoItau,
-            PagamentoBoletoOutroBancoParaItau:
-              rowsPagamentoBoletoOutroBancoParaItau,
-            PagamentoFaturaBoletoOutroBancoParaItau:
-              rowsPagamentoFaturaBoletoOutroBancoParaItau,
+            PagamentoBoletoOutroBancoParaItau: rowsPagamentoBoletoOutroBancoParaItau,
+            PagamentoFaturaBoletoOutroBancoParaItau: rowsPagamentoFaturaBoletoOutroBancoParaItau,
             PagamentoBoletoImpostos: rowsPagamentoBoletoImpostos,
             PagamentoTributosCodBarras: rowsPagamentoTributos,
           })
@@ -625,9 +622,7 @@ module.exports = function exportRemessa(req, res) {
             `;
           }
 
-          const [rowVencimento] = await conn.execute(query, [
-            pagamento.id_vencimento,
-          ]);
+          const [rowVencimento] = await conn.execute(query, [pagamento.id_vencimento]);
 
           const vencimento = rowVencimento && rowVencimento[0];
 
@@ -641,8 +636,7 @@ module.exports = function exportRemessa(req, res) {
               `Vencimento ${vencimento.id_vencimento}, fornecedor não tem o cnpj do favorecido ${vencimento.favorecido_nome}.`
             );
           }
-          const favorecido_tipo_insc =
-            vencimento.favorecido_cnpj.length === 11 ? 1 : 2;
+          const favorecido_tipo_insc = vencimento.favorecido_cnpj.length === 11 ? 1 : 2;
 
           //* Dependendo do banco o modelo muda
           let agencia = [];
@@ -655,8 +649,7 @@ module.exports = function exportRemessa(req, res) {
               normalizeValue(vencimento.conta, "numeric", 6),
               " ",
               normalizeValue(
-                parseInt(vencimento.dv_conta) ||
-                  parseInt(vencimento.dv_agencia),
+                parseInt(vencimento.dv_conta) || parseInt(vencimento.dv_agencia),
                 "numeric",
                 1
               )
@@ -668,8 +661,7 @@ module.exports = function exportRemessa(req, res) {
               normalizeValue(vencimento.conta, "numeric", 12),
               " ",
               normalizeValue(
-                parseInt(vencimento.dv_conta) ||
-                  parseInt(vencimento.dv_agencia),
+                parseInt(vencimento.dv_conta) || parseInt(vencimento.dv_agencia),
                 "alphanumeric",
                 1
               )
@@ -703,10 +695,7 @@ module.exports = function exportRemessa(req, res) {
             qtde_registros_arquivo++;
           }
 
-          if (
-            key === "PagamentoBoletoImpostos" ||
-            key === "PagamentoTributosCodBarras"
-          ) {
+          if (key === "PagamentoBoletoImpostos" || key === "PagamentoTributosCodBarras") {
             const segmentoO = createSegmentoO({
               ...vencimento,
               lote,
@@ -741,9 +730,7 @@ module.exports = function exportRemessa(req, res) {
               inscricao_cedente: favorecido_tipo_insc,
               num_inscricao_cedente: vencimento.favorecido_cnpj,
               nome_cedente: vencimento.favorecido_nome,
-              chave_pagamento: normalizeURLChaveEnderecamentoPIX(
-                vencimento.qr_code
-              ),
+              chave_pagamento: normalizeURLChaveEnderecamentoPIX(vencimento.qr_code),
             });
             arquivo.push(segmentoJ);
             arquivo.push(segmentoJ52Pix);
@@ -766,9 +753,7 @@ module.exports = function exportRemessa(req, res) {
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
               cod_barras: vencimento.cod_barras,
-              id_vencimento: isFatura
-                ? `F${vencimento.id_vencimento}`
-                : vencimento.id_vencimento,
+              id_vencimento: isFatura ? `F${vencimento.id_vencimento}` : vencimento.id_vencimento,
             });
             registroLote++;
             const segmentoJ52 = createSegmentoJ52({
@@ -880,9 +865,7 @@ module.exports = function exportRemessa(req, res) {
       const filename = `REMESSA${isPix ? " PIX" : ""} - ${formatDate(
         borderoData.data_pagamento,
         "dd_MM_yyyy"
-      )} - ${removeSpecialCharactersAndAccents(
-        borderoData.conta_bancaria
-      )}.txt`.toUpperCase();
+      )} - ${removeSpecialCharactersAndAccents(borderoData.conta_bancaria)}.txt`.toUpperCase();
       res.set("Content-Type", "text/plain");
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);

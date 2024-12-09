@@ -59,7 +59,7 @@ module.exports = (req, res) => {
         params.push(id_status);
       }
       if (status_list && status_list.length > 0) {
-        where += ` AND t.id_status IN ('${status_list.join("','")}')`;
+        where += ` AND t.id_status IN (${status_list.map((value) => db.escape(value)).join(",")})`;
       }
 
       if (id_forma_pagamento && id_forma_pagamento !== "all") {
@@ -67,7 +67,9 @@ module.exports = (req, res) => {
         params.push(id_forma_pagamento);
       }
       if (forma_pagamento_list && forma_pagamento_list.length > 0) {
-        where += ` AND t.id_forma_pagamento IN ('${forma_pagamento_list.join("','")}')`;
+        where += ` AND t.id_forma_pagamento IN (${forma_pagamento_list
+          .map((value) => db.escape(value))
+          .join(",")})`;
       }
 
       if (descricao) {
@@ -126,7 +128,9 @@ module.exports = (req, res) => {
         params.push(id_grupo_economico);
       }
       if (grupo_economico_list && grupo_economico_list.length > 0) {
-        where += ` AND f.id_grupo_economico IN ('${grupo_economico_list.join("','")}')`;
+        where += ` AND f.id_grupo_economico IN (${grupo_economico_list
+          .map((value) => db.escape(value))
+          .join(",")})`;
       }
 
       if (filial) {

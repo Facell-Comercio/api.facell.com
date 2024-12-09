@@ -27,9 +27,9 @@ module.exports = function getAllRecorrencias(req) {
 
       if (!isMaster) {
         if (departamentosUser?.length > 0) {
-          where += ` AND (r.id_user = '${
-            user.id
-          }' OR t.id_departamento IN (${departamentosUser.join(",")})) `;
+          where += ` AND (r.id_user = '${user.id}' OR t.id_departamento IN (${departamentosUser
+            .map((value) => db.escape(value))
+            .join(",")})) `;
         } else {
           where += ` AND r.id_user = '${user.id}' `;
         }

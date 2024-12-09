@@ -128,7 +128,9 @@ module.exports = function getAllFaturasBordero(req) {
 
       // Filtra com base no status de pagamento
       if (enabledStatusPgto !== undefined && enabledStatusPgto.length > 0) {
-        where += ` AND ccf.status IN ('${enabledStatusPgto.join("','")}')`;
+        where += ` AND ccf.status IN (${enabledStatusPgto
+          .map((value) => db.escape(value))
+          .join(",")})`;
       }
 
       if (tipo_data && range_data) {

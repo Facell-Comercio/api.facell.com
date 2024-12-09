@@ -119,7 +119,7 @@ module.exports = function getOne(req) {
             const dataVenda = formatDate(venda.data_venda, "yyyy-MM-dd");
             const [gerentes] = await conn.execute(
               `SELECT * FROM metas_agregadores
-              WHERE cargo IN ('GERENTE DE LOJA','GERENTE GERAL DE LOJA')
+              WHERE cargo IN (GERENTE DE LOJA','GERENTE GERAL DE LOJA')
               AND filial LIKE ?
               AND ? BETWEEN data_inicial AND data_final`,
               [venda.filial, dataVenda]
