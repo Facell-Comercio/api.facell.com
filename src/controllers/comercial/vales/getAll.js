@@ -9,8 +9,7 @@ module.exports = function getAll(req) {
       return false;
     }
     const { filters, pagination } = req.query;
-    const { colaborador, id_filial, origem, tipo_data, range_data } =
-      filters || {};
+    const { colaborador, id_filial, origem, tipo_data, range_data } = filters || {};
     const { pageIndex, pageSize } = pagination || {
       pageIndex: 0,
       pageSize: 15,
@@ -73,17 +72,14 @@ module.exports = function getAll(req) {
             SUM(v.saldo) as saldo_total, SUM(v.valor) as valor_total
             FROM vales v
             LEFT JOIN filiais f ON f.id = v.id_filial
-            LEFT JOIN colabs c ON c.id = v.id_colaborador
             ${where}`,
         params
       );
       const saldoTotal = parseFloat(
-        (rowDataChart && rowDataChart[0] && rowDataChart[0]["saldo_total"]) ||
-          "0"
+        (rowDataChart && rowDataChart[0] && rowDataChart[0]["saldo_total"]) || "0"
       );
       const valorTotal = parseFloat(
-        (rowDataChart && rowDataChart[0] && rowDataChart[0]["valor_total"]) ||
-          "0"
+        (rowDataChart && rowDataChart[0] && rowDataChart[0]["valor_total"]) || "0"
       );
 
       const limit = pagination ? " LIMIT ? OFFSET ? " : "";
@@ -101,7 +97,6 @@ module.exports = function getAll(req) {
                 f.nome as filial
               FROM vales v
               LEFT JOIN filiais f ON f.id = v.id_filial
-              LEFT JOIN colabs c ON c.id = v.id_colaborador
               ${where}
               
               ORDER BY v.id DESC
