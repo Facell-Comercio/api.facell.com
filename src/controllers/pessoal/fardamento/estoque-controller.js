@@ -48,6 +48,7 @@ function getAll(req){
                 `SELECT count(fe.id) as qtde FROM fardamentos_estoque fe 
                 LEFT JOIN fardamentos_tamanhos ft ON ft.id = fe.id_tamanho 
                 LEFT JOIN fardamentos_modelos fm ON fm.id = fe.id_modelo 
+                LEFT JOIN grupos_economicos ge ON ge.id = fe.id_grupo_economico
                 ${where}`,
                 params
             );
@@ -92,6 +93,46 @@ function getAll(req){
     })
 }
 
+function getOne(req) {
+    return new Promise(async (resolve, reject) => {
+      const { id } = req.params;
+      let conn
+      try {
+        conn = await db.getConnection();
+        const [rowFardamento] = await conn.execute(
+          `
+            SELECT fe.*,
+                ge.nome as grupo_economico,
+                fm.modelo,
+                ft.tamanho
+            FROM fardamentos_estoque fe 
+            LEFT JOIN grupos_economicos ge ON ge.id = fe.id_grupo_economico 
+            LEFT JOIN fardamentos_modelos fm ON fm.id = fe.id_modelo  
+            LEFT JOIN fardamentos_tamanhos ft ON ft.id = fe.id_tamanho
+            WHERE fe.id = ?
+              `,
+          [id]
+        );
+  
+        const fardamento = rowFardamento && rowFardamento[0];
+  
+        resolve(fardamento);
+  
+      } catch (error) {
+        logger.error({
+          module: "PESSOAL/FARDAMENTOS",
+          origin: "ESTOQUE",
+          method: "GET_ONE",
+          data: { message: error.message, stack: error.stack, name: error.name },
+        });
+        reject(error);
+  
+      } finally {
+        if (conn) conn.release();
+      }
+    });
+  }
+  
 const abastecerEstoque =async (req,res)=>{
     let conn;
     try {
@@ -305,7 +346,9 @@ function venderFardamento(req) {
 }
 module.exports = {
     getAll,
+    getOne,
     abastecerEstoque,
     concederFardamento,
     venderFardamento,
+
 };
