@@ -19,8 +19,10 @@ module.exports = function updateFatura(req) {
       }
 
       const codBarras = normalizeCodigoBarras(cod_barras) || null;
-      if (!!codBarras && !checkCodigoBarras(codBarras)) {
-        throw new Error(`Código de barras inválido: ${cod_barras}`);
+      if (codBarras) {
+        if(!checkCodigoBarras(codBarras)){
+          throw new Error(`Código de barras inválido: ${cod_barras}`);
+        }
       }
       await conn.execute(
         `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ?, cod_barras = ?, valor = ?, estorno = ? WHERE id = ?`,

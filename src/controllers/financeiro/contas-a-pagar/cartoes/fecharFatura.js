@@ -14,9 +14,6 @@ module.exports = function fecharFatura(req) {
       if (!data_prevista) {
         throw new Error("Data prevista não informada!");
       }
-      if (!cod_barras) {
-        throw new Error("Código de barras não informado!");
-      }
       const [rowValorFatura] = await conn.execute(
         `SELECT 
             SUM(tv.valor) as total
