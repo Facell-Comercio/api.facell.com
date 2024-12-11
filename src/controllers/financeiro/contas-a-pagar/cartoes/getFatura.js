@@ -10,7 +10,7 @@ module.exports = function getFatura(req) {
       const [rowFaturas] = await conn.execute(
         `
               SELECT 
-                  ccf.*, fcc.dia_vencimento
+                  ccf.*, ccf.valor + ccf.estorno as valor_inicial, fcc.dia_vencimento
               FROM fin_cartoes_corporativos_faturas ccf
               LEFT JOIN fin_cartoes_corporativos fcc ON fcc.id = ccf.id_cartao
               WHERE ccf.id = ?
