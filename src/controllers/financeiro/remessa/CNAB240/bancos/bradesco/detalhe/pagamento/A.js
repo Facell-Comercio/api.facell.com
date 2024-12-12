@@ -227,5 +227,6 @@ module.exports = [
     length: 10,
     required: false,
     default: new Array(10).fill(" ").join(""),
+    type: "alphanumeric",
   },
 ];

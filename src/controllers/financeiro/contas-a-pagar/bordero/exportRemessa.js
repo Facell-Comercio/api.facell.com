@@ -498,8 +498,8 @@ module.exports = function exportRemessa(req, res) {
       res.set("Content-Disposition", `attachment; filename=${filename}`);
       res.send(fileBuffer);
 
-      // await conn.commit();
-      await conn.rollback();
+      await conn.commit();
+      // await conn.rollback();
       resolve();
     } catch (error) {
       logger.error({

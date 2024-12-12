@@ -41,9 +41,6 @@ module.exports = async (req, res) => {
       [String(nome).trim().toUpperCase(), user.id, id_parent]
     );
     const id_subcampanha = resultSubcampanha.insertId;
-
-    console.log(clientesIds.map((value) => db.escape(value)).join(","));
-
     await conn.execute(
       `UPDATE marketing_mailing_clientes SET id_campanha = ? WHERE id IN (${clientesIds
         .map((value) => db.escape(value))
