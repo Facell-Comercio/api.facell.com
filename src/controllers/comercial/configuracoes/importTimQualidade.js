@@ -148,7 +148,7 @@ module.exports = async (req, res) => {
         totalLinhas--;
         qtdeLinhas++;
       }
-      console.log(excelFileList.length);
+      // console.log(excelFileList.length);
     }
 
     if (qtdeLinhas > 0) {

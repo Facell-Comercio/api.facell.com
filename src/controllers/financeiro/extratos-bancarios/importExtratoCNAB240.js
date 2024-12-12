@@ -4,7 +4,6 @@ const { db } = require("../../../../mysql");
 const { remessaToObject } = require("../remessa/CNAB240/to-object");
 const crypto = require("crypto");
 const { formatDate } = require("date-fns");
-const arquivoHeader = require("../remessa/CNAB240/layout/arquivo-header");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {

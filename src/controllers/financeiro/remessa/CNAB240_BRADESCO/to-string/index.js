@@ -1,19 +1,9 @@
-const rulesItau = require("../bancos/itau/rules");
-const rulesBradesco = require("../bancos/bradesco/rules");
+const rules = require("../layout/rules");
 const { normalizeValue, removeSpecialCharactersAndAccents } = require("./masks");
 
-function rulesBanco(cod_banco) {
-  if (cod_banco == 341) {
-    return rulesItau;
-  }
-  if (cod_banco == 237) {
-    return rulesBradesco;
-  }
-}
-
 function createHeaderArquivo(params) {
-  let rules = rulesBanco(params.codigo_banco);
   const headerModel = rules.arquivoHeader;
+
   return headerModel
     .map((h) => {
       if (h.required && params[h.field] === undefined && h.default === undefined) {
@@ -33,12 +23,7 @@ function createHeaderArquivo(params) {
     .join("");
 }
 
-function createHeaderLote(params, versao) {
-  let rules = rulesBanco(params.codigo_banco);
-  if (!versao) {
-    if (params.codigo_banco == 341) versao = "040";
-    if (params.codigo_banco == 237) versao = "045";
-  }
+function createHeaderLote(params, versao = "045") {
   const headerModel = rules.loteHeader[versao];
   return headerModel
     .map((h) => {
@@ -60,7 +45,6 @@ function createHeaderLote(params, versao) {
 }
 
 function createSegmentoA(params) {
-  let rules = rulesBanco(params.codigo_banco);
   const segmentoModel = rules.detalhe.pagamento.A;
   return segmentoModel
     .map((h) => {
@@ -79,12 +63,10 @@ function createSegmentoA(params) {
 }
 
 function createSegmentoB(params, versao) {
-  let rules = rulesBanco(params.codigo_banco);
   const segmentoModelB = rules.detalhe.pagamento.B;
-  const segmentoModelBPix = rules.detalhe?.pagamento["B-PIX"] || {};
+  const segmentoModelBPix = rules.detalhe.pagamento["B-PIX"];
 
   const segmentoModel = versao == "PIX" ? segmentoModelBPix : segmentoModelB;
-
   return segmentoModel
     .map((h) => {
       if (h.required && params[h.field] === undefined && h.default === undefined) {
@@ -101,7 +83,6 @@ function createSegmentoB(params, versao) {
 }
 
 function createSegmentoO(params) {
-  let rules = rulesBanco(params.codigo_banco);
   const segmentoModel = rules.detalhe.pagamento.O;
 
   return segmentoModel
@@ -111,6 +92,7 @@ function createSegmentoO(params) {
       }
 
       if (params[h.field]) {
+        // console.log("B ", params[h.field], h.type, h.length, h.format);
         return normalizeValue(params[h.field], h.type, h.length, h.format);
       }
       return normalizeValue(h.default, h.type, h.length, h.format);
@@ -119,8 +101,7 @@ function createSegmentoO(params) {
 }
 
 function createSegmentoJ(params) {
-  let rules = rulesBanco(params.codigo_banco);
-  const segmentoModel = rules?.detalhe.pagamento.J;
+  const segmentoModel = rules.detalhe.pagamento.J;
   return segmentoModel
     .map((h) => {
       if (h.required && params[h.field] === undefined && h.default === undefined) {
@@ -136,7 +117,6 @@ function createSegmentoJ(params) {
 }
 
 function createSegmentoJ52(params) {
-  let rules = rulesBanco(params.codigo_banco);
   const segmentoModel = rules.detalhe.pagamento["J-52"];
 
   return segmentoModel
@@ -154,7 +134,6 @@ function createSegmentoJ52(params) {
 }
 
 function createSegmentoJ52Pix(params) {
-  let rules = rulesBanco(params.codigo_banco);
   const segmentoModel = rules.detalhe.pagamento["J-52-PIX"];
 
   return segmentoModel
@@ -172,7 +151,6 @@ function createSegmentoJ52Pix(params) {
 }
 
 function createTrailerLote(params) {
-  let rules = rulesBanco(params.codigo_banco);
   const trailerModel = rules.loteTrailer;
 
   return trailerModel
@@ -189,8 +167,6 @@ function createTrailerLote(params) {
 }
 
 function createTrailerArquivo(params) {
-  let rules = rulesBanco(params.codigo_banco);
-  rules;
   const trailerModel = rules.arquivoTrailer;
   return trailerModel
     .map((h) => {

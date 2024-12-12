@@ -1,10 +1,10 @@
 const { formatDate } = require("date-fns");
-const { db } = require("../../../../../mysql");
+const { db } = require("../../../../../../mysql");
 const {
   removeSpecialCharactersAndAccents,
   normalizeNumberOnly,
   normalizeURLChaveEnderecamentoPIX,
-} = require("../../../../helpers/mask");
+} = require("../../../../../helpers/mask");
 const {
   createHeaderArquivo,
   createHeaderLote,
@@ -17,8 +17,8 @@ const {
   createSegmentoJ52,
   createSegmentoO,
 } = require("../../remessa/CNAB240/to-string/itau");
-const { normalizeValue } = require("../../remessa/CNAB240/to-string/masks");
-const { logger } = require("../../../../../logger");
+const { normalizeValue } = require("../../../remessa/CNAB240/to-string/masks");
+const { logger } = require("../../../../../../logger");
 
 /*
 ^ Mesma função de antes, com a inclusão de recebimento de itens
@@ -48,7 +48,7 @@ module.exports = function exportRemessa(req, res) {
       let whereVencimentos = ` tb.id_bordero = ? `;
       let whereFaturas = ` tb.id_bordero = ? `;
 
-      console.log(idsVencimentos, idsFaturas);
+      // console.log(idsVencimentos, idsFaturas);
 
       if (idsVencimentos && idsVencimentos.length > 0) {
         whereVencimentos += ` AND tv.id IN(${idsVencimentos
