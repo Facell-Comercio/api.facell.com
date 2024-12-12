@@ -1,5 +1,6 @@
 const { logger } = require("../../../../../../logger");
-const rules = require("../layout/rules");
+const rulesItau = require("../bancos/itau/rules");
+const rulesBradesco = require("../bancos/bradesco/rules");
 const {
   checkTipoRegistroRemessa,
   transformStringToObject,
@@ -7,23 +8,30 @@ const {
   checkTipoSegmentoDetalhe,
 } = require("./util");
 
-const versoesLoteHeader = ["022", "030", "040"];
+const versoesLoteHeader = ["022", "030", "040", "012", "045"];
+const bancosValidos = [341, 237];
 const remessaToObject = (txt, tipo_retorno = "pagamento") => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!txt) {
         throw new Error("Arquivo de texto não recebidos por parâmetro!");
       }
-      // const codigo_banco = txt.substring(0, 3);
+      const codigo_banco = txt.substring(0, 3);
 
-      // const banco = rules.bancosValidos.find(
-      //   (banco) => banco.codigo == codigo_banco
-      // );
-      // if (!banco) {
-      //   throw new Error(
-      //     `A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`
-      //   );
-      // }
+      if (!bancosValidos.includes(parseInt(codigo_banco))) {
+        throw new Error(
+          `A aplicação não está programada para lidar com o banco ${codigo_banco}. Procure a equipe de desenvolvimento`
+        );
+      }
+
+      let rules;
+      if (codigo_banco == 341) {
+        rules = rulesItau;
+      }
+      if (codigo_banco == 237) {
+        rules = rulesBradesco;
+      }
+
       const layoutArquivoHeader = rules.arquivoHeader;
       const layoutArquivoTrailer = rules.arquivoTrailer;
 

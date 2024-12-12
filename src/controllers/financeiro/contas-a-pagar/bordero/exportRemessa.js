@@ -23,10 +23,10 @@ const remessaItau = require("./remessa/remessaItau");
 const remessaBradesco = require("./remessa/remessaBradesco");
 
 /*
-* Inclusão de recebimento de itens
-* Refatorado para incluir faturas
-todo Adaptado para ser multibancos
-*/
+ * Inclusão de recebimento de itens
+ * Refatorado para incluir faturas
+ * Adaptado para ser multibancos
+ */
 module.exports = function exportRemessa(req, res) {
   return new Promise(async (resolve, reject) => {
     const { id_bordero, isPix, itens } = req.body;

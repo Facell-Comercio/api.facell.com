@@ -3,7 +3,8 @@ const fs = require("fs/promises");
 
 const { logger } = require("../../../../../logger");
 const { remessaToObject } = require("../../remessa/CNAB240/to-object");
-const constants = require("../../remessa/CNAB240/layout/constants");
+const constantsItau = require("../../remessa/CNAB240/bancos/itau/constants");
+const constantsBradesco = require("../../remessa/CNAB240/bancos/bradesco/constants");
 const { normalizeNumberOnly } = require("../../../../helpers/mask");
 const { pagarVencimento, pagarFatura } = require("./pagamentoItens");
 
@@ -11,9 +12,16 @@ module.exports = async function importRetornoRemessa(req) {
   return new Promise(async (resolve, reject) => {
     const id_bordero = req.params.id;
     const conn = await db.getConnection();
-    const CodigosOcorrencias = constants.CodigosOcorrencias;
     try {
       await conn.beginTransaction();
+      const cod_banco = req?.body?.cod_banco;
+      let CodigosOcorrencias;
+      if (cod_banco == 237) {
+        CodigosOcorrencias = constantsBradesco.CodigosOcorrencias;
+      }
+      if (cod_banco == 341) {
+        CodigosOcorrencias = constantsItau.CodigosOcorrencias;
+      }
 
       const files = req.files;
       if (!files || !files.length) {
@@ -33,12 +41,13 @@ module.exports = async function importRetornoRemessa(req) {
           // Ler e fazer parse do arquivo
           const data = await fs.readFile(filePath, "utf8");
           const objRemessa = await remessaToObject(data);
+          if (![341, 237].includes(parseInt(cod_banco))) {
+            throw new Error("A Remessa não pode ser gerada por ser de um banco não mapeado");
+          }
           // Passagem pelos lotes
           const lotes = objRemessa.lotes;
           if (!lotes || !lotes.length) {
-            throw new Error(
-              "Aquivo vazio ou não foi possível acessar os lotes de boletos..."
-            );
+            throw new Error("Aquivo vazio ou não foi possível acessar os lotes de boletos...");
           }
           for (const lote of lotes) {
             // Passagem pelos segmentos G
@@ -69,9 +78,7 @@ module.exports = async function importRetornoRemessa(req) {
                 const updatedTable = isFatura
                   ? "fin_cartoes_corporativos_faturas"
                   : "fin_cp_titulos_vencimentos";
-                const ocorrenciasErro = ocorrencias.filter(
-                  (e) => e != "00" && e != "BD"
-                );
+                const ocorrenciasErro = ocorrencias.filter((e) => e != "00" && e != "BD");
                 if (ocorrenciasErro.length) {
                   const erros = ocorrenciasErro.map((erro) => {
                     return CodigosOcorrencias[erro];
@@ -113,17 +120,12 @@ module.exports = async function importRetornoRemessa(req) {
                   pagamento.status = "programado";
                 }
                 if (ocorrencias[0] == "00") {
-                  const valorPago =
-                    segmento.valor_real_efetivacao_pgto ||
-                    segmento.valor_pagamento;
+                  const valorPago = segmento.valor_real_efetivacao_pgto || segmento.valor_pagamento;
                   const dataPagamento =
-                    segmento.data_real_efetivacao_pgto ||
-                    segmento.data_pagamento;
+                    segmento.data_real_efetivacao_pgto || segmento.data_pagamento;
 
                   const item = {
-                    id_vencimento: isFatura
-                      ? normalizeNumberOnly(id_vencimento)
-                      : id_vencimento,
+                    id_vencimento: isFatura ? normalizeNumberOnly(id_vencimento) : id_vencimento,
                     tipo: isFatura ? "fatura" : "vencimento",
                     tipo_baixa: "PADRÃO",
                     valor_pago: valorPago,
@@ -192,8 +194,8 @@ module.exports = async function importRetornoRemessa(req) {
         }
       }
 
-      await conn.commit();
-      // await conn.rollback();
+      // await conn.commit();
+      await conn.rollback();
       resolve(pagamentos);
     } catch (error) {
       await conn.rollback();

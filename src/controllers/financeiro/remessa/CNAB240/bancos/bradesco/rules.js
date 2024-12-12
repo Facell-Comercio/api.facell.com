@@ -1,20 +1,18 @@
 module.exports = {
-  bancosValidos: [
-    { codigo: 341, nome: 'ITAU' }
-  ],
+  bancosValidos: [{ codigo: 237, nome: "BRADESCO" }],
   arquivoHeader: require("./arquivo-header/index.js"),
   arquivoTrailer: require("./arquivo-trailer/index.js"),
   loteHeader: {
-    '022': require("./lote-header/022/"),
-    '030': require("./lote-header/030/"),
-    '033': require("./lote-header/033/"),
-    '040': require("./lote-header/040/"),
+    "012": require("./lote-header/012/"),
+    "040": require("./lote-header/040/"),
+    "045": require("./lote-header/045/"),
   },
   loteTrailer: require("./lote-trailer/index.js"),
   detalhe: {
     pagamento: {
       A: require("./detalhe/pagamento/A.js"),
       B: require("./detalhe/pagamento/B.js"),
+      "B-PIX": require("./detalhe/pagamento/B-PIX.js"),
       C: require("./detalhe/pagamento/C.js"),
       D: require("./detalhe/pagamento/D.js"),
       E: require("./detalhe/pagamento/E.js"),

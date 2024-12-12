@@ -1,8 +1,6 @@
-const importRetornoRemessaBoleto = require("./metodos/importRetornoRemessaBoleto");
-
 module.exports = {
   visualizarBoletoCaixa: require("./metodos/visualizarBoleto"),
-  
+
   getAllBoletos: require("./metodos/getAllBoletos"),
   getAllCaixasComSaldo: require("./metodos/getAllCaixasComSaldo"),
   getOneBoleto: require("./metodos/getOneBoleto"),

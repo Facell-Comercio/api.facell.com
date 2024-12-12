@@ -14,14 +14,14 @@ const {
   createSegmentoJ52Pix,
   createSegmentoJ52,
   createSegmentoO,
-} = require("../../../remessa/CNAB240_BRADESCO/to-string");
-const { normalizeValue } = require("../../../remessa/CNAB240_BRADESCO/to-string/masks");
+} = require("../../../remessa/CNAB240/to-string");
+const { normalizeValue } = require("../../../remessa/CNAB240/to-string/masks");
 const { logger } = require("../../../../../../logger");
 
 module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn_externa }) => {
   return new Promise(async (resolve, reject) => {
     let conn = conn_externa;
-    console.log(formasPagamento, empresa_tipo_insc, borderoData);
+    const codigo_banco = 237;
 
     try {
       if (!formasPagamento) {
@@ -42,7 +42,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
       let lote = 0;
       let qtde_registros_arquivo = 0;
       const dataCriacao = new Date();
-      const headerArquivo = createHeaderArquivo({
+      const headerArquivo = await createHeaderArquivo({
         ...borderoData,
         empresa_tipo_insc,
         pix: isPix ? "PIX" : "",
@@ -107,11 +107,10 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
           key !== "PagamentoBoleto" &&
           key !== "PagamentoBoletoOutroBanco" &&
           key !== "PagamentoPIXQRCode" &&
-          key !== "PagamentoPIX" &&
           key !== "PagamentoTributosCodBarras" &&
           key !== "PagamentoBoletoImpostos"
         ) {
-          const headerLote = createHeaderLote({
+          const headerLote = await createHeaderLote({
             ...borderoData,
             empresa_tipo_insc,
             lote,
@@ -119,7 +118,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
           });
           arquivo.push(headerLote);
         } else if (key === "PagamentoTributosCodBarras" || key === "PagamentoBoletoImpostos") {
-          const headerLote = createHeaderLote({
+          const headerLote = await createHeaderLote({
             ...borderoData,
             lote,
             forma_pagamento,
@@ -128,7 +127,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
           });
           arquivo.push(headerLote);
         } else {
-          const headerLote = createHeaderLote({
+          const headerLote = await createHeaderLote({
             ...borderoData,
             lote,
             forma_pagamento,
@@ -195,7 +194,6 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
 
           const isFatura =
             key === "PagamentoFaturaBoleto" || key === "PagamentoFaturaBoletoOutroBanco";
-          // console.log(vencimento);
           //* Verifica se é cpf ou cnpj
           if (!vencimento.favorecido_cnpj) {
             throw new Error(
@@ -224,8 +222,9 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
             key === "PagamentoPoupanca" ||
             key === "PagamentoCorrenteMesmaTitularidade"
           ) {
-            const segmentoA = createSegmentoA({
+            const segmentoA = await createSegmentoA({
               ...vencimento,
+              codigo_banco,
               lote,
               num_registro_lote: registroLote,
               //* Quando um pagamento é do tipo PIX Transferência o código câmara é 009
@@ -239,8 +238,9 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
           }
 
           if (key === "PagamentoBoletoImpostos" || key === "PagamentoTributosCodBarras") {
-            const segmentoO = createSegmentoO({
+            const segmentoO = await createSegmentoO({
               ...vencimento,
+              codigo_banco,
               lote,
               num_registro_lote: registroLote,
               cod_barras: vencimento.cod_barras || vencimento.cod_barras_tv,
@@ -280,16 +280,21 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
                 break;
             }
 
-            const segmentoB = createSegmentoB({
-              ...vencimento,
-              lote,
-              num_seq_registro_lote: registroLote,
-              tipo_chave,
-              favorecido_tipo_insc,
-              num_inscricao: vencimento.favorecido_cnpj,
-              txid: vencimento.id_vencimento,
-              chave_pix,
-            });
+            const segmentoB = await createSegmentoB(
+              {
+                ...vencimento,
+                codigo_banco,
+                lote,
+                num_seq_registro_lote: registroLote,
+                tipo_chave,
+                favorecido_tipo_insc,
+                num_inscricao: vencimento.favorecido_cnpj,
+                txid: vencimento.id_vencimento,
+                chave_pix,
+              },
+              "PIX"
+            );
+
             arquivo.push(segmentoB);
             qtde_registros++;
             qtde_registros_arquivo++;
@@ -297,15 +302,17 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
 
           if (key === "PagamentoPIXQRCode") {
             //* Pagamento PIX QR Code
-            const segmentoJ = createSegmentoJ({
+            const segmentoJ = await createSegmentoJ({
               ...vencimento,
+              codigo_banco,
               lote,
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
             });
             registroLote++;
-            const segmentoJ52Pix = createSegmentoJ52Pix({
+            const segmentoJ52Pix = await createSegmentoJ52Pix({
               ...vencimento,
+              codigo_banco,
               lote,
               num_registro_lote: registroLote,
               inscricao_sacado: empresa_tipo_insc,
@@ -330,8 +337,9 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
           ) {
             //* Pagamento Boleto
             //todo Adicionar os valores de sacado e cedente
-            const segmentoJ = createSegmentoJ({
+            const segmentoJ = await createSegmentoJ({
               ...vencimento,
+              codigo_banco,
               lote,
               num_registro_lote: registroLote,
               valor_titulo: vencimento.valor_pagamento,
@@ -339,8 +347,9 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
               id_vencimento: isFatura ? `F${vencimento.id_vencimento}` : vencimento.id_vencimento,
             });
             registroLote++;
-            const segmentoJ52 = createSegmentoJ52({
+            const segmentoJ52 = await createSegmentoJ52({
               ...vencimento,
+              codigo_banco,
               lote,
               num_registro_lote: registroLote,
               inscricao_sacado: empresa_tipo_insc,
@@ -372,7 +381,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
         }
         qtde_registros++;
         qtde_registros_arquivo++;
-        const trailerLote = createTrailerLote({
+        const trailerLote = await createTrailerLote({
           ...borderoData,
           lote,
           qtde_registros,
@@ -383,7 +392,8 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, isPix, conn
       }
 
       qtde_registros_arquivo++;
-      const trailerArquivo = createTrailerArquivo({
+      const trailerArquivo = await createTrailerArquivo({
+        codigo_banco,
         qtde_lotes: lote,
         qtde_registros_arquivo,
       });

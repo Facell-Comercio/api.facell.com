@@ -1,10 +1,10 @@
 const { formatDate } = require("date-fns");
-const { db } = require("../../../../../mysql");
+const { db } = require("../../../../../../mysql");
 const {
   removeSpecialCharactersAndAccents,
   normalizeNumberOnly,
   normalizeURLChaveEnderecamentoPIX,
-} = require("../../../../helpers/mask");
+} = require("../../../../../helpers/mask");
 const {
   createHeaderArquivo,
   createHeaderLote,
@@ -16,9 +16,9 @@ const {
   createSegmentoJ52Pix,
   createSegmentoJ52,
   createSegmentoO,
-} = require("../../remessa/CNAB240/to-string");
-const { normalizeValue } = require("../../remessa/CNAB240/to-string/masks");
-const { logger } = require("../../../../../logger");
+} = require("../../../remessa/CNAB240/to-string");
+const { normalizeValue } = require("../../../remessa/CNAB240/to-string/masks");
+const { logger } = require("../../../../../../logger");
 
 /*
 * Inclusão de recebimento de itens

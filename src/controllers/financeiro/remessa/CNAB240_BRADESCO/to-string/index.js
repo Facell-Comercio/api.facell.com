@@ -1,30 +1,18 @@
 const rules = require("../layout/rules");
-const {
-  normalizeValue,
-  removeSpecialCharactersAndAccents,
-} = require("./masks");
+const { normalizeValue, removeSpecialCharactersAndAccents } = require("./masks");
 
 function createHeaderArquivo(params) {
   const headerModel = rules.arquivoHeader;
 
   return headerModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
-        throw new Error(
-          `O campo ${h.field} do header do arquivo é obrigatório!`
-        );
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
+        throw new Error(`O campo ${h.field} do header do arquivo é obrigatório!`);
       }
       if (params[h.field]) {
         return h.field === "empresa_nome"
           ? normalizeValue(
-              removeSpecialCharactersAndAccents(params[h.field]).replace(
-                "  ",
-                " "
-              ),
+              removeSpecialCharactersAndAccents(params[h.field]).replace("  ", " "),
               h.type,
               h.length
             )
@@ -35,26 +23,17 @@ function createHeaderArquivo(params) {
     .join("");
 }
 
-function createHeaderLote(params, versao = "040") {
+function createHeaderLote(params, versao = "045") {
   const headerModel = rules.loteHeader[versao];
   return headerModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
-        throw new Error(
-          `O campo ${h.field} do lote ${params.lote} é obrigatório!`
-        );
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
+        throw new Error(`O campo ${h.field} do lote ${params.lote} é obrigatório!`);
       }
       if (params[h.field]) {
         return h.field === "empresa_nome"
           ? normalizeValue(
-              removeSpecialCharactersAndAccents(params[h.field]).replace(
-                "  ",
-                " "
-              ),
+              removeSpecialCharactersAndAccents(params[h.field]).replace("  ", " "),
               h.type,
               h.length
             )
@@ -69,11 +48,7 @@ function createSegmentoA(params) {
   const segmentoModel = rules.detalhe.pagamento.A;
   return segmentoModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
         throw new Error(`O campo ${h.field} é obrigatório no segmento A!`);
       }
 
@@ -87,36 +62,22 @@ function createSegmentoA(params) {
     .join("");
 }
 
-function createSegmentoB(params) {
-  const segmentoModel = rules.detalhe.pagamento.B;
+function createSegmentoB(params, versao) {
+  const segmentoModelB = rules.detalhe.pagamento.B;
+  const segmentoModelBPix = rules.detalhe.pagamento["B-PIX"];
 
+  const segmentoModel = versao == "PIX" ? segmentoModelBPix : segmentoModelB;
   return segmentoModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
         throw new Error(`O campo ${h.field} é obrigatório no segmento B!`);
       }
 
       if (params[h.field]) {
         // console.log("B ", params[h.field], h.type, h.length, h.format);
-        return normalizeValue(
-          params[h.field],
-          h.type,
-          h.length,
-          h.format,
-          h.allowedCharacter
-        );
+        return normalizeValue(params[h.field], h.type, h.length, h.format, h.allowedCharacter);
       }
-      return normalizeValue(
-        h.default,
-        h.type,
-        h.length,
-        h.format,
-        h.allowedCharacter
-      );
+      return normalizeValue(h.default, h.type, h.length, h.format, h.allowedCharacter);
     })
     .join("");
 }
@@ -126,11 +87,7 @@ function createSegmentoO(params) {
 
   return segmentoModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
         throw new Error(`O campo ${h.field} é obrigatório no segmento O!`);
       }
 
@@ -147,11 +104,7 @@ function createSegmentoJ(params) {
   const segmentoModel = rules.detalhe.pagamento.J;
   return segmentoModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
         throw new Error(`O campo ${h.field} é obrigatório no segmento J!`);
       }
 
@@ -168,11 +121,7 @@ function createSegmentoJ52(params) {
 
   return segmentoModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
         throw new Error(`O campo ${h.field} é obrigatório no segmento J-52!`);
       }
 
@@ -189,14 +138,8 @@ function createSegmentoJ52Pix(params) {
 
   return segmentoModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
-        throw new Error(
-          `O campo ${h.field} é obrigatório no segmento J-52-PIX!`
-        );
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
+        throw new Error(`O campo ${h.field} é obrigatório no segmento J-52-PIX!`);
       }
 
       if (params[h.field]) {
@@ -212,11 +155,7 @@ function createTrailerLote(params) {
 
   return trailerModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
         throw new Error(`O campo ${h.field} do trailer do lote é obrigatório!`);
       }
       if (params[h.field]) {
@@ -231,14 +170,8 @@ function createTrailerArquivo(params) {
   const trailerModel = rules.arquivoTrailer;
   return trailerModel
     .map((h) => {
-      if (
-        h.required &&
-        params[h.field] === undefined &&
-        h.default === undefined
-      ) {
-        throw new Error(
-          `O campo ${h.field} do trailer do arquivo é obrigatório!`
-        );
+      if (h.required && params[h.field] === undefined && h.default === undefined) {
+        throw new Error(`O campo ${h.field} do trailer do arquivo é obrigatório!`);
       }
       if (params[h.field]) {
         return normalizeValue(params[h.field], h.type, h.length);

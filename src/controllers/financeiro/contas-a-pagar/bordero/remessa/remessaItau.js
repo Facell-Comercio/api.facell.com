@@ -14,13 +14,14 @@ const {
   createSegmentoJ52Pix,
   createSegmentoJ52,
   createSegmentoO,
-} = require("../../../remessa/CNAB240_BRADESCO/to-string");
-const { normalizeValue } = require("../../../remessa/CNAB240_BRADESCO/to-string/masks");
+} = require("../../../remessa/CNAB240/to-string");
+const { normalizeValue } = require("../../../remessa/CNAB240/to-string/masks");
 const { logger } = require("../../../../../../logger");
 
 module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_externa }) => {
   return new Promise(async (resolve, reject) => {
     let conn = conn_externa;
+    const codigo_banco = 341;
 
     try {
       if (!formasPagamento) {
@@ -44,7 +45,6 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
       const headerArquivo = createHeaderArquivo({
         ...borderoData,
         banco: codigo_banco,
-        nome_banco: nome_banco,
         empresa_tipo_insc,
         arquivo_data_geracao: formatDate(dataCriacao, "ddMMyyyy"),
         arquivo_hora_geracao: formatDate(dataCriacao, "HHmmss"),
@@ -237,6 +237,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
           ) {
             const segmentoA = createSegmentoA({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
@@ -257,6 +258,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
           if (key === "PagamentoBoletoImpostos" || key === "PagamentoTributosCodBarras") {
             const segmentoO = createSegmentoO({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
@@ -272,6 +274,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
             //* Pagamento PIX QR Code
             const segmentoJ = createSegmentoJ({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
@@ -280,6 +283,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
             registroLote++;
             const segmentoJ52Pix = createSegmentoJ52Pix({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
@@ -307,6 +311,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
             //todo Adicionar os valores de sacado e cedente
             const segmentoJ = createSegmentoJ({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
@@ -317,6 +322,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
             registroLote++;
             const segmentoJ52 = createSegmentoJ52({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_registro_lote: registroLote,
@@ -366,6 +372,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
 
             const segmentoB = createSegmentoB({
               ...vencimento,
+              codigo_banco,
               lote,
               banco: codigo_banco,
               num_seq_registro_lote: registroLote,
@@ -408,12 +415,12 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
       qtde_registros_arquivo++;
       const trailerArquivo = createTrailerArquivo({
         qtde_lotes: lote,
+        codigo_banco,
         banco: codigo_banco,
         qtde_registros_arquivo,
       });
       arquivo.push(trailerArquivo);
 
-      conn = await db.getConnection();
       resolve(arquivo);
     } catch (error) {
       logger.error({
