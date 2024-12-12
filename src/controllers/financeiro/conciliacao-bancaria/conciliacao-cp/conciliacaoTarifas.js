@@ -61,12 +61,14 @@ module.exports = function conciliacaoTarifas(req) {
             AND descricao = ?
             AND valor = ?
             AND data_emissao = ?
+            AND num_doc = ?
             `,
             [
               dadosSolicitacao.id_filial,
               tarifa.descricao,
               tarifa.valor,
               formatDate(tarifa.data_transacao, "yyyy-MM-dd"),
+              tarifa.doc,
             ]
           );
           //* Verifica a existência da tarifa nas solicitações
