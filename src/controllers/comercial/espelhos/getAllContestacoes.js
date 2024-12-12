@@ -26,6 +26,9 @@ module.exports = async (req, res) => {
       const id_list = ids.map((item) => item.id);
       if (id_list.length > 0) {
         where += ` AND id_comissao IN (${id_list.map((value) => db.escape(value)).join(",")}) `;
+      } else {
+        res.status(200).json([]);
+        return; // Se não há comissões, não precisa fazer nada mais.
       }
     }
 
