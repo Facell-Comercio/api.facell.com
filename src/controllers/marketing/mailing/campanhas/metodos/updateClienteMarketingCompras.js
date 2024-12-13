@@ -110,9 +110,7 @@ module.exports = async (req) => {
       await conn.beginTransaction();
 
       await conn.execute(
-        `UPDATE marketing_mailing_compras SET ${sets
-          .map((value) => db.escape(value))
-          .join(",")} ${where}`,
+        `UPDATE marketing_mailing_compras SET ${sets.join(",")} ${where}`,
         params
       );
 
