@@ -80,7 +80,7 @@ module.exports = async (req) => {
         where += ` AND (mr.status IN(${ensureArray(status_contato_list)
           .map((value) => db.escape(value))
           .join(",")})
-          ${status_contato_list.includes("NULL") && "OR mr.status IS NULL"}
+          ${status_contato_list.includes("NULL") ? "OR mr.status IS NULL" : ""}
           )`;
       }
       if (uf_list && ensureArray(uf_list).length > 0) {
@@ -242,7 +242,6 @@ module.exports = async (req) => {
         ${where}`,
         params
       );
-      console.log(status_contato_list_filters);
 
       //~ UFS
       const [uf_list_filters] = await conn.execute(
