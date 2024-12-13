@@ -69,8 +69,7 @@ module.exports = function getConciliacoes(req) {
       `,
         params
       );
-      const totalConciliacoes =
-        (rowsConciliacoes && rowsConciliacoes.length > 0 && rowsConciliacoes[0]["total"]) || 0;
+      const totalConciliacoes = (rowsConciliacoes && rowsConciliacoes.length) || 0;
 
       const offset = pageIndex * pageSize;
 

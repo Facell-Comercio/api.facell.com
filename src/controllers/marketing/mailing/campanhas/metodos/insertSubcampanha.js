@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
 
     //* CONSULTANDO A CAMPANHA DE ACORDO COM OS FILTROS
     const campanha = await getOneCampanhaGSMS({
-      params: { id: id_parent },
+      params: { id: filters.id_campanha },
       user,
       body: {
         filters,
@@ -31,6 +31,7 @@ module.exports = async (req, res) => {
     });
 
     const clientesIds = campanha.clientes?.map((cliente) => cliente.id) || [];
+
     if (clientesIds.length === 0) {
       res.status(200).json({ message: "Nenhum cliente encontrado para esta campanha!" });
       return;

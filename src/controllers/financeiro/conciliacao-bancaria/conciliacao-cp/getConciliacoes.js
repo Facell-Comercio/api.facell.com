@@ -48,7 +48,7 @@ module.exports = function getConciliacoes(req) {
 
       const [rowsConciliacoes] = await conn.execute(
         `
-          SELECT 
+          SELECT
             count(cb.id) as total
           FROM fin_conciliacao_bancaria cb
           LEFT JOIN users u ON u.id = cb.id_user
@@ -68,8 +68,7 @@ module.exports = function getConciliacoes(req) {
       `,
         params
       );
-      const totalConciliacoes =
-        (rowsConciliacoes && rowsConciliacoes.length > 0 && rowsConciliacoes[0]["total"]) || 0;
+      const totalConciliacoes = (rowsConciliacoes && rowsConciliacoes.length) || 0;
 
       const offset = pageIndex * pageSize;
 
@@ -78,7 +77,7 @@ module.exports = function getConciliacoes(req) {
 
       const [conciliacoes] = await conn.execute(
         `
-        SELECT 
+        SELECT DISTINCT
           cb.id, u.nome as responsavel, cb.created_at as data_conciliacao, cb.tipo,
           (
             SELECT SUM(tv.valor_pago)
