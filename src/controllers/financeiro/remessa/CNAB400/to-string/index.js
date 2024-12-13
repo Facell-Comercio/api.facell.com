@@ -1,7 +1,17 @@
-const rules = require("../layout/rules");
+const rulesItau = require("../bancos/itau/rules");
+const rulesBradesco = require("../bancos/bradesco/rules");
 const { normalizeValue, removeSpecialCharactersAndAccents } = require("./masks");
 
+function rulesBanco(cod_banco) {
+  if (cod_banco == 341) {
+    return rulesItau;
+  }
+  if (cod_banco == 237) {
+    return rulesBradesco;
+  }
+}
 function createHeaderArquivo(params) {
+  let rules = rulesBanco(params.codigo_banco);
   const headerModel = rules.arquivoHeader;
 
   return headerModel
@@ -24,6 +34,7 @@ function createHeaderArquivo(params) {
 }
 
 function createDetalheArquivo(params) {
+  let rules = rulesBanco(params.codigo_banco);
   const segmentoModel = rules.detalhe;
   return segmentoModel
     .map((h) => {
@@ -38,6 +49,7 @@ function createDetalheArquivo(params) {
     .join("");
 }
 function createTrailerArquivo(params) {
+  let rules = rulesBanco(params.codigo_banco);
   const trailerModel = rules.arquivoTrailer;
   return trailerModel
     .map((h) => {

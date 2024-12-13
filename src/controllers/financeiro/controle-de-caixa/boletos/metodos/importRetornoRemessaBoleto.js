@@ -4,13 +4,22 @@ require("dotenv").config();
 
 const { logger } = require("../../../../../../logger");
 const { remessaToObject } = require("../../../remessa/CNAB400/to-object");
-const constants = require("../../../remessa/CNAB400/layout/constants");
+const constantsItau = require("../../../remessa/CNAB400/bancos/itau/constants");
+const constantsBradesco = require("../../../remessa/CNAB400/bancos/bradesco/constants");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
+      const cod_banco = req?.body?.cod_banco;
+      let CodigosOcorrencias;
+      if (cod_banco == 237) {
+        CodigosOcorrencias = constantsBradesco.CodigosOcorrencias;
+      }
+      if (cod_banco == 341) {
+        CodigosOcorrencias = constantsItau.CodigosOcorrencias;
+      }
 
       const files = req.files;
       if (!files || !files.length) {
@@ -70,14 +79,16 @@ module.exports = async (req) => {
               obj = { ...obj, status: "pago" };
             } else {
               // * APLICAÇÃO DE STATUS ERRO:
-              const [rowsBoletoBanco] = await conn.execute("SELECT status FROM datasys_caixas_boletos WHERE id = ?", [
-                id_boleto,
-              ]);
-              const status = rowsBoletoBanco && rowsBoletoBanco[0] && rowsBoletoBanco[0]['status']
-              if (status == 'emitido') {
-                await conn.execute("UPDATE datasys_caixas_boletos SET status = 'erro' WHERE id = ?", [
-                  id_boleto,
-                ]);
+              const [rowsBoletoBanco] = await conn.execute(
+                "SELECT status FROM datasys_caixas_boletos WHERE id = ?",
+                [id_boleto]
+              );
+              const status = rowsBoletoBanco && rowsBoletoBanco[0] && rowsBoletoBanco[0]["status"];
+              if (status == "emitido") {
+                await conn.execute(
+                  "UPDATE datasys_caixas_boletos SET status = 'erro' WHERE id = ?",
+                  [id_boleto]
+                );
               }
               obj = {
                 ...obj,

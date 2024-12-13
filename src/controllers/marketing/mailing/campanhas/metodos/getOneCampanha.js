@@ -77,9 +77,11 @@ module.exports = async (req) => {
         }
       }
       if (status_contato_list && ensureArray(status_contato_list).length > 0) {
-        where += ` AND mr.status IN(${ensureArray(status_contato_list)
+        where += ` AND (mr.status IN(${ensureArray(status_contato_list)
           .map((value) => db.escape(value))
-          .join(",")}) `;
+          .join(",")})
+          ${status_contato_list.includes("NULL") && "OR mr.status IS NULL"}
+          )`;
       }
       if (uf_list && ensureArray(uf_list).length > 0) {
         where += ` AND mc.uf IN(${ensureArray(uf_list)
@@ -240,6 +242,7 @@ module.exports = async (req) => {
         ${where}`,
         params
       );
+      console.log(status_contato_list_filters);
 
       //~ UFS
       const [uf_list_filters] = await conn.execute(
@@ -256,7 +259,7 @@ module.exports = async (req) => {
         produto_list: produto_list_filters.filter((item) => !!item.value) || [],
         status_plano_list: status_plano_list_filters.filter((item) => !!item.value) || [],
         vendedores_list: vendedores_list_filters.filter((item) => !!item.value) || [],
-        status_contato_list: status_contato_list_filters.filter((item) => !!item.value) || [],
+        status_contato_list: status_contato_list_filters,
         uf_list: uf_list_filters.filter((item) => !!item.value) || [],
       };
 
