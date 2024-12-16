@@ -30,6 +30,9 @@ module.exports = async = (req) => {
         tim_pedido,
         tim_pedido_sap,
         valor,
+        valor_liquido,
+        ir,
+        iss,
         descricao,
 
         vencimentos,
@@ -212,6 +215,9 @@ module.exports = async = (req) => {
                 data_emissao = ?,
                 num_doc = ?,
                 valor = ?,
+                valor_liquido = ?,
+                ir = ?,
+                iss = ?,
                 descricao = ?,
 
                 tim_pedido = ?,
@@ -239,6 +245,9 @@ module.exports = async = (req) => {
           data_emissao ? startOfDay(data_emissao) : null,
           num_doc || null,
           valor,
+          valor_liquido,
+          ir,
+          iss,
           descricao,
 
           tim_pedido || null,

@@ -40,9 +40,9 @@ module.exports = function transferBordero(req) {
       }
 
       for (const vencimento of vencimentos) {
-        if (vencimento.id_status != 3) {
+        if (vencimento.id_status != 3 && vencimento.id_status != 4) {
           throw new Error(
-            "Não é possível realizar a transfência de vencimentos com status diferente de aprovado!"
+            "Apenas é possível transferir vencimentos de títulos aprovados ou pagos parcial!"
           );
         }
         await conn.execute(

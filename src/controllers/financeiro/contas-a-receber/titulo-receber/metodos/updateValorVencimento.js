@@ -4,12 +4,7 @@ const { normalizeNumberFixed } = require("../../../../../helpers/mask");
 
 module.exports = async = (req) => {
   return new Promise(async (resolve, reject) => {
-    const {
-      id,
-      valor,
-
-      conn_externa,
-    } = req.body || {};
+    const { id, valor, conn_externa } = req.body || {};
     let conn;
     try {
       conn = conn_externa || (await db.getConnection());
@@ -23,7 +18,7 @@ module.exports = async = (req) => {
         throw new Error("ID do vencimento não informado!");
       }
       if (!valor) {
-        throw new Error("Valor do atualizado não informado!");
+        throw new Error("Valor do vencimento atualizado não informado!");
       }
 
       const [rowVencimento] = await conn.execute(
@@ -41,7 +36,7 @@ module.exports = async = (req) => {
 
       const isRetirada = valor < 0;
 
-      if (!isRetirada && valorVencimento < valorFinalVencimento) {
+      if (!isRetirada && (valorVencimento + 0.05) < valorFinalVencimento) {
         throw new Error("Valor do pagamento ultrapassa o valor já pago do vencimento!");
       }
 
@@ -64,8 +59,8 @@ module.exports = async = (req) => {
         [valor, id]
       );
 
-      const isParcial = valorVencimento > valorFinalVencimento;
-      const isPago = valorVencimento === valorFinalVencimento;
+      const isParcial = (valorVencimento - 0.05) > valorFinalVencimento;
+      const isPago = Math.abs(valorVencimento - valorFinalVencimento) < 0.06;
 
       //* VENCIMENTO PAGO PARCIAL
       if (!isRetirada && isParcial) {

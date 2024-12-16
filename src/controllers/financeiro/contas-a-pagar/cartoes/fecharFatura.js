@@ -4,7 +4,7 @@ const { normalizeCurrency } = require("../../../../helpers/mask");
 
 module.exports = function fecharFatura(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, data_prevista, cod_barras, valor } = req.body;
+    const { id, data_prevista } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -13,9 +13,6 @@ module.exports = function fecharFatura(req) {
       }
       if (!data_prevista) {
         throw new Error("Data prevista não informada!");
-      }
-      if (!cod_barras) {
-        throw new Error("Código de barras não informado!");
       }
       const [rowValorFatura] = await conn.execute(
         `SELECT 
@@ -29,23 +26,6 @@ module.exports = function fecharFatura(req) {
           `,
         [id]
       );
-      const total = parseFloat(rowValorFatura && rowValorFatura[0].total) || 0;
-      const diferenca = Math.abs(parseFloat(valor) - total);
-      if (total < valor) {
-        throw new Error(
-          `Valor da fatura ultrapassa o esperado em ${normalizeCurrency(
-            diferenca
-          )}`
-        );
-      }
-      if (total > valor) {
-        throw new Error(
-          `Valor da fatura inferior ao valor total das compras em ${normalizeCurrency(
-            diferenca
-          )}`
-        );
-      }
-
       await conn.execute(
         `UPDATE fin_cartoes_corporativos_faturas SET closed = 1 WHERE id = ?`,
         [id]

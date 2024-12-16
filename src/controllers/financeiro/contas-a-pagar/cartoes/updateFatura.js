@@ -7,7 +7,7 @@ const { normalizeCodigoBarras } = require("../../../../helpers/mask");
 module.exports = function updateFatura(req) {
   return new Promise(async (resolve, reject) => {
     const { id } = req.params;
-    const { data_prevista, cod_barras, valor } = req.body;
+    const { data_prevista, cod_barras, valor, estorno } = req.body;
 
     const conn = await db.getConnection();
     try {
@@ -19,12 +19,14 @@ module.exports = function updateFatura(req) {
       }
 
       const codBarras = normalizeCodigoBarras(cod_barras) || null;
-      if (!!codBarras && !checkCodigoBarras(codBarras)) {
-        throw new Error(`Código de barras inválido: ${cod_barras}`);
+      if (codBarras) {
+        if(!checkCodigoBarras(codBarras)){
+          throw new Error(`Código de barras inválido: ${cod_barras}`);
+        }
       }
       await conn.execute(
-        `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ?, cod_barras = ?, valor = ? WHERE id = ?`,
-        [startOfDay(data_prevista), codBarras, valor, id]
+        `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ?, cod_barras = ?, valor = ?, estorno = ? WHERE id = ?`,
+        [startOfDay(data_prevista), codBarras, valor, estorno, id]
       );
 
       resolve({ message: "Sucesso!" });

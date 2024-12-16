@@ -66,13 +66,13 @@ module.exports = async = (req) => {
         (acc, curr) => acc + parseFloat(curr.valor),
         0
       );
-      //* Valida se o valor dos recebimentos não ultrapassa o valor do vencimento
+      //* Valida se o valor dos recebimentos diverge 0.06+ o valor do vencimento
       if (
-        parseFloat((valor_recebimentos + parseFloat(valor)).toFixed(2)) >
-        parseFloat(parseFloat(valor_vencimento).toFixed(2))
+        parseFloat((valor_recebimentos + parseFloat(valor)).toFixed(2)) -
+        parseFloat(parseFloat(valor_vencimento).toFixed(2)) > 0.06
       ) {
         throw new Error(
-          `Valor acima do permitido! O valor máximo para esse recebimento é de R$${
+          `Valor de recebimento ultrapassa o permitido, valor máximo a ser recebido R$${
             valor_vencimento - valor_pago
           }`
         );
