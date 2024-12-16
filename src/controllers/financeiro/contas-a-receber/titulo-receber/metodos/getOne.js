@@ -16,7 +16,9 @@ module.exports = async = (req) => {
             f.nome as filial,
             f.id_grupo_economico,
             f.id_matriz,
-            
+            ROUND(ir / valor * 100, 2) as ir_percent,
+            ROUND(iss / valor * 100, 2)as iss_percent,
+
             -- Fornecedor:
             fo.nome as nome_fornecedor,
             fo.cnpj as cnpj_fornecedor,
