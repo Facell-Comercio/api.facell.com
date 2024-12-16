@@ -3,6 +3,7 @@ const { logger } = require("../../../../../../logger");
 const getOneCampanha = require("./getOneCampanha");
 const XLSX = require("xlsx");
 const { formatDate } = require("date-fns");
+const { normalizeCurrency } = require("../../../../../helpers/mask");
 
 module.exports = async (req, res) => {
   const { user } = req;
@@ -41,10 +42,10 @@ module.exports = async (req, res) => {
         number1: cliente.gsm,
         comments: "",
         CONSULTORA: cliente.vendedor,
-        DESCONTO_OFERTA: cliente.desconto,
+        DESCONTO_OFERTA: normalizeCurrency(cliente.desconto),
         APARELHO_OFERTADO: cliente.produto_ofertado,
-        VALOR_PRE: cliente.valor_pre,
-        VALOR_COM_DESCONTO: cliente.valor_plano,
+        VALOR_PRE: normalizeCurrency(cliente.valor_pre),
+        VALOR_COM_DESCONTO: normalizeCurrency(cliente.valor_plano),
         PLANO_ATUAL: cliente.plano_atual,
         FIDELIZADO_COM_APARELHO: cliente.produto_fidelizado ? "Sim" : "Não",
         APARELHO_DA_ULTIMA_COMPRA: cliente.produto_ultima_compra,
