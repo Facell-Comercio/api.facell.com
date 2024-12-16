@@ -49,9 +49,14 @@ module.exports = function transferBordero(req) {
           `UPDATE fin_cp_bordero_itens SET id_bordero = ? WHERE id_vencimento =  ?`,
           [id, vencimento.id_vencimento]
         );
+        await conn.execute(
+          `UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id =  ?`,
+          [new Date(date), vencimento.id_vencimento]
+        );
       }
 
       await conn.commit();
+      // await conn.rollback();
       resolve({ message: "Sucesso!" });
     } catch (error) {
       logger.error({
@@ -66,4 +71,4 @@ module.exports = function transferBordero(req) {
       conn.release();
     }
   });
-}
+};

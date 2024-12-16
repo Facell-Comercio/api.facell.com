@@ -1,4 +1,5 @@
 const { formatDate } = require("date-fns");
+var formatters = require("../../../../../services/boleto/helper/formatters");
 const { db } = require("../../../../../../mysql");
 
 const {
@@ -84,6 +85,7 @@ module.exports = async (req, res) => {
         ...matriz,
         data_emissao,
         num_sequencial,
+        codigo_banco: matriz?.banco,
       });
 
       arquivo.push(headerArquivo);
@@ -92,6 +94,8 @@ module.exports = async (req, res) => {
 
       for (const boleto of boletos) {
         ++num_sequencial;
+        const nosso_numero = boleto?.id;
+        const dac = formatters.mod11(`109${nosso_numero}`, 7);
         const segmentoDetalhe = createDetalheArquivo({
           ...matriz,
           ...boleto,
@@ -99,8 +103,10 @@ module.exports = async (req, res) => {
           data_vencimento,
           num_sequencial,
           uso_empresa: boleto.id,
-          nosso_numero: boleto.id,
+          nosso_numero,
           num_doc: boleto.id,
+          codigo_banco: matriz?.banco,
+          dac,
         });
         arquivo.push(segmentoDetalhe);
 
@@ -166,6 +172,7 @@ module.exports = async (req, res) => {
       ++num_sequencial;
       const trailerArquivo = createTrailerArquivo({
         num_sequencial,
+        codigo_banco: matriz?.banco,
       });
 
       arquivo.push(trailerArquivo);
@@ -178,8 +185,8 @@ module.exports = async (req, res) => {
       await conn.commit();
 
       // * ENVIO DO ARQUIVO
-      const fileBuffer = Buffer.from(arquivo.join("\r\n") + "\r\n", "utf-8");
-      const filename = `REMESSA BOLETO - ${formatDate(
+      const fileBuffer = Buffer.from(arquivo.join("\r\n").toUpperCase() + "\r\n", "utf-8");
+      const filename = `REMESSA BOLETO ${matriz?.nome_banco} - ${formatDate(
         data_emissao,
         "dd_MM_yyyy"
       )} - ${removeSpecialCharactersAndAccents(
@@ -190,6 +197,7 @@ module.exports = async (req, res) => {
       res.send(fileBuffer);
 
       // await conn.rollback();
+      await conn.commit();
       resolve();
     } catch (error) {
       logger.error({
