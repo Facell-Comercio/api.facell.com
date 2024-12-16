@@ -6,6 +6,7 @@ const{
     abastecerEstoque,
     concederFardamento,
     venderFardamento,
+    getOneByParams,
 } = require("../../../controllers/pessoal/fardamento/estoque-controller");
 
 
@@ -23,6 +24,19 @@ router.get(
 )
 
 router.get(
+    "/by-params",
+    async (req,res) => {
+        try {
+            const result = await getOneByParams(req);
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(500).json({message: error.message});
+        }
+    }
+)
+
+
+router.get(
     "/:id",
     async (req,res) =>{
         try {
@@ -33,6 +47,7 @@ router.get(
         }
     }
 )
+
 
 router.post(
     "/abastecer",

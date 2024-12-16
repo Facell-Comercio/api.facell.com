@@ -132,7 +132,48 @@ function getOne(req) {
       }
     });
   }
-  
+
+function getOneByParams(req) {
+    return new Promise ( async (resolve, reject) => {
+        const { id_grupo_economico, id_modelo, id_tamanho, uf, sexo } = req.query;
+        let conn;
+        try {
+
+             // VALIDAÇÕES
+            if(!id_tamanho) throw new Error('ID Tamanho não informado!');
+            if(!id_modelo) throw new Error('ID Modelo não informado!');
+            if(!id_grupo_economico) throw new Error('ID Grupo Economico não informado!');
+            if(!uf) throw new Error('UF não informado!');
+            if(!sexo) throw new Error('Sexo não informado!');
+
+            conn = await db.getConnection();
+            const [rowFardamento]= await conn.execute(
+                `
+                SELECT fe.*
+                from fardamentos_estoque fe
+                WHERE fe.id_modelo = ? AND fe.id_tamanho = ? 
+                AND fe.id_grupo_economico = ? AND fe.uf = ? AND fe.sexo = ?  
+                `, [id_modelo, id_tamanho, id_grupo_economico, uf, sexo]
+            )
+
+            const fardamento = rowFardamento && rowFardamento[0];
+            
+            resolve(fardamento);
+
+        } catch (error) {
+            logger.error({
+                module: "PESSOAL/FARDAMENTOS",
+                origin: "ESTOQUE",
+                method: "GET_ONE_BY_PARAMS",
+                data: { message: error.message, stack: error.stack, name: error.name },
+              });
+            reject(error);
+        } finally {
+            if (conn) conn.release();
+        }
+    })
+}
+
 const abastecerEstoque =async (req,res)=>{
     let conn;
     try {
@@ -146,8 +187,8 @@ const abastecerEstoque =async (req,res)=>{
         if (permite_concessao === "true" || permite_concessao === 1) { permite_concessao = 1} else if (permite_concessao === "false" || permite_concessao === 0) {permite_concessao = 0;} else { permite_concessao = 1 }
 
         // VALIDAÇÕES
-        if(!id_modelo) throw new Error('ID Modelo não informado!');
         if(!id_tamanho) throw new Error('ID Tamanho não informado!');
+        if(!id_modelo) throw new Error('ID Modelo não informado!');
         if(!id_grupo_economico) throw new Error('ID Grupo Economico não informado!');
         if(!uf) throw new Error('UF não informado!');
         if(!sexo) throw new Error('Sexo não informado!');
@@ -350,5 +391,6 @@ module.exports = {
     abastecerEstoque,
     concederFardamento,
     venderFardamento,
+    getOneByParams,
 
 };
