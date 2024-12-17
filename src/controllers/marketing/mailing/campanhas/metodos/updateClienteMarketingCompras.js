@@ -109,10 +109,7 @@ module.exports = async (req) => {
       conn = conn_externa || (await db.getConnection());
       await conn.beginTransaction();
 
-      await conn.execute(
-        `UPDATE marketing_mailing_compras SET ${sets.join(",")} ${where}`,
-        params
-      );
+      await conn.execute(`UPDATE marketing_mailing_compras SET ${sets.join(",")} ${where}`, params);
 
       if (!conn_externa) {
         await conn.commit();

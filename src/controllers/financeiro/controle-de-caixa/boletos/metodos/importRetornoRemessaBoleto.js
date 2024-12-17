@@ -38,7 +38,7 @@ module.exports = async (req) => {
 
           // Ler e fazer parse do arquivo
           const data = await fs.readFile(filePath, "utf8");
-          const objRemessa = await remessaToObject(data);
+          const objRemessa = await remessaToObject(data, cod_banco);
           // Passagem pelos lotes
           const detalhes = objRemessa.arquivoDetalhe;
           qtde_detalhes = detalhes.length;
@@ -47,7 +47,7 @@ module.exports = async (req) => {
             const id_boleto = detalhe.nosso_numero;
             const cod_ocorrencia = detalhe.cod_ocorrencia;
             const { data_vencimento, num_doc, nosso_numero, num_carteira } = detalhe;
-            const obs = constants.CodigosOcorrencias[cod_ocorrencia];
+            const obs = CodigosOcorrencias[cod_ocorrencia];
             let obj = {
               sequencial_arquivo: detalhe.sequencial_arquivo,
               obs,

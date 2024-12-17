@@ -114,8 +114,8 @@ function getAll(req) {
       params.push(offset);
       var query = `
             SELECT 
-              f.id_matriz, cb.*, f.nome as filial, ge.nome, 
-              fb.nome as banco, ge.nome as grupo_economico, 
+              f.id_matriz, cb.*, f.nome as filial, ge.nome,
+              fb.nome as banco, fb.codigo as codigo_banco, ge.nome as grupo_economico,
               ftc.tipo as tipo_conta, cb.active, cb.caixa
             FROM fin_contas_bancarias cb
             LEFT JOIN filiais f ON f.id = cb.id_filial
