@@ -4,13 +4,12 @@ const rulesBradesco = require("../bancos/bradesco/rules");
 const { checkTipoRegistroRemessa, transformStringToObject } = require("./util");
 
 const bancosValidos = [341, 237];
-const remessaToObject = (txt) => {
+const remessaToObject = (txt, codigo_banco) => {
   return new Promise(async (resolve, reject) => {
     try {
       if (!txt) {
         throw new Error("Arquivo de texto não recebidos por parâmetro!");
       }
-      const codigo_banco = txt.substring(0, 3);
 
       if (!bancosValidos.includes(parseInt(codigo_banco))) {
         throw new Error(
@@ -37,6 +36,7 @@ const remessaToObject = (txt) => {
       };
       const linhas = txt.split("\n");
       let detalhe = 0;
+
       for (const linha of linhas) {
         if (linha) {
           const tipo_registro = checkTipoRegistroRemessa(linha);
