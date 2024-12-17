@@ -207,6 +207,7 @@ module.exports = async (req) => {
         LEFT JOIN marketing_mailing_interacoes mr ON mr.id_cliente = mc.id
         LEFT JOIN marketing_vendedores mv ON mv.nome = mc.vendedor
         ${where}
+        GROUP BY mc.produto_ultima_compra
         ORDER BY mc.produto_ultima_compra ASC`,
         params
       );
