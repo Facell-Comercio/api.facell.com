@@ -1,4 +1,4 @@
-const { format, startOfDay, addMonths, formatDate } = require("date-fns");
+const { format, startOfDay, addMonths, formatDate, isBefore } = require("date-fns");
 const { db } = require("../../../../../mysql");
 const { logger } = require("../../../../../logger");
 
@@ -149,6 +149,13 @@ module.exports = function insertOne(req) {
         if (!vencimento.data_vencimento) {
           throw new Error(
             `O vencimento não possui data de vencimento! Vencimento: ${JSON.stringify(vencimento)}`
+          );
+        }
+        if (isBefore(new Date(vencimento.data_vencimento, new Date()))) {
+          throw new Error(
+            `A data de vencimento do vencimento não pode ser anterior ao dia de hoje! Vencimento: ${JSON.stringify(
+              vencimento
+            )}`
           );
         }
         if (!vencimento.data_prevista) {

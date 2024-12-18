@@ -19,6 +19,7 @@ const qualidade = require("./qualidade/qualidade-router");
 
 const datasys = require("./datasys");
 const tim = require("./tim");
+const realtime = require("./realtime-router");
 const authMiddleware = require("../middlewares/auth-middleware");
 const {
   gerarRateio,
@@ -70,6 +71,7 @@ router.use("/permissao", permissao);
 
 router.use("/datasys", datasys);
 router.use("/tim", tim);
+router.use("/realtime", realtime);
 
 // app.use('/datasys', datasysRouter)
 // app.use('/comissao-tim', timRouter)
