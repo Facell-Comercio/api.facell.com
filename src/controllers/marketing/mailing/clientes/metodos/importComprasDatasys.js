@@ -28,9 +28,9 @@ module.exports = async (req, res) => {
         }
       }
 
-      console.log("INICIOU");
-      console.time("Tempo total da importação");
-      console.time("Tempo da consulta");
+      // console.log("INICIOU");
+      // console.time("Tempo total da importação");
+      // console.time("Tempo da consulta");
       const queryConsultaFacell = `
           SELECT
             grupoEstoque AS grupo_estoque,
@@ -97,8 +97,8 @@ module.exports = async (req, res) => {
       const compras = [...comprasFacell, ...comprasFort];
       let totalCompras = compras.length;
 
-      console.log("CONSULTOU");
-      console.timeEnd("Tempo da consulta");
+      // console.log("CONSULTOU");
+      // console.timeEnd("Tempo da consulta");
       const arrayCompras = [];
       const maxLength = 5000;
 
@@ -169,15 +169,15 @@ module.exports = async (req, res) => {
             `;
           await conn.execute(queryInsert);
           arrayCompras.length = 0;
-          console.log(`${totalInseridos}/${compras.length}`);
-          console.timeEnd("Tempo do lote");
-          console.time("Tempo do lote");
+          // console.log(`${totalInseridos}/${compras.length}`);
+          // console.timeEnd("Tempo do lote");
+          // console.time("Tempo do lote");
         }
 
         totalInseridos++;
         totalCompras--;
       }
-      console.timeEnd("Tempo total da importação");
+      // console.timeEnd("Tempo total da importação");
 
       await conn.commit();
       resolve({ message: "Success" });

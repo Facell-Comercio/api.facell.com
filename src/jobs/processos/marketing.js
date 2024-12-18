@@ -9,7 +9,7 @@ const {
 // Importa as compras do dia anterior
 cron.schedule("0 7 * * *", async () => {
   try {
-    const target = subDays(new Date(), 1);
+    const target = subDays(new Date(), 1).toISOString();
     await importComprasDatasys({ body: { range_datas: { from: target, to: target } } });
   } catch (error) {
     logger.error({
@@ -24,7 +24,7 @@ cron.schedule("0 7 * * *", async () => {
 // Importa as campanhas do dia anterior
 cron.schedule("0 7 * * *", async () => {
   try {
-    const target = subDays(new Date(), 1);
+    const target = subDays(new Date(), 1).toISOString();
     await importCampanhaEvolux({ body: { range_datas: { from: target, to: target } } });
   } catch (error) {
     logger.error({
