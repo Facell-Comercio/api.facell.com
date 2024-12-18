@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
             ${db.escape(resultado.agent.name)}, -- OPERADOR
             ${db.escape(resultado.hangup_cause || null)}, -- OBSERVACAO
             ${db.escape(resultado.classification || null)}, -- CLASSIFICACAO
-            ${db.escape(req.user.id)} -- ID USER
+            ${db.escape(req.user ? req.user.id : null)} -- ID USER
           )`
         );
 

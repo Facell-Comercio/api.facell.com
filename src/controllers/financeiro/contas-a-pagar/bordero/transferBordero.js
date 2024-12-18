@@ -40,19 +40,37 @@ module.exports = function transferBordero(req) {
       }
 
       for (const vencimento of vencimentos) {
-        if (vencimento.id_status != 3 && vencimento.id_status != 4) {
+        if (
+          vencimento.id_status != 3 &&
+          vencimento.id_status != 4 &&
+          vencimento.tipo == "vencimento"
+        ) {
           throw new Error(
             "Apenas é possível transferir vencimentos de títulos aprovados ou pagos parcial!"
           );
         }
-        await conn.execute(
-          `UPDATE fin_cp_bordero_itens SET id_bordero = ? WHERE id_vencimento =  ?`,
-          [id, vencimento.id_vencimento]
-        );
-        await conn.execute(
-          `UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id =  ?`,
-          [new Date(date), vencimento.id_vencimento]
-        );
+
+        if (vencimento.tipo == "vencimento") {
+          await conn.execute(
+            `UPDATE fin_cp_bordero_itens SET id_bordero = ? WHERE id_vencimento =  ?`,
+            [id, vencimento.id_vencimento]
+          );
+          await conn.execute(
+            `UPDATE fin_cp_titulos_vencimentos SET data_prevista = ? WHERE id =  ?`,
+            [new Date(date), vencimento.id_vencimento]
+          );
+        }
+
+        if (vencimento.tipo == "fatura") {
+          await conn.execute(
+            `UPDATE fin_cp_bordero_itens SET id_bordero = ? WHERE id_fatura =  ?`,
+            [id, vencimento.id_vencimento]
+          );
+          await conn.execute(
+            `UPDATE fin_cartoes_corporativos_faturas SET data_prevista = ? WHERE id =  ?`,
+            [new Date(date), vencimento.id_vencimento]
+          );
+        }
       }
 
       await conn.commit();
