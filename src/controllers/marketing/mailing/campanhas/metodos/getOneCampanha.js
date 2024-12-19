@@ -63,7 +63,9 @@ module.exports = async (req) => {
           .join(",")}) `;
       }
       if (produto_fidelizado !== undefined && produto_fidelizado !== "all") {
-        if (Number(produto_fidelizado)) {
+        console.log(produto_fidelizado);
+
+        if (produto_fidelizado === "SIM") {
           where += " AND mc.produto_fidelizado = 1 ";
         } else {
           where += " AND (mc.produto_fidelizado = 0 OR mc.produto_fidelizado IS NULL) ";
@@ -298,6 +300,8 @@ module.exports = async (req) => {
           ${where} ORDER BY mc.cliente ${limit}`,
         params
       );
+
+      console.log((rowQtdeClientes && rowQtdeClientes[0] && rowQtdeClientes[0].qtde) || 0);
 
       const [rowsPrecos] = await conn.execute(
         `
