@@ -1,4 +1,4 @@
-const { format, startOfDay, formatDate } = require("date-fns");
+const { format, startOfDay, formatDate, isBefore } = require("date-fns");
 const { db } = require("../../../../../mysql");
 const {
   normalizeFirstAndLastName,
@@ -11,6 +11,8 @@ const {
 const { logger } = require("../../../../../logger");
 const { checkCodigoBarras } = require("../../../../helpers/chekers");
 const { replaceFileUrl } = require("../../../storage-controller");
+const { hasPermission } = require("../../../../helpers/hasPermission");
+const { checkUserDepartment } = require("../../../../helpers/checkUserDepartment");
 
 module.exports = function update(req) {
   return new Promise(async (resolve, reject) => {
@@ -19,6 +21,8 @@ module.exports = function update(req) {
     try {
       conn = await db.getConnection();
       const { user } = req;
+
+      const isMaster = hasPermission(req, ["MASTER"]) || checkUserDepartment(req, "FINANCEIRO");
 
       await conn.beginTransaction();
       const data = req.body;
@@ -355,7 +359,7 @@ module.exports = function update(req) {
               )}`
             );
           }
-          if (isBefore(new Date(vencimento.data_vencimento, new Date()))) {
+          if (!isMaster && isBefore(new Date(vencimento.data_vencimento, new Date()))) {
             throw new Error(
               `A data de vencimento do vencimento não pode ser anterior ao dia de hoje! Vencimento: ${JSON.stringify(
                 vencimento

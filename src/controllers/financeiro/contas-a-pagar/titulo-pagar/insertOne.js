@@ -21,6 +21,9 @@ module.exports = function insertOne(req) {
     try {
       conn = await db.getConnection();
       await conn.beginTransaction();
+
+      const isMaster = hasPermission(req, ["MASTER"]) || checkUserDepartment(req, "FINANCEIRO");
+
       const { user } = req;
       const data = req.body;
       const {
@@ -151,7 +154,7 @@ module.exports = function insertOne(req) {
             `O vencimento não possui data de vencimento! Vencimento: ${JSON.stringify(vencimento)}`
           );
         }
-        if (isBefore(new Date(vencimento.data_vencimento, new Date()))) {
+        if (!isMaster && isBefore(new Date(vencimento.data_vencimento, new Date()))) {
           throw new Error(
             `A data de vencimento do vencimento não pode ser anterior ao dia de hoje! Vencimento: ${JSON.stringify(
               vencimento
