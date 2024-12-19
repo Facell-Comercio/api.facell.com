@@ -14,6 +14,7 @@ const {
 } = require("../../../../helpers/mask");
 
 const { persistFile } = require("../../../storage-controller");
+const { hasPermission } = require("../../../../helpers/hasPermission");
 
 module.exports = function insertOne(req) {
   return new Promise(async (resolve, reject) => {
