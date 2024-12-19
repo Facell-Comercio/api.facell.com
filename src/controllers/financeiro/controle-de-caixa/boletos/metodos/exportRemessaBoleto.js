@@ -106,7 +106,7 @@ module.exports = async (req, res) => {
           nosso_numero,
           num_doc: boleto.id,
           codigo_banco: matriz?.banco,
-          dac,
+          dac: matriz?.dac ?? dac,
         });
         arquivo.push(segmentoDetalhe);
 
