@@ -6,6 +6,7 @@ module.exports = {
 
   insertSubcampanha: require("./metodos/insertSubcampanha"),
   duplicateCampanha: require("./metodos/duplicateCampanha"),
+  transferClientesSubcampanha: require("./metodos/transferClientesSubcampanha"),
 
   updateCampanha: require("./metodos/updateCampanha"),
   updateClienteCampanha: require("./metodos/updateClienteCampanha"),

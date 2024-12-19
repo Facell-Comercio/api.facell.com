@@ -1,18 +1,24 @@
 const { logger } = require("../../../../../../logger");
 const { db } = require("../../../../../../mysql");
+const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = async (req) => {
   return new Promise(async (resolve, reject) => {
     let conn;
     try {
       const { filters } = req.query;
-      const { filiais_list } = filters || {};
+      const { filiais_list, uf_list } = filters || {};
 
       let where = ` WHERE f.tim_cod_sap IS NOT NULL and f.active = 1 `;
       if (filiais_list && filiais_list.length > 0) {
         where += ` AND dc.id_filial IN(${filiais_list
           .map((value) => db.escape(value))
           .join(",")}) `;
+      }
+      if (uf_list && ensureArray(uf_list).length) {
+        where += ` AND f.uf IN (${ensureArray(uf_list)
+          .map((value) => db.escape(value))
+          .join(",")})`;
       }
 
       conn = await db.getConnection();

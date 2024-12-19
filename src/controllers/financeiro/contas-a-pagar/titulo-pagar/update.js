@@ -355,6 +355,13 @@ module.exports = function update(req) {
               )}`
             );
           }
+          if (isBefore(new Date(vencimento.data_vencimento, new Date()))) {
+            throw new Error(
+              `A data de vencimento do vencimento não pode ser anterior ao dia de hoje! Vencimento: ${JSON.stringify(
+                vencimento
+              )}`
+            );
+          }
           if (!vencimento.data_prevista) {
             throw new Error(
               `O vencimento não possui data prevista para pagamento! Vencimento: ${JSON.stringify(

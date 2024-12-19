@@ -184,7 +184,8 @@ module.exports = async (req) => {
       const campanha = rowCampanha && rowCampanha[0];
 
       if (!campanha) {
-        throw new Error(`Campanha não encontrada`);
+        // throw new Error(`Campanha não encontrada`);
+        resolve();
       }
 
       //~ INÍCIO - FILTERS LIST

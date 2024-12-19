@@ -1,6 +1,7 @@
 const { logger } = require("../../../logger");
 const { db } = require("../../../mysql");
 const { hasPermission } = require("../../helpers/hasPermission");
+const { ensureArray } = require("../../helpers/formaters");
 
 function getAll(req) {
   return new Promise(async (resolve, reject) => {
@@ -27,6 +28,7 @@ function getAll(req) {
       id_matriz,
       tim_cod_sap,
       isLojaTim,
+      uf_list,
     } = filters || {
       termo: null,
     };
@@ -90,6 +92,11 @@ function getAll(req) {
     if (id_matriz && id_matriz !== undefined && id_matriz !== "all") {
       where += ` AND f.id_matriz = ?`;
       params.push(id_matriz);
+    }
+    if (uf_list && ensureArray(uf_list).length) {
+      where += ` AND f.uf IN (${ensureArray(uf_list)
+        .map((value) => db.escape(value))
+        .join(",")})`;
     }
 
     const offset = pageIndex * pageSize;

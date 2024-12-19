@@ -44,6 +44,11 @@ router.post(
   controller.duplicateCampanha
 );
 router.post(
+  "/transferir",
+  checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:EDITAR"], true),
+  controller.transferClientesSubcampanha
+);
+router.post(
   "/:id",
   checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:VER"]),
   async (req, res) => {
