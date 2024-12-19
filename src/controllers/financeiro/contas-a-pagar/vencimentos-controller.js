@@ -687,13 +687,14 @@ function getAllVencimentosBordero(req) {
             tv.data_pagamento,
             f.nome as filial, f.id_matriz,
             forn.nome as nome_fornecedor,
-            forn.cnpj as cnpj_fornecedor, 
+            forn.cnpj as cnpj_fornecedor,
+            forn.chave_pix,
             fp.forma_pagamento,
             bi.remessa,
             cbi.id as conciliado,
             cbi.id_conciliacao as id_conciliacao,
             dda.id as id_dda
-        FROM fin_cp_titulos t 
+        FROM fin_cp_titulos t
         LEFT JOIN fin_cp_status s ON s.id = t.id_status 
         LEFT JOIN filiais f ON f.id = t.id_filial 
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
