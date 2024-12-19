@@ -136,7 +136,8 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
         for (const pagamento of formaPagamento) {
           let query = `
           SELECT DISTINCT
-              tv.id as id_vencimento,  
+              tv.id as id_vencimento, 
+              tv.id_titulo, 
               fb.codigo as cod_banco_favorecido,
               forn.agencia,
               forn.dv_agencia,
@@ -256,6 +257,13 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
           }
 
           if (key === "PagamentoBoletoImpostos" || key === "PagamentoTributosCodBarras") {
+            if(!vencimento.cod_barras){
+              if(isFatura){
+                throw new Error(`Código de barras não informado para a fatura ${vencimento.id_vencimento}.`)
+              }else{
+                throw new Error(`Código de barras não informado para o vencimento ${vencimento.id_vencimento}, título ${vencimento.id_titulo}.`)
+              }
+            }
             const segmentoO = createSegmentoO({
               ...vencimento,
               codigo_banco,
@@ -281,6 +289,12 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
               valor_titulo: vencimento.valor_pagamento,
             });
             registroLote++;
+            let chave_pagamento
+            try{
+              chave_pagamento = normalizeURLChaveEnderecamentoPIX(vencimento.qr_code)
+            }catch(error){
+              throw new Error(`QR Code não informado para o vencimento ${vencimento.id_vencimento}, título ${vencimento.id_titulo}.`)
+            }
             const segmentoJ52Pix = createSegmentoJ52Pix({
               ...vencimento,
               codigo_banco,
@@ -293,7 +307,7 @@ module.exports = ({ formasPagamento, empresa_tipo_insc, borderoData, conn_extern
               inscricao_cedente: favorecido_tipo_insc,
               num_inscricao_cedente: vencimento.favorecido_cnpj,
               nome_cedente: vencimento.favorecido_nome,
-              chave_pagamento: normalizeURLChaveEnderecamentoPIX(vencimento.qr_code),
+              chave_pagamento: chave_pagamento,
             });
             arquivo.push(segmentoJ);
             arquivo.push(segmentoJ52Pix);

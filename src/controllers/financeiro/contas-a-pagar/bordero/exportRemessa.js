@@ -85,7 +85,7 @@ module.exports = function exportRemessa(req, res) {
       );
       const borderoData = rowsBordero && rowsBordero[0];
       if (!borderoData) {
-        throw new Error("Bordero não localizado!");
+        throw new Error(`Bordero ID:${id_bordero} não localizado!`);
       }
 
       // const nome_banco = borderoData["nome_banco"];
@@ -93,7 +93,7 @@ module.exports = function exportRemessa(req, res) {
 
       //* Verificação de permissão de geração de remessa~
       if (![341, 237].includes(codigo_banco)) {
-        throw new Error("A Remessa não pode ser gerada por ser de um banco não mapeado");
+        throw new Error("Exportação disponível para os bancos de código 237 (Bradesco) ou 341 (Itaú)");
       }
 
       //* Verifica se é CPF ou CNPJ
