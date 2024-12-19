@@ -31,9 +31,9 @@ module.exports = ({ meta }) => {
 
       const novosItens = await getPolitica({ meta });
       for(const novoItem of novosItens){
-        console.log(segmentos[novoItem.segmento_key])
+        let segmento = segmentos[novoItem.segmento_key];
+        console.log(segmento)
       }
-      console.log(novosItens)
       throw new Error('Forced to end')
 
 

@@ -1,3 +1,5 @@
+import { logger } from "../../../../../../../logger";
+
 const { db } = require("../../../../../../../mysql");
 
 export const getQualidade = ({ meta }) => {
@@ -32,6 +34,12 @@ export const getQualidade = ({ meta }) => {
       resolve({ qualidade: parseFloat(data.qualidade) || 0})
     } catch (error) {
       reject(error)
+      logger.error({
+        module: 'COMERCIAL',
+        origin: 'COMISSÃO',
+        method: 'GET_QUALIDADE_TIM',
+        data: { message: error.message, stack: error.stack, name: error.name }
+    })
     } finally {
       if (conn) conn.release();
     }

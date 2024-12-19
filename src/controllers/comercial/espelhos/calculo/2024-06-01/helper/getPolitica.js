@@ -1,3 +1,4 @@
+const { logger } = require("../../../../../../../logger");
 const { db } = require("../../../../../../../mysql");
 
 module.exports = ({ meta }) => {
@@ -51,6 +52,12 @@ module.exports = ({ meta }) => {
             resolve(itens);
         } catch (error) {
             reject(error)
+            logger.error({
+                module: 'COMERCIAL',
+                origin: 'COMISSÃO',
+                method: 'GET_POLITICA',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
         } finally {
             if(conn) conn.release();
         }

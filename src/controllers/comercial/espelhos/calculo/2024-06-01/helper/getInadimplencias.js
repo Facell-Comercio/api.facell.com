@@ -1,5 +1,6 @@
 import { formatDate, subMonths } from "date-fns";
 import { db } from "../../../../../../../mysql";
+import { logger } from "../../../../../../../logger";
 
 export const getInadimplencias = ({ meta }) => {
   return new Promise(async (resolve, reject) => {
@@ -71,6 +72,12 @@ export const getInadimplencias = ({ meta }) => {
       })
     } catch (error) {
       reject(error)
+      logger.error({
+        module: 'COMERCIAL',
+        origin: 'COMISSÃO',
+        method: 'GET_INADIMPLENCIAS',
+        data: { message: error.message, stack: error.stack, name: error.name }
+    })
     } finally {
       if (conn) conn.release();
     }

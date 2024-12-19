@@ -1,8 +1,9 @@
 const { formatDate } = require("date-fns");
 const { db } = require("../../../../../mysql");
+const { logger } = require("../../../../../logger");
 const folderList = [
+    '2024-12-01',
     '2024-06-01',
-    '2024-01-01'
 ]
 
 exports.calcular = (data) => {
@@ -57,6 +58,12 @@ exports.calcular = (data) => {
             resolve(data)
         } catch (error) {
             reject(error)
+            logger.error({
+                module: 'COMERCIAL',
+                origin: 'COMISSÃO',
+                method: 'CALCULAR',
+                data: { message: error.message, stack: error.stack, name: error.name }
+            })
         } finally {
             if (conn) conn.release();
         }
