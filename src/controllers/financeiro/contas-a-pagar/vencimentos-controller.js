@@ -688,7 +688,7 @@ function getAllVencimentosBordero(req) {
             f.nome as filial, f.id_matriz,
             forn.nome as nome_fornecedor,
             forn.cnpj as cnpj_fornecedor,
-            forn.chave_pix,
+            t.chave_pix,
             fp.forma_pagamento,
             bi.remessa,
             cbi.id as conciliado,
