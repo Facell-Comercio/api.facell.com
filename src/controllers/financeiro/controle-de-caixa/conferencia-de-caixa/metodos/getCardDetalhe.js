@@ -202,7 +202,7 @@ module.exports = async (req) => {
               },
             ],
             where: "WHERE fvc.data = ? AND fvc.id_filial = ? ",
-            whereMovimento: "AND dci.forma_pagamento LIKE 'CREDIARIO'",
+            whereMovimento: "AND dci.forma_pagamento LIKE '%CREDIARIO%'",
             tipoAjuste: "valor_crediario",
           },
           outros: {
