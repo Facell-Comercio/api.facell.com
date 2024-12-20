@@ -55,7 +55,6 @@ module.exports = async (req, res) => {
             fidAparelho AS fid_aparelho,
             fidPlano AS fid_plano,
             dataPedido as data_compra,
-            grupo_economico,
             numeroPedido as numero_pedido,
             item
           FROM datasys_vendas
@@ -86,7 +85,6 @@ module.exports = async (req, res) => {
             fidAparelho AS fid_aparelho,
             fidPlano AS fid_plano,
             dataPedido as data_compra,
-            grupo_economico,
             numeroPedido as numero_pedido,
             item
           FROM datasys_vendas_fort
@@ -129,7 +127,6 @@ module.exports = async (req, res) => {
         ${db.escape(compra.fid_aparelho)},
         ${db.escape(compra.fid_plano)},
         ${db.escape(compra.data_compra)},
-        ${db.escape(compra.grupo_economico)},
         ${db.escape(compra.num_pedido)},
         ${db.escape(compra.item)})
       `);
@@ -160,7 +157,6 @@ module.exports = async (req, res) => {
               fid_aparelho,
               fid_plano,
               data_compra,
-              grupo_economico,
               num_pedido,
               item
               )
