@@ -10,7 +10,7 @@ function getAll(req) {
       reject("Usuário não autenticado!");
       return false;
     }
-    let conn
+    let conn;
     try {
       conn = await db.getConnection();
       // Filtros
@@ -24,11 +24,11 @@ function getAll(req) {
 
       var where = ` WHERE 1=1 `;
 
-      if(active == undefined || active){
-          where += ` AND ff.active = 1 `
+      if (active == undefined || active) {
+        where += ` AND ff.active = 1 `;
       }
       if (termo) {
-        const termoCnpj = termo.trim().replace(/[^a-zA-Z0-9 ]/g, '')
+        const termoCnpj = termo.trim().replace(/[^a-zA-Z0-9 ]/g, "");
 
         where += ` AND (
                 ff.nome LIKE CONCAT('%', ?, '%')  OR
@@ -41,8 +41,6 @@ function getAll(req) {
       }
 
       const offset = pageIndex * pageSize;
-
-
 
       const [rowTotal] = await conn.execute(
         `SELECT count(ff.id) as qtde FROM fin_fornecedores ff
@@ -79,7 +77,7 @@ function getAll(req) {
       });
       reject(error);
     } finally {
-      if(conn) conn.release();
+      if (conn) conn.release();
     }
   });
 }
@@ -118,7 +116,9 @@ function getOne(req) {
 
 function insertOne(req) {
   return new Promise(async (resolve, reject) => {
-    const { id, cnpj,
+    const {
+      id,
+      cnpj,
       nome,
       razao,
       cep,
@@ -141,7 +141,7 @@ function insertOne(req) {
       dv_conta,
       cnpj_favorecido,
       favorecido,
-      active
+      active,
     } = req.body;
 
     const conn = await db.getConnection();
@@ -153,7 +153,8 @@ function insertOne(req) {
       }
       await conn.beginTransaction();
 
-      await conn.execute(`INSERT INTO fin_fornecedores (
+      const [result] = await conn.execute(
+        `INSERT INTO fin_fornecedores (
         cnpj,
         nome,
         razao,
@@ -203,11 +204,14 @@ function insertOne(req) {
           dv_conta,
           cnpj_favorecido,
           favorecido,
-          active
-        ]);
+          active,
+        ]
+      );
+
+      const obj = { ...req.body, id: result.insertId };
 
       await conn.commit();
-      resolve({ message: "Sucesso" });
+      resolve(obj);
     } catch (error) {
       logger.error({
         module: "FINANCEIRO",
@@ -225,13 +229,32 @@ function insertOne(req) {
 
 function update(req) {
   return new Promise(async (resolve, reject) => {
-    const { id,
-      cnpj, nome, razao, cep,
-      logradouro, numero, complemento, bairro,
-      municipio, uf, email, telefone, id_forma_pagamento,
-      id_tipo_chave_pix, chave_pix, id_banco, agencia, dv_agencia,
-      id_tipo_conta, conta, dv_conta, cnpj_favorecido, favorecido,
-      active
+    const {
+      id,
+      cnpj,
+      nome,
+      razao,
+      cep,
+      logradouro,
+      numero,
+      complemento,
+      bairro,
+      municipio,
+      uf,
+      email,
+      telefone,
+      id_forma_pagamento,
+      id_tipo_chave_pix,
+      chave_pix,
+      id_banco,
+      agencia,
+      dv_agencia,
+      id_tipo_conta,
+      conta,
+      dv_conta,
+      cnpj_favorecido,
+      favorecido,
+      active,
     } = req.body;
 
     const conn = await db.getConnection();
@@ -241,7 +264,8 @@ function update(req) {
         throw new Error("ID não informado!");
       }
 
-      await conn.execute(`UPDATE fin_fornecedores SET 
+      await conn.execute(
+        `UPDATE fin_fornecedores SET 
         cnpj = ?,
         nome = ?,
         razao = ?,
@@ -294,9 +318,9 @@ function update(req) {
           cnpj_favorecido,
           favorecido,
           active,
-          id
-        ])
-
+          id,
+        ]
+      );
 
       resolve({ message: "Sucesso!" });
     } catch (error) {
@@ -348,10 +372,7 @@ function toggleActive(req) {
         throw new Error("ID não informado!");
       }
       await conn.beginTransaction();
-      await conn.execute(
-        `UPDATE fin_fornecedores SET active = NOT active WHERE id = ?`,
-        [id]
-      );
+      await conn.execute(`UPDATE fin_fornecedores SET active = NOT active WHERE id = ?`, [id]);
       await conn.commit();
       resolve({ message: "Sucesso!" });
     } catch (error) {
