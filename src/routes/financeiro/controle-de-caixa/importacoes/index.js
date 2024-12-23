@@ -10,7 +10,8 @@ const {
   importPitziVendas,
   importPixBradesco,
   importPixItau,
-  importCrediario,
+  importCrediarioPayjoy,
+  importCrediarioDimo,
   importRenovTradein,
   importRecargaRvCellcard,
 } = require("../../../../controllers/financeiro/controle-de-caixa/controle-de-caixa-controller");
@@ -113,12 +114,26 @@ router.post(
 );
 
 router.post(
-  "/import-crediario",
+  "/import-crediario-payjoy",
   checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
   upload.single('file'),
   async (req, res) => {
     try {
-      const result = await importCrediario(req);
+      const result = await importCrediarioPayjoy(req);
+      res.status(200).send(result);
+    } catch (error) {
+      res.status(400).send({ message: error.message });
+    }
+  }
+);
+
+router.post(
+  "/import-crediario-dimo",
+  checkUserAuthorization("FINANCEIRO", "OR", "MASTER"),
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const result = await importCrediarioDimo(req);
       res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ message: error.message });
