@@ -3,6 +3,7 @@ const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const { checkUserDepartment } = require("../../../../../helpers/checkUserDepartment");
 const { hasPermission } = require("../../../../../helpers/hasPermission");
+const { ensureArray } = require("../../../../../helpers/formaters");
 const XLSX = require("xlsx");
 
 module.exports = (req, res) => {
@@ -63,16 +64,18 @@ module.exports = (req, res) => {
         where += ` AND t.id_status = ?`;
         params.push(id_status);
       }
-      if (status_list && status_list.length > 0) {
-        where += ` AND t.id_status IN (${status_list.map((value) => db.escape(value)).join(",")})`;
+      if (status_list && ensureArray(status_list).length > 0) {
+        where += ` AND t.id_status IN (${ensureArray(status_list)
+          .map((value) => db.escape(value))
+          .join(",")})`;
       }
 
       if (id_forma_pagamento && id_forma_pagamento !== "all") {
         where += ` AND t.id_forma_pagamento = ? `;
         params.push(id_forma_pagamento);
       }
-      if (forma_pagamento_list && forma_pagamento_list.length > 0) {
-        where += ` AND t.id_forma_pagamento IN (${forma_pagamento_list
+      if (forma_pagamento_list && ensureArray(forma_pagamento_list).length > 0) {
+        where += ` AND t.id_forma_pagamento IN (${ensureArray(forma_pagamento_list)
           .map((value) => db.escape(value))
           .join(",")})`;
       }
@@ -142,8 +145,8 @@ module.exports = (req, res) => {
         where += ` AND f.id_grupo_economico = ? `;
         params.push(id_grupo_economico);
       }
-      if (grupo_economico_list && grupo_economico_list.length > 0) {
-        where += ` AND f.id_grupo_economico IN (${grupo_economico_list
+      if (grupo_economico_list && ensureArray(grupo_economico_list).length > 0) {
+        where += ` AND f.id_grupo_economico IN (${ensureArray(grupo_economico_list)
           .map((value) => db.escape(value))
           .join(",")})`;
       }
@@ -154,13 +157,13 @@ module.exports = (req, res) => {
       }
 
       // * Lista de vencimentos
-      const query = `SELECT 
-          tv.id as id_vencimento,  
-          t.id as id_titulo, 
+      const query = `SELECT
+          tv.id as id_vencimento,
+          t.id as id_titulo,
           s.status as status_titulo,
-          tv.valor as valor_vencimento, 
-          tv.data_pagamento, 
-          t.valor as valor_titulo, 
+          tv.valor as valor_vencimento,
+          tv.data_pagamento,
+          t.valor as valor_titulo,
           COALESCE(ge.nome, 'RR') as grupo_economico,
           f.nome as filial,
           forn.cnpj as cnpj_fornecedor,
@@ -176,17 +179,17 @@ module.exports = (req, res) => {
           tv.valor_pago,
           u.nome as solicitante,
           cb.descricao as conta_bancaria
-        FROM fin_cp_titulos_vencimentos tv 
-        INNER JOIN fin_cp_titulos t on t.id = tv.id_titulo 
+        FROM fin_cp_titulos_vencimentos tv
+        INNER JOIN fin_cp_titulos t on t.id = tv.id_titulo
         LEFT JOIN filiais f ON f.id = t.id_filial
         LEFT JOIN fin_cp_bordero_itens bi ON bi.id_vencimento = tv.id
-        LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero 
+        LEFT JOIN fin_cp_bordero b ON b.id = bi.id_bordero
         LEFT JOIN fin_contas_bancarias cb ON cb.id = b.id_conta_bancaria
-        LEFT JOIN fin_cp_status s ON s.id = t.id_status 
+        LEFT JOIN fin_cp_status s ON s.id = t.id_status
         LEFT JOIN users u ON u.id = t.id_solicitante
         LEFT JOIN fin_fornecedores forn ON forn.id = t.id_fornecedor
-        LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz 
-        WHERE 
+        LEFT JOIN grupos_economicos ge ON ge.id_matriz = f.id_matriz
+        WHERE
           ${where}
           ORDER BY tv.data_vencimento ASC`;
 
@@ -203,10 +206,10 @@ module.exports = (req, res) => {
             f.nome as filial,
             fcc.nome  as centro_custo,
             CONCAT(fpc.codigo, ' - ', fpc.descricao) as plano_conta,
-            ROUND(tr.valor, 4) as valor, 
+            ROUND(tr.valor, 4) as valor,
             tr.percentual
           FROM 
-            fin_cp_titulos_rateio tr 
+            fin_cp_titulos_rateio tr
           LEFT JOIN filiais f ON f.id = tr.id_filial
           LEFT JOIN fin_centros_custo fcc ON fcc.id = tr.id_centro_custo
           LEFT JOIN fin_plano_contas fpc ON fpc.id = tr.id_plano_conta
