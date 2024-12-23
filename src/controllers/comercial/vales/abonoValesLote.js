@@ -40,6 +40,7 @@ module.exports = function update(req) {
       await conn.execute(
         `UPDATE vales SET
           abonado = 1,
+          saldo = 0,
           id_abonador = ?
         WHERE id IN (${vales.map((vale) => db.escape(vale.id)).join(",")})`,
         [id_abonador]
