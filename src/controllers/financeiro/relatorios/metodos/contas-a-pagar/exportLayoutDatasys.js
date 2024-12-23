@@ -2,18 +2,31 @@ const { formatDate } = require("date-fns");
 const { db } = require("../../../../../../mysql");
 const { logger } = require("../../../../../../logger");
 const XLSX = require("xlsx");
+const { ensureArray } = require("../../../../../helpers/formaters");
 
 module.exports = (req, res) => {
   return new Promise(async (resolve, reject) => {
     const { filters } = req.query || {};
     const conn = await db.getConnection();
-    const { data_pagamento, id_grupo_economico } = filters;
+    const { data_pagamento, grupo_economico_list } = filters;
     try {
       if (!data_pagamento) {
         throw new Error("DATA PAGAMENTO não selecionada!");
       }
-      if (!id_grupo_economico) {
-        throw new Error("GRUPO ECONÔMICO não selecionada!");
+
+      if (!grupo_economico_list || !ensureArray(grupo_economico_list).length) {
+        throw new Error("Nenhum GRUPO ECONÔMICO selecionado!");
+      }
+      let where = " WHERE 1=1 ";
+      const params = [];
+      if (data_pagamento) {
+        where += ` AND tv.data_pagamento = ? `;
+        params.push(formatDate(data_pagamento, "yyyy-MM-dd"));
+      }
+      if (ensureArray(grupo_economico_list).length) {
+        where += ` AND f.id_grupo_economico IN (${ensureArray(grupo_economico_list)
+          .map((gp) => db.escape(gp))
+          .join(",")}) `;
       }
 
       // ^ Consultando vencimentos de acordo com o grupo econômico e da data de pagamento
@@ -32,10 +45,9 @@ module.exports = (req, res) => {
           LEFT JOIN filiais f ON f.id = t.id_filial
           LEFT JOIN fin_formas_pagamento fp ON fp.id = t.id_forma_pagamento
           LEFT JOIN fin_fornecedores fo ON fo.id = t.id_fornecedor
-          WHERE tv.data_pagamento = ?
-          AND f.id_grupo_economico = ?
+          ${where}
           `,
-        [formatDate(data_pagamento, "yyyy-MM-dd"), id_grupo_economico]
+        params
       );
       const datasys = [];
       for (const vencimento of vencimentos) {
