@@ -4,7 +4,14 @@ const { logger } = require("../../../../../logger");
 const folderList = [
     '2024-12-01',
     '2024-06-01',
-]
+];
+
+function getBaseCalculoByRefAndCargo(ref, cargo){
+   const folderName = folderList.find(folder => folder <= ref)
+   const basesCalculo = require(`./${folderName}/cargos/`);
+   const calculo = basesCalculo[cargo]
+    return calculo
+}
 
 exports.calcular = (data) => {
     return new Promise(async (resolve, reject) => {
@@ -24,17 +31,12 @@ exports.calcular = (data) => {
                     const [rowsMetaBanco] = await conn.execute(`SELECT *, 'meta' as tipo FROM metas WHERE id = ?`, [meta.id])
                     const metaBanco = rowsMetaBanco && rowsMetaBanco[0];
                     const ref = formatDate(metaBanco.ref, 'yyyy-MM-dd')
-                    
-                    // Seleciona a pasta correta conforme a data de referência da meta
-                    let mesSelecionado = folderList.find(folder => folder <= ref);
-                    // Obtem a função que calcula de acordo com o cargo:
-                    const cargos = require(`./${mesSelecionado}/cargos/`);
-                    const calculo = cargos[metaBanco.cargo]
-                    // Pula, caso função não localizada.
-                    if (!calculo) continue;
-                    
-                    
-                    fila.push(calculo({ meta: metaBanco }))
+                
+                    let baseCalculo = getBaseCalculoByRefAndCargo(ref, metaBanco.cargo)
+                    if(!baseCalculo){
+                        throw new Error(`Base de cálculo não localizada para o cargo ${metaBanco.cargo} e ref: ${ref} `)
+                    }
+                    fila.push(baseCalculo({ meta: metaBanco }))
                 }
             }
             if (agregadores && agregadores.length > 0) {
@@ -43,15 +45,13 @@ exports.calcular = (data) => {
                     const [rowsAgregadorBanco] = await conn.execute(`SELECT *, 'agregador' as tipo FROM metas_agregadores WHERE id = ?`, [agregador.id]);
                     const agregadorBanco = rowsAgregadorBanco && rowsAgregadorBanco[0];
                     const ref = formatDate(agregadorBanco.ref, 'yyyy-MM-dd')
-                    // Seleciona a pasta correta conforme a data de referência da meta
-                    let mesSelecionado = folderList.find(folder => folder <= ref);
-                    // Obtem a função que calcula de acordo com o cargo:
-                    const cargos = require(`./${mesSelecionado}/cargos/`);
-                    const calculo = cargos[agregadorBanco.cargo]
-                    // Pula, caso função não localizada.
-                    if (!calculo) continue;
 
-                    fila.push(calculo({ meta: agregadorBanco }))
+                    let baseCalculo = getBaseCalculoByRefAndCargo(ref, agregadorBanco.cargo)
+                    if(!baseCalculo){
+                        throw new Error(`Base de cálculo não localizada para o cargo ${agregadorBanco.cargo} e ref: ${ref} `)
+                    }
+
+                    fila.push(baseCalculo({ meta: agregadorBanco }))
                 }
             }
             await Promise.all(fila)

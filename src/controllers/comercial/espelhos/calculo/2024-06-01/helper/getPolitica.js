@@ -48,7 +48,7 @@ module.exports = ({ meta }) => {
                 const [escalonamento] = await conn.execute(`SELECT * FROM comissao_politica_itens_escalonamento WHERE id_item_politica =?`, [item.id])
                 item.escalonamento = escalonamento;
             }
-
+            console.log(itens)
             resolve(itens);
         } catch (error) {
             reject(error)

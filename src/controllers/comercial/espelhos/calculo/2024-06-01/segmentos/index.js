@@ -29,17 +29,17 @@ module.exports = {
     'FAT_RECEITA': data => calcularReceita({ meta }),
 
     // CONTROLE
-    'QTD_CONTROLE_A_SEM_PORTABILIDADE': data => calcularControle({ meta, subsegmento: 'apenas_a' }),
-    'QTD_CONTROLE_A_COM_PORTABILIDADE': data => calcularControle({ meta, subsegmento: 'apenas_a_portab' }),
-    'QTD_CONTROLE_SEM_A_SEM_PORTABILIDADE': data => calcularControle({ meta, subsegmento: 'sem_a_sem_portab' }),
-    'QTD_CONTROLE_SEM_A_COM_PORTABILIDADE': data => calcularControle({ meta, subsegmento: 'apenas_a_sem_portab' }),
+    'QTD_CONTROLE_A_SEM_PORTAB': data => calcularControle({ meta, subsegmento: 'apenas_a' }),
+    'QTD_CONTROLE_A_COM_PORTAB': data => calcularControle({ meta, subsegmento: 'apenas_a_portab' }),
+    'QTD_CONTROLE_SEM_A_SEM_PORTAB': data => calcularControle({ meta, subsegmento: 'sem_a_sem_portab' }),
+    'QTD_CONTROLE_SEM_A_COM_PORTAB': data => calcularControle({ meta, subsegmento: 'apenas_a_sem_portab' }),
 
     // VOZ
     'QTD_VOZ': data => calcularVoz({ meta }),
-    'QTD_VOZ_INDIVIDUAL_SEM_PORTABILIDADE': data => calcularVoz({ meta, subsegmento: 'individual_sem_portab' }),
-    'QTD_VOZ_INDIVIDUAL_COM_PORTABILIDADE': data => calcularVoz({ meta, subsegmento: 'individual_com_portab' }),
-    'QTD_VOZ_MULTI_TITULAR_SEM_PORTABILIDADE': data => calcularVoz({ meta, subsegmento: 'titular_sem_portab' }),
-    'QTD_VOZ_MULTI_TITULAR_COM_PORTABILIDADE': data => calcularVoz({ meta, subsegmento: 'titular_com_portab' }),
+    'QTD_VOZ_INDIVIDUAL_SEM_PORTAB': data => calcularVoz({ meta, subsegmento: 'individual_sem_portab' }),
+    'QTD_VOZ_INDIVIDUAL_COM_PORTAB': data => calcularVoz({ meta, subsegmento: 'individual_com_portab' }),
+    'QTD_VOZ_MULTI_TITULAR_SEM_PORTAB': data => calcularVoz({ meta, subsegmento: 'titular_sem_portab' }),
+    'QTD_VOZ_MULTI_TITULAR_COM_PORTAB': data => calcularVoz({ meta, subsegmento: 'titular_com_portab' }),
 
     // UPGRADE
     'QTD_UPGRADE': data => calcularUpgrade({ meta }),
@@ -47,21 +47,22 @@ module.exports = {
     'QTD_UPGRADE2': data => calcularUpgrade({ meta, subsegmento: 'upgrade2' }),
 
     // MIXED
-    'FAT_APARELHO_ACESSORIO': data => calcularMixed({ meta, subsegmento: 'aparelho,acessorio' }),
     'FAT_ACESSORIO_PITZI': data => calcularMixed({ meta,  subsegmento: 'acessorio,pitzi' }),
+    'FAT_APARELHO_ACESSORIO': data => calcularMixed({ meta, subsegmento: 'aparelho,acessorio' }),
     'FAT_RECEITA_PITZI': data => calcularMixed({ meta, subsegmento: 'receita,pitzi' }),
-    'FAT_APARELHO_ACESSORIO_PITZI_VENDAS_INDIRETAS': data => calcularMixed({ meta, cargo: 'vendas_indiretas', subsegmento: 'aparelho,acessorio,pitzi,receita' }),
     'FAT_APARELHO_ACESSORIO_PITZI_RECEITA': data => calcularMixed({ meta,  subsegmento: 'aparelho,acessorio,pitzi,receita' }),
-
+    'FAT_APARELHO_ACESSORIO_PITZI_VENDAS_INDIRETAS': data => calcularMixed({ meta, cargo: 'vendas_indiretas', subsegmento: 'aparelho,acessorio,pitzi,receita' }),
+    
     // BONUS
-    'BONUS_RANKING_RAIOX_COORDENADOR': data => calcularBonus({ meta, subsegmento: 'ranking_raiox_coordenador' }),
     'BONUS_METAS_FACELL': data => calcularBonus({ meta, subsegmento: 'metas_facell' }),
     'BONUS_METAS_TIM': data => calcularBonus({ meta, subsegmento: 'metas_tim' }),
     'BONUS_TODAS_METAS': data => calcularBonus({ meta, subsegmento: 'todas_metas' }),
-    'BONUS_VOZ_GRUPO_ECONOMICO': data => calcularBonus({ meta, cargo: 'grupo', subsegmento: 'voz' }),
+    'BONUS_META_VOZ_GRUPO': data => calcularBonus({ meta, cargo: 'grupo', subsegmento: 'voz' }),
     'BONUS_METAS_FACELL_GERENTE': data => calcularBonus({ meta,  subsegmento: 'metas_facell' }),
     'BONUS_METAS_TIM_GERENTE': data => calcularBonus({ meta,  subsegmento: 'metas_tim' }),
     'BONUS_TODAS_METAS_GERENTE': data => calcularBonus({ meta,  subsegmento: 'todas_metas' }),
     'BONUS_TODAS_METAS_COODENADOR_COMPRAS': data => calcularBonus({ meta, cargo: 'coordenador_compras', subsegmento: 'todas_metas' }),
     'BONUS_TODAS_METAS_COORDENADOR_COMERCIAL': data => calcularBonus({ meta, cargo: 'coordenador_comercial', subsegmento: 'todas_metas' }),
+    
+    'BONUS_RANKING_RAIOX_COORDENADOR': data => calcularBonus({ meta, subsegmento: 'ranking_raiox_coordenador' }),
 }   

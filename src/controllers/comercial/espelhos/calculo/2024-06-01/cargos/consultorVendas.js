@@ -90,7 +90,7 @@ module.exports = ({ meta }) => {
         data: { stack: error.stack, name: error.name, message: error.message }
       })
 
-      reject("[CÁLCULO]:" + error.message);;
+      reject(error);
     } finally {
       if (conn) conn.release();
     }
