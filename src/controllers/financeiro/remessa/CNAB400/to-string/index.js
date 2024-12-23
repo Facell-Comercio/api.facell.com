@@ -12,6 +12,9 @@ function rulesBanco(cod_banco) {
 }
 function createHeaderArquivo(params) {
   let rules = rulesBanco(params.codigo_banco);
+  if (!rules) {
+    throw new Error("Banco não suportado!");
+  }
   const headerModel = rules.arquivoHeader;
 
   return headerModel
