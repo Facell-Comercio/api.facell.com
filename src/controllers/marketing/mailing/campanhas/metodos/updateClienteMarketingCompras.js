@@ -100,7 +100,7 @@ module.exports = async (req) => {
         params.push(gsm);
       }
       if (cpf_cliente) {
-        where += ` AND cpf = ? `;
+        where += ` AND cpf_cliente = ? `;
         params.push(cpf_cliente);
       }
       if (sets.length === 0) {
