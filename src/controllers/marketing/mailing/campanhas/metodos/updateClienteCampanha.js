@@ -131,7 +131,8 @@ module.exports = async (req, res) => {
     if (!conn_externa) {
       await conn.commit();
     }
-    res.status(200).json({ message: "Success" });
+    if(res) res.status(200).json({ message: "Success" });
+    if(!res) return { message: "Success" };
   } catch (error) {
     logger.error({
       module: "MARKETING",
@@ -140,7 +141,8 @@ module.exports = async (req, res) => {
       data: { message: error.message, stack: error.stack, name: error.name },
     });
     if (conn) await conn.rollback();
-    res.status(500).json({ message: error.message });
+    if(res) res.status(500).json({ message: error.message });
+    if(!res) return { message: error.message };
   } finally {
     if (conn && !conn_externa) conn.release();
   }
