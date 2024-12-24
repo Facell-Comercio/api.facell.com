@@ -94,6 +94,9 @@ router.put(
   checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:EDITAR"], true),
   controller.updateClienteCampanhaLote
 );
+router.put(
+  "/clientes/em-serie", controller.updateClientes
+);
 router.delete(
   "/clientes/lote",
   checkUserAuthorization("MARKETING", "OR", ["MASTER", "MAILING:EDITAR"], true),

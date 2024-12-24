@@ -9,6 +9,7 @@ module.exports = {
   transferClientesSubcampanha: require("./metodos/transferClientesSubcampanha"),
 
   updateCampanha: require("./metodos/updateCampanha"),
+  updateClientes: require("./metodos/updateClientes"),
   updateClienteCampanha: require("./metodos/updateClienteCampanha"),
   updateClienteCampanhaLote: require("./metodos/updateClienteCampanhaLote"),
   updateClienteMarketingCompras: require("./metodos/updateClienteMarketingCompras"),
